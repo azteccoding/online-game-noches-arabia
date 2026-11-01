@@ -116,6 +116,7 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {             
   const d1 = await fetch(`http://127.0.0.1:${PUERTO}/demo`, { redirect: 'manual' }); assert.equal(d1.status, 301); assert.equal(d1.headers.get('location'), '/demo/');
   const d2 = await fetch(`http://127.0.0.1:${PUERTO}/demo/`); assert.equal(d2.status, 200); assert.match(d2.headers.get('content-type'), /html/);
   assert.match(await d2.text(), /milyunanoches\.net\/demo\//);
+  const img = await fetch(`http://127.0.0.1:${PUERTO}/demo/vista-previa.jpg`); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/jpeg', 'vista previa para compartir con su tipo correcto');
   assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
 }
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });

@@ -71,7 +71,8 @@ function marcar() { sucio = true; if (!temporizador) temporizador = setTimeout((
 
 // ---------------------------------------------------------------- HTTP estático
 const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml',
-  '.webp': 'image/webp', '.png': 'image/png', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
+  '.webp': 'image/webp', '.png': 'image/png', '.ttf': 'font/ttf', '.woff2': 'font/woff2', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8',
+  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.woff': 'font/woff', '.xml': 'application/xml; charset=utf-8', '.webmanifest': 'application/manifest+json' };
 const COMPRIMIBLE = new Set(['.html', '.js', '.css', '.json', '.svg', '.txt']);
 const cacheGz = new Map();
 function servir(req, res) {
