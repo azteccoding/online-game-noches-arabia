@@ -1,0 +1,15 @@
+# Blueprint de Render (https://render.com): un solo servicio web sirve el cliente (dist/) y el WebSocket (/ws).
+# En Render: New → Blueprint → elegir este repositorio. El PIN del banco aparece en la pestaña «Logs».
+services:
+  - type: web
+    name: mil-y-una-noches
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: node server/index.js --sin-qr
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: MUN_CLAVE          # clave de entrada a la partida: Render la pide al crear el servicio (no queda en el repositorio)
+        sync: false

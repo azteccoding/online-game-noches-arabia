@@ -20,5 +20,5 @@ for (const f of DATOS_SERVIDOR) fs.copyFileSync(path.join(RAIZ, 'src', 'data', f
 const pkg = JSON.parse(fs.readFileSync(path.join(RAIZ, 'package.json'), 'utf8'));
 const minimo = { name: pkg.name + '-servidor', version: pkg.version, private: true, type: 'module', engines: pkg.engines, scripts: { start: 'node server/index.js' }, dependencies: { 'qrcode-terminal': pkg.dependencies['qrcode-terminal'], ws: pkg.dependencies.ws } };
 fs.writeFileSync(path.join(SALIDA, 'package.json'), JSON.stringify(minimo, null, 2) + '\n');
-if (fs.existsSync(path.join(RAIZ, 'README.txt'))) fs.copyFileSync(path.join(RAIZ, 'README.txt'), path.join(SALIDA, 'README.txt'));
+if (fs.existsSync(path.join(RAIZ, 'README.md'))) fs.copyFileSync(path.join(RAIZ, 'README.md'), path.join(SALIDA, 'README.md'));
 console.log('Paquete listo en', SALIDA);

@@ -13,17 +13,17 @@ const PUERTO = 18000 + Math.floor(Math.random() * 1000);
 const DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'mun-test-'));
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function arrancar(extra = []) {
-  const p = spawn(process.execPath, ['server/index.js', '--puerto', String(PUERTO), '--datos', DIR, '--sin-qr', ...extra], { cwd: RAIZ });
+function arrancar(extra = [], env = {}) {
+  const p = spawn(process.execPath, ['server/index.js', '--puerto', String(PUERTO), '--datos', DIR, '--sin-qr', ...extra], { cwd: RAIZ, env: { ...process.env, MUN_CLAVE: '', ...env } });
   let salida = '';
   p.stdout.on('data', (d) => { salida += d; });
   p.stderr.on('data', (d) => { salida += d; });
   return new Promise((ok, mal) => {
-    const t = setInterval(() => { if (salida.includes('servidor listo')) { clearInterval(t); ok({ p, salida: () => salida }); } }, 50);
+    const t = setInterval(() => { if (salida.includes('Ctrl+C para detener')) { clearInterval(t); ok({ p, salida: () => salida }); } }, 50);
     setTimeout(() => { clearInterval(t); mal(new Error('El servidor no arrancó:\n' + salida)); }, 8000);
   });
 }
-function cliente(nombre, token) {
+function cliente(nombre, token, clave) {
   return new Promise((ok, mal) => {
     const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`);
     const c = { ws, s: null, pid: null, token, errores: [], crudos: [] };
@@ -33,7 +33,7 @@ function cliente(nombre, token) {
       if (m.t === 'estado') c.s = m.s;
       if (m.t === 'error') c.errores.push(m.msg);
     });
-    ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre, token })));
+    ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre, token, clave })));
     ws.on('error', mal);
     c.a = async (a) => { ws.send(JSON.stringify({ t: 'accion', a })); await dormir(120); };
   });
@@ -95,7 +95,29 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
   const r = await fetch(`http://127.0.0.1:${PUERTO}/ruta/inexistente`, { headers: { 'accept-encoding': 'gzip' } });
   assert.equal(r.status, 200); assert.match(r.headers.get('content-type'), /html/);
 }
+assert.deepEqual(await (await fetch(`http://127.0.0.1:${PUERTO}/api/config`)).json(), { clave: false }, 'sin MUN_CLAVE no se pide clave');
 B2.ws.close(); C.ws.close();
+await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
+
+// clave de entrada (MUN_CLAVE, solo en línea): sin clave o con clave mala se rechaza; con la buena se entra; el token basta para volver
+srv = await arrancar(['--nuevo'], { MUN_CLAVE: 'camello-azul' });
+assert.ok(!srv.salida().includes('camello-azul'), 'la clave nunca se imprime');
+assert.deepEqual(await (await fetch(`http://127.0.0.1:${PUERTO}/api/config`)).json(), { clave: true });
+const hola = (m) => new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const x = JSON.parse(r); if (x.t === 'rechazo' || x.t === 'bienvenida') { ws.close(); ok(x); } }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', ...m }))); });
+let r1 = await hola({ nombre: 'Sin clave' }); assert.equal(r1.t, 'rechazo'); assert.ok(r1.clave && /pide clave/.test(r1.msg));
+r1 = await hola({ nombre: 'Mala', clave: 'camello-rojo' }); assert.equal(r1.t, 'rechazo'); assert.match(r1.msg, /Clave incorrecta/);
+const D = await cliente('Dina', undefined, 'camello-azul'); assert.ok(D.pid, 'con la clave buena se entra');
+D.ws.close(); await dormir(150);
+r1 = await hola({ nombre: 'Dina', token: D.token }); assert.equal(r1.t, 'bienvenida', 'con su token vuelve sin escribir la clave');
+r1 = await hola({ nombre: 'Falso', token: 'token-inventado' }); assert.equal(r1.t, 'rechazo', 'un token inválido exige clave');
+for (let k = 0; k < 10; k++) await hola({ nombre: 'X', clave: 'mala' + k });
+r1 = await hola({ nombre: 'X', clave: 'camello-azul' }); assert.match(r1.msg, /Demasiados intentos/, 'máx. 10 fallos por minuto e IP');
+if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {                // la muestra /demo/ es pública aunque haya clave
+  const d1 = await fetch(`http://127.0.0.1:${PUERTO}/demo`, { redirect: 'manual' }); assert.equal(d1.status, 301); assert.equal(d1.headers.get('location'), '/demo/');
+  const d2 = await fetch(`http://127.0.0.1:${PUERTO}/demo/`); assert.equal(d2.status, 200); assert.match(d2.headers.get('content-type'), /html/);
+  assert.match(await d2.text(), /milyunanoches\.net\/demo\//);
+  assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
+}
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
 fs.rmSync(DIR, { recursive: true, force: true, maxRetries: 5 });
 console.log('servidor.test.mjs OK');

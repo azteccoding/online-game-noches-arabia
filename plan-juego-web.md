@@ -145,7 +145,7 @@ Todo bajo `onlineGame/`. **No** se entrega `node_modules/`, `dist/`, `package-lo
 
 ```
 onlineGame/
-├─ README.txt                      guía de uso (texto plano, no .md)
+├─ README.md                       guía de uso (jugar, publicar en internet, guardado, pruebas)
 ├─ plan-juego-web.md               este documento
 ├─ package.json                    scripts y versiones exactas
 ├─ vite.config.js                  react plugin + proxy /ws -> :8080 (solo desarrollo)
@@ -664,7 +664,7 @@ Copia y pega:
 
 ```
 Eres un ingeniero senior de JavaScript. Trabajas en el proyecto «Mil y una Noches» (juego de mesa web en red local) en la carpeta docsJuegoMesa/onlineGame.
-Lee primero README.txt y plan-juego-web.md completos (secciones 3, 4, 8 y 9.6). No cambies reglas del juego: la fuente es el reglamento extendido; ante una ambigüedad aplica la regla que más beneficie al jugador y anótala en 8.2.
+Lee primero README.md y plan-juego-web.md completos (secciones 3, 4, 8 y 9.6). No cambies reglas del juego: la fuente es el reglamento extendido; ante una ambigüedad aplica la regla que más beneficie al jugador y anótala en 8.2.
 Reglas de trabajo: español; no instales nada dentro de onlineGame (verifica en una copia temporal: rsync a /tmp/online-run sin node_modules ni dist, luego npm install && npm run build && npm test && npm run simular); el servidor es autoritativo (shared/) y filtra por jugador (vista); sin dependencias nativas; sin marcas de agua en pantallas de juego; el tablero siempre vectorial; solo una carta completa montada a la vez; la vista horizontal es la predeterminada y no se decide con media queries.
 Tarea: elige una mejora de 8.3, impleméntala con prueba de motor y, si hay interfaz, una prueba de navegador; actualiza el plan y el README. Antes de empezar, resume en 10 líneas lo que entendiste y qué vas a hacer primero.
 ```

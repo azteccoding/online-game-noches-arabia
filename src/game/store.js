@@ -18,7 +18,7 @@ export async function iniciarJuego(params) {
   adaptador.onEstado((estado) => poner({ estado, error: null }));
   adaptador.onConexion((conexion) => poner({ conexion }));
   adaptador.onError((error) => { poner({ error }); setTimeout(() => { if (S.error === error) poner({ error: null }); }, 4000); });
-  adaptador.onRechazo?.((rechazo) => poner({ rechazo }));
+  adaptador.onRechazo?.((rechazo, pideClave) => poner({ rechazo, pideClave: !!pideClave, conexion: 'inicio' }));   // de vuelta a la pantalla de entrada con el motivo
   poner({ demo: adaptador.modo === 'demo', pids: adaptador.pids?.() || null });
   adaptador.conectar(params);
 }

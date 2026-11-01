@@ -167,7 +167,8 @@ const sinMensaje = (j) => { j.mensaje = null; };
 }
 {
   const g = partida(['4'], { opciones: { dificultad: 'facil' } }); const { e } = g; g.listos();
-  assert.equal(e.jugadores[g.ids[0]].dinares, 30, 'fácil: 30 dinares');
+  const ingreso = e.log.reduce((s, l) => s + Number((/^Turno de J0: cobra (\d+) dinares/.exec(l.texto) || [0, 0])[1]), 0);   // si el evento de ronda ya terminó, el turno pudo cobrar su ingreso
+  assert.equal(e.jugadores[g.ids[0]].dinares - ingreso, 30, 'fácil: 30 dinares');
 }
 {
   const g = partida(['4'], { opciones: { dificultad: 'dificil' } }); const { e } = g; g.listos();

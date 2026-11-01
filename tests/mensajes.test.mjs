@@ -93,7 +93,7 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
   assert.equal(e.mazos.mensajes.length, 0);
   const fuera = e.mazos.descarte.mensajes.length;
   assert.ok(fuera <= TOTAL);
-  assert.equal(vista(data, e, e.orden[0]).host_info, undefined, 'la vista de un jugador no falla con el mazo agotado');
+  assert.equal(vista(data, e, e.orden.find((id) => id !== e.host)).host_info, undefined, 'la vista de un jugador no falla con el mazo agotado');
   assert.equal(vista(data, e, e.host).host_info.mazos.mensajes, 0);
   const r = act(e.host, { t: 'host.repartir', pid: e.orden[0], mazo: 'mensaje' });
   assert.ok(!r.ok, 'el banco no puede repartir Mensajes agotados');

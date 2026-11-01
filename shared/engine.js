@@ -54,7 +54,7 @@ export function conexion(e, pid, conectado) { if (e.jugadores[pid]) e.jugadores[
 function prepararMazos(data, e) {
   const cc = {};
   for (const t of data.trivias.trivias) (cc[t.ciudad] ||= []).push({ k: 't', id: t.id });
-  for (const t of data.trivias.deMesa) (cc[t.ciudad] ||= []).push({ k: 'm', id: t.id });
+  if (data.config.cartasDeMesa !== false) for (const t of data.trivias.deMesa) (cc[t.ciudad] ||= []).push({ k: 'm', id: t.id });
   for (const c of Object.keys(cc)) barajar(e, cc[c]);
   const botin = [];
   e.stock = {};

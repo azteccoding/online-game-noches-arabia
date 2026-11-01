@@ -62,7 +62,8 @@ function aViajar(g, pid, destino = 'Damasco') {
   const p2 = e.turno.pid;
   const s2 = aViajar(g, p2);
   assert.equal(e.historial.filter((h) => h.deck === 'cuento').length, 2, 'cada cuento sale una sola vez');
-  assert.equal(e.jugadores[p2].dinares, s2.antes - s2.precio, 'sin premio');
+  const visita = e.log.filter((l) => l.texto.startsWith(e.jugadores[p2].nombre + ' visita a')).reduce((s, l) => s + Number((/por (\d+) dinares/.exec(l.texto) || [0, 0])[1]), 0);   // la visita al otro jugador depende del azar
+  assert.equal(e.jugadores[p2].dinares, s2.antes - s2.precio - visita, 'sin premio');
   assert.ok(act(p2, { t: 'responderCC', opcion: 0 }).ok);
   assert.equal(e.historial.filter((h) => h.deck === 'cuento').length, 2);
 

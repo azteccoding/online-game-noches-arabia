@@ -137,6 +137,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   if (j.ciudad === 'Bagdad' && !libre && !tieneEsp(j, 'F1')) return err('En Bagdad solo se ataca con un Firmán del Califa.');
   const pa = perfil(data, e, pid);
   if (a.tipo === 'robo') {
+    if (data.config.sinRobarPrimerasRondas && e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede robar en las 2 primeras rondas.');
     if (j.pj === '1') return err('Nur al Din no puede robar.');
     if (d.pj === '1') return err('Nur al Din es inmune a los robos.');
     if (!pa.armas.length && !npc) return err('Para robar necesitas un arma que puedas usar aquí.');

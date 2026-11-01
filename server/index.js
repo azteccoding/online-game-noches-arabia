@@ -4,6 +4,7 @@
 // - Sin dependencias nativas (solo `ws` y `qrcode-terminal`, JavaScript puro): corre en Raspberry Pi OS ARM 32/64 con Node >= 18.
 // - Sin pantalla ni navegador en el servidor: imprime IP(s) + QR en la consola.
 // Opciones:  --puerto 8080  --datos ./datos  --nuevo  --restaurar <archivo.json>  --cliente ./dist  --sin-qr  --rapido (sin esperas de dados: para pruebas)
+// Variables:  PORT, MUN_DATOS, MUN_CLAVE (clave de entrada para partidas en internet; sin ella no se pide clave)
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -22,6 +23,13 @@ const DIR_DATOS = path.resolve(String(arg('datos', process.env.MUN_DATOS || path
 const DIR_CLIENTE = path.resolve(String(arg('cliente', path.join(RAIZ, 'dist'))));
 const ARCHIVO = path.join(DIR_DATOS, 'partida.json');
 const data = cargarDatos();
+
+// ---------------------------------------------------------------- clave de entrada (solo en línea: variable MUN_CLAVE; sin ella no se pide clave)
+const CLAVE = process.env.MUN_CLAVE ? crypto.createHash('sha256').update(String(process.env.MUN_CLAVE)).digest() : null;
+const claveOk = (c) => !!CLAVE && typeof c === 'string' && crypto.timingSafeEqual(crypto.createHash('sha256').update(c).digest(), CLAVE);
+const fallos = new Map();                                                            // ip → { n, desde }: máx. 10 claves malas por minuto
+const bloqueada = (ip) => { const f = fallos.get(ip); if (f && Date.now() - f.desde > 60000) fallos.delete(ip); return (fallos.get(ip)?.n || 0) >= 10; };
+const fallo = (ip) => { const f = fallos.get(ip) || { n: 0, desde: Date.now() }; f.n++; fallos.set(ip, f); };
 fs.mkdirSync(DIR_DATOS, { recursive: true });
 
 // ---------------------------------------------------------------- estado y persistencia
@@ -36,8 +44,13 @@ function cargar() {
   }
   if (!estado) {
     if (fs.existsSync(ARCHIVO)) fs.copyFileSync(ARCHIVO, path.join(DIR_DATOS, `partida-anterior-${Date.now()}.json`));
-    estado = nuevoJuego(data, { codigo: 'MIL' + crypto.randomInt(100, 999), opciones: { rapido: !!arg('rapido', false) } });
+    estado = nuevoJuego(data, { codigo: 'MIL' + crypto.randomInt(100, 999), opciones: { rapido: !!arg('rapido', false), azar: 'cripto' } });
     console.log('Partida nueva.');
+  }
+  estado.opciones.azar = 'cripto';                                                   // dados y barajados con azar criptográfico (también en partidas reanudadas)
+  if (data.config.cartasDeMesa === false && estado.mazos) {                          // quita las cartas de mesa que ya estaban en una partida guardada
+    const sinMesa = (o) => { for (const c of Object.keys(o || {})) o[c] = o[c].filter((x) => x.k !== 'm'); };
+    sinMesa(estado.mazos.cc); sinMesa(estado.mazos.descarte?.cc);
   }
   if (arg('rapido', false)) estado.opciones.rapido = true;
   for (const j of Object.values(estado.jugadores)) j.conectado = false;
@@ -64,9 +77,11 @@ const cacheGz = new Map();
 function servir(req, res) {
   let url = decodeURIComponent((req.url || '/').split('?')[0]);
   if (url === '/healthz') { res.writeHead(200, { 'Content-Type': 'text/plain' }); return res.end('ok'); }
+  if (url === '/api/config') { res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-cache' }); return res.end(JSON.stringify({ clave: !!CLAVE })); }
+  if (url === '/demo') { res.writeHead(301, { Location: '/demo/' }); return res.end(); }   // muestra pública de un solo archivo (dist/demo/), sin clave
   if (url.endsWith('/')) url += 'index.html';
   let file = path.normalize(path.join(DIR_CLIENTE, url));
-  if (!file.startsWith(DIR_CLIENTE)) { res.writeHead(403); return res.end(); }
+  if (!file.startsWith(DIR_CLIENTE + path.sep)) { res.writeHead(403); return res.end(); }
   if (!fs.existsSync(DIR_CLIENTE)) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<meta charset=utf-8><h1>Falta el cliente</h1><p>Ejecuta <code>npm run build</code> (o copia la carpeta <code>dist/</code>) y reinicia.</p>'); }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(DIR_CLIENTE, 'index.html');      // SPA
   const ext = path.extname(file);
@@ -105,8 +120,9 @@ function desconectar(ws) {
   if (![...clientes.values()].includes(pid)) { conexion(estado, pid, false); marcar(); difundir(); }
 }
 
-wss.on('connection', (ws) => {
+wss.on('connection', (ws, req) => {
   ws.vivo = true; ws.cuenta = 0; ws.ventana = Date.now();
+  ws.ip = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress;
   ws.on('pong', () => { ws.vivo = true; });
   ws.on('close', () => desconectar(ws));
   ws.on('error', () => desconectar(ws));
@@ -119,6 +135,10 @@ wss.on('connection', (ws) => {
     if (m.t === 'hola') {
       let pid = Object.values(estado.jugadores).find((j) => m.token && j.token === m.token)?.id;
       let token = m.token;
+      if (!pid && CLAVE) {                                                           // sin token válido hay que dar la clave
+        if (bloqueada(ws.ip)) return enviar(ws, { t: 'rechazo', clave: true, msg: 'Demasiados intentos con clave incorrecta. Espera un minuto.' });
+        if (!claveOk(m.clave)) { if (m.clave) fallo(ws.ip); return enviar(ws, { t: 'rechazo', clave: true, msg: m.clave ? 'Clave incorrecta.' : 'Esta partida pide clave de entrada.' }); }
+      }
       if (!pid && estado.fase !== 'lobby' && m.nombre) {
         const nom = String(m.nombre).trim().toLowerCase();
         const perdido = Object.values(estado.jugadores).find((j) => !j.npc && !j.conectado && String(j.nombre).trim().toLowerCase() === nom);
@@ -166,6 +186,7 @@ servidor.listen(PUERTO, '0.0.0.0', () => {
   for (const { n, ip } of lista) console.log(`     http://${ip}:${PUERTO}   (${n})`);
   if (!lista.length) console.log(`     http://localhost:${PUERTO}   (no se detectó red: conecta el Wi-Fi o crea un punto de acceso)`);
   console.log(`  PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): ${estado.pinHost}`);
+  if (CLAVE) console.log('  Clave de entrada: ACTIVADA (variable MUN_CLAVE). Quien no tenga token debe escribirla.');
   console.log('  Ctrl+C para detener: la partida queda guardada y se reanuda al volver a arrancar.\n');
   if (lista.length && !arg('sin-qr', false)) {
     import('qrcode-terminal').then((m) => (m.default || m).generate(`http://${lista[0].ip}:${PUERTO}`, { small: true }, (q) => console.log(q))).catch(() => {});

@@ -9,6 +9,7 @@ export const AUTOCIERRE_DADOS_MS = 20000;
 
 // ---------------------------------------------------------------- azar
 export function rnd(e) {                                   // mulberry32 con estado en e.semilla (partidas reproducibles y restaurables)
+  if (e.opciones?.azar === 'cripto' && globalThis.crypto?.getRandomValues) return globalThis.crypto.getRandomValues(new Uint32Array(1))[0] / 4294967296;   // servidor: azar real
   e.semilla = (e.semilla + 0x6D2B79F5) | 0;
   let t = Math.imul(e.semilla ^ (e.semilla >>> 15), 1 | e.semilla);
   t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;

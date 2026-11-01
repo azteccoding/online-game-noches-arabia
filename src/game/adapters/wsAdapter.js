@@ -8,7 +8,7 @@ export function crearWs() {
     ws = new WebSocket(url);
     ws.onopen = () => {
       intento = 0; cb.conexion('ok');
-      ws.send(JSON.stringify({ t: 'hola', token: localStorage.getItem('mun.token') || undefined, nombre: nombre || localStorage.getItem('mun.nombre') || undefined }));
+      ws.send(JSON.stringify({ t: 'hola', token: localStorage.getItem('mun.token') || undefined, nombre: nombre || localStorage.getItem('mun.nombre') || undefined, clave: localStorage.getItem('mun.clave') || undefined }));
       clearInterval(ping); ping = setInterval(() => ws.readyState === 1 && ws.send('{"t":"ping"}'), 20000);
     };
     ws.onmessage = (ev) => {
@@ -16,7 +16,7 @@ export function crearWs() {
       if (m.t === 'estado') cb.estado(m.s);
       else if (m.t === 'bienvenida') localStorage.setItem('mun.token', m.token);
       else if (m.t === 'error') cb.error(m.msg);
-      else if (m.t === 'rechazo') { cerrado = true; cb.rechazo(m.msg); ws.close(); }
+      else if (m.t === 'rechazo') { cerrado = true; if (m.clave) localStorage.removeItem('mun.clave'); cb.rechazo(m.msg, !!m.clave); ws.close(); }
     };
     ws.onclose = () => { clearInterval(ping); if (cerrado) return; cb.conexion('caido'); intento++; setTimeout(abrir, Math.min(500 * 2 ** intento, 5000)); };
   };
