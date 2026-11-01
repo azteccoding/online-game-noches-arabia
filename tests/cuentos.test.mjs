@@ -115,4 +115,23 @@ function aViajar(g, pid, destino = 'Damasco') {
   assert.ok(!e.cuentosSacados.includes('Aleppo'), 'la carta sigue disponible para una persona');
   assert.equal(data.config.reglasCasa.yafarNpcNoCobraCuentos, true);
 }
+// Cada cuento pertenece a un solo mazo (ids únicos), así ningún cuento puede salir dos veces en una partida
+assert.equal(new Set(data.cuentos.cuentos.map((c) => c.id)).size, data.cuentos.cuentos.length, 'ids de cuentos únicos');
+// Varios cuentos en un mazo: en cada partida sale uno al azar, y el mazo sigue dando un solo cuento por partida
+{
+  const extra = { ...data, cuentos: { ...data.cuentos, cuentos: [...data.cuentos.cuentos, { ...data.cuentos.cuentos.find((c) => c.clave === 'Bagdad'), id: 'CU-B2', titulo: 'Otro cuento de Bagdad' }] } };
+  const vistos = new Set();
+  for (let semilla = 1; semilla <= 200; semilla++) {
+    const e = nuevoJuego(extra, { semilla, ahora: 1000 }); const id = unir(e, { nombre: 'J', token: 't' });
+    assert.ok(sacarCuento(extra, e, id, 'Bagdad'));
+    assert.equal(sacarCuento(extra, e, id, 'Bagdad'), null, 'un solo cuento por mazo y partida');
+    const e2 = restaurar(serializar(e));
+    assert.equal(sacarCuento(extra, e2, id, 'Bagdad'), null, 'tras guardar y restaurar no se repite ni cambia');
+    for (const clave of new Set(extra.cuentos.cuentos.map((c) => c.clave))) sacarCuento(extra, e2, id, clave);
+    const titulos = e2.historial.filter((h) => h.deck === 'cuento').map((h) => h.titulo);
+    assert.equal(new Set(titulos).size, titulos.length, 'ningún cuento se repite en una partida');
+    vistos.add(e.historial.find((h) => h.deck === 'cuento').titulo);
+  }
+  assert.equal(vistos.size, 2, 'salen los dos cuentos de Bagdad en distintas partidas');
+}
 console.log('cuentos OK');

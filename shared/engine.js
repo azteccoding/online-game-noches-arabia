@@ -446,13 +446,14 @@ export function robarCC(data, e, pid, ciudad) {
   return t.ccActual;
 }
 
-// R 19.7: cada cuento de ambiente se saca una sola vez por partida; quien lo saca lo lee y cobra 2 dinares del banco. Ni NPC ni eliminados cobran.
+// R 19.7: cada mazo da su cuento de ambiente una sola vez por partida (si el mazo tiene varios, se elige uno al azar); quien lo saca lo lee y cobra 2 dinares del banco. Ni NPC ni eliminados cobran.
 export function sacarCuento(data, e, pid, clave) {
   const j = e.jugadores[pid];
   e.cuentosSacados ||= [];
   if (!j || j.eliminado || j.npc || e.cuentosSacados.includes(clave)) return null;
-  const c = data.cuentos.cuentos.find((x) => x.clave === clave);
-  if (!c) return null;
+  const grupo = data.cuentos.cuentos.filter((x) => x.clave === clave);               // varios cuentos por mazo: uno al azar por partida
+  if (!grupo.length) return null;
+  const c = grupo.length > 1 ? grupo[Math.floor(rnd(e) * grupo.length)] : grupo[0];
   e.cuentosSacados.push(clave);
   j.dinares += c.premio;
   const ent = publicarCarta(e, cartaDatos(data, 'cuento', c.id), pid);
