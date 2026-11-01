@@ -41,6 +41,7 @@ function cliente(nombre, token, clave) {
 
 let srv = await arrancar();
 const pin = /PIN de anfitri[oó]n[^:]*:\s*(\S+)/.exec(srv.salida())[1];
+assert.equal(pin, '1234', 'en local el PIN del banco es 1234');
 const A = await cliente('Ana'), B = await cliente('Beto'), C = await cliente('Cleo');
 await dormir(150);
 await A.a({ t: 'reclamarAnfitrion', pin });
@@ -112,6 +113,11 @@ r1 = await hola({ nombre: 'Mala', clave: 'camello-rojo' }); assert.equal(r1.t, '
 const D = await cliente('Dina', undefined, 'camello-azul'); assert.ok(D.pid, 'con la clave buena se entra');
 D.ws.close(); await dormir(150);
 r1 = await hola({ nombre: 'Dina', token: D.token }); assert.equal(r1.t, 'bienvenida', 'con su token vuelve sin escribir la clave');
+const E = await cliente('Eva', undefined, 'camello-azul'); await dormir(150);
+await E.a({ t: 'reclamarAnfitrion', pin: '1234' }); assert.ok(!E.s.soyHost && E.errores.includes('PIN incorrecto.'), 'en línea 1234 no sirve');
+await E.a({ t: 'reclamarAnfitrion', pin: 'camello-azul' }); assert.ok(E.s.soyHost, 'en línea el PIN del banco es la clave de entrada');
+assert.equal(E.s.host_info.pinHost, null, 'la clave no viaja al cliente');
+E.ws.close();
 r1 = await hola({ nombre: 'Falso', token: 'token-inventado' }); assert.equal(r1.t, 'rechazo', 'un token inválido exige clave');
 for (let k = 0; k < 10; k++) await hola({ nombre: 'X', clave: 'mala' + k });
 r1 = await hola({ nombre: 'X', clave: 'camello-azul' }); assert.match(r1.msg, /Demasiados intentos/, 'máx. 10 fallos por minuto e IP');

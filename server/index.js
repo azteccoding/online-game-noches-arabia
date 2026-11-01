@@ -27,6 +27,10 @@ const data = cargarDatos();
 // ---------------------------------------------------------------- clave de entrada (solo en línea: variable MUN_CLAVE; sin ella no se pide clave)
 const CLAVE = process.env.MUN_CLAVE ? crypto.createHash('sha256').update(String(process.env.MUN_CLAVE)).digest() : null;
 const claveOk = (c) => !!CLAVE && typeof c === 'string' && crypto.timingSafeEqual(crypto.createHash('sha256').update(c).digest(), CLAVE);
+// PIN del banco: en línea es la misma clave de entrada (MUN_CLAVE); en local, 1234. Cualquier texto vale.
+const PIN_LOCAL = '1234';
+const PIN = CLAVE || crypto.createHash('sha256').update(PIN_LOCAL).digest();
+const pinOk = (p) => typeof p === 'string' && crypto.timingSafeEqual(crypto.createHash('sha256').update(p).digest(), PIN);
 const fallos = new Map();                                                            // ip → { n, desde }: máx. 10 claves malas por minuto
 const bloqueada = (ip) => { const f = fallos.get(ip); if (f && Date.now() - f.desde > 60000) fallos.delete(ip); return (fallos.get(ip)?.n || 0) >= 10; };
 const fallo = (ip) => { const f = fallos.get(ip) || { n: 0, desde: Date.now() }; f.n++; fallos.set(ip, f); };
@@ -111,7 +115,11 @@ function difundir() {
   difusionPendiente = true;
   setTimeout(() => {
     difusionPendiente = false;
-    for (const [ws, pid] of clientes) enviar(ws, { t: 'estado', s: { ...vista(data, estado, pid), urls: direcciones() } });
+    for (const [ws, pid] of clientes) {
+      const v = vista(data, estado, pid);
+      if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
+      enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
+    }
   }, 25);
 }
 // Confirmación privada para quien hizo la acción, en las acciones que un doble clic podría repetir (entregas del banco, tesoro).
@@ -170,6 +178,11 @@ wss.on('connection', (ws, req) => {
     const pid = clientes.get(ws);
     if (!pid) return;
     if (m.t === 'accion' && m.a && typeof m.a.t === 'string') {
+      if (m.a.t === 'reclamarAnfitrion') {                                           // el PIN lo valida el servidor (tiempo constante, máx. 10 fallos/min por IP)
+        if (bloqueada(ws.ip)) return enviar(ws, { t: 'error', msg: 'Demasiados intentos. Espera un minuto.', n: m.n });
+        if (!pinOk(String(m.a.pin ?? ''))) { fallo(ws.ip); return enviar(ws, { t: 'error', msg: 'PIN incorrecto.', n: m.n }); }
+        m.a = { t: 'reclamarAnfitrion', pin: estado.pinHost };
+      }
       let r; const copia = serializar(estado);
       try { r = reducir(data, estado, pid, m.a, ahora); } catch (x) { estado = restaurar(copia); console.error('Error del motor en', m.a.t, x.stack); r = { ok: false, error: 'Error interno del servidor (anotado en la consola). Prueba de nuevo.' }; }
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
@@ -199,7 +212,7 @@ servidor.listen(PUERTO, '0.0.0.0', () => {
   console.log('  Abre en el teléfono, tablet o PC (misma red Wi-Fi):');
   for (const { n, ip } of lista) console.log(`     http://${ip}:${PUERTO}   (${n})`);
   if (!lista.length) console.log(`     http://localhost:${PUERTO}   (no se detectó red: conecta el Wi-Fi o crea un punto de acceso)`);
-  console.log(`  PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): ${estado.pinHost}`);
+  console.log(`  PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): ${CLAVE ? 'la misma clave de entrada (MUN_CLAVE)' : PIN_LOCAL}`);
   if (CLAVE) console.log('  Clave de entrada: ACTIVADA (variable MUN_CLAVE). Quien no tenga token debe escribirla.');
   console.log('  Ctrl+C para detener: la partida queda guardada y se reanuda al volver a arrancar.\n');
   if (lista.length && !arg('sin-qr', false)) {

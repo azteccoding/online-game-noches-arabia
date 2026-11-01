@@ -50,7 +50,7 @@ La consola muestra la dirección, el **PIN del banco** y un código QR:
 
 ```
 http://192.168.1.11:8080   (Wi-Fi)
-PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): 8811
+PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): 1234
 ```
 
 1. Cada jugador abre esa dirección en el navegador (o escanea el QR) **en la misma Wi-Fi**.
@@ -73,7 +73,7 @@ El juego necesita un **servidor Node que siga encendido** y mantenga abiertas la
    Render te pedirá el valor de **`MUN_CLAVE`**: escribe la clave de entrada de la partida (ver abajo).
    - Si prefieres hacerlo a mano: **New → Web Service**, runtime Node, build `npm install && npm run build`, start `node server/index.js --sin-qr`, y en **Environment** añade `MUN_CLAVE`.
 3. Al terminar, Render te da una dirección como `https://mil-y-una-noches.onrender.com`. Compártela con los jugadores **junto con la clave**.
-4. El **PIN del banco** aparece en la pestaña **Logs** del servicio.
+4. El **PIN del banco** en línea es la misma clave de entrada (`MUN_CLAVE`). En casa (sin `MUN_CLAVE`) el PIN es **1234**.
 
 ### 🌐 Dominio propio y demo
 
@@ -111,7 +111,7 @@ Crea el repositorio **desde esta carpeta (`onlineGame`)**, de modo que `package.
 |---|---|
 | `server/`, `shared/`, `src/`, `public/` | `node_modules/` (lo crea `npm install`) |
 | `package.json`, `package-lock.json`, `vite.config.js`, `index.html` | `dist/` (lo crea `npm run build`) |
-| `render.yaml`, `README.md`, `plan-juego-web.md` | `datos/` (**partida guardada, tokens y PIN**: nunca la subas) |
+| `render.yaml`, `README.md`, `plan-juego-web.md` | `datos/` (**partida guardada y tokens**: nunca la subas) |
 | `tests/`, `tools/`, `docs/`, `ejemplos/`, `fallback/` | `paquete-servidor/` |
 
 ```bash
@@ -216,7 +216,7 @@ WantedBy=multi-user.target
 
 ```bash
 sudo systemctl daemon-reload && sudo systemctl enable --now mil-y-una-noches
-journalctl -u mil-y-una-noches -n 30    # muestra la dirección y el PIN
+journalctl -u mil-y-una-noches -n 30    # muestra la dirección
 ```
 </details>
 

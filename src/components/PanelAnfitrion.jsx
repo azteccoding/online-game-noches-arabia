@@ -23,7 +23,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
         <div className="desp-cuerpo">
           <p>El banco actual es <b>{s.jugadores[s.host]?.nombre}</b> {s.hostConectado ? '' : '(desconectado: la partida sigue; cualquiera puede tirar por los NPC).'}</p>
           <form onSubmit={(e) => { e.preventDefault(); enviar(ACCIONES.reclamarAnfitrion(pin)); setPin(''); }} className="form-trato">
-            <label>PIN del servidor (se imprime en la consola del servidor) <input value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" /></label>
+            <label>PIN del banco (en línea: la clave de la partida; en local: 1234) <input value={pin} onChange={(e) => setPin(e.target.value)} type="password" autoComplete="off" /></label>
             <button className="btn" type="submit">Ser el banco</button>
           </form>
         </div>
@@ -32,7 +32,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
   }
   return (
     <div className="hoja-modal panel" role="dialog" aria-label="Panel del banco">
-      <div className="desp-cab"><h2>Banco / anfitrión</h2><span className="chip">PIN {s.host_info?.pinHost}</span><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
+      <div className="desp-cab"><h2>Banco / anfitrión</h2><span className="chip">{s.host_info?.pinHost ? `PIN ${s.host_info.pinHost}` : 'PIN = clave de la partida'}</span><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo anf">
         {sel}
         <fieldset><legend>Dar</legend>
