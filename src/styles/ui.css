@@ -252,3 +252,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .lienzo[data-forma='alta'] .barra-der { flex: 1 1 100%; justify-content: space-between; }
 .lienzo[data-forma='alta'] .barra-der .btn.mini { min-height: 34px; }
 .modal-carta .modal-sup { background: rgba(12, 3, 5, .85); border-radius: 8px; padding: 2px 8px; }
+.guia-pj { margin: 8px 0 4px; padding: 10px 12px; border: 1px solid var(--oro); border-radius: 10px; background: rgba(239, 208, 143, .07); }
+.guia-pj h4 { margin: 0 0 6px; color: var(--oro-claro); font-family: var(--f-titulo); }
+.guia-pj ul, .consejos-venta { margin: 4px 0 8px; padding-left: 20px; }
+.guia-pj li, .consejos-venta li { margin: 2px 0; }

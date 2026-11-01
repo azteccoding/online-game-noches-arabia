@@ -51,6 +51,14 @@ for (const x of [A, B, C]) await x.a({ t: 'listo', v: true });
 await A.a({ t: 'iniciar' });
 assert.equal(A.s.fase, 'juego');
 
+// guía privada: cada jugador recibe solo la de su personaje
+const guias = JSON.parse(fs.readFileSync(path.join(RAIZ, 'server', 'guias.json'), 'utf8')).guias;
+assert.equal(A.s.miGuia?.resumen, guias['1'].resumen, 'Ana recibe la guía de Nur al Din');
+assert.equal(B.s.miGuia?.resumen, guias['2'].resumen, 'Beto recibe la guía de Zein');
+for (const [x, propio] of [[A, '1'], [B, '2'], [C, '3']]) {
+  for (const [pj, g] of Object.entries(guias)) if (pj !== propio) assert.ok(!x.crudos.some((r) => r.includes(g.resumen)), `la guía de ${pj} no llega a quien lleva ${propio}`);
+}
+
 // privacidad: lo que reparte el banco a B no llega a A ni a C
 await A.a({ t: 'host.repartir', pid: B.pid, mazo: 'objeto', id: 'OB01' });
 await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });

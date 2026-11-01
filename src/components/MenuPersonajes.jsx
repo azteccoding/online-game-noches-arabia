@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import HojaPersonaje from './HojaPersonaje.jsx';
 import Sprite from './Sprite.jsx';
+import GuiaPersonaje from './GuiaPersonaje.jsx';
 import { DATA } from '../game/data.js';
 
 // Panel desplegable con las hojas de los personajes: jugadores en la partida (estado público) y las 8 hojas de referencia.
@@ -22,6 +23,7 @@ export default function MenuPersonajes({ s, onCerrar }) {
               {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{j.buscado > 0 && <span className="chip mal">B</span>}
             </button>
             {abierto === j.id && <HojaPersonaje pj={j.pj} jugador={j} esYo={j.id === s.yo} />}
+            {abierto === j.id && j.id === s.yo && s.miGuia && <GuiaPersonaje g={s.miGuia} />}
           </section>
         ))}
         <h3 className="sub-h">Las 8 hojas</h3>

@@ -1,0 +1,149 @@
+{
+ "nota": "Guía privada por personaje: el servidor la envía SOLO al jugador que lleva ese personaje (no está en el cliente). Datos de tools/estadisticas-personajes.mjs: 900 partidas simuladas con jugadores automáticos que eligen al azar (sirven para comparar personajes, no son estrategia experta).",
+ "datos": "Datos de 900 partidas simuladas con jugadores automáticos que eligen al azar: sirven para comparar personajes, no son una estrategia perfecta.",
+ "guias": {
+  "1": {
+   "resumen": "El guerrero: el único que empieza armado y con destreza.",
+   "simulacion": "Victorias 13,9 % · eliminado en el 30 % de las partidas · 19,6 noches por ronda · 33 dinares al final. Fue de quienes más duelos ganaron, pero también de quienes más perdieron (0,2 ganados por 0,5 perdidos por partida).",
+   "fuerte": [
+    "Empieza con cimitarra y destreza: puede hacer retos de combate sin pagar entrenamiento ni comprar armas.",
+    "Es inmune a los robos.",
+    "Reto de honor en El Cairo, Damasco y Aleppo: quien se niegue a pelear le paga lo que él pida."
+   ],
+   "debil": [
+    "No puede robar.",
+    "La cimitarra no se usa en Bagdad: allí solo puede atacar con un Firmán del Califa.",
+    "Pierde duelos a menudo si elige mal a quién desafiar."
+   ],
+   "consejos": [
+    "Retos de combate que le convienen: R8 en El Cairo (100 dinares y 30 noches si gana), R32 en Aleppo y R36 en Basra.",
+    "Usa el reto de honor en El Cairo, Damasco y Aleppo, sobre todo contra jugadores con muchos dinares.",
+    "No gastes en armas al principio: invierte en viajes largos y retos."
+   ]
+  },
+  "2": {
+   "resumen": "La hermosa: gana dinares en compañía y tiene suerte con los dados.",
+   "simulacion": "Victorias 9,6 % (la más baja) · eliminada en el 30 % · 17,7 noches por ronda · 22 dinares al final. Sin una estrategia clara, le cuesta despegar.",
+   "fuerte": [
+    "Noche discreta: con otro jugador de su ciudad gana 25 dinares (10 si es con Anís), si el esposo no los sorprende.",
+    "Dados del Cairo: una vez por ronda repite sus dados en una pelea que iba a perder."
+   ],
+   "debil": [
+    "Empieza sin arma ni destreza.",
+    "El esposo puede sorprenderlos y castigar a los dos.",
+    "Depende de coincidir con otros jugadores para su mejor habilidad."
+   ],
+   "consejos": [
+    "Busca ciudades concurridas (Bagdad al inicio) para usar la Noche discreta.",
+    "Si quieres retos de combate, consigue destreza en Isfahán (R18, 20 dinares), Yemen (R19) o Estambul (R25).",
+    "Guarda los Dados del Cairo para las peleas importantes."
+   ]
+  },
+  "3": {
+   "resumen": "El joven y guapo: difícil de atrapar.",
+   "simulacion": "Victorias 13,4 % · eliminado en el 26 % (de los que menos) · 19,7 noches por ronda · 28 dinares al final.",
+   "fuerte": [
+    "Por la ventana: una vez por ronda, si lo atacan, con 5 o 6 huye y el agresor pierde su acción.",
+    "Amigo de Zein: gana 10 dinares, y 20 más si no los sorprenden."
+   ],
+   "debil": [
+    "Empieza sin armas ni destreza.",
+    "Su habilidad para ganar dinares depende de que Zein esté en la partida."
+   ],
+   "consejos": [
+    "Si Zein juega, coordínense para coincidir en la misma ciudad.",
+    "Retos sin pelea que le convienen: R20 y R33 en Damasco, R39 en Aleppo.",
+    "Puede arriesgarse más que otros a quedarse cerca de jugadores peligrosos gracias a la ventana."
+   ]
+  },
+  "4": {
+   "resumen": "El poeta: junta noches sin moverse.",
+   "simulacion": "Victorias 10,5 % · eliminado en el 33 % (de los más altos) · 18,1 noches por ronda · 22 dinares al final.",
+   "fuerte": [
+    "Gana 5 noches por turno sin hacer nada.",
+    "Viaja gratis de El Cairo a Bagdad.",
+    "Recita crímenes en Bagdad (5 dinares por estrofa) y puede difamar."
+   ],
+   "debil": [
+    "Empieza sin armas ni destreza.",
+    "En las simulaciones fue de los más eliminados y de los que menos dinares juntaron."
+   ],
+   "consejos": [
+    "Quédate quieto cuando viajar no compense: tus 5 noches por turno se acumulan.",
+    "Usa la ruta gratis El Cairo → Bagdad y cobra recitando cuando haya crímenes en Bagdad.",
+    "Evita ciudades con jugadores armados o Buscados."
+   ]
+  },
+  "5": {
+   "resumen": "El sabio: empieza muy adelantado en noches.",
+   "simulacion": "Victorias 15,2 % (3.º) · eliminado en el 25 % (de los que menos) · 25,8 noches por ronda · 30 dinares al final.",
+   "fuerte": [
+    "Empieza con 200 noches y 20 CRP que puede vender o usar.",
+    "Cada visitante recibe 50 noches y le paga 5 dinares.",
+    "Viaja gratis de Bagdad a El Cairo."
+   ],
+   "debil": [
+    "Es débil en las peleas y nunca es el último en tirar.",
+    "Empieza sin armas."
+   ],
+   "consejos": [
+    "Aprovecha la ventaja inicial: evita peleas y riesgos innecesarios.",
+    "Usa o vende tus CRP en el momento oportuno.",
+    "La ruta gratis Bagdad → El Cairo ahorra dinares."
+   ]
+  },
+  "6": {
+   "resumen": "La del harén: Bagdad es su refugio y su banco.",
+   "simulacion": "Victorias 13,8 % · eliminada en el 33 % (de los más altos) · 22,6 noches por ronda · 32 dinares al final.",
+   "fuerte": [
+    "Harén del Califa en Bagdad: termina su turno, gana 15 dinares y allí no la pueden robar ni asesinar.",
+    "Puede pagar caravanas con servicios en lugar de dinares."
+   ],
+   "debil": [
+    "Pagar con servicios tiene riesgo de apedreo.",
+    "Fuera de Bagdad está sin armas ni protección."
+   ],
+   "consejos": [
+    "Vuelve a Bagdad cuando haya peligro (Asesinos, jugadores Buscados) o cuando necesites dinares.",
+    "Usa los servicios con moderación: cada uso es un riesgo.",
+    "Planea viajes de ida y vuelta desde Bagdad."
+   ]
+  },
+  "7": {
+   "resumen": "El rico: el personaje original más fuerte en las simulaciones.",
+   "simulacion": "Victorias 29,5 % (el mejor después de Yafar) · eliminado en el 23 % (el que menos) · 33,4 noches por ronda · 47 dinares al final. También fue de los más robados.",
+   "fuerte": [
+    "Empieza con 30 dinares y gana 10 por turno (el doble que los demás).",
+    "Cuentos de noche: invita a otro jugador; ambos ganan 5 dinares y el invitado 10 noches."
+   ],
+   "debil": [
+    "Siempre es el último en el orden de turnos.",
+    "Su bolsa llena atrae a los ladrones."
+   ],
+   "consejos": [
+    "Convierte los dinares en noches: viajes largos en rondas con multiplicador alto y retos con cuota de entrada (por ejemplo R31 en Isfahán: 15 dinares por 80 dinares, 15 noches y un objeto).",
+    "Protege tu dinero: esconde tesoro, compra un Amuleto o consigue destreza y un arma para defenderte.",
+    "Usa los Cuentos de noche para ganar aliados."
+   ]
+  },
+  "B": {
+   "resumen": "El visir: cobra comisión y viaja a mitad de precio.",
+   "simulacion": "Victorias 39,2 % en partidas de 4 y 5 jugadores (el más alto) · eliminado en el 27 % · 35,4 noches por ronda · 77 dinares al final. No sufrió robos en las simulaciones (los robos fueron raros en general).",
+   "fuerte": [
+    "Comisión de bolsillo: 5 dinares por cada otro jugador en su ciudad (máximo 15).",
+    "Paga la mitad de caravanas, sobornos y servicios.",
+    "Empieza con un Firmán (puede atacar en Bagdad), jambiya y destreza."
+   ],
+   "debil": [
+    "Paga doble alojamiento.",
+    "Es el blanco de todos.",
+    "No puede esconder tesoro."
+   ],
+   "consejos": [
+    "Sigue a la multitud: cuantos más jugadores en tu ciudad, más comisión.",
+    "Aprovecha las caravanas a mitad de precio para rutas largas en rondas con multiplicador alto.",
+    "Gasta los dinares en lugar de acumularlos: no puedes esconderlos."
+   ]
+  }
+ }
+}

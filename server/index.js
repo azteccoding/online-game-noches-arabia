@@ -23,6 +23,7 @@ const DIR_DATOS = path.resolve(String(arg('datos', process.env.MUN_DATOS || path
 const DIR_CLIENTE = path.resolve(String(arg('cliente', path.join(RAIZ, 'dist'))));
 const ARCHIVO = path.join(DIR_DATOS, 'partida.json');
 const data = cargarDatos();
+const GUIAS = JSON.parse(fs.readFileSync(path.join(RAIZ, 'server', 'guias.json'), 'utf8'));   // guía privada por personaje: solo viaja en la vista de quien lo lleva
 
 // ---------------------------------------------------------------- clave de entrada (solo en línea: variable MUN_CLAVE; sin ella no se pide clave)
 const CLAVE = process.env.MUN_CLAVE ? crypto.createHash('sha256').update(String(process.env.MUN_CLAVE)).digest() : null;
@@ -118,6 +119,8 @@ function difundir() {
     for (const [ws, pid] of clientes) {
       const v = vista(data, estado, pid);
       if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
+      const g = GUIAS.guias[estado.jugadores[pid]?.pj];
+      if (g) v.miGuia = { ...g, datos: GUIAS.datos };
       enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
     }
   }, 25);
