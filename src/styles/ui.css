@@ -147,6 +147,13 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .entrada { justify-content: center; text-align: center; }
 .entrada h1 { font-size: clamp(28px, calc(var(--lw, 400px) * .08), 46px); color: var(--oro-claro); }
 .logo { width: 96px; height: 96px; }
+.btn-demo { display: inline-flex; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; min-height: 44px; padding: 8px 22px; border: 1px solid rgba(239, 208, 143, .55); border-radius: 999px;
+  background: rgba(239, 208, 143, .06); color: var(--oro-claro); font-family: var(--f-titulo); font-size: 15px; letter-spacing: .08em; text-decoration: none; font-variant: small-caps;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .25); transition: background .2s, border-color .2s, color .2s, transform .1s; }
+.btn-demo svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; flex: none; }
+.btn-demo:hover { background: rgba(239, 208, 143, .14); border-color: var(--oro-claro); color: var(--pergamino); }
+.btn-demo:focus-visible { outline: 3px solid var(--oro-claro); outline-offset: 3px; }
+.btn-demo:active { transform: translateY(1px); }
 .form-entrada { display: flex; flex-direction: column; gap: 10px; padding: 18px; width: min(380px, 100%); text-align: left; }
 .lobby { align-items: stretch; max-width: 920px; margin: 0 auto; width: 100%; }
 .lobby-cab { text-align: center; }
