@@ -1,9 +1,11 @@
 import React from 'react';
 import { pjDe } from '../game/data.js';
+import { useSprite } from '../game/sprites.js';
 
 // Peón pseudo-3D 100 % vectorial: sprite SVG (billboard con volumen pintado) + sombra elíptica + animación de paso.
 // Se contra-escala con --inv (1/zoom) para mantener tamaño constante en pantalla y se contra-rota con --contra en vista vertical.
 export default function Peon({ j, ciudad, i, n, turno, tablero, yo }) {
+  const href = useSprite('p' + j.pj);
   const c = tablero.cities[ciudad] || (ciudad === 'Jorasán' ? tablero.jorasan : null);
   if (!c) return null;
   const dx = (i - (n - 1) / 2) * 30;
@@ -15,7 +17,7 @@ export default function Peon({ j, ciudad, i, n, turno, tablero, yo }) {
         <ellipse className="sombra-peon" cx="0" cy="2" rx="20" ry="6" />
         {turno && <ellipse className="aro-turno" cx="0" cy="2" rx="30" ry="10" />}
         <g key={ciudad} className="camina">
-          <use href={`/svg/sprites.svg#p${j.pj}`} x="-23" y="-74" width="46" height="77" />
+          <use href={href} x="-23" y="-74" width="46" height="77" />
         </g>
       </g>
     </g>
