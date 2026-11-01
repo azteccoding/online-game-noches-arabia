@@ -118,6 +118,9 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {             
   assert.match(await d2.text(), /milyunanoches\.net\/demo\//);
   const img = await fetch(`http://127.0.0.1:${PUERTO}/demo/vista-previa.jpg`); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/jpeg', 'vista previa para compartir con su tipo correcto');
   assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
+  const raiz = await (await fetch(`http://127.0.0.1:${PUERTO}/`)).text();                // vista previa de la página principal al compartir
+  assert.match(raiz, /og:image" content="https:\/\/milyunanoches\.net\/vista-previa\.jpg"/); assert.match(raiz, /og:title" content="[^"]*amigos/);
+  assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/vista-previa.jpg`)).headers.get('content-type'), 'image/jpeg');
 }
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
 fs.rmSync(DIR, { recursive: true, force: true, maxRetries: 5 });
