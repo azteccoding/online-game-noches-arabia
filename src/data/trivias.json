@@ -959,6 +959,246 @@
    "correcta": 1,
    "nota": "Al-Qarawiyyin es una de las instituciones de enseñanza más antiguas del mundo. Fátima la financió con su herencia.",
    "premio": 10
+  },
+  {
+   "id": "CC-81",
+   "n": 81,
+   "ciudad": "Basra",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una obra enorme de un sabio cordobés.",
+   "pregunta": "¿Cómo se llama la monumental obra de fiqh (jurisprudencia islámica) de Ibn Hazm de Córdoba?",
+   "opciones": [
+    "Al-Muhalla",
+    "Al-Muwatta",
+    "Al-Fisal"
+   ],
+   "correcta": 0,
+   "nota": "Al-Muhalla («El adornado») es un gran compendio jurídico escrito con el método zahirí: cada norma se apoya en el Corán y la Sunna.",
+   "premio": 10
+  },
+  {
+   "id": "CC-82",
+   "n": 82,
+   "ciudad": "Aleppo",
+   "categoria": "Poesía y literatura",
+   "gancho": "Consejos para vivir mejor.",
+   "pregunta": "¿Cómo se titula el tratado de ética de Ibn Hazm, una reflexión personal sobre el carácter y la conducta?",
+   "opciones": [
+    "El collar de la paloma",
+    "Los caracteres y las conductas (Al-Ajlaq wa-s-siyar)",
+    "Kalila wa-Dimna"
+   ],
+   "correcta": 1,
+   "nota": "En Al-Ajlaq wa-s-siyar Ibn Hazm reflexiona sobre la amistad, la envidia o la búsqueda del bien, a partir de su propia experiencia. «El collar de la paloma» es su libro sobre el amor.",
+   "premio": 10
+  },
+  {
+   "id": "CC-83",
+   "n": 83,
+   "ciudad": "Isfahán",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un libro que mira otras creencias.",
+   "pregunta": "¿Qué obra de Ibn Hazm compara las religiones y las distintas escuelas de pensamiento?",
+   "opciones": [
+    "El collar de la paloma",
+    "Al-Muhalla",
+    "Al-Fisal fi-l-milal wa-l-ahwa wa-n-nihal"
+   ],
+   "correcta": 2,
+   "nota": "Al-Fisal se considera una de las primeras obras de historia comparada de las religiones.",
+   "premio": 10
+  },
+  {
+   "id": "CC-84",
+   "n": 84,
+   "ciudad": "Basra",
+   "categoria": "Islam y su cultura",
+   "gancho": "Leer el texto tal como está escrito.",
+   "pregunta": "¿Qué escuela jurídica, que se atiene al sentido literal y aparente del Corán y la Sunna, defendió Ibn Hazm?",
+   "opciones": [
+    "La escuela hanafí",
+    "La escuela zahirí",
+    "La escuela malikí"
+   ],
+   "correcta": 1,
+   "nota": "«Zahir» significa «lo aparente». Esta escuela rechaza deducir normas por analogía cuando el texto no las da.",
+   "premio": 10
+  },
+  {
+   "id": "CC-85",
+   "n": 85,
+   "ciudad": "Aleppo",
+   "categoria": "Poesía y literatura",
+   "gancho": "Palabras que se aprenden de memoria.",
+   "pregunta": "¿Cómo se llama la colección de sermones, cartas y sentencias atribuidos a Alí ibn Abi Tálib?",
+   "opciones": [
+    "Nahj al-Balagha («La cumbre de la elocuencia»)",
+    "Riyad as-Salihin",
+    "Al-Kafi"
+   ],
+   "correcta": 0,
+   "nota": "La reunió el erudito ash-Sharif ar-Radi hacia el año 1000. Es un modelo de prosa árabe.",
+   "premio": 10
+  },
+  {
+   "id": "CC-86",
+   "n": 86,
+   "ciudad": "Isfahán",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una espada con nombre propio.",
+   "pregunta": "¿Qué espada se asocia tradicionalmente con Alí ibn Abi Tálib?",
+   "opciones": [
+    "Al-Battar",
+    "Al-Qadib",
+    "Dhu al-Fiqar"
+   ],
+   "correcta": 2,
+   "nota": "Dhu al-Fiqar aparece a menudo dibujada con la punta partida en dos en estandartes y adornos.",
+   "premio": 10
+  },
+  {
+   "id": "CC-87",
+   "n": 87,
+   "ciudad": "Basra",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un apodo cariñoso.",
+   "pregunta": "Alí ibn Abi Tálib era conocido también como «Abu Turab». ¿Qué significa?",
+   "opciones": [
+    "Padre de los pobres",
+    "Padre del polvo",
+    "Padre de los sabios"
+   ],
+   "correcta": 1,
+   "nota": "Según la tradición, el Profeta lo llamó así al encontrarlo dormido sobre el suelo, cubierto de polvo.",
+   "premio": 10
+  },
+  {
+   "id": "CC-88",
+   "n": 88,
+   "ciudad": "Aleppo",
+   "categoria": "Imperios e historia",
+   "gancho": "Una capital a orillas del Éufrates.",
+   "pregunta": "¿Qué ciudad de Irak hizo Alí su capital cuando fue califa?",
+   "opciones": [
+    "Kufa",
+    "Medina",
+    "Damasco"
+   ],
+   "correcta": 0,
+   "nota": "Alí trasladó el gobierno de Medina a Kufa. Fue califa del año 656 al 661.",
+   "premio": 10
+  },
+  {
+   "id": "CC-89",
+   "n": 89,
+   "ciudad": "Isfahán",
+   "categoria": "Arquitectura",
+   "gancho": "Palacios sobre una colina de Granada.",
+   "pregunta": "¿Qué dinastía construyó la Alhambra de Granada tal como la conocemos hoy?",
+   "opciones": [
+    "Los omeyas",
+    "Los almohades",
+    "Los nazaríes"
+   ],
+   "correcta": 2,
+   "nota": "Los nazaríes gobernaron el reino de Granada hasta 1492. Sus muros están llenos de versos en árabe.",
+   "premio": 10
+  },
+  {
+   "id": "CC-90",
+   "n": 90,
+   "ciudad": "Basra",
+   "categoria": "Mujeres notables",
+   "gancho": "Un sobrenombre luminoso.",
+   "pregunta": "¿Cuál es el título más conocido de Fátima, hija del profeta Muhammad?",
+   "opciones": [
+    "Az-Zahra («la Resplandeciente»)",
+    "Umm Kulthum",
+    "Al-Jansa"
+   ],
+   "correcta": 0,
+   "nota": "Fátima az-Zahra fue esposa de Alí ibn Abi Tálib y madre de al-Hasan, al-Husayn y Zaynab.",
+   "premio": 10
+  },
+  {
+   "id": "CC-91",
+   "n": 91,
+   "ciudad": "Aleppo",
+   "categoria": "Poesía y literatura",
+   "gancho": "Un niño que crece solo en una isla.",
+   "pregunta": "¿Quién escribió la novela filosófica «Hayy ibn Yaqzan» (El filósofo autodidacto)?",
+   "opciones": [
+    "Averroes",
+    "Ibn Hazm",
+    "Ibn Tufayl"
+   ],
+   "correcta": 2,
+   "nota": "Ibn Tufayl fue médico y visir en la corte almohade. Su obra se tradujo al latín y al inglés y se leyó mucho en Europa.",
+   "premio": 10
+  },
+  {
+   "id": "CC-92",
+   "n": 92,
+   "ciudad": "Isfahán",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un juez que compara escuelas.",
+   "pregunta": "¿Qué obra de Averroes compara las opiniones de las distintas escuelas de fiqh?",
+   "opciones": [
+    "Tahafut al-tahafut",
+    "Bidayat al-mujtahid",
+    "Fasl al-maqal"
+   ],
+   "correcta": 1,
+   "nota": "Además de filósofo y médico, Averroes (Ibn Rushd) fue juez en Córdoba y Sevilla.",
+   "premio": 10
+  },
+  {
+   "id": "CC-93",
+   "n": 93,
+   "ciudad": "Basra",
+   "categoria": "Mujeres notables",
+   "gancho": "Los nietos del Profeta.",
+   "pregunta": "¿Cómo se llamaban los dos hijos varones de Fátima y Alí?",
+   "opciones": [
+    "Al-Qasim y Abdallah",
+    "Hamza y al-Abbas",
+    "Al-Hasan y al-Husayn"
+   ],
+   "correcta": 2,
+   "nota": "Según la tradición, el Profeta los llamó «señores de la juventud del Paraíso».",
+   "premio": 10
+  },
+  {
+   "id": "CC-94",
+   "n": 94,
+   "ciudad": "Aleppo",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un sabio de Murcia que murió en Damasco.",
+   "pregunta": "¿Qué obra de Ibn Arabi resume su doctrina en capítulos dedicados a los profetas?",
+   "opciones": [
+    "Fusus al-hikam (Los engarces de la sabiduría)",
+    "Al-Futuhat al-Makkiyya",
+    "Tarjuman al-ashwaq"
+   ],
+   "correcta": 0,
+   "nota": "La escribió en Damasco, donde murió en 1240.",
+   "premio": 10
+  },
+  {
+   "id": "CC-95",
+   "n": 95,
+   "ciudad": "Isfahán",
+   "categoria": "Mujeres notables",
+   "gancho": "Una hija que acompañó a su padre hasta el final.",
+   "pregunta": "¿Cuál de las hijas del profeta Muhammad fue la única que le sobrevivió?",
+   "opciones": [
+    "Zaynab",
+    "Fátima",
+    "Ruqayya"
+   ],
+   "correcta": 1,
+   "nota": "Fátima murió pocos meses después que su padre, en Medina.",
+   "premio": 10
   }
  ],
  "deMesa": [
