@@ -92,7 +92,9 @@ function Juego({ lienzo }) {
 }
 
 export default function App() {
-  const lienzo = useLienzo();
+  const enPartida = useJuego((x) => !!x.estado && x.estado.fase !== 'lobby');
+  const sala = useJuego((x) => x.estado?.codigo || null);
+  const lienzo = useLienzo({ enPartida, sala });
   return (
     <LienzoCtx.Provider value={lienzo}>
       <div className="lienzo-raiz">
