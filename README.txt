@@ -22,7 +22,7 @@ interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
   La consola imprime las direcciones, el PIN del banco y un código QR, por ejemplo:
 
       http://192.168.1.5:8080   (wlan0)
-      PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): 1557
+      PIN de anfitrión (para recuperar el rol de banco desde otro dispositivo): 1234
 
   CONECTAR LOS DISPOSITIVOS: todos en la misma red Wi-Fi que el servidor. Cada jugador abre esa dirección en el
   navegador (o escanea el QR de la consola), escribe su nombre y elige personaje.
@@ -39,7 +39,7 @@ interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
     - Si se apaga el servidor o se va la luz: volver a ejecutar  npm start  y la partida continúa donde estaba.
     - Si un jugador cambia de navegador o borra los datos del suyo: entra con el MISMO nombre y recupera su sitio mientras
       su dispositivo anterior esté desconectado (un nombre desconocido no puede entrar a media partida).
-    - Si el banco pierde su dispositivo: entrar desde otro dispositivo, menú «Más» → «Banco / anfitrión», escribir el PIN de la consola y «Ser el banco».
+    - Si el banco pierde su dispositivo: entrar desde otro dispositivo, menú «Más» → «Banco / anfitrión», escribir el PIN (1234) y «Ser el banco».
     - Partida nueva:  npm start -- --nuevo   (la anterior queda como partida-anterior-<fecha>.json)
     - Restaurar una copia:  npm start -- --restaurar ./datos/partida.json.bak1
 

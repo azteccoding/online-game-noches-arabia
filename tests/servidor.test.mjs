@@ -41,6 +41,7 @@ function cliente(nombre, token) {
 
 let srv = await arrancar();
 const pin = /PIN de anfitri[oó]n[^:]*:\s*(\S+)/.exec(srv.salida())[1];
+assert.equal(pin, '1234', 'el PIN del banco es 1234');
 const A = await cliente('Ana'), B = await cliente('Beto'), C = await cliente('Cleo');
 await dormir(150);
 await A.a({ t: 'reclamarAnfitrion', pin });

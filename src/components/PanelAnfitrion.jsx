@@ -23,7 +23,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
         <div className="desp-cuerpo">
           <p>El banco actual es <b>{s.jugadores[s.host]?.nombre}</b> {s.hostConectado ? '' : '(desconectado: la partida sigue; cualquiera puede tirar por los NPC).'}</p>
           <form onSubmit={(e) => { e.preventDefault(); enviar(ACCIONES.reclamarAnfitrion(pin)); setPin(''); }} className="form-trato">
-            <label>PIN del servidor (se imprime en la consola del servidor) <input value={pin} onChange={(e) => setPin(e.target.value)} inputMode="numeric" /></label>
+            <label>PIN del banco (1234) <input value={pin} onChange={(e) => setPin(e.target.value)} type="password" autoComplete="off" /></label>
             <button className="btn" type="submit">Ser el banco</button>
           </form>
         </div>
