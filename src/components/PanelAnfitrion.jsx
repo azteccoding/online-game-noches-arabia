@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { useBloqueo } from '../hooks/useBloqueo.js';
 
 // Panel del banco/anfitrión (R 22): corrige errores, reparte cartas, tira dados de NPC. El servidor NO depende de este dispositivo.
 export default function PanelAnfitrion({ s, onCerrar }) {
@@ -13,6 +14,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
   const [valor, setValor] = useState(0);
   const [obj, setObj] = useState(DATA.objetos.mazo[0].id);
   const [pin, setPin] = useState('');
+  const [ocupado, una] = useBloqueo();
   const sel = <label>Jugador <select value={pid} onChange={(e) => setPid(e.target.value)}>{jug.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>;
   if (!s.soyHost) {
     return (
@@ -36,15 +38,15 @@ export default function PanelAnfitrion({ s, onCerrar }) {
         <fieldset><legend>Dar</legend>
           <label>Dinares <input type="number" value={din} onChange={(e) => setDin(e.target.value)} /></label>
           <label>Noches <input type="number" value={noc} onChange={(e) => setNoc(e.target.value)} /></label>
-          <button className="btn mini" onClick={() => enviar(ACCIONES.host.dar(pid, Number(din), Number(noc)))}>Entregar</button></fieldset>
+          <button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.dar(pid, Number(din), Number(noc))))}>Entregar</button></fieldset>
         <fieldset><legend>Corregir</legend>
           <label>Campo <select value={campo} onChange={(e) => setCampo(e.target.value)}>{['dinares', 'noches', 'escondido', 'buscado', 'herido', 'perdido', 'destreza', 'ciudad'].map((c) => <option key={c}>{c}</option>)}</select></label>
           <label>Valor <input value={valor} onChange={(e) => setValor(e.target.value)} /></label>
-          <button className="btn mini" onClick={() => enviar(ACCIONES.host.corregir(pid, campo, ['herido', 'perdido', 'destreza'].includes(campo) ? valor === 'true' || valor === '1' : campo === 'ciudad' ? valor : Number(valor)))}>Aplicar</button>
+          <button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.corregir(pid, campo, ['herido', 'perdido', 'destreza'].includes(campo) ? valor === 'true' || valor === '1' : campo === 'ciudad' ? valor : Number(valor))))}>Aplicar</button>
           <small className="it">herido/perdido/destreza: 1 o 0; ciudad: nombre exacto. Para eliminar usa «Eliminar jugador».</small></fieldset>
         <fieldset><legend>Repartir</legend>
           <label>Objeto <select value={obj} onChange={(e) => setObj(e.target.value)}>{DATA.objetos.mazo.map((o) => <option key={o.id} value={o.id}>{o.nombre} ({s.stockPublico[o.id]})</option>)}</select></label>
-          <div className="fila-btn"><button className="btn mini" onClick={() => enviar(ACCIONES.host.repartir(pid, 'objeto', obj))}>Dar objeto</button><button className="btn mini" onClick={() => enviar(ACCIONES.host.repartir(pid, 'mensaje'))}>Dar mensaje</button></div></fieldset>
+          <div className="fila-btn"><button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.repartir(pid, 'objeto', obj)))}>Dar objeto</button><button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.repartir(pid, 'mensaje')))}>Dar mensaje</button></div></fieldset>
         <fieldset><legend>Mazos y dados</legend>
           <div className="fila-btn">
             <button className="btn mini" onClick={() => enviar(ACCIONES.host.revelarCarta('evento'))}>Revelar evento</button>

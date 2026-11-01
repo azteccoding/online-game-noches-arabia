@@ -114,6 +114,18 @@ function difundir() {
     for (const [ws, pid] of clientes) enviar(ws, { t: 'estado', s: { ...vista(data, estado, pid), urls: direcciones() } });
   }, 25);
 }
+// Confirmación privada para quien hizo la acción, en las acciones que un doble clic podría repetir (entregas del banco, tesoro).
+function confirmacion(a, pid) {
+  const nom = (id) => estado.jugadores[id]?.nombre || '?', yo = estado.jugadores[pid];
+  switch (a.t) {
+    case 'host.dar': return `Entregado a ${nom(a.pid)}: ${Math.floor(a.dinares || 0)} dinares y ${Math.floor(a.noches || 0)} noches.`;
+    case 'host.repartir': return `Entregado a ${nom(a.pid)}: ${a.mazo === 'objeto' ? 'un objeto' : a.mazo === 'mensaje' ? 'un mensaje' : 'una carta'}.`;
+    case 'host.corregir': return `Corregido: ${a.campo} de ${nom(a.pid)}.`;
+    case 'esconder': return `Escondiste ${Math.floor(a.monto || 0)} dinares en ${yo?.ciudad}. Tienes ${yo?.escondido} escondidos.`;
+    case 'recuperar': return 'Recuperaste tu tesoro escondido.';
+    default: return null;
+  }
+}
 function desconectar(ws) {
   const pid = clientes.get(ws);
   if (!pid) return;
@@ -161,6 +173,7 @@ wss.on('connection', (ws, req) => {
       let r; const copia = serializar(estado);
       try { r = reducir(data, estado, pid, m.a, ahora); } catch (x) { estado = restaurar(copia); console.error('Error del motor en', m.a.t, x.stack); r = { ok: false, error: 'Error interno del servidor (anotado en la consola). Prueba de nuevo.' }; }
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
+      else { const msg = confirmacion(m.a, pid); if (msg) enviar(ws, { t: 'hecho', msg, n: m.n }); }
       marcar(); difundir();
     }
   });

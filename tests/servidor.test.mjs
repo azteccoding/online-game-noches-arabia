@@ -52,6 +52,9 @@ assert.equal(A.s.fase, 'juego');
 
 // privacidad: lo que reparte el banco a B no llega a A ni a C
 await A.a({ t: 'host.repartir', pid: B.pid, mazo: 'objeto', id: 'OB01' });
+await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
+assert.ok(A.crudos.some((r) => r.includes('"t":"hecho"') && r.includes('Entregado a Beto: 5 dinares')), 'el banco recibe confirmación de la entrega');
+assert.ok(!B.crudos.some((r) => r.includes('"t":"hecho"')), 'la confirmación solo llega a quien hizo la acción');
 const objetoId = (B.s.mano.find((c) => c.tipo === 'objeto') || {}).uid;
 if (!objetoId) console.log('  (aviso) el id de objeto de prueba no existe en el mazo; se omite la comprobación de mano de B:', B.errores.slice(-1));
 else {
