@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" width="120" height="200"><defs>
+<linearGradient id="rB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#515a8f"/><stop offset=".45" stop-color="#2a2f5e"/><stop offset="1" stop-color="#10132d"/></linearGradient>
+<linearGradient id="tB" x1="0" y1="0" x2="1" y2="0.4"><stop offset="0" stop-color="#e3b873"/><stop offset=".5" stop-color="#b3792a"/><stop offset="1" stop-color="#6a4515"/></linearGradient>
+<radialGradient id="fB" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#4a2f22"/><stop offset=".7" stop-color="#241410"/><stop offset="1" stop-color="#120a08"/></radialGradient>
+<radialGradient id="sB" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".6" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="gB" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d493"/><stop offset="1" stop-color="#9a6a1e"/></linearGradient>
+<linearGradient id="mB" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2f4f6"/><stop offset=".5" stop-color="#b9c1c8"/><stop offset="1" stop-color="#6c747c"/></linearGradient>
+</defs>
+<ellipse cx="60" cy="188" rx="40" ry="9" fill="url(#sB)"/>
+<!-- túnica con volumen -->
+<path d="M30,184 C20,150 24,112 38,92 L82,92 C98,112 100,150 90,184 C74,194 46,194 30,184Z" fill="url(#rB)" stroke="#1d110b" stroke-width="2" stroke-linejoin="round"/>
+<path d="M60,96 C58,130 58,160 60,190" stroke="#000" stroke-opacity=".22" stroke-width="2" fill="none"/>
+<path d="M46,100 C42,130 40,160 42,188 M76,100 C80,130 82,160 80,186" stroke="#000" stroke-opacity=".16" stroke-width="2" fill="none"/>
+<path d="M36,98 C34,124 33,148 34,176" stroke="#fff" stroke-opacity=".22" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- faja dorada -->
+<path d="M32,126 C48,134 72,134 88,126 L89,136 C72,144 48,144 31,136Z" fill="url(#gB)" stroke="#1d110b" stroke-width="1.6" stroke-linejoin="round"/>
+<!-- hombros y brazos -->
+<path d="M30,98 C22,106 22,130 28,146 C34,146 38,140 38,132 L40,100Z" fill="url(#rB)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<path d="M90,98 C99,106 99,130 93,146 C87,146 83,140 83,132 L80,100Z" fill="url(#rB)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<g transform="translate(86 128) rotate(18)"><circle cx="6" cy="6" r="6" fill="none" stroke="url(#gB)" stroke-width="3"/><path d="M6,12 v26 M6,30 h8 M6,36 h6" stroke="url(#gB)" stroke-width="3" stroke-linecap="round" fill="none"/></g><rect x="26" y="118" width="16" height="24" rx="3" fill="#efe0b4" stroke="#2a1a10" stroke-width="1.2" transform="rotate(-10 34 130)"/>
+<!-- cuello y capucha sombreada -->
+<path d="M44,92 C46,80 74,80 76,92 L80,98 C66,106 54,106 40,98Z" fill="url(#tB)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<!-- cabeza: rostro en sombra, paño sobre la boca -->
+<ellipse cx="60" cy="64" rx="23" ry="25" fill="url(#fB)" stroke="#1d110b" stroke-width="2"/>
+<path d="M38,70 C44,86 76,86 82,70 C76,76 44,76 38,70Z" fill="url(#tB)" stroke="#1d110b" stroke-width="1.4"/>
+<path d="M46,62 q14,-6 28,0" stroke="#e8c98a" stroke-opacity=".35" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+<!-- turbante -->
+<path d="M35,56 C32,30 52,20 64,22 C84,24 90,40 85,58 C76,50 48,50 35,56Z" fill="url(#tB)" stroke="#1d110b" stroke-width="2" stroke-linejoin="round"/>
+<path d="M38,50 C54,40 76,40 84,50 M36,42 C52,32 76,32 86,42 M42,33 C56,27 72,28 82,34" stroke="#000" stroke-opacity=".22" stroke-width="1.8" fill="none"/>
+<path d="M60,22 C62,16 68,16 70,22" stroke="#1d110b" stroke-width="1.6" fill="#e9c875"/>
+<path d="M40,40 C44,34 52,30 60,29" stroke="#fff" stroke-opacity=".35" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+
+</svg>

@@ -1,0 +1,76 @@
+{
+ "cuentos": [
+  {
+   "id": "CU-B",
+   "clave": "Bagdad",
+   "titulo": "El califa de incógnito",
+   "sub": "Cuento de Bagdad · carta de ambiente",
+   "texto": "Cada noche el califa se disfraza de mercader y pasea por Bagdad para saber qué dice la gente. Se entera de lo que no quería saber y casi nunca de lo que sí.",
+   "arabe": "بغداد",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-I",
+   "clave": "Isfahán",
+   "titulo": "El caballo de ébano",
+   "sub": "Cuento de Isfahán · carta de ambiente",
+   "texto": "Un caballo de ébano vuela con solo girar una clavija. Un príncipe gira la equivocada, sube a las nubes y aterriza en el balcón de una princesa. Los viajes con transbordo siempre dejan sorpresas.",
+   "arabe": "أصفهان",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-A",
+   "clave": "Aleppo",
+   "titulo": "El pescador y el genio",
+   "sub": "Cuento de Aleppo · carta de ambiente",
+   "texto": "Un pescador abre una jarra vieja y sale un genio con muy malos modales: tras siglos encerrado, quiere acabar con su libertador. El pescador lo engaña para que vuelva a entrar. Moraleja: nunca subestimes a quien no tiene nada que perder.",
+   "arabe": "حلب",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-D",
+   "clave": "Damasco",
+   "titulo": "Alí Babá y los cuarenta ladrones",
+   "sub": "Cuento de Damasco · carta de ambiente",
+   "texto": "«Ábrete, Sésamo» abre la cueva de los ladrones y desde entonces nadie dice su contraseña en voz alta. Alí Babá se lleva unas bolsas de oro; su cuñado, que quiso llevarse toda la cueva, no tuvo tanta suerte.",
+   "arabe": "دمشق",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-S",
+   "clave": "Basra",
+   "titulo": "Simbad el marino",
+   "sub": "Cuento de Basra · carta de ambiente",
+   "texto": "Siete viajes, siete naufragios y siempre vuelve con más dinero del que llevó. Un marino que convierte cada desastre en negocio es un modelo a seguir, o una advertencia para su tripulación.",
+   "arabe": "البصرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-C",
+   "clave": "El Cairo",
+   "titulo": "Aladino y la lámpara",
+   "sub": "Cuento de El Cairo · carta de ambiente",
+   "texto": "Un muchacho sin un dinar frota una lámpara vieja y le sale un genio dispuesto a cumplir deseos. Lo difícil, como siempre, no es pedir: es saber qué pedir y no cambiar la lámpara por una nueva.",
+   "arabe": "القاهرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-R",
+   "clave": "Respuestas",
+   "titulo": "Scheherezade y el sultán",
+   "sub": "Cuento de las Respuestas · carta de ambiente",
+   "texto": "Scheherezade cuenta un cuento cada noche y lo corta en lo más interesante para que el sultán la deje vivir un día más. Funciona mil y una noches: el mejor argumento de ventas de la historia.",
+   "arabe": "شهرزاد",
+   "premio": 2,
+   "refReglamento": "19.7"
+  }
+ ],
+ "premioLector": 2,
+ "nota": "Regla oficial 19.7: cada carta se saca una sola vez por partida; la de una ciudad con la primera CC de ese mazo, la de Respuestas con la primera trivia resuelta. La lee quien la saca y cobra 2 dinares del banco. No cobra un eliminado ni Yafar NPC (que no lee ni cobra); una persona que juega a Yafar el Bermekí sí cobra como cualquier jugador."
+}

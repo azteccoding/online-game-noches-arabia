@@ -1,0 +1,335 @@
+{
+ "eventos": [
+  {
+   "id": "E1",
+   "tipo": "evento",
+   "nombre": "Los Asesinos",
+   "detalle": "Los Asesinos (solo 1 copia, una sola vez en la partida; no antes de la ronda 3)",
+   "efecto": "Aparecen y atacan: ver 13.4",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E2",
+   "tipo": "evento",
+   "nombre": "Ladrones de Alí Babá",
+   "detalle": "Ladrones de Alí Babá",
+   "efecto": "Los jugadores que terminan esta ronda en la misma ciudad donde empezaron su turno son asaltados: pierden 10 dinares (o todos si tienen menos). Si hay un jugador con arma y destreza en la ciudad, puede pelear por los demás (11.4)",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E3",
+   "tipo": "evento",
+   "nombre": "Tormenta de arena",
+   "detalle": "Tormenta de arena",
+   "efecto": "Esta ronda no salen caravanas desde Bagdad. Solo se puede viajar con objeto de transporte, deseo de ifrit o caravanas que no salgan de Bagdad",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E4",
+   "tipo": "evento",
+   "nombre": "Peregrinación",
+   "detalle": "Peregrinación",
+   "efecto": "Quien llegue esta ronda a una ciudad que nunca había visitado gana 20 noches extra",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E5",
+   "tipo": "evento",
+   "nombre": "Torneo del Califa",
+   "detalle": "Torneo del Califa",
+   "efecto": "El Califa permite armas en Bagdad esta ronda. Los jugadores presentes en Bagdad se emparejan y pelean (11.4): el ganador de cada pareja gana 30 noches del banco",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E6",
+   "tipo": "evento",
+   "nombre": "Piratas del golfo",
+   "detalle": "Piratas del golfo",
+   "efecto": "Los viajes desde y hacia Basra y Yemen cuestan 5 dinares más esta ronda",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E7",
+   "tipo": "evento",
+   "nombre": "Cacería de recompensas del Califa",
+   "detalle": "Cacería de recompensas del Califa",
+   "efecto": "El jugador con más noches es \"buscado\": quien lo mate esta ronda gana 50 noches extra además del botín",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E8",
+   "tipo": "evento",
+   "nombre": "Ira del cornudo",
+   "detalle": "Ira del cornudo",
+   "efecto": "El jugador con más dinares debe pelear con el esposo de Zein (el esposo es el agresor con jambiya y 1 punto de ventaja). Si pierde, pierde 30 noches (no muere)",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E9",
+   "tipo": "evento",
+   "nombre": "Flota de Sindbad",
+   "detalle": "Flota de Sindbad",
+   "efecto": "Esta ronda el viaje a India y de India a Isfahán es gratis",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E10",
+   "tipo": "evento",
+   "nombre": "Mercader de armas",
+   "detalle": "Mercader de armas",
+   "efecto": "Esta ronda las armas cuestan la mitad en cualquier ciudad",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E11",
+   "tipo": "evento",
+   "nombre": "Emboscada en el camino",
+   "detalle": "Emboscada en el camino",
+   "efecto": "Quien viaje en caravana esta ronda tira un dado antes de salir: con 1 es asaltado por bandidos y pierde la mitad de sus dinares (redondeo hacia abajo)",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  },
+  {
+   "id": "E12",
+   "tipo": "evento",
+   "nombre": "Gran feria",
+   "detalle": "Gran feria",
+   "efecto": "Esta ronda no hay impuestos de venta en ninguna ciudad. Quien venda un objeto a otro jugador en la misma ciudad gana 5 dinares extra del banco",
+   "arte": "ev",
+   "refReglamento": "17.1"
+  }
+ ],
+ "historicos": [
+  {
+   "id": "H1",
+   "tipo": "historico",
+   "nombre": "Rebelión de los Zanj",
+   "ciudades": "Bagdad, Basra",
+   "efecto": "Quienes estén en Bagdad o Basra deben huir de Iraq o aguantar. Huir: caravana del primer tramo hacia una ciudad que no sea Bagdad ni Basra, pagando el triple de la tarifa normal (el segundo tramo, si lo hay, a tarifa normal)",
+   "costo": "Huir: triple de la tarifa (tope 30). Quedarse: pierde 30 noches y no cobra su ingreso de ese turno",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H2",
+   "tipo": "historico",
+   "nombre": "Los cristianos toman Toledo",
+   "ciudades": "Andalucía; refugio: Magreb",
+   "efecto": "Quienes estén en Andalucía pagan a un rey cristiano para quedarse o abandonan al-Ándalus en su turno a tarifa normal (Magreb 2, El Cairo 15, Bagdad 25). Si no tienen dinero para ninguna opción, pagan lo que lleven y el rey los escolta gratis al Magreb",
+   "costo": "Quedarse: 20 dinares. Irse: tarifa normal",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H3",
+   "tipo": "historico",
+   "nombre": "Mercenarios de la frontera",
+   "ciudades": "Andalucía, Magreb",
+   "efecto": "Esta ronda, en Andalucía y Magreb los duelos pueden iniciarse como acción libre y el ganador cobra un premio del banco",
+   "costo": "Ganador: +30 dinares además del botín. Rechazar sigue costando 20",
+   "fomenta": "C",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H4",
+   "tipo": "historico",
+   "nombre": "Revolución abasí",
+   "ciudades": "Damasco, Bagdad",
+   "efecto": "Los jugadores en Damasco o Bagdad pueden saquear (acción libre, una vez cada uno)",
+   "costo": "Saquear: +40 dinares del banco (el segundo en la misma ciudad cobra solo 20). Precio: pierde 20 noches y recibe el marcador Buscado (2 rondas)",
+   "fomenta": "C, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H5",
+   "tipo": "historico",
+   "nombre": "Los almorávides cruzan el Estrecho",
+   "ciudades": "Magreb, Andalucía",
+   "efecto": "Esta ronda el viaje entre Magreb y Andalucía es gratis en ambos sentidos",
+   "costo": "Quien cruce gana 15 noches. Al llegar tira un dado: con 1 el ejército requisa y pierde 10 dinares",
+   "fomenta": "M",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H6",
+   "tipo": "historico",
+   "nombre": "Los francos en el camino",
+   "ciudades": "Damasco, Aleppo",
+   "efecto": "Quien salga en caravana de Damasco o Aleppo esta ronda debe pagar escolta o enfrentar una Patrulla",
+   "costo": "Escolta: 10 dinares. Pelear: gana +20, pierde -20 y queda herido",
+   "fomenta": "M, C",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H7",
+   "tipo": "historico",
+   "nombre": "Leva del sultán",
+   "ciudades": "Damasco, Aleppo, El Cairo",
+   "efecto": "Los jugadores con arma y destreza en esas ciudades pueden alistarse; los demás pagan la cuota de guerra o pierden noches. Los alistados de una misma ciudad hacen un duelo de entrenamiento (11.2, sin heridas ni muertes)",
+   "costo": "Alistarse: +30 dinares y pierde su acción principal en su siguiente turno; el ganador del duelo cobra 20 más. No alistarse: paga 10 dinares o pierde 15 noches",
+   "fomenta": "C, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H8",
+   "tipo": "historico",
+   "nombre": "La Casa de la Sabiduría",
+   "ciudades": "Bagdad",
+   "efecto": "Esta ronda la biblioteca de Bagdad paga el precio completo (no la mitad) por libros y papiros",
+   "costo": "Quien llegue a Bagdad con un libro o papiro cobra además 20 dinares. Los libros pueden robarse",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H9",
+   "tipo": "historico",
+   "nombre": "Caravana de oro del rey de Mali",
+   "ciudades": "El Cairo",
+   "efecto": "Esta ronda, quien llegue a El Cairo cobra una propina de oro, pero todo lo que se compre en El Cairo cuesta el doble",
+   "costo": "+20 dinares por llegar; compras al doble",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H10",
+   "tipo": "historico",
+   "nombre": "La gran caravana de la Seda",
+   "ciudades": "Samarcanda, Isfahán, India",
+   "efecto": "Esta ronda las caravanas entre Samarcanda, Isfahán e India cuestan la mitad (redondeo hacia arriba)",
+   "costo": "Quien llegue a Samarcanda gana 20 noches extra",
+   "fomenta": "M",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H11",
+   "tipo": "historico",
+   "nombre": "Vientos del monzón",
+   "ciudades": "India; barcos desde Basra y Yemen",
+   "efecto": "Quienes estén en India deben irse esta ronda (a Isfahán, a la mitad de tarifa, o a Basra con el barco de Sindbad, gratis) o quedan varados hasta la siguiente ronda sin poder moverse y con alojamiento doble",
+   "costo": "Irse: tarifa a la mitad o gratis a Basra. Varado: alojamiento doble (20 dinares)",
+   "fomenta": "M",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H12",
+   "tipo": "historico",
+   "nombre": "Guerra entre hermanos herederos",
+   "ciudades": "Bagdad",
+   "efecto": "Los jugadores en Bagdad eligen bando en secreto (puño cerrado o mano abierta) y se revela. El bando con menos jugadores (empate: nadie) paga al otro. Los perdedores pueden huir gratis a Damasco en lugar de pagar. Un jugador solo tira un dado: par gana 15, impar paga 15",
+   "costo": "Perdedores: 15 dinares a cada jugador del otro bando (lo que lleven)",
+   "fomenta": "M, C, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H13",
+   "tipo": "historico",
+   "nombre": "Esplendor de Córdoba",
+   "ciudades": "Andalucía",
+   "efecto": "Quien llegue esta ronda a Andalucía gana el doble de noches (60 la primera vez, 10 luego) y puede pagar baños y banquete",
+   "costo": "Baños y banquete: paga 10 dinares y gana 25 noches",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H14",
+   "tipo": "historico",
+   "nombre": "La corte selyúcida en Isfahán",
+   "ciudades": "Isfahán",
+   "efecto": "Quien esté o llegue a Isfahán esta ronda puede asistir al banquete del sultán. Al terminar tira un dado: con 1, pierde su acción principal del siguiente turno; con 6, recibe una propina",
+   "costo": "Entrada: 10 dinares y gana 30 noches. Con 6: +10 dinares",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H15",
+   "tipo": "historico",
+   "nombre": "Crecida del Nilo",
+   "ciudades": "El Cairo, Yemen",
+   "efecto": "Esta ronda están cortadas las caravanas entre El Cairo y Yemen (en ambos sentidos): hay que dar la vuelta por Bagdad. Quien se quede en El Cairo paga alojamiento doble",
+   "costo": "Alojamiento doble en El Cairo (10 dinares); el transbordo por Bagdad suma las dos tarifas normales",
+   "fomenta": "M",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H16",
+   "tipo": "historico",
+   "nombre": "Viaje de estudio, rihla",
+   "ciudades": "todo el tablero",
+   "efecto": "Quien recorra 2 tramos de caravana en su turno gana noches extra",
+   "costo": "+20 noches",
+   "fomenta": "M",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H17",
+   "tipo": "historico",
+   "nombre": "Temporada de especias",
+   "ciudades": "Yemen, Basra, India",
+   "efecto": "Quien llegue a una de esas ciudades esta ronda puede comprar un fardo de especias (máx. 2) para venderlo en Bagdad al turno siguiente, sin impuesto",
+   "costo": "Compra: 15 dinares; venta en Bagdad: 30 dinares. El fardo puede ser robado",
+   "fomenta": "M, P, C",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H18",
+   "tipo": "historico",
+   "nombre": "Salteadores de la ruta de Persia",
+   "ciudades": "Bagdad, Isfahán",
+   "efecto": "Quien viaje esta ronda entre Bagdad e Isfahán (en cualquier sentido) debe pagar a los salteadores o pelear contra ellos como una Patrulla",
+   "costo": "Pagar 10 dinares o pelear (gana +20, pierde -20 y queda herido)",
+   "fomenta": "M, C",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H19",
+   "tipo": "historico",
+   "nombre": "Los recaudadores del Califa",
+   "ciudades": "Bagdad, Basra, Damasco, El Cairo",
+   "efecto": "El jugador con más dinares en cada una de esas ciudades (si hay empate, todos los empatados) paga, o huye de la ciudad en su turno",
+   "costo": "Paga 20 dinares o se va (tarifa normal). Los dinares escondidos no cuentan",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H20",
+   "tipo": "historico",
+   "nombre": "Sequía en los pozos del camino",
+   "ciudades": "Yemen, Basra",
+   "efecto": "Cada jugador en Yemen o Basra con objeto de transporte animal (camello, burro, caballo) debe pagar el agua o pierde ese animal",
+   "costo": "5 dinares por animal. Quien se vaya de la ciudad antes de que se resuelva no paga",
+   "fomenta": "M, P",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  }
+ ],
+ "nota": "Los efectos están en texto; el motor implementa un subconjunto (ver plan, sección Implementado/Pendiente)."
+}

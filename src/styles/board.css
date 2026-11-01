@@ -1,0 +1,49 @@
+.tablero { position: absolute; inset: 0; overflow: hidden; touch-action: none; background: #1d0709; cursor: grab; outline-offset: -3px; }
+.tablero:active { cursor: grabbing; }
+.tablero-cargando { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--f-titulo); color: var(--oro-claro); font-size: 20px; }
+.tablero-svg { position: absolute; display: block; transform-origin: 50% 50%; will-change: transform; overflow: hidden; }
+
+/* Rutas: trazos vectoriales; el relleno claro bajo la línea imita el camino. */
+.ruta-base { fill: none; stroke: #f6ecd0; stroke-width: 13; opacity: .6; stroke-linecap: round; }
+.ruta-linea { fill: none; stroke: #7b1e24; stroke-width: 6.5; stroke-dasharray: 26 11; }
+.ruta.rio .ruta-linea { stroke: #22407f; }
+.ruta.mar .ruta-base { stroke: #e8f2ee; opacity: .4; }
+.ruta.mar .ruta-linea { stroke: #22407f; stroke-dasharray: 1 14; stroke-linecap: round; }
+.ruta.viva .ruta-linea { stroke: #0f6f6a; stroke-width: 9; }
+.ruta.viva .ruta-base { stroke: #efd08f; opacity: .95; stroke-width: 18; }
+.tablero-svg[data-lod='lejos'] .tarifa:not(.viva) { display: none; }
+
+.tarifa circle { fill: #fcf5e2; stroke: #7b1e24; stroke-width: 3.5; }
+.tarifa .num path { fill: #2b130c; }
+.tarifa.viva circle { fill: #efd08f; stroke: #0f6f6a; stroke-width: 5; }
+.escala-fare { transform: scale(var(--kfare, 1)); }
+
+.ciudad { cursor: pointer; }
+.escala-pin { transform: scale(var(--kpin, 1)); }
+.ciudad .hit { fill: transparent; }
+.ciudad .pin { fill: url(#pinRelleno); stroke: url(#pinBorde); stroke-width: 3.5; stroke-linejoin: round; filter: none; }
+.ciudad .pin-ojo { fill: #efd08f; }
+.ciudad.alcance .pin { fill: #0f6f6a; }
+.ciudad.alcance .pin-ojo { animation: latido 1.2s ease-in-out infinite; }
+.ciudad.activa .pin { stroke: #fff; stroke-width: 5; }
+.jorasan polygon { fill: #efd08f; stroke: #7b1e24; stroke-width: 3.5; stroke-linejoin: round; }
+.jorasan circle { fill: #7b1e24; }
+@keyframes latido { 50% { fill: #fff; } }
+
+/* Peones pseudo-3D */
+.peon { transition: transform .95s cubic-bezier(.45, .05, .25, 1); pointer-events: none; }
+.sombra-peon { fill: rgba(0, 0, 0, .38); }
+.aro-turno { fill: none; stroke: #efd08f; stroke-width: 3; animation: aro 1.3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+.camina { animation: paso .95s ease-in-out 1; transform-box: fill-box; transform-origin: 50% 100%; }
+.peon.yo .aro-turno { stroke: #8be3d8; }
+@keyframes paso { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(-9px) scale(.96, 1.05); } 25% { transform: translateY(0) scale(1.05, .94); } 40% { transform: translateY(-9px) scale(.96, 1.05); } 55% { transform: translateY(0) scale(1.05, .94); } 70% { transform: translateY(-9px) scale(.96, 1.05); } 85% { transform: translateY(0) scale(1.04, .95); } }
+@keyframes aro { 50% { opacity: .35; } }
+
+.tablero-controles { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }
+.ctl { width: 46px; height: 46px; border-radius: 50%; border: 2px solid var(--oro); background: rgba(29, 7, 9, .86); color: var(--oro-claro); font-size: 24px; line-height: 1; display: grid; place-items: center; box-shadow: var(--sombra); padding: 0; }
+.ctl:active { background: var(--vino); }
+.minimapa { position: absolute; left: 10px; bottom: 10px; width: min(150px, calc(var(--lw, 400px) * .34)); aspect-ratio: 2970 / 2100; border: 2px solid var(--oro); border-radius: 8px; overflow: hidden; background: #4b777c; z-index: 5; box-shadow: var(--sombra); touch-action: manipulation; }
+.minimapa img, .minimapa svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mini-vista { fill: rgba(239, 208, 143, .22); stroke: #fff; stroke-width: 18; vector-effect: none; }
+.minimapa circle { fill: #efd08f; stroke: #4d0e17; stroke-width: 8; }
+.minimapa circle.yo { fill: #8be3d8; }

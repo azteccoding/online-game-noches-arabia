@@ -1,0 +1,1009 @@
+{
+ "tipos": [
+  "Arma",
+  "Herramienta",
+  "Soborno",
+  "Sustento",
+  "Mágico",
+  "Documento",
+  "Lujo/Comercio",
+  "Disfraz"
+ ],
+ "mazo": [
+  {
+   "id": "OB01",
+   "nombre": "Daga de manga",
+   "tipo": "Arma",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "Permanente",
+   "momento": "Pelea",
+   "efecto": "+1 a tu puntaje final en cualquier pelea, robo o asesinato (como atacante o defensor). Objeto de combate.",
+   "sirvePara": "R2, R8, R36, E2, H18",
+   "seConsigueEn": "Bagdad, El Cairo",
+   "humor": "Pequeña, discreta y sospechosamente cómoda.",
+   "arte": "ob-arma",
+   "sinVenta": false
+  },
+  {
+   "id": "OB02",
+   "nombre": "Honda de pastor",
+   "tipo": "Arma",
+   "copias": 3,
+   "valor": 6,
+   "duracion": "1 vez",
+   "momento": "Pelea",
+   "efecto": "+2 en tu primera tirada de una pelea contra bandoleros, saqueadores, la Patrulla, piratas, campeones de arena o el esposo de Zein. Objeto de combate.",
+   "sirvePara": "R9, R23, R36, E8, H6, H18",
+   "seConsigueEn": "Damasco, Aleppo",
+   "humor": "Pastor sí; tú, depende de la puntería.",
+   "arte": "ob-arma",
+   "sinVenta": false
+  },
+  {
+   "id": "OB03",
+   "nombre": "Polvo de pimienta",
+   "tipo": "Arma",
+   "copias": 4,
+   "valor": 8,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Como defensor en un robo o pelea, el atacante resta 2 a su puntaje final. Objeto de combate.",
+   "sirvePara": "R8, R32, E2, E11",
+   "seConsigueEn": "Basra, Yemen, Estambul",
+   "humor": "Estornudar es el primer paso hacia la derrota.",
+   "arte": "ob-arma",
+   "sinVenta": false
+  },
+  {
+   "id": "OB04",
+   "nombre": "Escudo de cuero",
+   "tipo": "Arma",
+   "copias": 2,
+   "valor": 22,
+   "duracion": "Permanente",
+   "momento": "Pelea",
+   "efecto": "+2 a tu puntaje final solo como defensor (robo o asesinato). Objeto de combate.",
+   "sirvePara": "R8, R36, E8",
+   "seConsigueEn": "Estambul, Yemen",
+   "humor": "Pesa, pero te quedas con el cuerpo en una pieza.",
+   "arte": "ob-arma",
+   "sinVenta": false
+  },
+  {
+   "id": "OB05",
+   "nombre": "Lazo de camellero",
+   "tipo": "Arma",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Elige a un jugador en tu ciudad y tira un dado: con 4 a 6 no puede viajar en su siguiente turno. No sirve contra quien tenga Amuleto de turquesa o Cortina de humo (ver su texto).",
+   "sirvePara": "R29, R33",
+   "seConsigueEn": "Yemen, Damasco",
+   "humor": "Los camellos lo odian, los deudores también.",
+   "arte": "ob-arma",
+   "sinVenta": false
+  },
+  {
+   "id": "OB06",
+   "nombre": "Llave de bronce",
+   "tipo": "Herramienta",
+   "copias": 4,
+   "valor": 10,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Abre un cofre cerrado o una cerradura de reto sin tirar el dado.",
+   "sirvePara": "R28, R31, R34 y retos con cofre",
+   "seConsigueEn": "Bagdad, El Cairo, Isfahán",
+   "humor": "No hace preguntas; solo gira.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB07",
+   "nombre": "Ganzúa",
+   "tipo": "Herramienta",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "2 usos",
+   "momento": "Tu turno",
+   "efecto": "Abre cerraduras y cancela a un guardia o vigilante en un reto (como una Llave de bronce, pero también sirve contra puertas de guardia).",
+   "sirvePara": "R28, R31",
+   "seConsigueEn": "Bagdad, El Cairo",
+   "humor": "El oficio más antiguo del que nadie presume.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB08",
+   "nombre": "Cuerda con garfio",
+   "tipo": "Herramienta",
+   "copias": 3,
+   "valor": 8,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Sube muros y azoteas: +1 a tu dado en retos de infiltración y +1 a tu dado al huir.",
+   "sirvePara": "R28, R31, R33",
+   "seConsigueEn": "Estambul, Aleppo, Basra",
+   "humor": "Ni el muro ni el vecino lo vieron venir.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB09",
+   "nombre": "Linterna de aceite",
+   "tipo": "Herramienta",
+   "copias": 3,
+   "valor": 6,
+   "duracion": "Permanente",
+   "momento": "Tu turno",
+   "efecto": "+1 a tu dado en retos y búsquedas que ocurran de noche o bajo tierra (casa embrujada, cuevas, tesoros).",
+   "sirvePara": "R21*, R28, R34, búsqueda de tesoro",
+   "seConsigueEn": "Damasco, Isfahán",
+   "humor": "Ilumina lo justo para ver lo que no querías ver.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB10",
+   "nombre": "Red de pescador",
+   "tipo": "Herramienta",
+   "copias": 2,
+   "valor": 10,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Anula un intento de huida de otro jugador en tu ciudad (por ejemplo con cortina de humo o caballo) cuando lo desafías o atacas.",
+   "sirvePara": "R33; combate",
+   "seConsigueEn": "Basra, Aleppo",
+   "humor": "Pesca peces, mercaderes y excusas.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB11",
+   "nombre": "Pala de zapador",
+   "tipo": "Herramienta",
+   "copias": 3,
+   "valor": 8,
+   "duracion": "Permanente",
+   "momento": "Tu turno",
+   "efecto": "+1 a tu primer dado al buscar un tesoro (9.2).",
+   "sirvePara": "Tesoros, R9, R21*",
+   "seConsigueEn": "Damasco, El Cairo",
+   "humor": "El 90% de la aventura es cavar.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB12",
+   "nombre": "Balanza de mercader",
+   "tipo": "Herramienta",
+   "copias": 3,
+   "valor": 10,
+   "duracion": "Permanente",
+   "momento": "Tu turno",
+   "efecto": "Al vender mercancías (tipo Lujo/Comercio) a un jugador o al banco cobras 2 dinares extra por pieza (máximo 3 piezas por turno).",
+   "sirvePara": "R22, R30, mercancías",
+   "seConsigueEn": "Bagdad, Damasco",
+   "humor": "Pesa tu oro y, sobre todo, el del otro.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB13",
+   "nombre": "Dados cargados",
+   "tipo": "Herramienta",
+   "copias": 2,
+   "valor": 15,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "En una apuesta o tirada de azar de un reto fija el resultado en 9 (suma de 2 dados). Si el resultado natural era 2, te descubren: pierdes el objeto y pagas 10 dinares.",
+   "sirvePara": "R38",
+   "seConsigueEn": "Estambul, Basra",
+   "humor": "La suerte también se compra a plazos.",
+   "arte": "ob-herramienta",
+   "sinVenta": false
+  },
+  {
+   "id": "OB14",
+   "nombre": "Sobre de sobornos",
+   "tipo": "Soborno",
+   "copias": 4,
+   "valor": 15,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Neutraliza a un guardia, vigilante o la Patrulla: no pagas el soborno que te correspondería y no peleas en esa ocasión.",
+   "sirvePara": "R30, R31, E11, H6, H18, arresto en Bagdad",
+   "seConsigueEn": "Bagdad, Estambul",
+   "humor": "Un buen argumento con sello propio.",
+   "arte": "ob-soborno",
+   "sinVenta": false
+  },
+  {
+   "id": "OB15",
+   "nombre": "Joya para el visir",
+   "tipo": "Soborno",
+   "copias": 2,
+   "valor": 30,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "El visir Yafar NPC te presta una consulta gratuita (10 dinares) o rebaja a 30 el precio del Firmán del Califa si aún quedan cartas.",
+   "sirvePara": "Visir en Bagdad, R2",
+   "seConsigueEn": "Bagdad, Isfahán",
+   "humor": "Yafar no cobra por favores; cobra por olvidarlos.",
+   "arte": "ob-soborno",
+   "sinVenta": false
+  },
+  {
+   "id": "OB16",
+   "nombre": "Regalo para Masrur",
+   "tipo": "Soborno",
+   "copias": 3,
+   "valor": 6,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "El criado Masrur te dice gratis si Los Asesinos ya actuaron y, de haberlo hecho, para quién trabajaron.",
+   "sirvePara": "4.4, 10.4",
+   "seConsigueEn": "Bagdad",
+   "humor": "Masrur calla casi todo, menos cuando huele a pasteles.",
+   "arte": "ob-soborno",
+   "sinVenta": false
+  },
+  {
+   "id": "OB17",
+   "nombre": "Caja de baratijas",
+   "tipo": "Soborno",
+   "copias": 4,
+   "valor": 4,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Sustituye hasta 5 dinares de un soborno, peaje o multa (cuenta como dinares para ese pago).",
+   "sirvePara": "R30, H6, H18, arresto en Bagdad",
+   "seConsigueEn": "Cualquier ciudad",
+   "humor": "Brilla mucho, vale poco y suena bonito.",
+   "arte": "ob-soborno",
+   "sinVenta": false
+  },
+  {
+   "id": "OB18",
+   "nombre": "Odre de agua",
+   "tipo": "Sustento",
+   "copias": 4,
+   "valor": 5,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Paga el agua de H20 por ti y por un animal de transporte; +1 a tu dado en retos de travesía por desierto.",
+   "sirvePara": "H20, R23, R29",
+   "seConsigueEn": "Todas",
+   "humor": "El tesoro más valioso del camino.",
+   "arte": "ob-sustento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB19",
+   "nombre": "Dátiles y pan de viaje",
+   "tipo": "Sustento",
+   "copias": 4,
+   "valor": 3,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Quitas tu marcador \"herido\".",
+   "sirvePara": "Cualquier pelea",
+   "seConsigueEn": "Todas",
+   "humor": "Medicina barata con sabor a viaje.",
+   "arte": "ob-sustento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB20",
+   "nombre": "Antídoto",
+   "tipo": "Sustento",
+   "copias": 3,
+   "valor": 25,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Cancela un envenenamiento (veneno de 11.1, banquete o abrevadero): no mueres ni pagas tus noches a Ruyán.",
+   "sirvePara": "Veneno, R27, H14",
+   "seConsigueEn": "Aleppo, Damasco",
+   "humor": "Se vende caro porque se usa tarde.",
+   "arte": "ob-sustento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB21",
+   "nombre": "Pastel de pistachos",
+   "tipo": "Sustento",
+   "copias": 3,
+   "valor": 4,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Regalo comestible: un NPC menor (guardia, criado, portero) te deja pasar sin pagar, o suma +1 a tu dado en retos de convencer.",
+   "sirvePara": "R30, R31, R37",
+   "seConsigueEn": "Estambul, Damasco",
+   "humor": "Argumento irrefutable, con miel.",
+   "arte": "ob-sustento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB22",
+   "nombre": "Sopa del mesón",
+   "tipo": "Sustento",
+   "copias": 3,
+   "valor": 5,
+   "duracion": "1 vez",
+   "momento": "Fin del turno",
+   "efecto": "Si no te moviste, pagas solo la mitad del alojamiento (redondeo hacia arriba).",
+   "sirvePara": "Alojamiento (8.2)",
+   "seConsigueEn": "Todas",
+   "humor": "Tibia, grasosa y suficientemente barata.",
+   "arte": "ob-sustento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB23",
+   "nombre": "Amuleto de turquesa",
+   "tipo": "Mágico",
+   "copias": 3,
+   "valor": 20,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Cancela un robo (\"Esto es un asalto\") dirigido a ti. El amuleto se rompe.",
+   "sirvePara": "E2, E11, H4, robos",
+   "seConsigueEn": "Isfahán, El Cairo",
+   "humor": "El ladrón se va muy extrañado de su mala suerte.",
+   "arte": "ob-magico",
+   "sinVenta": false
+  },
+  {
+   "id": "OB24",
+   "nombre": "Botella de genio",
+   "tipo": "Mágico",
+   "copias": 2,
+   "valor": 35,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Un genio menor concede 30 dinares y 15 noches. Se puede vender al banco por 40 dinares como un deseo de ifrit (8.1). No sirve para pedir muertes ni Asesinos.",
+   "sirvePara": "R34",
+   "seConsigueEn": "Solo botín (y R34)",
+   "humor": "Pequeño genio, gran factura.",
+   "arte": "ob-magico",
+   "sinVenta": true
+  },
+  {
+   "id": "OB25",
+   "nombre": "Cortina de humo",
+   "tipo": "Mágico",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Huyes de un asesinato o duelo sin pelear: terminas el turno del atacante en la ciudad vecina más barata (sin tarifa).",
+   "sirvePara": "10.3 opción 3, duelo",
+   "seConsigueEn": "Basra, Isfahán",
+   "humor": "Desapareces con elegancia y mucha tos.",
+   "arte": "ob-magico",
+   "sinVenta": false
+  },
+  {
+   "id": "OB26",
+   "nombre": "Espejo encantado",
+   "tipo": "Mágico",
+   "copias": 2,
+   "valor": 25,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Devuelve al jugador que la lanzó una maldición de ifrit (deseo J) o un efecto de mala suerte de carta de reto.",
+   "sirvePara": "Ifrit J, R34",
+   "seConsigueEn": "Isfahán",
+   "humor": "Refleja la maldición y devuelve la mirada.",
+   "arte": "ob-magico",
+   "sinVenta": false
+  },
+  {
+   "id": "OB27",
+   "nombre": "Pluma de roc",
+   "tipo": "Mágico",
+   "copias": 2,
+   "valor": 35,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Este turno puedes recorrer un tramo extra de caravana (3 tramos). Pagas todas las tarifas.",
+   "sirvePara": "Viajes, M4, M11, M15",
+   "seConsigueEn": "India y botín",
+   "humor": "Una pluma enorme y un pasaje gratis al vértigo.",
+   "arte": "ob-magico",
+   "sinVenta": false
+  },
+  {
+   "id": "OB28",
+   "nombre": "Hilo de alfombra",
+   "tipo": "Mágico",
+   "copias": 3,
+   "valor": 18,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Un tramo de caravana de tarifa 15 o menos te sale gratis (como si usaras transporte propio). No cuenta como objeto de transporte para H20.",
+   "sirvePara": "Viajes",
+   "seConsigueEn": "Isfahán, Damasco",
+   "humor": "Un solo hilo y el camello ya envidia.",
+   "arte": "ob-magico",
+   "sinVenta": false
+  },
+  {
+   "id": "OB29",
+   "nombre": "Salvoconducto del Califa",
+   "tipo": "Documento",
+   "copias": 3,
+   "valor": 25,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "No pagas peaje ni escolta y no enfrentas a la Patrulla ni a salteadores esa ronda (H6, H18, E11).",
+   "sirvePara": "H6, H18, E11, R3*",
+   "seConsigueEn": "Bagdad",
+   "humor": "Con sello rojo y letra enorme.",
+   "arte": "ob-documento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB30",
+   "nombre": "Carta de recomendación",
+   "tipo": "Documento",
+   "copias": 3,
+   "valor": 15,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Añade 1 voto a favor en retos que se resuelven por votación, o una entrada gratuita a un banquete o fiesta.",
+   "sirvePara": "R14*, R31, R35, R37",
+   "seConsigueEn": "Bagdad, Isfahán",
+   "humor": "Alguien muy importante dice que eres de fiar.",
+   "arte": "ob-documento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB31",
+   "nombre": "Cuaderno de ruta",
+   "tipo": "Documento",
+   "copias": 3,
+   "valor": 10,
+   "duracion": "Permanente",
+   "momento": "Tu turno",
+   "efecto": "Una vez por partida, un mensaje activo o un reto con plazo gana 1 turno de plazo.",
+   "sirvePara": "Mensajes, R4*, R10*, R30, R39",
+   "seConsigueEn": "Bagdad, Aleppo",
+   "humor": "Anota hasta lo que no pasó.",
+   "arte": "ob-documento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB32",
+   "nombre": "Pergamino sellado",
+   "tipo": "Documento",
+   "copias": 4,
+   "valor": 8,
+   "duracion": "Permanente",
+   "momento": "Tu turno",
+   "efecto": "Carga de entrega para retos de cargamento; si te lo roban, el reto se pierde. Valor de venta fijo.",
+   "sirvePara": "R30, R4*, R10*",
+   "seConsigueEn": "Bagdad, El Cairo",
+   "humor": "No lo abras. De verdad.",
+   "arte": "ob-documento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB33",
+   "nombre": "Cuaderno de refranes",
+   "tipo": "Documento",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Descartas un inciso incorrecto de una CC antes de responder (el lector te lo señala).",
+   "sirvePara": "CC, trivias",
+   "seConsigueEn": "Bagdad, Andalucía",
+   "humor": "Mil proverbios y ninguno aplicable.",
+   "arte": "ob-documento",
+   "sinVenta": false
+  },
+  {
+   "id": "OB34",
+   "nombre": "Seda de Isfahán",
+   "tipo": "Lujo/Comercio",
+   "copias": 4,
+   "valor": 15,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Isfahán por 15. Se vende en Bagdad por 28 (sin impuesto).",
+   "sirvePara": "R22, R35, comercio",
+   "seConsigueEn": "Isfahán",
+   "humor": "Suave al tacto y al bolsillo.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB35",
+   "nombre": "Resina aromática de Yemen",
+   "tipo": "Lujo/Comercio",
+   "copias": 4,
+   "valor": 6,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Yemen por 6. Se vende en El Cairo por 14 (neto de impuesto).",
+   "sirvePara": "R22, R35, comercio",
+   "seConsigueEn": "Yemen",
+   "humor": "Huele a dinero, que es mejor.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB36",
+   "nombre": "Vidrio de Damasco",
+   "tipo": "Lujo/Comercio",
+   "copias": 3,
+   "valor": 10,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Damasco por 10. Se vende en Estambul por 18 (neto). Se rompe si pierdes una pelea mientras lo llevas.",
+   "sirvePara": "R22, R35, comercio",
+   "seConsigueEn": "Damasco",
+   "humor": "Frágil, como la paciencia del comprador.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB37",
+   "nombre": "Cuero de Córdoba",
+   "tipo": "Lujo/Comercio",
+   "copias": 3,
+   "valor": 10,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Andalucía por 10. Se vende en El Cairo por 22 (neto).",
+   "sirvePara": "R22, comercio",
+   "seConsigueEn": "Andalucía",
+   "humor": "Con olor a taller y a ganancia.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB38",
+   "nombre": "Papel de Samarcanda",
+   "tipo": "Lujo/Comercio",
+   "copias": 3,
+   "valor": 8,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Samarcanda por 8. Se vende en Bagdad por 22 (sin impuesto). Cuenta como papiro para M2 y M6.",
+   "sirvePara": "M2, M6, R22, comercio",
+   "seConsigueEn": "Samarcanda",
+   "humor": "Fino, blanco y caro en cuanto sale de la ciudad.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB39",
+   "nombre": "Pimienta de Malabar",
+   "tipo": "Lujo/Comercio",
+   "copias": 3,
+   "valor": 12,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en India por 12. Se vende en Isfahán por 24 (neto).",
+   "sirvePara": "R22, comercio, H17",
+   "seConsigueEn": "India",
+   "humor": "Estornuda el que la compra y llora el que la paga.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB40",
+   "nombre": "Perfume de rosas",
+   "tipo": "Lujo/Comercio",
+   "copias": 4,
+   "valor": 9,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Compra en Damasco por 9. Se vende en Bagdad por 17 (sin impuesto). Vale +2 como regalo en R35.",
+   "sirvePara": "R35, R22, comercio",
+   "seConsigueEn": "Damasco",
+   "humor": "Convence más que un argumento.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false
+  },
+  {
+   "id": "OB41",
+   "nombre": "Joya de granate",
+   "tipo": "Lujo/Comercio",
+   "copias": 2,
+   "valor": 40,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Valor fijo de 40 dinares entre jugadores; el banco la compra por 20. Sirve de regalo en R31, R35.",
+   "sirvePara": "R31, R35",
+   "seConsigueEn": "Solo botín",
+   "humor": "Cara, bonita y muy fácil de robar.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": true
+  },
+  {
+   "id": "OB42",
+   "nombre": "Disfraz de mendigo",
+   "tipo": "Disfraz",
+   "copias": 3,
+   "valor": 8,
+   "duracion": "1 vez",
+   "momento": "Reacción",
+   "efecto": "Eliminas tu marcador \"buscado\" o evitas ser elegido por E7 (buscado del Califa) o H19 (recaudadores).",
+   "sirvePara": "E7, H19",
+   "seConsigueEn": "Todas",
+   "humor": "Nadie roba al pobre; el pobre, sí.",
+   "arte": "ob-disfraz",
+   "sinVenta": false
+  },
+  {
+   "id": "OB43",
+   "nombre": "Túnica de guardia",
+   "tipo": "Disfraz",
+   "copias": 2,
+   "valor": 18,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Pasas por guardia en un lugar vigilado: +1 a tu dado en infiltraciones y no pagas el arresto de Bagdad por un delito ese turno.",
+   "sirvePara": "R28, R31",
+   "seConsigueEn": "Bagdad, Estambul",
+   "humor": "Con casco de prestado y paso militar.",
+   "arte": "ob-disfraz",
+   "sinVenta": false
+  },
+  {
+   "id": "OB44",
+   "nombre": "Velo de viajero",
+   "tipo": "Disfraz",
+   "copias": 3,
+   "valor": 6,
+   "duracion": "Permanente",
+   "momento": "Reacción",
+   "efecto": "Si una carta te elige al azar como víctima (por ejemplo, Los Asesinos, E1), tira de nuevo una vez.",
+   "sirvePara": "E1, E8",
+   "seConsigueEn": "Todas",
+   "humor": "Cubre el rostro y lo que tu rostro dice.",
+   "arte": "ob-disfraz",
+   "sinVenta": false
+  },
+  {
+   "id": "OB45",
+   "nombre": "Máscara del zoco",
+   "tipo": "Disfraz",
+   "copias": 3,
+   "valor": 10,
+   "duracion": "1 vez",
+   "momento": "Tu turno",
+   "efecto": "Tras robar o matar, nadie sabe quién fue: no recibes el marcador \"buscado\".",
+   "sirvePara": "10.3, robos",
+   "seConsigueEn": "Estambul, El Cairo",
+   "humor": "Un buen anónimo viaja ligero.",
+   "arte": "ob-disfraz",
+   "sinVenta": false
+  }
+ ],
+ "originales": [
+  {
+   "nombre": "Papel amate",
+   "efecto": "5 hojas",
+   "precio": "Para tesoros escondidos y para rehacer mapas"
+  },
+  {
+   "nombre": "Caballo",
+   "efecto": "Llega a las ciudades en 1 turno",
+   "precio": "-"
+  },
+  {
+   "nombre": "Camello",
+   "efecto": "Llega en 2 turnos",
+   "precio": "-"
+  },
+  {
+   "nombre": "Burro",
+   "efecto": "Llega en 3 turnos",
+   "precio": "-"
+  },
+  {
+   "nombre": "Alfombra mágica",
+   "efecto": "Transporte gratis a cualquier ciudad; apareces el siguiente turno",
+   "precio": "-"
+  },
+  {
+   "nombre": "Libros, papiros, etc.",
+   "efecto": "Todo artefacto del conocimiento aumenta su valor en 2 dinares por turno (se registran los aumentos y todos deben verlos). La biblioteca de Bagdad lo compra a la mitad de su precio actual. Entre jugadores se puede exigir como máximo su precio actual, aunque se puede regatear",
+   "precio": "Valor inicial = número de jugadores x 4 dinares"
+  },
+  {
+   "nombre": "Arco",
+   "efecto": "+1 punto en cualquier pelea o duelo, al atacar o al defenderte. Necesita flechas. En Bagdad solo con Firmán",
+   "precio": "15 dinares"
+  },
+  {
+   "nombre": "Flechas",
+   "efecto": "Se compran en cualquier ciudad",
+   "precio": "5 dinares"
+  },
+  {
+   "nombre": "Alfanje",
+   "efecto": "+1 punto en cualquier pelea o duelo, al atacar o al defenderte. No se puede usar en Bagdad",
+   "precio": "25 dinares"
+  },
+  {
+   "nombre": "Cimitarra",
+   "efecto": "+2 puntos en cualquier pelea o duelo, al atacar o al defenderte. No se puede usar en Bagdad",
+   "precio": "35 dinares"
+  },
+  {
+   "nombre": "Jambiya",
+   "efecto": "+3 puntos si el dado de sorpresa favorece (par); ninguno si no. Lo tira quien la lleva, ataque o se defienda. En Bagdad solo con Firmán",
+   "precio": "15 dinares"
+  },
+  {
+   "nombre": "Veneno",
+   "efecto": "Se consigue completando R27. A los 3 turnos caduca. Uso: pagar 20 dinares y su transporte desde Bagdad a la Anciana Devota desde cualquier ciudad; o con el favor del visir Yafar, que invite a la víctima a un banquete en Bagdad y ordene a sus criados echarlo en la comida; o sobornar al criado Masrur con 5 dinares por cada jugador vivo para que envenene el abrevadero de una ciudad (mueren todos los animales de transporte de los jugadores en esa ciudad). Si envenenan a un jugador, puede pagar al Sabio Ruyán todas sus noches a cambio de no morir",
+   "precio": "Se vende caro"
+  },
+  {
+   "nombre": "Brújula",
+   "efecto": "Herramienta: permite repetir una tirada al buscar tesoros",
+   "precio": "-"
+  },
+  {
+   "nombre": "Astrolabio",
+   "efecto": "Herramienta: ayuda al buscar tesoros",
+   "precio": "-"
+  },
+  {
+   "nombre": "Esclavas de los Balcanes (esclavas cristianas de Estambul)",
+   "efecto": "Se compran en Estambul. Mantenimiento 1 dinar por turno. Dan +5 noches por turno. Si las prostituyes, el cliente gana 50 noches",
+   "precio": "-"
+  },
+  {
+   "nombre": "Esclavas de Abisinia",
+   "efecto": "Se compran en Yemen. Mantenimiento 1 dinar por turno. Dan +5 noches por turno. Si las prostituyes, el cliente gana 30 noches",
+   "precio": "-"
+  },
+  {
+   "nombre": "Esclavos (hombres)",
+   "efecto": "Se compran en Bagdad o Magreb. Se pueden liberar (esclavo liberto) pero se les debe un sueldo. Manutención de 2 o 5 dinares: tira un dado, pagas lo mínimo si cae par. Si dejas de mantenerlos o pagarles, pueden conspirar contra ti. Si los llevas a entrenar a Estambul o Yemen puedes comprarles armas o darles las tuyas. Al armarlos te defienden si intentan robarte (pelean en tu lugar); si son asesinados, peleas tú. Puedes usarlos para atacar (11.3)",
+   "precio": "2 o 5 dinares por turno"
+  },
+  {
+   "nombre": "Botellas de vino",
+   "efecto": "Se compran en Bagdad. Cada turno aumentan su valor en 6 dinares. Se venden en cualquier otra ciudad, que las compra a la mitad de su precio",
+   "precio": "20 dinares"
+  },
+  {
+   "nombre": "Buza",
+   "efecto": "Bebida de baja calidad. Se compra en Damasco y se vende en El Cairo por 4 dinares la pieza o en Bagdad por 3. El pago sale de la tesorería del Califa. Se pueden vender entre jugadores al precio que quieran",
+   "precio": "1 dinar (Damasco)"
+  },
+  {
+   "nombre": "Papel amate",
+   "efecto": "Para anotar un tesoro escondido o rehacer un mapa (16.3)",
+   "precio": "2 dinares el papel para rehacer un mapa"
+  },
+  {
+   "nombre": "Alfombras de Isfahán",
+   "efecto": "Objeto de carga para R7; ocupan las manos: no puedes huir con un objeto mientras las llevas",
+   "precio": "40 dinares cada una (máx. 2)"
+  },
+  {
+   "nombre": "Cesta de manzanas",
+   "efecto": "Para R24 o para contratar a Rayhán (12.3)",
+   "precio": "5 dinares"
+  },
+  {
+   "nombre": "Sacos de sal",
+   "efecto": "Carga de R23",
+   "precio": "15 dinares los 3 sacos"
+  },
+  {
+   "nombre": "Velo quemado",
+   "efecto": "Descartándolo, ignoras un resultado de genio malo o de \"ignorarte\" en el Jorasán y vuelves a tirar los dados (16.4)",
+   "precio": "30 dinares (R20)"
+  },
+  {
+   "nombre": "Alfanje",
+   "efecto": "Arma: +1 punto a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; no se puede usar en Bagdad. Cuesta 25 dinares.",
+   "precio": "11.1, 15.1"
+  },
+  {
+   "nombre": "Arco",
+   "efecto": "Arma: +1 punto a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; necesita flechas; en Bagdad solo con Firmán del Califa. Cuesta 15 dinares.",
+   "precio": "11.1, 15.1, 27.1"
+  },
+  {
+   "nombre": "Astrolabio",
+   "efecto": "Objeto de navegación que ayuda a localizar un tesoro; se combina con la brújula.",
+   "precio": "14.2, 15.1, 16.2, 23.11"
+  },
+  {
+   "nombre": "Brújula",
+   "efecto": "Objeto que permite repetir una tirada al buscar tesoros.",
+   "precio": "14.3, 15.1, 16.2"
+  },
+  {
+   "nombre": "Cimitarra",
+   "efecto": "Arma: +2 puntos a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; no se usa en Bagdad; cuesta 35 dinares.",
+   "precio": "11.1, 15.1"
+  },
+  {
+   "nombre": "Jambiya",
+   "efecto": "Daga: +3 si el dado de sorpresa (que tira quien la lleva, ataque o se defienda) cae par; en Bagdad solo con Firmán.",
+   "precio": "11.1, 15.1"
+  }
+ ],
+ "especiales": [
+  {
+   "id": "F1",
+   "nombre": "Firmán del Califa",
+   "copias": 3,
+   "arte": "es",
+   "refReglamento": "15.3"
+  },
+  {
+   "id": "K1",
+   "nombre": "Ejército de Kanmakán",
+   "copias": 1,
+   "arte": "es",
+   "refReglamento": "15.5"
+  },
+  {
+   "id": "G1",
+   "nombre": "Genio malo",
+   "arte": "es",
+   "refReglamento": "16.4"
+  },
+  {
+   "id": "G2",
+   "nombre": "Genio que te ignora",
+   "arte": "es",
+   "refReglamento": "16.4"
+  }
+ ],
+ "ifrit": {
+  "deseos": {
+   "A": "Viaje instantáneo (mismo turno, gratis) a cualquier ciudad del tablero, incluida Samarcanda y la casilla del Jorasán",
+   "B": "Contactar a los Asesinos (comodín: permite el contrato sin ir a Samarcanda)",
+   "C": "60 dinares del banco",
+   "D": "60 noches del banco",
+   "E": "Entrenamiento instantáneo: destreza con armas y un arma a elegir de hasta 35 dinares",
+   "F": "Firmán del Califa (si quedan cartas; si no, 30 dinares)",
+   "G": "Ventaja de combate: +3 a tus dados en tus próximas 2 peleas",
+   "H": "Alfombra mágica",
+   "I": "Mapa de tesoro (elige Persia o Rumán)",
+   "J": "Maldición: un jugador a tu elección (cualquier ciudad) pierde 50 noches y pasan a ti"
+  },
+  "cartas": [
+   {
+    "id": "I1",
+    "deseos": [
+     "A",
+     "C",
+     "G",
+     "J"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I2",
+    "deseos": [
+     "B",
+     "D",
+     "E",
+     "H"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I3",
+    "deseos": [
+     "A",
+     "F",
+     "I",
+     "C"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I4",
+    "deseos": [
+     "D",
+     "G",
+     "J",
+     "E"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I5",
+    "deseos": [
+     "B",
+     "H",
+     "C",
+     "I"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I6",
+    "deseos": [
+     "A",
+     "E",
+     "F",
+     "D"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I7",
+    "deseos": [
+     "C",
+     "G",
+     "J",
+     "B"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I8",
+    "deseos": [
+     "D",
+     "H",
+     "I",
+     "F"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I9",
+    "deseos": [
+     "A",
+     "B",
+     "E",
+     "J"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I10",
+    "deseos": [
+     "C",
+     "F",
+     "G",
+     "H"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I11",
+    "deseos": [
+     "D",
+     "I",
+     "J",
+     "A"
+    ],
+    "arte": "if"
+   },
+   {
+    "id": "I12",
+    "deseos": [
+     "B",
+     "E",
+     "H",
+     "G"
+    ],
+    "arte": "if"
+   }
+  ]
+ },
+ "limiteManoObjetos": 5,
+ "botin": 47,
+ "mercado": 89,
+ "refReglamento": "15"
+}

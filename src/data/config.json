@@ -1,0 +1,106 @@
+{
+ "meta": 1001,
+ "dinaresIniciales": 10,
+ "ingresoTurno": 5,
+ "premioTrivia": 10,
+ "premioCuento": 2,
+ "reglasCasa": {
+  "bonosArmaAmbosBandos": true,
+  "cimitarraExtraAlAtacar": true,
+  "defensorQueMataSinBuscado": true,
+  "mensajesUnoActivo": true,
+  "mensajesSinRepetir": true,
+  "yafarNpcNoCobraCuentos": true,
+  "oficiales": true
+ },
+ "maxCCPorTurno": 3,
+ "multiplicadorNoches": [
+  [
+   1,
+   3,
+   1
+  ],
+  [
+   4,
+   6,
+   2
+  ],
+  [
+   7,
+   9,
+   3
+  ],
+  [
+   10,
+   999,
+   4
+  ]
+ ],
+ "multiplicador7a8Jugadores": [
+  [
+   1,
+   2,
+   1
+  ],
+  [
+   3,
+   5,
+   2
+  ],
+  [
+   6,
+   8,
+   3
+  ],
+  [
+   9,
+   999,
+   4
+  ]
+ ],
+ "cinco_noches_por_dinar": 5,
+ "impuestoVentaPct": 20,
+ "maxTramosPorTurno": 2,
+ "primerosTurnosSinMatar": 2,
+ "duelo": {
+  "rechazo": 20,
+  "nochesPerdedor": 30
+ },
+ "buscadoRondas": 2,
+ "recompensaBuscado": 20,
+ "minimoMensajeDado": 6,
+ "refReglamento": {
+  "turno": "6",
+  "movimiento": "7",
+  "economia": "8",
+  "cartas": "9",
+  "personajes": "10",
+  "combate": "11",
+  "robos": "12",
+  "asesinos": "13",
+  "retos": "14",
+  "objetos": "15",
+  "tesoros": "16",
+  "eventos": "17",
+  "mensajes": "18",
+  "cc": "19",
+  "yafar": "20",
+  "solitario": "21",
+  "jugadores": "22"
+ },
+ "armas": {
+  "cimitarra": {
+   "bono": 2,
+   "extraAtacante": 2,
+   "precio": 35
+  },
+  "alfanje": {
+   "bono": 1,
+   "precio": 25
+  },
+  "arco": {
+   "bono": 1,
+   "precio": 15
+  }
+ }
+}

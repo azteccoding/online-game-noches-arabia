@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 200" width="120" height="200"><defs>
+<linearGradient id="r3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#8a8fe0"/><stop offset=".45" stop-color="#4a4fa8"/><stop offset="1" stop-color="#23275e"/></linearGradient>
+<linearGradient id="t3" x1="0" y1="0" x2="1" y2="0.4"><stop offset="0" stop-color="#f6ecd0"/><stop offset=".5" stop-color="#cdbb8c"/><stop offset="1" stop-color="#8a7648"/></linearGradient>
+<radialGradient id="f3" cx=".45" cy=".4" r=".7"><stop offset="0" stop-color="#4a2f22"/><stop offset=".7" stop-color="#241410"/><stop offset="1" stop-color="#120a08"/></radialGradient>
+<radialGradient id="s3" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".5"/><stop offset=".6" stop-color="#000" stop-opacity=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+<linearGradient id="g3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f3d493"/><stop offset="1" stop-color="#9a6a1e"/></linearGradient>
+<linearGradient id="m3" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f2f4f6"/><stop offset=".5" stop-color="#b9c1c8"/><stop offset="1" stop-color="#6c747c"/></linearGradient>
+</defs>
+<ellipse cx="60" cy="188" rx="40" ry="9" fill="url(#s3)"/>
+<!-- túnica con volumen -->
+<path d="M30,184 C20,150 24,112 38,92 L82,92 C98,112 100,150 90,184 C74,194 46,194 30,184Z" fill="url(#r3)" stroke="#1d110b" stroke-width="2" stroke-linejoin="round"/>
+<path d="M60,96 C58,130 58,160 60,190" stroke="#000" stroke-opacity=".22" stroke-width="2" fill="none"/>
+<path d="M46,100 C42,130 40,160 42,188 M76,100 C80,130 82,160 80,186" stroke="#000" stroke-opacity=".16" stroke-width="2" fill="none"/>
+<path d="M36,98 C34,124 33,148 34,176" stroke="#fff" stroke-opacity=".22" stroke-width="3" fill="none" stroke-linecap="round"/>
+<!-- faja dorada -->
+<path d="M32,126 C48,134 72,134 88,126 L89,136 C72,144 48,144 31,136Z" fill="url(#g3)" stroke="#1d110b" stroke-width="1.6" stroke-linejoin="round"/>
+<!-- hombros y brazos -->
+<path d="M30,98 C22,106 22,130 28,146 C34,146 38,140 38,132 L40,100Z" fill="url(#r3)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<path d="M90,98 C99,106 99,130 93,146 C87,146 83,140 83,132 L80,100Z" fill="url(#r3)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<g fill="none" stroke="#6b4a24" stroke-width="3.2" stroke-linecap="round"><path d="M30,150 q-10,8 0,18 q12,6 18,-4"/><path d="M30,158 q-8,6 0,12" stroke="#c9a463" stroke-width="1.6"/></g>
+<!-- cuello y capucha sombreada -->
+<path d="M44,92 C46,80 74,80 76,92 L80,98 C66,106 54,106 40,98Z" fill="url(#t3)" stroke="#1d110b" stroke-width="1.8" stroke-linejoin="round"/>
+<!-- cabeza: rostro en sombra, paño sobre la boca -->
+<ellipse cx="60" cy="64" rx="23" ry="25" fill="url(#f3)" stroke="#1d110b" stroke-width="2"/>
+<path d="M38,70 C44,86 76,86 82,70 C76,76 44,76 38,70Z" fill="url(#t3)" stroke="#1d110b" stroke-width="1.4"/>
+<path d="M46,62 q14,-6 28,0" stroke="#e8c98a" stroke-opacity=".35" stroke-width="2.2" stroke-linecap="round" fill="none"/>
+<!-- turbante -->
+<path d="M35,56 C32,30 52,20 64,22 C84,24 90,40 85,58 C76,50 48,50 35,56Z" fill="url(#t3)" stroke="#1d110b" stroke-width="2" stroke-linejoin="round"/>
+<path d="M38,50 C54,40 76,40 84,50 M36,42 C52,32 76,32 86,42 M42,33 C56,27 72,28 82,34" stroke="#000" stroke-opacity=".22" stroke-width="1.8" fill="none"/>
+<path d="M60,22 C62,16 68,16 70,22" stroke="#1d110b" stroke-width="1.6" fill="#e9c875"/>
+<path d="M40,40 C44,34 52,30 60,29" stroke="#fff" stroke-opacity=".35" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+
+</svg>

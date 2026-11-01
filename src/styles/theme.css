@@ -1,0 +1,29 @@
+/* Tema Hazm + Arabi: pergamino, índigo, oro, turquesa. Fuentes LOCALES (sin CDN). */
+@font-face { font-family: 'Marcellus SC'; src: url('/fonts/MarcellusSC.woff2') format('woff2'); font-display: swap; }
+@font-face { font-family: 'Alegreya'; src: url('/fonts/Alegreya.woff2') format('woff2'); font-weight: 400 900; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Alegreya'; src: url('/fonts/Alegreya-Italic.woff2') format('woff2'); font-weight: 400 900; font-style: italic; font-display: swap; }
+@font-face { font-family: 'Aref Ruqaa'; src: url('/fonts/ArefRuqaa-Bold.woff2') format('woff2'); font-weight: 700; font-display: swap; }
+
+:root {
+  --noche: #1d0709;
+  --vino: #7b1e24;
+  --vino-osc: #4d0e17;
+  --indigo: #22407f;
+  --indigo-osc: #142a5c;
+  --oro: #b9803a;
+  --oro-claro: #efd08f;
+  --turquesa: #2a8a8a;
+  --pergamino: #f1e3b8;
+  --pergamino-osc: #e2cf9a;
+  --tinta: #2b130c;
+  --tinta-suave: #5a3a17;
+  --ok: #3d7a4a;
+  --alerta: #b3402a;
+  --radio: 14px;
+  --sombra: 0 6px 18px rgba(20, 6, 8, .45);
+  --f-titulo: 'Marcellus SC', 'Alegreya', Georgia, serif;
+  --f-texto: 'Alegreya', Georgia, 'Times New Roman', serif;
+  --f-arabe: 'Aref Ruqaa', 'Alegreya', serif;
+  --barra-alto: 52px;
+  --acciones-alto: 76px;
+}

@@ -1,0 +1,304 @@
+{
+ "personajes": [
+  {
+   "id": "1",
+   "slug": "nur-al-din",
+   "nombre": "Nur al Din",
+   "titulo": "El valiente",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5
+   },
+   "arma": [
+    "cimitarra"
+   ],
+   "destreza": true,
+   "habilidades": [
+    "Reto de honor en El Cairo, Damasco o Aleppo: quien se niegue paga lo que pida.",
+    "Inmune a robos; no puede robar; la cimitarra no se usa en Bagdad."
+   ],
+   "limite": "No puede robar.",
+   "stats": [
+    2,
+    3,
+    5,
+    2,
+    3
+   ],
+   "cita": "«Si me aceptas, pelea; si me rechazas, paga.»",
+   "refReglamento": "10.2",
+   "sprite": "svg/personajes/1-nur-al-din.svg",
+   "arte": "pj-1",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "2",
+   "slug": "zein",
+   "nombre": "Zein al Mawasif",
+   "titulo": "La hermosa",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Noche discreta: con otro jugador de su ciudad gana 25 dinares (10 con Anís) si el esposo no los sorprende.",
+    "Dados del Cairo: una vez por ronda repite uno de sus dados."
+   ],
+   "limite": "El esposo puede sorprender a los dos.",
+   "stats": [
+    2,
+    4,
+    2,
+    4,
+    3
+   ],
+   "cita": "«Todos apuestan. Yo cobro.»",
+   "refReglamento": "10.3",
+   "sprite": "svg/personajes/2-zein.svg",
+   "arte": "pj-2",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "3",
+   "slug": "anis",
+   "nombre": "Anís",
+   "titulo": "El joven y guapo",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Amigo de Zein: gana 10 dinares (+20 si no lo sorprenden).",
+    "Por la ventana: una vez por ronda, si lo atacan, con 5 o 6 huye y el agresor pierde su acción."
+   ],
+   "limite": "Sin armas ni destreza al inicio.",
+   "stats": [
+    2,
+    4,
+    2,
+    3,
+    4
+   ],
+   "cita": "«Siempre hay otra ventana.»",
+   "refReglamento": "10.4",
+   "sprite": "svg/personajes/3-anis.svg",
+   "arte": "pj-3",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "4",
+   "slug": "jamil",
+   "nombre": "Jamil al Udhrí",
+   "titulo": "El poeta",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Gana 5 noches por turno sin hacer nada.",
+    "Viaja gratis de El Cairo a Bagdad; recita crímenes en Bagdad (5 dinares por estrofa) y difama."
+   ],
+   "limite": "Sin armas ni destreza al inicio.",
+   "stats": [
+    4,
+    5,
+    1,
+    2,
+    3
+   ],
+   "cita": "«Lo que hagas hoy, lo canto mañana.»",
+   "refReglamento": "10.6",
+   "sprite": "svg/personajes/4-jamil.svg",
+   "arte": "pj-4",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "5",
+   "slug": "ruyan",
+   "nombre": "Sabio Ruyán",
+   "titulo": "El sabio",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5,
+    "noches": 200
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Empieza con 200 noches y 20 CRP que vende o usa.",
+    "Cada visitante recibe 50 noches y le paga 5 dinares; viaja gratis de Bagdad a El Cairo."
+   ],
+   "limite": "Débil; nunca el último en tirar.",
+   "stats": [
+    5,
+    3,
+    1,
+    4,
+    2
+   ],
+   "cita": "«Cincuenta noches por cinco dinares: la ganga más vieja del mundo.»",
+   "refReglamento": "10.5",
+   "sprite": "svg/personajes/5-ruyan.svg",
+   "arte": "pj-5",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "6",
+   "slug": "zubayda",
+   "nombre": "Zubayda",
+   "titulo": "La del harén",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Harén del Califa en Bagdad: termina su turno, gana 15 dinares y no puede ser robada ni asesinada allí.",
+    "Paga caravanas con servicios (riesgo de apedreo)."
+   ],
+   "limite": "Riesgo de apedreo al prostituirse.",
+   "stats": [
+    3,
+    4,
+    2,
+    2,
+    4
+   ],
+   "cita": "«Cada puerta tiene su precio; yo elijo la moneda.»",
+   "refReglamento": "10.7",
+   "sprite": "svg/personajes/6-zubayda.svg",
+   "arte": "pj-6",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "7",
+   "slug": "adi",
+   "nombre": "Adí hijo de Hatim al Taí",
+   "titulo": "El rico",
+   "inicio": {
+    "dinares": 30,
+    "ingreso": 10
+   },
+   "arma": [],
+   "destreza": false,
+   "habilidades": [
+    "Empieza con 30 dinares y gana 10 por turno.",
+    "Cuentos de noche: ambos ganan 5 dinares y el invitado 10 noches."
+   ],
+   "limite": "Siempre es el último en el orden de turnos.",
+   "stats": [
+    3,
+    3,
+    2,
+    3,
+    3
+   ],
+   "cita": "«El dinero no lo compra todo; por eso lo gasto en lo que sí.»",
+   "refReglamento": "10.8",
+   "sprite": "svg/personajes/7-adi.svg",
+   "arte": "pj-7",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  },
+  {
+   "id": "B",
+   "slug": "yafar",
+   "nombre": "Yafar el Bermekí",
+   "titulo": "Visir de todos los bolsillos",
+   "inicio": {
+    "dinares": 10,
+    "ingreso": 5,
+    "firman": 1
+   },
+   "arma": [
+    "jambiya"
+   ],
+   "destreza": true,
+   "habilidades": [
+    "Comisión de bolsillo: 5 dinares por cada otro jugador en su ciudad (máx. 15).",
+    "Paga la mitad de caravanas, sobornos y servicios; empieza con un Firmán."
+   ],
+   "limite": "Doble alojamiento; blanco de todos; no puede esconder tesoro.",
+   "stats": [
+    3,
+    5,
+    2,
+    1,
+    4
+   ],
+   "cita": "«Todo tiene precio; casi siempre, el tuyo.»",
+   "refReglamento": "10.1 y 20",
+   "sprite": "svg/personajes/B-yafar.svg",
+   "arte": "pj-B",
+   "statsEtiquetas": [
+    "Saber",
+    "Labia",
+    "Fuerza",
+    "Poesía",
+    "Astucia"
+   ]
+  }
+ ],
+ "npc": [
+  {
+   "id": "YAFAR_NPC",
+   "nombre": "Yafar el Bermekí (NPC)",
+   "sprite": "svg/personajes/yafar-npc.svg",
+   "refReglamento": "20.4"
+  },
+  {
+   "id": "ASESINOS",
+   "nombre": "Los Asesinos",
+   "sprite": "svg/personajes/asesinos.svg",
+   "refReglamento": "13"
+  }
+ ]
+}

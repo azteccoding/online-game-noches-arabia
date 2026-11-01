@@ -1,0 +1,1168 @@
+{
+ "trivias": [
+  {
+   "id": "CC-01",
+   "n": 1,
+   "ciudad": "Bagdad",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una pregunta con calma y con respeto.",
+   "pregunta": "¿Cómo se llama el mes del calendario islámico en el que se ayuna desde la salida hasta la puesta del sol?",
+   "opciones": [
+    "Ramadán",
+    "Muharram",
+    "Shawwal"
+   ],
+   "correcta": 0,
+   "nota": "Ramadán es el noveno mes del calendario lunar y termina con la fiesta de Eid al-Fitr.",
+   "premio": 10
+  },
+  {
+   "id": "CC-02",
+   "n": 2,
+   "ciudad": "Bagdad",
+   "categoria": "Ciencia y saber",
+   "gancho": "Aquí se hacen cuentas, y a ti no se te dan.",
+   "pregunta": "¿Qué sabio de Bagdad del siglo IX dio con su nombre la palabra «algoritmo» y con el título de su libro la palabra «álgebra»?",
+   "opciones": [
+    "Avicena (Ibn Sina)",
+    "Al-Juarismi (Al-Khwarizmi)",
+    "Al-Biruni"
+   ],
+   "correcta": 1,
+   "nota": "Al-Juarismi trabajó en la Casa de la Sabiduría. Su nombre latinizado, «Algoritmi», dio «algoritmo»; «al-jabr», del título de su libro, dio «álgebra».",
+   "premio": 10
+  },
+  {
+   "id": "CC-03",
+   "n": 3,
+   "ciudad": "Bagdad",
+   "categoria": "Traducción del saber",
+   "gancho": "Los libros no se traducen solos.",
+   "pregunta": "¿Cómo se llama el centro de saber de Bagdad, ligado al califato abasí, donde trabajaron sabios que tradujeron obras del griego al árabe?",
+   "opciones": [
+    "La Casa de las Especias",
+    "La Casa de los Mapas",
+    "La Casa de la Sabiduría"
+   ],
+   "correcta": 2,
+   "nota": "En el movimiento de traducción de los siglos VIII al X se tradujeron al árabe obras de Aristóteles, Euclides, Galeno y Ptolomeo, que así se conservaron y se ampliaron.",
+   "premio": 10
+  },
+  {
+   "id": "CC-05",
+   "n": 5,
+   "ciudad": "Bagdad",
+   "categoria": "Arquitectura",
+   "gancho": "Arenisca roja y respuesta clara.",
+   "pregunta": "¿En qué ciudad de Pakistán está la mezquita Badshahi, de arenisca roja, construida por el emperador mogol Aurangzeb?",
+   "opciones": [
+    "Karachi",
+    "Islamabad",
+    "Lahore"
+   ],
+   "correcta": 2,
+   "nota": "Se terminó en 1673. Su gran patio puede reunir a decenas de miles de personas.",
+   "premio": 10
+  },
+  {
+   "id": "CC-06",
+   "n": 6,
+   "ciudad": "Bagdad",
+   "categoria": "Mujeres notables",
+   "gancho": "Pozos, caminos y un nombre para recordar.",
+   "pregunta": "¿Esposa de qué califa abasí fue Zubayda, que financió pozos y paradas para los peregrinos en el camino de Kufa a La Meca?",
+   "opciones": [
+    "Al-Mansur",
+    "Al-Mamun",
+    "Harún al-Rashid"
+   ],
+   "correcta": 2,
+   "nota": "Esa ruta se conoce como el Camino de Zubayda y conserva restos de pozos y embalses.",
+   "premio": 10
+  },
+  {
+   "id": "CC-07",
+   "n": 7,
+   "ciudad": "Bagdad",
+   "categoria": "Imperios e historia",
+   "gancho": "Un imperio que empezó con una sola batalla.",
+   "pregunta": "¿Quién fundó el Imperio mogol en la India en 1526?",
+   "opciones": [
+    "Babur",
+    "Akbar",
+    "Shah Jahan"
+   ],
+   "correcta": 0,
+   "nota": "Babur venció en la batalla de Panipat. Sus descendientes gobernaron gran parte del sur de Asia y construyeron el Taj Mahal.",
+   "premio": 10
+  },
+  {
+   "id": "CC-09",
+   "n": 9,
+   "ciudad": "Bagdad",
+   "categoria": "Poesía y literatura",
+   "gancho": "Un poeta, un filósofo y una nación.",
+   "pregunta": "¿Qué poeta y filósofo, llamado «el poeta del Oriente», es el poeta nacional de Pakistán?",
+   "opciones": [
+    "Muhammad Iqbal (Allama Iqbal)",
+    "Faiz Ahmed Faiz",
+    "Rumi"
+   ],
+   "correcta": 0,
+   "nota": "Iqbal escribió en urdu y en persa y murió en Lahore en 1938, antes de que Pakistán naciera como país en 1947.",
+   "premio": 10
+  },
+  {
+   "id": "CC-10",
+   "n": 10,
+   "ciudad": "Bagdad",
+   "categoria": "Dante y Al-Ándalus",
+   "gancho": "Un puente entre dos mundos de letras.",
+   "pregunta": "¿Qué arabista español demostró la influencia de la escatología musulmana en la Divina Comedia?",
+   "opciones": [
+    "Julián Ribera",
+    "Emilio García Gómez",
+    "Miguel Asín Palacios"
+   ],
+   "correcta": 2,
+   "nota": "En «La escatología musulmana en la Divina Comedia» (1919) demostró la influencia del Libro de la Escala de Mahoma y de la obra de Ibn Arabi en el viaje de Dante.",
+   "premio": 10
+  },
+  {
+   "id": "CC-11",
+   "n": 11,
+   "ciudad": "Bagdad",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Pregunta con aroma: contesta sin babear.",
+   "pregunta": "¿Qué plato de arroz, especias y carne o verduras es muy popular en Pakistán y en el sur de Asia?",
+   "opciones": [
+    "La paella",
+    "El risotto",
+    "La biryani"
+   ],
+   "correcta": 2,
+   "nota": "Se prepara en capas de arroz y especias, y cada región tiene su propia receta.",
+   "premio": 10
+  },
+  {
+   "id": "CC-13",
+   "n": 13,
+   "ciudad": "Bagdad",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una fiesta que se comparte en familia.",
+   "pregunta": "¿Qué fiesta marca el final del mes de Ramadán?",
+   "opciones": [
+    "Eid al-Fitr",
+    "Eid al-Adha",
+    "Nowruz"
+   ],
+   "correcta": 0,
+   "nota": "Eid al-Fitr significa «fiesta de la ruptura del ayuno». Se celebra con oración, dulces y visitas a la familia.",
+   "premio": 10
+  },
+  {
+   "id": "CC-14",
+   "n": 14,
+   "ciudad": "Bagdad",
+   "categoria": "Ciencia y saber",
+   "gancho": "Remedio contra la ignorancia: leer.",
+   "pregunta": "¿Qué médico persa, llamado Rhazes en Europa, escribió uno de los primeros tratados que distinguen el sarampión de la viruela?",
+   "opciones": [
+    "Ibn al-Haytham",
+    "Al-Razi",
+    "Averroes"
+   ],
+   "correcta": 1,
+   "nota": "Al-Razi (c. 865-925) trabajó en Rey y en Bagdad y escribió una gran enciclopedia médica, el «Libro completo» (al-Hawi).",
+   "premio": 10
+  },
+  {
+   "id": "CC-15",
+   "n": 15,
+   "ciudad": "Bagdad",
+   "categoria": "Traducción del saber",
+   "gancho": "Traducir es más difícil que opinar.",
+   "pregunta": "¿Qué traductor del siglo IX vertió al árabe y al siríaco muchas obras médicas de Galeno?",
+   "opciones": [
+    "Ibn Hazm",
+    "Al-Idrisi",
+    "Hunayn ibn Ishaq"
+   ],
+   "correcta": 2,
+   "nota": "Hunayn ibn Ishaq (809-873) dirigió un equipo de traductores en Bagdad. También tradujo obras de Hipócrates.",
+   "premio": 10
+  },
+  {
+   "id": "CC-17",
+   "n": 17,
+   "ciudad": "Bagdad",
+   "categoria": "Arquitectura",
+   "gancho": "Una historia de amor hecha de mármol.",
+   "pregunta": "¿Para quién mandó construir el emperador mogol Shah Jahan el Taj Mahal?",
+   "opciones": [
+    "Para su madre",
+    "Para su hijo Aurangzeb",
+    "Para su esposa Mumtaz Mahal"
+   ],
+   "correcta": 2,
+   "nota": "Mumtaz Mahal murió en 1631; el mausoleo se inició en 1632 y se terminó hacia 1653. Allí descansa también Shah Jahan.",
+   "premio": 10
+  },
+  {
+   "id": "CC-18",
+   "n": 18,
+   "ciudad": "Bagdad",
+   "categoria": "Imperios e historia",
+   "gancho": "Una ciudad redonda para un imperio entero.",
+   "pregunta": "¿Qué califa abasí fundó Bagdad en el año 762 como nueva capital?",
+   "opciones": [
+    "Harún al-Rashid",
+    "Al-Mansur",
+    "Al-Mamun"
+   ],
+   "correcta": 1,
+   "nota": "La ciudad se trazó en círculo, por eso se la llamó la «Ciudad Redonda», y su nombre oficial era Madinat al-Salam, la Ciudad de la Paz.",
+   "premio": 10
+  },
+  {
+   "id": "CC-19",
+   "n": 19,
+   "ciudad": "Bagdad",
+   "categoria": "Poesía y literatura",
+   "gancho": "Un libro sobre el amor, escrito con mucha seriedad.",
+   "pregunta": "¿Quién escribió «El collar de la paloma», un tratado sobre el amor y los amantes?",
+   "opciones": [
+    "Ibn Hazm de Córdoba",
+    "Ibn Battuta",
+    "Ibn Jaldún"
+   ],
+   "correcta": 0,
+   "nota": "Ibn Hazm (994-1064) lo escribió hacia el año 1022 en Al-Ándalus. Es una de las obras más célebres de la literatura andalusí.",
+   "premio": 10
+  },
+  {
+   "id": "CC-21",
+   "n": 21,
+   "ciudad": "Bagdad",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "De derecha a izquierda, sin perder el hilo.",
+   "pregunta": "¿Qué escritura se usa para el árabe, el persa y el urdu, con letras que se unen y se leen de derecha a izquierda?",
+   "opciones": [
+    "El alfabeto árabe",
+    "El alfabeto cirílico",
+    "El alfabeto devanagari"
+   ],
+   "correcta": 0,
+   "nota": "El persa y el urdu le añaden letras. La caligrafía es un arte muy apreciado, con estilos como el cúfico, el nasji y el nastaliq.",
+   "premio": 10
+  },
+  {
+   "id": "CC-22",
+   "n": 22,
+   "ciudad": "Bagdad",
+   "categoria": "Ciencia y saber",
+   "gancho": "Cuenta con cuidado, que se te acaban los dedos.",
+   "pregunta": "¿De dónde proceden los números del 0 al 9 que usamos hoy, llamados «arábigos»?",
+   "opciones": [
+    "De Roma",
+    "De la India; llegaron a Europa a través del mundo árabe",
+    "De China"
+   ],
+   "correcta": 1,
+   "nota": "Se desarrollaron en la India. De la palabra árabe «sifr» (vacío) vienen «cifra» y «cero».",
+   "premio": 10
+  },
+  {
+   "id": "CC-23",
+   "n": 23,
+   "ciudad": "Bagdad",
+   "categoria": "Poesía y literatura",
+   "gancho": "Para quien cree que sabe de amor.",
+   "pregunta": "¿De qué trata «El collar de la paloma» (Tawq al-hamama)?",
+   "opciones": [
+    "Del amor: sus signos, sus etapas y sus penas",
+    "De la astronomía y los astrolabios",
+    "De la cocina de Al-Ándalus"
+   ],
+   "correcta": 0,
+   "nota": "Mezcla reflexión, poesía y relatos de su época. Se ha traducido a muchos idiomas.",
+   "premio": 10
+  },
+  {
+   "id": "CC-25",
+   "n": 25,
+   "ciudad": "Bagdad",
+   "categoria": "Ciencia y saber",
+   "gancho": "Anótalo antes de que se te olvide.",
+   "pregunta": "¿De qué país llegó al mundo islámico la técnica de fabricar papel?",
+   "opciones": [
+    "India",
+    "China",
+    "Grecia"
+   ],
+   "correcta": 1,
+   "nota": "Se fabricaba papel en Bagdad desde finales del siglo VIII; de allí pasó a Al-Ándalus (Xàtiva) y a Europa.",
+   "premio": 10
+  },
+  {
+   "id": "CC-26",
+   "n": 26,
+   "ciudad": "Isfahán",
+   "categoria": "Imperios e historia",
+   "gancho": "Capital de jardines, plazas y buen gusto.",
+   "pregunta": "¿Qué ciudad hizo capital el sha Abbas I del Imperio safávida, llenándola de jardines, plazas y mezquitas?",
+   "opciones": [
+    "Tabriz",
+    "Shiraz",
+    "Isfahán"
+   ],
+   "correcta": 2,
+   "nota": "«Isfahán es la mitad del mundo», decía un dicho persa. Su plaza Naqsh-e Jahan es Patrimonio de la Humanidad.",
+   "premio": 10
+  },
+  {
+   "id": "CC-27",
+   "n": 27,
+   "ciudad": "Isfahán",
+   "categoria": "Poesía y literatura",
+   "gancho": "Palabras que viajan mejor que las caravanas.",
+   "pregunta": "¿Qué poeta persa del siglo XIII, que vivió y murió en Konya, escribió el Masnavi?",
+   "opciones": [
+    "Rumi (Yalal ad-Din Rumi)",
+    "Hafez",
+    "Omar Jayam"
+   ],
+   "correcta": 0,
+   "nota": "Rumi murió en 1273. El Masnavi es un largo poema de relatos y enseñanzas escrito en persa.",
+   "premio": 10
+  },
+  {
+   "id": "CC-29",
+   "n": 29,
+   "ciudad": "Isfahán",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Una fiesta para recibir la primavera.",
+   "pregunta": "¿Qué celebra Nowruz, el Año Nuevo persa?",
+   "opciones": [
+    "La cosecha del otoño",
+    "La noche más larga del año",
+    "La llegada de la primavera"
+   ],
+   "correcta": 2,
+   "nota": "Se celebra en el equinoccio de primavera (hacia el 20 o 21 de marzo) con la mesa haft-sin, que reúne siete objetos cuyo nombre empieza con «s».",
+   "premio": 10
+  },
+  {
+   "id": "CC-30",
+   "n": 30,
+   "ciudad": "Isfahán",
+   "categoria": "Poesía y literatura",
+   "gancho": "Una ciudad de rosas y de versos.",
+   "pregunta": "¿De qué ciudad persa era el poeta Hafez, autor de un Diván muy querido en Irán?",
+   "opciones": [
+    "Isfahán",
+    "Tabriz",
+    "Shiraz"
+   ],
+   "correcta": 2,
+   "nota": "Hafez vivió en el siglo XIV. Su tumba, en Shiraz y rodeada de jardines, recibe muchas visitas.",
+   "premio": 10
+  },
+  {
+   "id": "CC-31",
+   "n": 31,
+   "ciudad": "Isfahán",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Una capital hecha para impresionar visitas.",
+   "pregunta": "¿Qué imperio levantó Persépolis, su capital ceremonial cerca de Shiraz?",
+   "opciones": [
+    "El Imperio otomano",
+    "El Imperio mogol",
+    "El Imperio aqueménida"
+   ],
+   "correcta": 2,
+   "nota": "Darío I empezó a construirla hacia el 518 a. C. El imperio lo había fundado Ciro el Grande en el siglo VI a. C.",
+   "premio": 10
+  },
+  {
+   "id": "CC-33",
+   "n": 33,
+   "ciudad": "Isfahán",
+   "categoria": "Poesía y literatura",
+   "gancho": "Tres oficios en uno; a ti te basta con acertar.",
+   "pregunta": "¿Qué poeta persa, también matemático y astrónomo, es famoso por sus «Rubaiyat» (cuartetas)?",
+   "opciones": [
+    "Omar Jayam",
+    "Ferdowsi",
+    "Saadi"
+   ],
+   "correcta": 0,
+   "nota": "Omar Jayam (1048-1131) participó en la reforma del calendario persa en el siglo XI y escribió sobre álgebra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-34",
+   "n": 34,
+   "ciudad": "Isfahán",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Un nudo tras otro: paciencia que a ti te falta.",
+   "pregunta": "¿Cómo se fabrica una alfombra persa tradicional?",
+   "opciones": [
+    "Se anuda a mano, nudo por nudo",
+    "Se estampa con una máquina",
+    "Se prensa sin usar hilos"
+   ],
+   "correcta": 0,
+   "nota": "Ciudades como Isfahán, Kashan y Tabriz son famosas por sus alfombras; una pieza fina puede llevar meses de trabajo.",
+   "premio": 10
+  },
+  {
+   "id": "CC-35",
+   "n": 35,
+   "ciudad": "Isfahán",
+   "categoria": "Poesía y literatura",
+   "gancho": "Treinta años de trabajo y tú dudas treinta segundos.",
+   "pregunta": "¿Qué poeta escribió el «Shahnameh» o «Libro de los Reyes», la gran epopeya de Persia?",
+   "opciones": [
+    "Omar Jayam",
+    "Saadi",
+    "Ferdowsi"
+   ],
+   "correcta": 2,
+   "nota": "Lo terminó hacia el año 1010, tras unos treinta años de trabajo. Escrito en persa, ayudó a conservar esa lengua.",
+   "premio": 10
+  },
+  {
+   "id": "CC-37",
+   "n": 37,
+   "ciudad": "Aleppo",
+   "categoria": "Ciencia y saber",
+   "gancho": "Pregunta para despertar a los distraídos.",
+   "pregunta": "¿En qué país del sur de Arabia se empezó a cultivar y a beber café como infusión en el siglo XV?",
+   "opciones": [
+    "Marruecos",
+    "Yemen",
+    "Siria"
+   ],
+   "correcta": 1,
+   "nota": "Los primeros testimonios fiables de la bebida vienen de Yemen, desde donde el café llegó a Estambul y a Europa.",
+   "premio": 10
+  },
+  {
+   "id": "CC-38",
+   "n": 38,
+   "ciudad": "Aleppo",
+   "categoria": "Arquitectura",
+   "gancho": "Una cúpula que sigue dejando a todos mirando hacia arriba.",
+   "pregunta": "¿En qué ciudad se encuentra Santa Sofía, terminada en el año 537 por orden del emperador Justiniano?",
+   "opciones": [
+    "Estambul (antes Constantinopla)",
+    "Atenas",
+    "Damasco"
+   ],
+   "correcta": 0,
+   "nota": "Su enorme cúpula inspiró a grandes arquitectos otomanos, como Sinán, que construyó la mezquita de Solimán.",
+   "premio": 10
+  },
+  {
+   "id": "CC-39",
+   "n": 39,
+   "ciudad": "Aleppo",
+   "categoria": "Mujeres notables",
+   "gancho": "Una mujer con más influencia que muchos jugadores.",
+   "pregunta": "¿Con qué sultán otomano se casó Hürrem Sultan, conocida en Europa como Roxelana?",
+   "opciones": [
+    "Mehmed II el Conquistador",
+    "Solimán el Magnífico",
+    "Selim I"
+   ],
+   "correcta": 1,
+   "nota": "Hürrem fue una de las mujeres más influyentes de la historia otomana. Llegó a casarse con el sultán, algo muy poco habitual.",
+   "premio": 10
+  },
+  {
+   "id": "CC-41",
+   "n": 41,
+   "ciudad": "Aleppo",
+   "categoria": "Imperios e historia",
+   "gancho": "Una ciudad con dos nombres y muchos siglos.",
+   "pregunta": "¿Qué ciudad se convirtió en capital del Imperio otomano tras la conquista de 1453?",
+   "opciones": [
+    "Bursa",
+    "Estambul (antes Constantinopla)",
+    "Ankara"
+   ],
+   "correcta": 1,
+   "nota": "El sultán Mehmed II conquistó Constantinopla en 1453; con el tiempo la ciudad pasó a llamarse Estambul.",
+   "premio": 10
+  },
+  {
+   "id": "CC-42",
+   "n": 42,
+   "ciudad": "Aleppo",
+   "categoria": "Arquitectura",
+   "gancho": "El color ya es la pista.",
+   "pregunta": "¿Qué nombre popular recibe la mezquita del sultán Ahmed I, en Estambul, por los azulejos azules de su interior?",
+   "opciones": [
+    "La Mezquita Azul",
+    "La Mezquita Verde",
+    "La Mezquita Blanca"
+   ],
+   "correcta": 0,
+   "nota": "Se construyó entre 1609 y 1616 y tiene seis minaretes.",
+   "premio": 10
+  },
+  {
+   "id": "CC-43",
+   "n": 43,
+   "ciudad": "Aleppo",
+   "categoria": "Mujeres notables",
+   "gancho": "Cuando el poder se movió por los pasillos del palacio.",
+   "pregunta": "¿Cómo se llama el período otomano en que madres y esposas de los sultanes tuvieron gran poder político?",
+   "opciones": [
+    "La Era de los Tulipanes",
+    "El Sultanato de las Mujeres",
+    "El Tanzimat"
+   ],
+   "correcta": 1,
+   "nota": "Abarca buena parte de los siglos XVI y XVII. Hürrem Sultan es una de sus figuras más conocidas.",
+   "premio": 10
+  },
+  {
+   "id": "CC-45",
+   "n": 45,
+   "ciudad": "Aleppo",
+   "categoria": "Imperios e historia",
+   "gancho": "Una batalla que cambió el mapa de Anatolia.",
+   "pregunta": "¿Qué dinastía turca, que gobernaba Persia e Irak en el siglo XI, venció a los bizantinos en la batalla de Manzikert en 1071?",
+   "opciones": [
+    "Los selyúcidas",
+    "Los omeyas",
+    "Los mogoles"
+   ],
+   "correcta": 0,
+   "nota": "El sultán Alp Arslan ganó en Manzikert. Los selyúcidas protegieron a sabios y poetas, entre ellos Omar Jayam.",
+   "premio": 10
+  },
+  {
+   "id": "CC-46",
+   "n": 46,
+   "ciudad": "Damasco",
+   "categoria": "Islam y su cultura",
+   "gancho": "Para empezar, lo esencial.",
+   "pregunta": "¿Cuántos son los pilares del islam?",
+   "opciones": [
+    "Siete",
+    "Cinco",
+    "Diez"
+   ],
+   "correcta": 1,
+   "nota": "Son la profesión de fe (shahada), la oración (salat), la limosna (zakat), el ayuno de Ramadán (sawm) y la peregrinación a La Meca (hajj).",
+   "premio": 10
+  },
+  {
+   "id": "CC-47",
+   "n": 47,
+   "ciudad": "Damasco",
+   "categoria": "Ciencia y saber",
+   "gancho": "Para quien nunca sabe dónde está parado.",
+   "pregunta": "¿Para qué sirve un astrolabio?",
+   "opciones": [
+    "Para medir la altura de los astros y calcular la hora",
+    "Para pesar mercancías en el bazar",
+    "Para dibujar mapas de caravanas"
+   ],
+   "correcta": 0,
+   "nota": "El mundo islámico perfeccionó este instrumento, que se usó para orientarse, calcular el tiempo y hallar la dirección de La Meca.",
+   "premio": 10
+  },
+  {
+   "id": "CC-49",
+   "n": 49,
+   "ciudad": "Damasco",
+   "categoria": "Traducción del saber",
+   "gancho": "Para quien lee poco y comenta mucho.",
+   "pregunta": "¿Qué sabio de Córdoba escribió comentarios a las obras de Aristóteles que se leyeron durante siglos en Europa?",
+   "opciones": [
+    "Ibn Hazm",
+    "Averroes (Ibn Rushd)",
+    "Ibn Battuta"
+   ],
+   "correcta": 1,
+   "nota": "Averroes (1126-1198) fue también juez y médico; en Europa se le llamó «el Comentador» de Aristóteles.",
+   "premio": 10
+  },
+  {
+   "id": "CC-50",
+   "n": 50,
+   "ciudad": "Damasco",
+   "categoria": "Arquitectura",
+   "gancho": "Cuenta columnas, pero antes cuenta con acertar.",
+   "pregunta": "¿Qué mezquita andalusí es famosa por su «bosque» de columnas y sus arcos de rayas rojas y blancas?",
+   "opciones": [
+    "La Mezquita Azul de Estambul",
+    "La Mezquita Omeya de Damasco",
+    "La Mezquita de Córdoba"
+   ],
+   "correcta": 2,
+   "nota": "Su construcción empezó en el siglo VIII por orden de Abderramán I y se amplió varias veces.",
+   "premio": 10
+  },
+  {
+   "id": "CC-51",
+   "n": 51,
+   "ciudad": "Damasco",
+   "categoria": "Mujeres notables",
+   "gancho": "Una sultana con mejor trono que tu turno.",
+   "pregunta": "¿Qué sultanato de la India gobernó en el siglo XIII Razia Sultana?",
+   "opciones": [
+    "El Imperio mogol",
+    "El Sultanato de Delhi",
+    "El Reino de Granada"
+   ],
+   "correcta": 1,
+   "nota": "Reinó de 1236 a 1240 y es considerada la única mujer que gobernó como sultana en Delhi.",
+   "premio": 10
+  },
+  {
+   "id": "CC-53",
+   "n": 53,
+   "ciudad": "Damasco",
+   "categoria": "Imperios e historia",
+   "gancho": "Una capital con más años que tus cuentas.",
+   "pregunta": "¿Qué ciudad fue la capital del califato omeya desde el año 661?",
+   "opciones": [
+    "Bagdad",
+    "El Cairo",
+    "Damasco"
+   ],
+   "correcta": 2,
+   "nota": "Los omeyas llegaron hasta Al-Ándalus. En Damasco levantaron la Mezquita Omeya, a comienzos del siglo VIII.",
+   "premio": 10
+  },
+  {
+   "id": "CC-54",
+   "n": 54,
+   "ciudad": "Damasco",
+   "categoria": "Poesía y literatura",
+   "gancho": "Una ciudad que presumía de sabios y bibliotecas.",
+   "pregunta": "¿En qué ciudad nació Ibn Hazm, autor de «El collar de la paloma»?",
+   "opciones": [
+    "Córdoba",
+    "Toledo",
+    "Murcia"
+   ],
+   "correcta": 0,
+   "nota": "Nació en Córdoba en el año 994, en tiempos del califato. Fue poeta, jurista, historiador y pensador.",
+   "premio": 10
+  },
+  {
+   "id": "CC-55",
+   "n": 55,
+   "ciudad": "Damasco",
+   "categoria": "Dante y Al-Ándalus",
+   "gancho": "Un sabio de Murcia con fama en todo el mundo.",
+   "pregunta": "¿La obra de qué sabio nacido en Murcia, autor de las «Futuhat al-Makkiyya» («Las revelaciones de La Meca»), influyó en la Divina Comedia?",
+   "opciones": [
+    "Ibn Hazm",
+    "Ibn Arabi",
+    "Averroes"
+   ],
+   "correcta": 1,
+   "nota": "Ibn Arabi (1165-1240) nació en Murcia y murió en Damasco. Sus escritos sobre el viaje espiritual por los cielos influyeron en Dante.",
+   "premio": 10
+  },
+  {
+   "id": "CC-57",
+   "n": 57,
+   "ciudad": "Damasco",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Segundo lugar, pero de los más difíciles.",
+   "pregunta": "¿Qué montaña del Karakórum, en la frontera de Pakistán y China, es la segunda más alta del mundo?",
+   "opciones": [
+    "Nanga Parbat",
+    "Kangchenjunga",
+    "K2"
+   ],
+   "correcta": 2,
+   "nota": "Mide unos 8,600 m. Solo el Everest, con 8,849 m, es más alto.",
+   "premio": 10
+  },
+  {
+   "id": "CC-58",
+   "n": 58,
+   "ciudad": "Damasco",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una fecha que marca un calendario entero.",
+   "pregunta": "¿En qué año d. C. tuvo lugar la hégira (hijra), la migración del Profeta de La Meca a Medina, con la que empieza el calendario islámico?",
+   "opciones": [
+    "622",
+    "522",
+    "722"
+   ],
+   "correcta": 0,
+   "nota": "El año 1 del calendario hégira corresponde al 622 d. C. Es un calendario lunar de 12 meses.",
+   "premio": 10
+  },
+  {
+   "id": "CC-59",
+   "n": 59,
+   "ciudad": "Damasco",
+   "categoria": "Arquitectura",
+   "gancho": "Tres fachadas y ninguna excusa.",
+   "pregunta": "¿En qué ciudad de la Ruta de la Seda está la plaza del Registán, con tres grandes madrasas de azulejos?",
+   "opciones": [
+    "Isfahán",
+    "Samarcanda",
+    "Damasco"
+   ],
+   "correcta": 1,
+   "nota": "Las madrasas de Ulugh Beg, Sher-Dor y Tilya-Kori se levantaron entre los siglos XV y XVII. Samarcanda está hoy en Uzbekistán.",
+   "premio": 10
+  },
+  {
+   "id": "CC-61",
+   "n": 61,
+   "ciudad": "Basra",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un término que conviene conocer.",
+   "pregunta": "¿Qué es la zakat, uno de los cinco pilares del islam?",
+   "opciones": [
+    "La limosna obligatoria para ayudar a quienes la necesitan",
+    "El ayuno del mes de Ramadán",
+    "La llamada a la oración"
+   ],
+   "correcta": 0,
+   "nota": "Su nombre se relaciona con la idea de purificación. Cada año se entrega una pequeña parte de los bienes ahorrados.",
+   "premio": 10
+  },
+  {
+   "id": "CC-62",
+   "n": 62,
+   "ciudad": "Basra",
+   "categoria": "Ciencia y saber",
+   "gancho": "A ver si ves venir la respuesta.",
+   "pregunta": "¿Qué sabio nacido en Basora escribió el «Libro de óptica» y explicó con experimentos cómo vemos?",
+   "opciones": [
+    "Al-Razi",
+    "Ibn al-Haytham (Alhazen)",
+    "Al-Idrisi"
+   ],
+   "correcta": 1,
+   "nota": "Ibn al-Haytham (c. 965 - c. 1040) mostró que vemos porque la luz de los objetos llega al ojo. Su libro influyó en la ciencia europea.",
+   "premio": 10
+  },
+  {
+   "id": "CC-63",
+   "n": 63,
+   "ciudad": "Basra",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Cuerdas, madera y un nombre que viajó a Europa.",
+   "pregunta": "¿Qué instrumento árabe de cuerda, con caja en forma de pera, dio nombre al laúd?",
+   "opciones": [
+    "El oud",
+    "El ney",
+    "La darbuka"
+   ],
+   "correcta": 0,
+   "nota": "La palabra «laúd» viene del árabe «al-ud». El ney es una flauta de caña y la darbuka, un tambor.",
+   "premio": 10
+  },
+  {
+   "id": "CC-65",
+   "n": 65,
+   "ciudad": "Basra",
+   "categoria": "Ciencia y saber",
+   "gancho": "Calcula bien, que no te sobra mundo.",
+   "pregunta": "¿Qué sabio del siglo XI escribió un célebre estudio sobre la India y estimó con gran precisión el radio de la Tierra?",
+   "opciones": [
+    "Ibn Battuta",
+    "Al-Biruni",
+    "Ibn Jaldún"
+   ],
+   "correcta": 1,
+   "nota": "Al-Biruni (973-1048) nació en Asia Central y escribió su libro sobre la India (Kitab al-Hind) hacia el año 1030.",
+   "premio": 10
+  },
+  {
+   "id": "CC-66",
+   "n": 66,
+   "ciudad": "El Cairo",
+   "categoria": "Islam y su cultura",
+   "gancho": "Una pregunta con respeto y sin prisas.",
+   "pregunta": "¿Cómo se llama la peregrinación a La Meca que todo musulmán con salud y medios debe hacer al menos una vez en la vida?",
+   "opciones": [
+    "La zakat",
+    "La hijra",
+    "El hajj"
+   ],
+   "correcta": 2,
+   "nota": "Se realiza cada año en Dhu al-Hijja, el último mes del calendario islámico, y es uno de los cinco pilares.",
+   "premio": 10
+  },
+  {
+   "id": "CC-67",
+   "n": 67,
+   "ciudad": "El Cairo",
+   "categoria": "Ciencia y saber",
+   "gancho": "Un médico para curar tu ignorancia.",
+   "pregunta": "¿Qué médico y filósofo persa, conocido en Europa como Avicena, escribió «El canon de la medicina»?",
+   "opciones": [
+    "Ibn Sina",
+    "Al-Kindi",
+    "Al-Juarismi"
+   ],
+   "correcta": 0,
+   "nota": "Terminado hacia 1025, el Canon se usó como libro de texto de medicina en universidades europeas durante siglos.",
+   "premio": 10
+  },
+  {
+   "id": "CC-69",
+   "n": 69,
+   "ciudad": "El Cairo",
+   "categoria": "Traducción del saber",
+   "gancho": "Una ciudad que supo juntar idiomas.",
+   "pregunta": "¿Qué ciudad española, famosa por su Escuela de Traductores, fue puerta de entrada del saber árabe a Europa en los siglos XII y XIII?",
+   "opciones": [
+    "Burgos",
+    "Toledo",
+    "Sevilla"
+   ],
+   "correcta": 1,
+   "nota": "En Toledo se tradujeron del árabe al latín y al castellano obras de ciencia y filosofía, como el Almagesto de Ptolomeo (Gerardo de Cremona, hacia 1175).",
+   "premio": 10
+  },
+  {
+   "id": "CC-70",
+   "n": 70,
+   "ciudad": "El Cairo",
+   "categoria": "Arquitectura",
+   "gancho": "Una postal que ya viste, aunque no recuerdes dónde.",
+   "pregunta": "¿En qué ciudad española se alza la Alhambra, palacio y fortaleza de la dinastía nazarí?",
+   "opciones": [
+    "Sevilla",
+    "Toledo",
+    "Granada"
+   ],
+   "correcta": 2,
+   "nota": "Se construyó sobre todo en los siglos XIII y XIV. Es famosa por sus patios, sus yeserías y el Patio de los Leones.",
+   "premio": 10
+  },
+  {
+   "id": "CC-71",
+   "n": 71,
+   "ciudad": "El Cairo",
+   "categoria": "Mujeres notables",
+   "gancho": "Una emperatriz con más mando que tu último turno.",
+   "pregunta": "¿Con qué emperador mogol se casó Nur Jahan, que gobernó de hecho durante años?",
+   "opciones": [
+    "Akbar",
+    "Aurangzeb",
+    "Jahangir"
+   ],
+   "correcta": 2,
+   "nota": "Nur Jahan (1577-1645) llegó a acuñar monedas con su nombre y tuvo gran poder en la corte.",
+   "premio": 10
+  },
+  {
+   "id": "CC-73",
+   "n": 73,
+   "ciudad": "El Cairo",
+   "categoria": "Imperios e historia",
+   "gancho": "El último reino y una fecha que se aprende de memoria.",
+   "pregunta": "¿Cuál fue el último reino musulmán de la península ibérica, que terminó en 1492?",
+   "opciones": [
+    "El Califato de Córdoba",
+    "La taifa de Sevilla",
+    "El Reino nazarí de Granada"
+   ],
+   "correcta": 2,
+   "nota": "Su capital, Granada, conserva la Alhambra, símbolo de la cultura andalusí.",
+   "premio": 10
+  },
+  {
+   "id": "CC-74",
+   "n": 74,
+   "ciudad": "El Cairo",
+   "categoria": "Dante y Al-Ándalus",
+   "gancho": "Un libro que viajó de lengua en lengua.",
+   "pregunta": "¿Qué libro sobre el viaje nocturno y la ascensión del Profeta (el Mi'raj) se tradujo en la corte de Alfonso X el Sabio, en 1264?",
+   "opciones": [
+    "Las Siete Partidas",
+    "El Libro de la Escala de Mahoma",
+    "Las Cantigas de Santa María"
+   ],
+   "correcta": 1,
+   "nota": "Se tradujo del árabe al castellano y de allí al latín y al francés. Su relato de la ascensión por los cielos influyó en la Divina Comedia.",
+   "premio": 10
+  },
+  {
+   "id": "CC-75",
+   "n": 75,
+   "ciudad": "El Cairo",
+   "categoria": "Cultura y tradiciones",
+   "gancho": "Una ciudad con desagües antes que tu casa.",
+   "pregunta": "¿A qué antigua civilización pertenece Mohenjo-daro, ciudad del actual Pakistán?",
+   "opciones": [
+    "La civilización del valle del Indo",
+    "La civilización mesopotámica",
+    "La civilización egipcia"
+   ],
+   "correcta": 0,
+   "nota": "Tuvo calles en cuadrícula y desagües hace unos 4,500 años. Es Patrimonio de la Humanidad.",
+   "premio": 10
+  },
+  {
+   "id": "CC-77",
+   "n": 77,
+   "ciudad": "El Cairo",
+   "categoria": "Islam y su cultura",
+   "gancho": "Sobre el Corán como libro, con respeto.",
+   "pregunta": "¿En cuántas suras (capítulos) está dividido el Corán?",
+   "opciones": [
+    "100",
+    "120",
+    "114"
+   ],
+   "correcta": 2,
+   "nota": "El Corán es el libro sagrado del islam. Se recita, se memoriza y se copia con gran cuidado desde hace más de 1,400 años.",
+   "premio": 10
+  },
+  {
+   "id": "CC-78",
+   "n": 78,
+   "ciudad": "El Cairo",
+   "categoria": "Arquitectura",
+   "gancho": "Un monumento que todos conocen y pocos ubican.",
+   "pregunta": "¿En qué ciudad de la India, a orillas del río Yamuna, se encuentra el Taj Mahal?",
+   "opciones": [
+    "Delhi",
+    "Agra",
+    "Jaipur"
+   ],
+   "correcta": 1,
+   "nota": "Es un mausoleo de mármol blanco, Patrimonio de la Humanidad y uno de los monumentos más visitados del mundo.",
+   "premio": 10
+  },
+  {
+   "id": "CC-79",
+   "n": 79,
+   "ciudad": "El Cairo",
+   "categoria": "Mujeres notables",
+   "gancho": "Una mujer, una herencia y una universidad.",
+   "pregunta": "¿Qué mujer fundó hacia el año 859, en Fez (Marruecos), la mezquita y centro de estudios de al-Qarawiyyin?",
+   "opciones": [
+    "Razia Sultana",
+    "Fátima al-Fihri",
+    "Zubayda"
+   ],
+   "correcta": 1,
+   "nota": "Al-Qarawiyyin es una de las instituciones de enseñanza más antiguas del mundo. Fátima la financió con su herencia.",
+   "premio": 10
+  }
+ ],
+ "deMesa": [
+  {
+   "id": "CC-04",
+   "n": 4,
+   "ciudad": "Bagdad",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en pagar un transbordo (dos tramos de caravana en el mismo turno)?",
+   "comoSeComprueba": "Responde quien lo recuerde. El jugador mencionado confirma o niega. Si hay discusión, votan.",
+   "planB": "Si nadie ha hecho transbordo: «Qué conformistas». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-08",
+   "n": 8,
+   "ciudad": "Bagdad",
+   "votacion": false,
+   "pregunta": "¿Qué personaje pagó 20 dinares para rechazar un duelo la última vez?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma. Si hay duda, votan.",
+   "planB": "Si nadie ha rechazado un duelo (o nadie ha retado): «Aquí todos son muy valientes. O muy tacaños». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-12",
+   "n": 12,
+   "ciudad": "Bagdad",
+   "votacion": true,
+   "pregunta": "Pregunta de votación: ¿quién perdería una pelea contra un camello?",
+   "comoSeComprueba": "No hay respuesta correcta. A la cuenta de tres, todos señalan a la vez a un jugador (menos el lector). El más señalado paga 2 dinares al banco; si hay empate, paga el que tenga más dinares entre los empatados. El lector no cobra nada.",
+   "planB": "No hay Plan B: siempre sale alguien.",
+   "premio": 10
+  },
+  {
+   "id": "CC-16",
+   "n": 16,
+   "ciudad": "Bagdad",
+   "votacion": false,
+   "pregunta": "¿Qué ciudad ha visitado más veces el jugador que está a la derecha del lector?",
+   "comoSeComprueba": "Responde el jugador a la derecha del lector, que no cobra, solo confirma. Los demás responden con el nombre de una ciudad; el primero que acierte (o que más se acerque, a juicio del jugador aludido) cobra. Si el aludido no recuerda, decide la mayoría.",
+   "planB": "Si el jugador de la derecha no ha cambiado de ciudad: «Se queda en casa». La respuesta es la ciudad donde está y el primero que lo diga cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-20",
+   "n": 20,
+   "ciudad": "Bagdad",
+   "votacion": false,
+   "pregunta": "¿Quién fue el primero en llegar a Samarcanda?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma.",
+   "planB": "Si nadie ha ido: «Samarcanda sigue esperando visitas». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-24",
+   "n": 24,
+   "ciudad": "Bagdad",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en quedarse quieto y pagar alojamiento?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma o niega. Si hay duda, votan.",
+   "planB": "Si todos viajan sin parar: «Qué prisas». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-28",
+   "n": 28,
+   "ciudad": "Isfahán",
+   "votacion": false,
+   "pregunta": "¿Quién tiene (o tuvo) una carta de Firmán del Califa?",
+   "comoSeComprueba": "Se comprueba mirando las cartas: respuesta pública. Responde el primero que lo diga; si hubo varios dueños, vale cualquiera.",
+   "planB": "Si nadie la ha comprado: «El visir sigue con el cajón lleno». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-32",
+   "n": 32,
+   "ciudad": "Isfahán",
+   "votacion": false,
+   "pregunta": "¿A quién le robaron por última vez?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma. Si hay duda, votan.",
+   "planB": "Si nadie ha sido robado: «Todos, de momento, a salvo». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-36",
+   "n": 36,
+   "ciudad": "Aleppo",
+   "votacion": false,
+   "pregunta": "¿Quién tiene más noches en este momento?",
+   "comoSeComprueba": "Se comprueba contando las fichas de noches de cada jugador (información pública). Responde el primero que acierte. Si hay empate, vale cualquiera de los empatados.",
+   "planB": "No hay Plan B: siempre hay alguien con más noches.",
+   "premio": 10
+  },
+  {
+   "id": "CC-40",
+   "n": 40,
+   "ciudad": "Aleppo",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en responder bien una CC (trivia)?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma. Si hay duda, votan.",
+   "planB": "Si nadie ha acertado todavía: «Mesa de sabios, qué orgullo». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-44",
+   "n": 44,
+   "ciudad": "Aleppo",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en sobornar a un guardia o a Jamil?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma.",
+   "planB": "Si nadie ha sobornado: «Una mesa honrada. Asusta». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-48",
+   "n": 48,
+   "ciudad": "Damasco",
+   "votacion": false,
+   "pregunta": "¿Quién ganó la última pelea o duelo?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma. Si hay duda, votan.",
+   "planB": "Si no ha habido ninguna: «Pacifistas, qué desperdicio». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-52",
+   "n": 52,
+   "ciudad": "Damasco",
+   "votacion": false,
+   "pregunta": "¿En qué ciudad ocurrió el último robo (o intento de robo)?",
+   "comoSeComprueba": "Responde el nombre de la ciudad; el primero que acierte cobra. Confirma la víctima o el ladrón.",
+   "planB": "Si no ha habido: «Todos, por ahora, muy bien portados». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-56",
+   "n": 56,
+   "ciudad": "Damasco",
+   "votacion": false,
+   "pregunta": "¿Quién se benefició del último Evento o Evento histórico?",
+   "comoSeComprueba": "Responde quien lo recuerde; la carta descartada ayuda: se puede mirar la última del descarte.",
+   "planB": "Si nadie se benefició (o no ha salido ninguno): «La historia pasó de largo». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-60",
+   "n": 60,
+   "ciudad": "Damasco",
+   "votacion": false,
+   "pregunta": "¿Qué objeto de transporte propio (caballo, camello, burro o alfombra) usó alguien por última vez?",
+   "comoSeComprueba": "Responde el objeto; el primero que acierte cobra. Confirma quien lo usó.",
+   "planB": "Si nadie lo ha usado: «A pie, claro, con lo que cuesta un camello». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-64",
+   "n": 64,
+   "ciudad": "Basra",
+   "votacion": false,
+   "pregunta": "¿Quién pagó el último viaje en caravana de más de 10 dinares?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma.",
+   "planB": "Si nadie ha pagado tanto: «Qué gente tan sensata». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-68",
+   "n": 68,
+   "ciudad": "El Cairo",
+   "votacion": false,
+   "pregunta": "¿Qué ciudad no ha visitado todavía nadie?",
+   "comoSeComprueba": "Se comprueba mirando el tablero (caravanas creadas). Responde el primero que nombre una ciudad sin visitar; vale cualquiera de ellas.",
+   "planB": "Si ya se visitaron todas: «Turismo completo, felicitaciones». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-72",
+   "n": 72,
+   "ciudad": "El Cairo",
+   "votacion": false,
+   "pregunta": "¿Quién quedó herido por última vez?",
+   "comoSeComprueba": "Se comprueba con el marcador \"herido\" o por memoria. Responde el primero que acierte.",
+   "planB": "Si nadie está herido ni lo ha estado: «Cuánto cuidado, cuánta cobardía». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-76",
+   "n": 76,
+   "ciudad": "El Cairo",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en llegar al Jorasán?",
+   "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma.",
+   "planB": "Si nadie ha ido: «Los genios siguen sin trabajo». Nadie cobra.",
+   "premio": 10
+  },
+  {
+   "id": "CC-80",
+   "n": 80,
+   "ciudad": "El Cairo",
+   "votacion": false,
+   "pregunta": "¿Quién fue el último en completar un reto y de qué reto se trataba?",
+   "comoSeComprueba": "Responde quien lo recuerde (jugador y reto); el aludido confirma. Si hay duda, votan.",
+   "planB": "Si nadie ha completado ninguno: «Tantos retos y tan poca ambición». Nadie cobra.",
+   "premio": 10
+  }
+ ],
+ "maxPorTurno": 3,
+ "nota": "La respuesta ('correcta' y 'nota') es CRP: el servidor solo la envía tras responder (ver plan, privacidad)."
+}
