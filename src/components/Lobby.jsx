@@ -1,6 +1,5 @@
 import React from 'react';
 import Sprite from './Sprite.jsx';
-import SelectorVista from './SelectorVista.jsx';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
@@ -12,7 +11,6 @@ export default function Lobby({ s }) {
   const puedeIniciar = s.soyHost && todos.some((j) => j.pj) && todos.filter((j) => j.pj).every((j) => j.listo);
   return (
     <main className="pantalla lobby">
-      <div className="cabecera-vista"><SelectorVista /></div>
       <header className="lobby-cab">
         <h1>Sala {s.codigo}</h1>
         <p>Los demás entran abriendo <b>{s.urls?.[0] || location.host}</b> en su navegador (misma red).</p>

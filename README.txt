@@ -30,10 +30,9 @@ interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
   (con 4 o más jugadores alguien debe llevar a Yafar el Bermekí; con 1 jugador se activa el modo solitario).
   Si el cortafuegos del PC pregunta, permite Node en redes privadas. Puerto por defecto: 8080.
 
-  VISTA HORIZONTAL / VERTICAL: la vista HORIZONTAL es la predeterminada en TODAS las pantallas (teléfono, tablet, PC),
-  aunque el dispositivo esté en vertical (en un teléfono vertical el juego se gira 90° para usar el ancho; basta girar el
-  teléfono para verlo derecho). Cada jugador puede cambiar con el selector visible «Horizontal | Vertical» (arriba);
-  el cambio es inmediato y se recuerda en ese navegador (localStorage, clave mun.vista).
+  VISTA: en un teléfono o tablet en vertical, TODA la interfaz va en vertical a pantalla completa (entrada, sala, elegir
+  personaje y partida) y el mapa se ve siempre apaisado, con el norte arriba, ajustado al ancho, con zoom y arrastre.
+  Nada se gira. En PC o pantallas anchas, la vista es horizontal. No hay selector de vista.
 
   GUARDADO Y RECUPERACIÓN: la partida se guarda sola (datos/partida.json con copias .bak1..bak3).
     - Un teléfono que se apaga o recarga vuelve a su sitio solo (token en el navegador).
