@@ -401,14 +401,13 @@ Solo si algún día se añade un fondo raster: niveles `L0..Ln` con `n = ceil(lo
 
 `tests/navegador/05_zoom_dpr.py`: capturas a zoom mínimo y máximo, viewport de teléfono (390×780) y PC (1280×800), DPR 1/2/3 (12 capturas); recortes a resolución nativa a DPR 3 revisados: trazos, números de tarifa, peones y sombras con bordes limpios. **Criterio de aceptación**: ningún elemento del tablero se pixela a zoom máximo con DPR 3 → **cumplido**.
 
-### 9.6 Vista HORIZONTAL por defecto, VERTICAL opcional, rotación del lienzo
+### 9.6 Vista según la forma de la pantalla, sin rotaciones
 
-- La vista horizontal es la predeterminada en **todos** los tamaños y orientaciones. Se decide solo por la preferencia del jugador (`localStorage['mun.vista']`, por defecto `'horizontal'`), nunca por media queries ni `orientation`.
-- `src/hooks/useLienzo.js` mide `innerWidth/innerHeight` y calcula la geometría: en modo horizontal el lienzo mide `lw × lh` con `lw ≥ lh`; si la ventana es más alta que ancha (`vh > vw`) el lienzo se gira 90° con `transform: translate(vw,0) rotate(90deg)` (origen 0 0) para usar todo el ancho disponible; en modo vertical es una columna centrada (`lw = min(vw, max(340, 0,66·vh))`) y el SVG del tablero se gira 90°.
-- Los estilos dependen de atributos del lienzo (`data-modo`, `data-tam`, `data-forma`, `data-rotado`) y de `--lw/--lh`, no de `@media`. `SelectorVista.jsx` (Horizontal | Vertical) está en la sala, la barra superior y las hojas; el cambio es inmediato y se guarda.
-- `usePanZoom` convierte los gestos del marco del dispositivo al marco del lienzo (`uiRot`) y al del SVG (`rot`), de modo que el mapa sigue al dedo con el lienzo girado y la rueda/pellizco conservan el punto central.
-- Verificado (`tests/navegador/10_vista_horizontal_vertical.py`): 390×844, 844×390, 820×1180, 1180×820 y 1280×800, cada uno en horizontal predeterminado y en vertical activado; modo y rotación correctos, selector visible, preferencia que sobrevive a recargar, barra/acciones/minimapa/modales/dados/menús/mano dentro del lienzo, pan y pellizco exactos. Capturas en `docs/capturas/`.
-
+- Pantalla vertical (teléfono o tableta derechos): la interfaz es **vertical a pantalla completa** en todas las fases (entrada, sala, elegir personaje y partida). El tablero **nunca se gira**: se ve apaisado, con el norte arriba, ajustado al ancho, con zoom y arrastre; debajo van la barra de turno y las acciones.
+- Pantalla ancha (PC, tableta horizontal): interfaz horizontal, como siempre.
+- `src/hooks/useLienzo.js` decide solo por `innerWidth/innerHeight` (`data-modo` = vertical u horizontal) y siempre devuelve rotación 0. Ya no hay selector Horizontal | Vertical ni preferencia en `localStorage`. La demo `public/demo/` sigue la misma regla.
+- Los estilos dependen de atributos del lienzo (`data-modo`, `data-tam`, `data-forma`) y de `--lw/--lh`, no de `@media`.
+- Verificado (`tests/navegador/10_vista_vertical.py`, servidor real): teléfono y tableta en vertical con interfaz vertical sin girar y tablero apaisado; PC en horizontal.
 ---
 
 ## 10. Cartas bajo demanda
@@ -605,7 +604,7 @@ Un jugador (el primero en entrar, o quien teclee el PIN) tiene el panel «Banco�
 | `07_servidor_real_dos_navegadores.py` | servidor real, PC + teléfono: lobby → inicio → carta → dados sincronizados → cerrar para todos; 0 peticiones externas | OK |
 | `08_mano_mercado_historial.py` | miniaturas, carta de la mano, mercado, historial, «última carta» | OK |
 | `09_cuento_modal.py` | cuento de ambiente: modal con barra de 5 s y dinares | OK |
-| `10_vista_horizontal_vertical.py` | horizontal por defecto y vertical opcional en 5 dispositivos × 2 modos: rotación, selector, localStorage, gestos pan/pellizco, modales, dados, menús, mano | OK |
+| `10_vista_vertical.py` | pantalla vertical: interfaz vertical sin girar y tablero apaisado en sala y partida (2 jugadores); PC en horizontal | OK |
 
 Criterios de aceptación globales: (1) ≤ 1 carta completa montada; (2) memoria estable tras 100 cierres; (3) ningún elemento del tablero se pixela a zoom máximo con DPR 3; (4) 0 renders de React durante gestos; (5) cero peticiones externas; (6) carga en frío ≤ 600 KB; (7) el servidor continúa sin el banco; (8) estado idéntico tras reiniciar; (9) ninguna vista filtra datos de otros; (10) `find` no encuentra `node_modules`, `dist` ni lockfile en `onlineGame/`.
 

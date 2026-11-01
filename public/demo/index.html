@@ -62,10 +62,6 @@
   <button class="ctl" id="bMas" aria-label="Acercar">+</button>
   <button class="ctl" id="bMenos" aria-label="Alejar">−</button>
   <button class="ctl" id="bCentrar" aria-label="Centrar en mi personaje" title="Centrar en mi personaje"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="2" fill="currentColor"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>
-  <div class="seg" role="group" aria-label="Vista del juego (horizontal por defecto)">
-   <button id="bVert" aria-label="Vista vertical" title="Vista vertical" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="3" width="10" height="18" rx="2"/></svg></button>
-   <button id="bHor" aria-label="Vista horizontal" title="Vista horizontal (predeterminada)" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="10" rx="2"/></svg></button>
-  </div>
  </div>
  <div class="mini-m" id="mini" role="img" aria-label="Minimapa: toca para ir a ese lugar"><svg viewBox="0 0 2970 2100"><rect width="2970" height="2100" fill="#4b777c"/><use href="#costa" fill="#e8d6a2" fill-rule="evenodd"/><polygon class="mv" id="mv"/><g id="mdots"></g></svg></div>
  <div class="toast" id="toast" role="status"></div>
@@ -101,14 +97,13 @@ $('#mts').innerHTML=D.mt.map(([x,y,w])=>`<use href="#mt" transform="translate(${
 $('#tfs').innerHTML=D.fares.map(([x,y,n])=>`<g class="tf" style="transform:translate(${x}px,${y}px)"><g class="e"><circle r="17"/><text>${n}</text></g></g>`).join('');
 const mesa=$('#mesa'),capa=$('#capa'),svg=$('#mapa'),mundo=$('#w');
 let fw=0,fh=0,rafP=0,tC=0,seguir=false,movil=false,uiRot=0;
-/* Vista: HORIZONTAL por defecto en cualquier pantalla (preferencia en localStorage 'mun.vista'). En ventana vertical el lienzo gira 90° con CSS; en vertical (opcional) el tablero gira 90° dentro del lienzo. */
-const LZ=$('#lz');let modo=(()=>{try{return localStorage.getItem('mun.vista')==='vertical'?'vertical':'horizontal'}catch(e){return'horizontal'}})();
-function geom(){const vw=innerWidth,vh=innerHeight,rotar=modo==='horizontal'&&vh>vw;let lw,lh,x=0;
-if(modo==='horizontal'){lw=rotar?vh:vw;lh=rotar?vw:vh}else{lw=Math.min(vw,Math.max(340,Math.round(vh*.66)));lh=vh;x=Math.round((vw-lw)/2)}
+/* Vista: según la forma de la ventana, sin girar nada. Pantalla vertical: interfaz vertical a pantalla completa; el tablero siempre apaisado. */
+const LZ=$('#lz');let modo='horizontal';
+function geom(){const vw=innerWidth,vh=innerHeight,rotar=false;modo=vh>vw?'vertical':'horizontal';const lw=vw,lh=vh,x=0;
 const st=LZ.style;st.width=lw+'px';st.height=lh+'px';st.setProperty('--lw',lw+'px');st.setProperty('--lh',lh+'px');st.transform=rotar?`translate(${vw}px,0) rotate(90deg)`:`translate(${x}px,0)`;
 const f=(k,b)=>b?LZ.setAttribute('data-'+k,''):LZ.removeAttribute('data-'+k);f('t',lw<=480);f('b',lw<=560);f('a',lw>=760);LZ.dataset.modo=modo;LZ.dataset.rotado=rotar?1:0;uiRot=rotar?90:0}
 geom();
-let v={cx:D.ciu.Bagdad[0],cy:D.ciu.Bagdad[1],z:.5,rot:modo==='vertical'?90:0},c={...v};
+let v={cx:D.ciu.Bagdad[0],cy:D.ciu.Bagdad[1],z:.5,rot:0},c={...v};
 /* ---------- Pan / zoom ---------- */
 const frame=()=>v.rot%180?[fh,fw]:[fw,fh];
 function lim(){const[a,b]=frame(),dpr=devicePixelRatio||1,zmin=Math.max(a/(.6*W),b/(1.15*H));return{zmin,zmax:Math.max(Math.min(Math.min(a,b)/220,10/dpr),3*zmin)}}
@@ -143,8 +138,6 @@ mesa.addEventListener('wheel',e=>{if(e.target.closest('.desp'))return;e.preventD
 $('#bMas').onclick=()=>zoomEn(1.4,fw/2,fh/2);$('#bMenos').onclick=()=>zoomEn(1/1.4,fw/2,fh/2);
 const yo=()=>D.pj.find(p=>p.yo);
 $('#bCentrar').onclick=()=>{const[x,y]=posPeon(yo());irA(x,y,Math.max(lim().zmin*2.4,.5))};
-function vista(r,u){modo=r===90?'vertical':'horizontal';if(u)try{localStorage.setItem('mun.vista',modo)}catch(e){}geom();v.rot=r;$('#bVert').classList.toggle('on',r===90);$('#bHor').classList.toggle('on',r===0);$('#bVert').setAttribute('aria-pressed',r===90);$('#bHor').setAttribute('aria-pressed',r===0);ajusta();commit();const[x,y]=posPeon(yo());irA(x,y,v.z,300)}
-$('#bVert').onclick=()=>vista(90,1);$('#bHor').onclick=()=>vista(0,1);
 $('#mini').addEventListener('pointerdown',e=>{const m=e.currentTarget,[x,y]=relEn(m,e);irA(x/m.offsetWidth*W,y/m.offsetHeight*H,v.z)});
 /* ---------- Personajes en el tablero ---------- */
 const peonesG=$('#peones'),porCiudad={};
@@ -154,7 +147,7 @@ function dibujaPeones(){peonesG.innerHTML=[...D.pj].sort((a,b)=>(a.yo?1:0)-(b.yo
 function reparte(){const g={};D.pj.forEach(p=>(g[p.ciudad]||=[]).push(p));Object.values(g).forEach(l=>l.forEach((p,i)=>p.el.firstChild.style.setProperty('--dx',(i-(l.length-1)/2)*30+'px')))}
 function colocar(p){p.el.style.transform=`translate(${p.x}px,${p.y}px)`;const d=$(`#mdots circle[data-i="${p.id}"]`);if(d){d.setAttribute('cx',p.x);d.setAttribute('cy',p.y)}}
 D.pj.forEach(p=>$('#mdots').insertAdjacentHTML('beforeend',`<circle r="26" data-i="${p.id}"${p.yo?' class="yo"':''}/>`));
-dibujaPeones();vista(v.rot);
+dibujaPeones();geom();ajusta();commit();{const[x,y]=posPeon(yo());irA(x,y,v.z,300)}
 function salto(p,fase){const h=Math.abs(Math.sin(fase))*9,k=Math.cos(2*fase);p.cu.setAttribute('transform',`translate(0 ${-h}) translate(0 3) scale(${1.005+.045*k} ${.995-.055*k}) translate(0 -3)`);p.som.setAttribute('rx',20-h*.5);p.som.style.opacity=1-h*.04}
 /* ---------- Rutas y viaje ---------- */
 const adj={};D.rutas.forEach((r,i)=>{(adj[r[0]]||=[]).push([r[1],i,false]);(adj[r[1]]||=[]).push([r[0],i,true])});

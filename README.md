@@ -25,7 +25,7 @@ Esta versión web es el **juego completo** del reglamento extendido, jugable de 
 - 🤖 **Yafar el Bermekí** como NPC (fácil, normal o difícil) o como jugador. **Modo solitario** incluido.
 - 🏦 **Panel del banco** para corregir errores: dar o quitar dinares y noches, repartir o barajar cartas, pasar turno…
 - 💾 **Guardado automático**: si se cae la conexión o el servidor, la partida sigue donde iba.
-- 📱 **Horizontal o vertical**, cada jugador elige.
+- 📱 **En el teléfono, todo en vertical** y el mapa siempre apaisado, con zoom y arrastre. En PC, pantalla completa horizontal.
 
 <p align="center">
   <img src="docs/capturas/05-mano-privada-pc.jpg" alt="Mano privada" width="400">

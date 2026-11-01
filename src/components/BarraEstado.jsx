@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { verComo } from '../game/store.js';
-import SelectorVista from './SelectorVista.jsx';
 
 export default function BarraEstado({ s, demo, pids, panel, abrir }) {
   const [mas, setMas] = useState(false);
@@ -15,7 +14,6 @@ export default function BarraEstado({ s, demo, pids, panel, abrir }) {
         {!s.hostConectado && <span className="chip mal" title="El banco está desconectado; la partida sigue.">banco ausente</span>}
       </div>
       <nav className="barra-der" aria-label="Menú">
-        <SelectorVista compacto />
         <button className={`btn mini${panel === 'personajes' ? ' on' : ''}`} aria-expanded={panel === 'personajes'} onClick={() => abrir('personajes')}>Personajes ▾</button>
         <button className="btn mini" disabled={s.ultimaCarta == null} onClick={() => abrir('ultima')}>Última carta</button>
         <div className="menu-mas">
