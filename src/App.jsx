@@ -30,6 +30,7 @@ function Juego({ lienzo }) {
   const s = useJuego((x) => x.estado);
   const conexion = useJuego((x) => x.conexion);
   const error = useJuego((x) => x.error);
+  const aviso = useJuego((x) => x.aviso);
   const demo = useJuego((x) => x.demo);
   const pids = useJuego((x) => x.pids);
   const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
@@ -87,6 +88,7 @@ function Juego({ lienzo }) {
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {error && <div className="toast" role="alert">{error}</div>}
+      {aviso && !error && <div className="toast ok" role="status">✓ {aviso}</div>}
     </div>
   );
 }

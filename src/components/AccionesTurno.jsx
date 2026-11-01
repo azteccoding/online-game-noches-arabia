@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { useBloqueo } from '../hooks/useBloqueo.js';
 
 const nom = (s, id) => s.jugadores[id]?.nombre || id;
 const TIPO_ATAQUE = { robo: ['Robar a', 'Asalto: sin armas ni gritos, se resuelve con dados (R 12).'], matar: ['Atacar a muerte a', 'Pelea a muerte: quien pierde es eliminado (R 11).'], duelo: ['Desafiar a duelo a', 'Duelo: pelea limpia; el perdedor paga o queda herido (R 11).'] };
@@ -102,6 +103,7 @@ function Personaje({ a, s }) {
 
 function Tesoro({ s, mi, mt }) {
   const [monto, setMonto] = useState(10);
+  const [ocupado, una] = useBloqueo();
   const puedeEsc = mt && mi.pj !== 'B' && !mi.perdido && mi.dinares > 0;
   return (
     <>
@@ -109,12 +111,12 @@ function Tesoro({ s, mi, mt }) {
         <div className="accion-fila">
           <div className="accion-txt"><b>Esconder dinares</b><small>Guardas dinares en esta ciudad (ya visitada) y recibes un mapa. Recupéralos aquí cuando quieras.</small></div>
           <div className="accion-ctl"><input type="number" min="1" max={mi.dinares} value={monto} onChange={(e) => setMonto(e.target.value)} aria-label="Dinares a esconder" style={{ width: 80 }} />
-            <button className="btn mini" disabled={!!s.pend} onClick={() => enviar(ACCIONES.esconder(Number(monto)))}>Esconder</button></div>
+            <button className="btn mini" disabled={!!s.pend || ocupado} onClick={una(() => enviar(ACCIONES.esconder(Number(monto))))}>Esconder</button></div>
         </div>
       )}
       {mt && mi.escondido > 0 && (
         <div className="accion-fila"><div className="accion-txt"><b>Recuperar el tesoro escondido</b><small>Tienes {mi.escondido} dinares escondidos (solo si estás en la ciudad donde los dejaste).</small></div>
-          <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend} onClick={() => enviar(ACCIONES.recuperar())}>Recuperar</button></div></div>
+          <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || ocupado} onClick={una(() => enviar(ACCIONES.recuperar()))}>Recuperar</button></div></div>
       )}
     </>
   );
