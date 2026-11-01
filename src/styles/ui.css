@@ -107,6 +107,11 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 /* La carta conserva su proporción y cabe en pantalla; en horizontal bajo (móvil) mantiene un ancho legible y el fondo se desplaza. */
 .modal-carta { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: auto; width: max(min(100%, 470px, calc((var(--lh) - 150px) * .716)), min(100%, 300px)); }
 .modal-fondo > .panel { margin: auto; }
+.carta-dorso { width: min(100%, 360px); animation: dorso-gira 600ms ease-in forwards; }
+.carta-dorso img { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }
+@keyframes dorso-gira { 0% { transform: perspective(1000px) rotateY(0) scale(.92); } 55% { transform: perspective(1000px) rotateY(0) scale(1); } 100% { transform: perspective(1000px) rotateY(90deg) scale(1); } }
+.modal-carta.gira { animation: frente-gira .38s ease-out; }
+@keyframes frente-gira { from { transform: perspective(1000px) rotateY(-90deg); } to { transform: perspective(1000px) rotateY(0); } }
 .modal-sup { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; justify-content: center; color: var(--oro-claro); font-size: 15px; }
 .barra-lectura { width: min(440px, 100%); height: 10px; border-radius: 999px; background: rgba(241, 227, 184, .22); overflow: hidden; border: 1px solid rgba(239, 208, 143, .6); flex: none; }
 .barra-lectura i { display: block; width: 100%; height: 100%; transform-origin: left center; background: linear-gradient(90deg, var(--oro), var(--oro-claro)); animation: bajar linear forwards; will-change: transform; }

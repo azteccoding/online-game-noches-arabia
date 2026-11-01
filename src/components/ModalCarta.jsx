@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Carta from './Carta.jsx';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
@@ -6,10 +6,15 @@ import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
 
 export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new URLSearchParams(location.search).get('minLectura'))) || 5000;
+const PASO_MS = 1000;            // la ficha tarda .95 s en llegar a la ciudad (.peon en board.css): la carta espera a que termine
+const GIRO_MS = 600;             // el dorso se ve y gira; luego entra el anverso (animaciones .carta-dorso / .modal-carta.gira)
+const DORSOS = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', objeto: 'objetos', item: 'objetos', especial: 'objetos', trivia: 'trivia', mesa: 'cc', cuento: 'crp', personaje: 'personajes', reto: 'retos', ifrit: 'ifrit' };
+const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Ciclo de vida de una carta (ver plan «Cartas bajo demanda»):
 //   1. llega a estado.historial (DATOS) -> entra en la cola de lectura
-//   2. se MONTA un único <Carta completa> en este modal; barra descendente de 5 s; el botón Cerrar espera a que acabe
+//   2. espera a que la ficha termine de moverse, muestra el dorso y gira; luego se MONTA un único <Carta completa>;
+//      barra descendente de 5 s; el botón Cerrar espera a que acabe (los cuentos de ambiente se cierran al instante)
 //   3. al cerrar se DESMONTA (se libera el DOM y las imágenes) y solo permanece el dato en el historial
 // «Última carta» e historial vuelven a dibujar la carta desde esos datos (modo consulta, sin temporizador).
 export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
@@ -18,6 +23,8 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
   const [cola, setCola] = useState([]);
   const [abierto, setAbierto] = useState(0);
   const [resta, setResta] = useState(0);
+  const [fase, setFase] = useState('frente');      // espera | dorso | frente
+  const veniaVacia = useRef(true);
 
   useEffect(() => {
     // Al montar (inicio de partida o recarga) solo se dan por leídas las cartas antiguas; la del arranque (evento de la ronda 1) sí se muestra.
@@ -31,16 +38,33 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
   const modoLectura = consulta == null && cola.length > 0;
   const carta = useMemo(() => consultaObj || (nroActual != null ? s.historial.find((h) => h.nro === nroActual) : null), [nroActual, s.historial, consultaObj]);
 
+  useLayoutEffect(() => {
+    if (!modoLectura) { veniaVacia.current = true; setFase('frente'); return undefined; }
+    if (sinMovimiento()) { veniaVacia.current = false; setFase('frente'); return undefined; }
+    const espera = veniaVacia.current ? PASO_MS : 0; veniaVacia.current = false;
+    setFase(espera ? 'espera' : 'dorso');
+    const t1 = setTimeout(() => setFase('dorso'), espera), t2 = setTimeout(() => setFase('frente'), espera + GIRO_MS);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, [modoLectura, nroActual]);
+
   useEffect(() => {
-    if (!modoLectura) return undefined;
+    if (!modoLectura || fase !== 'frente') return undefined;
     const t0 = Date.now(); setAbierto(t0); setResta(Math.ceil(MIN_LECTURA_MS / 1000));
     const iv = setInterval(() => { const r = Math.max(0, Math.ceil((MIN_LECTURA_MS - (Date.now() - t0)) / 1000)); setResta(r); if (r === 0) clearInterval(iv); }, 200);
     return () => clearInterval(iv);
-  }, [modoLectura, nroActual]);
+  }, [modoLectura, nroActual, fase]);
 
   useEffect(() => { if (puedeCerrarRef.current) botonCerrar.current?.focus({ preventScroll: true }); });
   if (!carta) return null;
-  const puedeCerrar = !modoLectura || resta === 0;
+  if (modoLectura && fase === 'espera') return null;
+  if (modoLectura && fase === 'dorso') {
+    return (
+      <div className="modal-fondo" role="dialog" aria-modal="true" aria-label={carta.titulo}>
+        <div className="modal-carta"><div className="carta-dorso" style={{ animationDuration: GIRO_MS + 'ms' }}><img src={`/cartas/dorsos/${DORSOS[carta.deck] || 'cc'}.webp`} alt="" /></div></div>
+      </div>
+    );
+  }
+  const puedeCerrar = !modoLectura || resta === 0 || carta.deck === 'cuento';
   puedeCerrarRef.current = puedeCerrar;
   const cerrar = () => { if (!puedeCerrar) return; if (modoLectura) setCola((c) => c.slice(1)); else onCerrarConsulta(); };
   const quien = carta.quien ? s.jugadores[carta.quien] : null;
@@ -51,7 +75,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
 
   return (
     <div className="modal-fondo" role="dialog" aria-modal="true" aria-label={carta.titulo} onClick={(e) => e.target === e.currentTarget && cerrar()}>
-      <div className="modal-carta">
+      <div className={`modal-carta${modoLectura ? ' gira' : ''}`} key={modoLectura ? carta.nro : 'consulta'}>
         <div className="modal-sup">
           <span>{quien ? `${quien.nombre} · ${nombreCorto(quien.pj) || ''}` : 'Para toda la mesa'}{carta.para ? ' · privada' : ''}</span>
           {modoLectura && cola.length > 1 && <span className="chip">{cola.length} por leer</span>}
