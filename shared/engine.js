@@ -246,7 +246,25 @@ const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectad
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
 const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
+// Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
+// el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
+const saldos = (e) => Object.fromEntries(Object.values(e.jugadores).map((j) => [j.id, [j.dinares, j.noches]]));
+const fmt = (n) => n.toLocaleString('es-MX');
+function anotarSaldos(e, antes) {
+  if (!antes || e.fase === 'lobby') return;
+  for (const j of Object.values(e.jugadores)) {
+    const a = antes[j.id]; if (!a || !j.pj) continue;
+    const dd = j.dinares - a[0], dn = j.noches - a[1];
+    if (!dd && !dn) continue;
+    const partes = [dd && `${dd > 0 ? '+' : '−'}${fmt(Math.abs(dd))} dinares`, dn && `${dn > 0 ? '+' : '−'}${fmt(Math.abs(dn))} noches`].filter(Boolean).join(' y ');
+    log(e, `Saldo de ${j.nombre}: ${partes} (ahora ${fmt(j.dinares)} dinares y ${fmt(j.noches)} noches).`, { pid: j.id, saldo: { dd, dn } });
+  }
+}
 export function reducir(data, e, pid, a, ahora = Date.now()) {
+  const antes = saldos(e);
+  try { return reducir0(data, e, pid, a, ahora); } finally { anotarSaldos(e, antes); }
+}
+function reducir0(data, e, pid, a, ahora) {
   e.ahora = ahora;
   const j = e.jugadores[pid];
   if (!j) return err('Jugador desconocido.');
@@ -722,7 +740,7 @@ export function vista(data, e, pid) {
     opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid) };
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
-    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n }) => ({ t: tt, texto, pid: p2, n })),
+    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
@@ -789,6 +807,10 @@ function reiniciar(data, e) {
 
 // ---------------------------------------------------------------- reloj del servidor (cada segundo)
 export function tick(data, e, ahora = Date.now()) {
+  const antes = saldos(e);
+  try { return tick0(data, e, ahora); } finally { anotarSaldos(e, antes); }
+}
+function tick0(data, e, ahora) {
   e.ahora = ahora;
   let cambio = false;
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }

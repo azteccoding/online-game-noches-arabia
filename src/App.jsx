@@ -48,11 +48,11 @@ function Juego({ lienzo }) {
     if (s.ronda > p.ronda) avisar(`Comienza la ronda ${s.ronda}`);
     const dd = mi.dinares - p.din, dn = mi.noches - p.noc;
     if (dd < 0) {                                                       // pagos y pérdidas: aviso rojo con el motivo (alojamiento, robo, multa…)
-      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
+      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && !l.saldo && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
       avisarPerdida(`Pierdes ${-dd} dinares${motivo ? ': ' + motivo : ''}`);
     }
     if (dd > 0 || dn > 0) {
-      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
+      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && !l.saldo && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
       avisar(`Ganaste ${[dd > 0 && `${dd} dinares`, dn > 0 && `${dn} noches`].filter(Boolean).join(' y ')}${motivo ? ': ' + motivo : ''}`);
     }
   }, [s]);

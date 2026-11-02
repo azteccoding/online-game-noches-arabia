@@ -1,6 +1,7 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista } from '../shared/engine.js';
+const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
@@ -346,6 +347,30 @@ function forzar(e, ...valores) {
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Bagdad' }).ok, 'la alfombra no va a Bagdad');
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'India' }).ok, 'la alfombra sí llega a India');
   assert.ok(!j.mano.some((x) => x.uid === 9300), 'la alfombra se gasta');
+}
+
+// Libro de saldos: cada cambio de dinares y noches queda en el registro; la suma de lo anotado da el saldo final
+{
+  const g = partida(['4', '7', 'B', '5']); const e = g.e;
+  const todo = []; const push = e.log.push.bind(e.log); e.log.push = (...x) => { todo.push(...x); return push(...x); };
+  assert.ok(g.iniciar().ok);
+  let semilla = 7; const azar = (n) => { semilla = (semilla * 1103515245 + 12345) & 0x7fffffff; return semilla % n; };
+  for (let paso = 0; paso < 1500 && e.fase === 'juego'; paso++) {
+    if (e.dados) { e.dados.lanzado = true; g.tickear(31000); continue; }
+    if (e.pend) { for (const q of e.pend.para) if (!e.pend?.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id, valores: [e.pend.opciones[0]?.id] }); g.tickear(100); continue; }
+    const t = e.turno; if (!t || e.jugadores[t.pid].npc) { g.tickear(2000); continue; }
+    const pid = t.pid;
+    if (t.fase === 'ingreso') { g.act(pid, { t: 'tirarDados' }); continue; }
+    if (t.ccActual) { g.act(pid, t.ccActual.tipo === 'trivia' ? { t: 'responderCC', opcion: azar(3) } : { t: 'omitirCC' }); continue; }
+    const v = vistaDe(e, pid), via = v.acciones.filter((x) => x.k === 'viajar');
+    if (via.length && azar(3)) { g.act(pid, { t: 'viajar', destino: via[azar(via.length)].destino }); continue; }
+    if (azar(4) === 0) { const o = v.tienda.filter((x) => x.puede); if (o.length) { const x = o[azar(o.length)]; g.act(pid, { t: 'comprar', ...(x.id ? { id: x.id } : { ref: x.ref }) }); continue; } }
+    g.act(pid, { t: 'terminarTurno' }); g.tickear(100);
+  }
+  assert.ok(e.ronda >= 3, 'la partida de prueba avanzó varias rondas');
+  const suma = {};
+  for (const l of todo) if (l.saldo) { const s = (suma[l.pid] ||= [0, 0]); s[0] += l.saldo.dd; s[1] += l.saldo.dn; }
+  for (const j of Object.values(e.jugadores).filter((x) => x.pj)) assert.deepEqual(suma[j.id] || [0, 0], [j.dinares, j.noches], 'el registro cuadra con el saldo de ' + j.nombre);
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
