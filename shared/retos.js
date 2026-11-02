@@ -221,7 +221,7 @@ function r1Exito(data, e, pid, m) {
 }
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
-    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: 'Si aceptas, tu turno termina mientras buscas y contraes una deuda con la ciudad (alojamiento 15 + 2 por ayudante). Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.',
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda con la ciudad (alojamiento 15 + ${data.config.r1?.costoAyudante ?? 2} por ayudante). Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
       opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r1.acepta', args: {} } });
   } };
 registrar('r1.acepta', (data, e, args, resp) => {
@@ -230,11 +230,12 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Ayudantes', texto: 'Cada ayudante añade un dado de búsqueda y 2 dinares de deuda (máximo 5). El cofre aparece con un 1 o un 2 en cualquier dado.', modo: 'numero', min: 0, max: 5, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
+  const cA = data.config.r1?.costoAyudante ?? 2, mA = data.config.r1?.maxAyudantes ?? 5;
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Ayudantes', texto: `Cada ayudante añade un dado de búsqueda y ${cA} dinares de deuda (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, modo: 'numero', min: 0, max: mA, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
 });
 registrar('r1.ayudantes', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], n = resp.numero || 0;
-  const m = nuevaMision(e, pid, { id: 'R1', deuda: 15 + 2 * n, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
+  const m = nuevaMision(e, pid, { id: 'R1', deuda: 15 + (data.config.r1?.costoAyudante ?? 2) * n, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
   const ctx = nuevoCtx(e, pid, 'R1');
   const v = ctx.t(`${j.nombre} y ${n} ayudante(s)`, 1 + n);
   if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; }
