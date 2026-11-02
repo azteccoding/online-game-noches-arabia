@@ -251,6 +251,26 @@ function forzar(e, ...valores) {
   assert.ok(!r.ok && /biblioteca de Bagdad/.test(r.error), 'el libro de Ibn Hazm no se puede pasar a otro jugador');
 }
 
+// Averroes: la única Receta de Averroes de la partida, para el primero que cumple uno de sus Mensajes; cura la herida
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.mensaje = { id: 'M7' }; A.ciudad = 'Bagdad'; mensajes(data, e, a, 'llegada', { primera: false });   // Ibn Hazm: no da receta
+  assert.ok(!tieneItem(A, 'recetaAverroes'));
+  A.mensaje = { id: 'M1' }; mensajes(data, e, a, 'llegada', { primera: true });
+  assert.ok(tieneItem(A, 'recetaAverroes'), 'el primero que cumple un Mensaje de Averroes recibe la receta');
+  assert.ok(e.log.some((l) => l.aviso && /receta de médico/.test(l.texto)), 'aviso para todos');
+  B.mensaje = { id: 'M1' }; mensajes(data, e, b, 'llegada', { primera: true });
+  A.mensaje = { id: 'M1' }; mensajes(data, e, a, 'llegada', { primera: true });
+  assert.ok(!tieneItem(B, 'recetaAverroes'), 'solo hay una por partida');
+  assert.equal(A.mano.filter((c) => c.ref === 'recetaAverroes').length, 1, 'no se duplica');
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; e.turno.heridoAhora = true; e.turno.principal = true;
+  const r = g.act(a, { t: 'usar', uid: A.mano.find((c) => c.ref === 'recetaAverroes').uid });
+  assert.ok(r.ok, r.error);
+  assert.ok(!e.turno.heridoAhora && !e.turno.principal && !A.herido, 'cura y devuelve la acción principal');
+  assert.ok(!tieneItem(A, 'recetaAverroes'), 'se gasta');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

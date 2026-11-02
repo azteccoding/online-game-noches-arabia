@@ -229,6 +229,7 @@ export function disponibles(data, e, pid) {
       if (u.obj) { const ob = enCiudad(e, j.ciudad, pid).filter((q) => !e.jugadores[q].npc); if (!ob.length) continue; x.objetivos = ob; }
       r.push(x);
     }
+    if (c.tipo === 'item' && c.ref === 'recetaAverroes' && (j.herido || t.heridoAhora)) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar la Receta de Averroes (cura tu herida)' });
     if (c.tipo === 'item' && c.ref === 'veneno') {
       const vic = activos(e).filter((q) => q !== pid && !e.jugadores[q].npc);
       if (vic.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar veneno (Anciana Devota, 20 dinares + transporte)', objetivos: vic, via: 'anciana' });
@@ -305,6 +306,12 @@ export function usar(data, e, pid, a) {
     return HOOK.viajarTransporte(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre, turnos: TRANSPORTE[c.ref], consumeUid: c.ref === 'alfombra' ? c.uid : null });
   }
   if (c.tipo === 'item' && c.ref === 'veneno') return usarVeneno(data, e, pid, c, a);
+  if (c.tipo === 'item' && c.ref === 'recetaAverroes') {
+    if (!(j.herido || t.heridoAhora)) return err('No estás herido.');
+    quitarCarta(j, c.uid); j.herido = false;
+    if (t.heridoAhora) { t.heridoAhora = false; t.principal = false; }
+    log(e, `${j.nombre} sigue la receta de Averroes y se cura de su herida.`, { pid }); return ok();
+  }
   if (c.tipo !== 'objeto') return err('Eso no se usa así.');
   switch (c.ref) {
     case 'OB05': {

@@ -615,6 +615,10 @@ export function mensajes(data, e, pid, ev, inf) {
   if (m.de === 'Ibn Arabi' && !tieneItem(j, 'dadoIbnArabi')) {                          // regla de la casa: el Dado de Ibn Arabi
     darItem(e, j, 'dadoIbnArabi'); log(e, `Ibn Arabi regala a ${j.nombre} un dado para cambiar su suerte: repetirá la próxima pelea que vaya a perder.`, { pid });
   }
+  if (m.de === 'Averroes' && !e.recetaAverroesDada) {                                   // regla de la casa: una sola Receta de Averroes por partida
+    e.recetaAverroesDada = true; darItem(e, j, 'recetaAverroes');
+    log(e, `Averroes regala a ${j.nombre} su receta de médico: la única de la partida, cura una herida.`, { pid, aviso: true });
+  }
   if (id === LIBRO_IBN_HAZM_MSG && j.mano.filter((c) => c.tipo === 'item' && c.ref === 'libroIbnHazm').length < LIBROS_IBN_HAZM_MAX) {   // regla de la casa: libros de Ibn Hazm
     const titulo = OBRAS_IBN_HAZM[((e.librosIbnHazm = (e.librosIbnHazm || 0) + 1) - 1) % OBRAS_IBN_HAZM.length];
     darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo });
