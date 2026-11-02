@@ -11,6 +11,9 @@ export default function VotoReinicio({ s }) {
   const quien = s.jugadores[v.por]?.nombre || 'El banco';
   const resta = Math.max(0, Math.ceil((v.limiteMs - (s.ahora - v.t0)) / 1000));
   const cuenta = `${v.si} sí · ${v.no} no · de ${v.total} (gana con más de la mitad)`;
+  if (v.votas && v.miVoto === null && s.pend?.mia && !s.pend.respondiste) {         // tu decisión va primero: el voto queda como barra, sin tapar nada
+    return <div className="espera-pend voto-barra" role="status">¿Empezar otra partida? <button className="btn mini" onClick={() => enviar(ACCIONES.votarReinicio(true))}>Sí</button> <button className="btn mini sec" onClick={() => enviar(ACCIONES.votarReinicio(false))}>No</button> · quedan {resta} s</div>;
+  }
   if (!v.votas || v.miVoto !== null) return <div className="espera-pend" role="status">Votación para empezar de nuevo: {cuenta}{v.miVoto !== null ? ` · votaste ${v.miVoto ? 'sí' : 'no'}` : ''}</div>;
   return (
     <div className="modal-fondo decision-fondo" role="dialog" aria-modal="true" aria-label="Votación: partida nueva">
