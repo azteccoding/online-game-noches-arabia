@@ -155,6 +155,10 @@ En [`src/data/config.json`](src/data/config.json):
 | `cartasDeMesa` | `false` | Sin cartas «de mesa» (preguntas sobre lo que pasó entre jugadores). Solo salen trivias. |
 | `sinRobarPrimerasRondas` | `true` | Nadie puede **robar** en las 2 primeras rondas. Matar tampoco, como dice el reglamento. Los duelos sí se permiten. |
 | `primerosTurnosSinMatar` | `2` | Número de rondas iniciales protegidas. |
+| `premioTrivia` | `5` | Dinares por trivia acertada (el comercio pesa más que las preguntas). |
+| `equilibrio` | comisión 3 (máx. 9), Anís +3 | Palancas de equilibrio: comisión de bolsillo de Yafar jugador e ingreso extra por personaje. |
+
+En [`src/data/objetos.json`](src/data/objetos.json), cada mercancía de comercio tiene su tabla `reventa` (ciudades donde se vende cara, sin impuesto) y `escasez.reposicionPorRonda` fija cuántos objetos vuelven al mercado al empezar cada ronda.
 
 El servidor usa **azar criptográfico** para dados y barajados, así que cada partida es distinta. La demo y las pruebas usan una semilla fija para poder repetirlas.
 
