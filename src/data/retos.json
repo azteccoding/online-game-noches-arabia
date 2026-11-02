@@ -6,9 +6,9 @@
    "ciudad": "Bagdad",
    "tipo": "N, A",
    "requisito": "",
-   "resolucion": "Acepta o rechaza; búsqueda con dado (1 = cofre); deuda con la ciudad.",
+   "resolucion": "Acepta o rechaza; búsqueda con dados (un 1 o un 2 en cualquier dado = cofre); deuda con la ciudad.",
    "premio": "Camello, 50 dinares, caballo, pergamino (30 dinares en Damasco), 50 noches y viaje gratis.",
-   "riesgo": "Crucifixión (eliminación) si no pagas la deuda.",
+   "riesgo": "Con deuda no puedes salir de Bagdad; si al vencer no tienes dinares, la pagas con todas tus noches.",
    "objetos": "",
    "refReglamento": "14.2",
    "arte": "re"

@@ -52,7 +52,7 @@ export function disponibles(data, e, pid) {
     r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: msg || undefined });
   }
   const deuda = j.misiones.find((m) => m.id === 'R1' && m.deuda > 0 && j.ciudad === 'Bagdad');
-  if (deuda) r.push({ k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)` });
+  if (deuda) r.push({ k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)`, texto: j.dinares >= deuda.deuda ? 'Pagas con dinares y quedas libre para salir de Bagdad.' : 'No te alcanzan los dinares: pagas con TODAS tus noches y quedas libre para salir.' });
   return r;
 }
 
@@ -63,8 +63,7 @@ export function iniciarReto(data, e, pid, a) {
   if (a.sub === 'pagar') {
     const m = j.misiones.find((x) => x.id === 'R1' && x.deuda > 0);
     if (!m) return err('No debes nada.');
-    if (j.dinares < m.deuda) return err('No te alcanzan los dinares.');
-    j.dinares -= m.deuda; j.misiones.splice(j.misiones.indexOf(m), 1); log(e, `${j.nombre} paga su deuda con la ciudad de Bagdad.`, { pid }); return ok();
+    pagarDeudaR1(e, j, m); return ok();
   }
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
   const def = T[a.id], d = m1(data, a.id);
@@ -190,17 +189,21 @@ function r1Turno(data, e, pid, m) {
   if (m.busca) {
     const ctx = nuevoCtx(e, pid, 'R1');
     const v = ctx.t(`${j.nombre} y ${m.ayudantes} ayudante(s)`, 1 + m.ayudantes);
-    m.deuda *= 2; m.busca = false;
-    if (v.includes(1)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); }
-    else ctx.say('No hay cofre: abandonas la búsqueda y aún debes el alojamiento (doble).');
+    m.busca = false;                                                       // regla de la casa: la deuda ya no se duplica
+    if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); }
+    else ctx.say('No hay cofre: abandonas la búsqueda y sigues debiendo el alojamiento. No puedes salir de Bagdad hasta pagarlo.');
     ctx.fin();
     j.misiones.find((x) => x.id === 'R1') && (m.vence ??= j.turnos + 3);
     return;
   }
   if (m.deuda > 0 && j.turnos > m.vence) {
-    if (j.dinares >= m.deuda || patrimonio(j) >= m.deuda) { pagar(data, e, pid, m.deuda); quitarMision(j, m); return; }
-    log(e, `${j.nombre} no pagó la deuda con Bagdad: es crucificado.`, { pid }); quitarMision(j, m); eliminar(data, e, pid, { causa: 'crucificado por deuda' });
+    pagarDeudaR1(e, j, m);                                                 // regla de la casa: sin dinares, se paga con todas las noches (ya no hay crucifixión)
   }
+}
+function pagarDeudaR1(e, j, m) {
+  if (j.dinares >= m.deuda) { j.dinares -= m.deuda; log(e, `${j.nombre} paga su deuda con la ciudad de Bagdad (${m.deuda} dinares).`, { pid: j.id }); }
+  else { log(e, `${j.nombre} no tiene dinares para su deuda con Bagdad y la paga con todas sus noches (${j.noches}).`, { pid: j.id }); j.noches = 0; }
+  quitarMision(j, m);
 }
 function r1Exito(data, e, pid, m) {
   const j = e.jugadores[pid];
@@ -220,14 +223,14 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Ayudantes', texto: 'Cada ayudante añade un dado de búsqueda y 2 dinares de deuda (máximo 5).', modo: 'numero', min: 0, max: 5, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Ayudantes', texto: 'Cada ayudante añade un dado de búsqueda y 2 dinares de deuda (máximo 5). El cofre aparece con un 1 o un 2 en cualquier dado.', modo: 'numero', min: 0, max: 5, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
 });
 registrar('r1.ayudantes', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], n = resp.numero || 0;
   const m = nuevaMision(e, pid, { id: 'R1', deuda: 15 + 2 * n, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
   const ctx = nuevoCtx(e, pid, 'R1');
   const v = ctx.t(`${j.nombre} y ${n} ayudante(s)`, 1 + n);
-  if (v.includes(1)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno debiendo el doble.'); m.busca = true; }
+  if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; }
   ctx.fin(); e.turno.fin = true; e.turno.movio = true;
 });
 T.R1.sinSalir = true;

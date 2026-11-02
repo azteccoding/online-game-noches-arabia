@@ -376,6 +376,7 @@ export function viajar(data, e, pid, a) {
   if (t.tramos >= (t.maxTramos || data.config.maxTramosPorTurno)) return err('Máximo 2 tramos por turno (R 7.3).');
   if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
   if (j.extra.sinViajar === e.ronda) return err('Un lazo te impide viajar esta ronda.');
+  if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return err('Tienes una deuda con Bagdad (reto R1): págala antes de salir de la ciudad.');
   const origen = j.ciudad;
   if (e.sinCaravanasBagdad && origen === 'Bagdad') return err('Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).');
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
