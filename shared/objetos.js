@@ -254,7 +254,7 @@ export function destinosTransporte(data, ref, desde) {
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas.', caballo: 'el caballo no va a Samarcanda, al Magreb ni a India.', camello: 'el camello solo va al Magreb y a Samarcanda.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas.', caballo: 'el caballo no va a Samarcanda, al Magreb ni a India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 function usarVeneno(data, e, pid, c, a) {
