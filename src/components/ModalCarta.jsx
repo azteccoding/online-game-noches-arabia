@@ -33,6 +33,14 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
     if (nuevos.length) { nuevos.forEach((h) => vistos.current.add(h.nro)); setCola((c) => [...c, ...nuevos.map((h) => h.nro)]); }
   }, [s.historial, s.yo]);
 
+  // Avisa al servidor hasta qué carta cerró este jugador (Yafar NPC espera a que todos cierren sus cartas).
+  const avisado = useRef(0);
+  useEffect(() => {
+    if (cola.length || !vistos.current) return;
+    const max = Math.max(0, ...vistos.current);
+    if (max > avisado.current) { avisado.current = max; enviar({ t: 'leido', nro: max }); }
+  }, [cola.length, s.historial]);
+
   const consultaObj = consulta && typeof consulta === 'object' ? consulta : null;
   const nroActual = consultaObj ? consultaObj.nro : (consulta ?? cola[0] ?? null);
   const modoLectura = consulta == null && cola.length > 0;

@@ -9,10 +9,10 @@ const PJS = ['1', '2', '3', '4', '5', '6', '7'];
 
 function mulberry(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 60000, conYafar = null, dificultad = 'normal', verbose = false, restaurarCada = 0 } = {}) {
+export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 60000, conYafar = null, dificultad = 'normal', verbose = false, restaurarCada = 0, sinYafar = false } = {}) {
   const R = mulberry(semilla * 7919 + 13);
   const pick = (a) => a[Math.floor(R() * a.length)];
-  let e = nuevoJuego(data, { semilla, ahora: 1000, opciones: { rapido, dificultad } });
+  let e = nuevoJuego(data, { semilla, ahora: 1000, opciones: { rapido, dificultad, sinYafar } });
   const ids = [];
   const yafar = conYafar ?? jugadores >= 4;
   const pool = PJS.slice().sort(() => R() - 0.5);

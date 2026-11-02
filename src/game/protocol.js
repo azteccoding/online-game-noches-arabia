@@ -14,6 +14,7 @@ export const ACCIONES = {
   elegirPj: (pj) => ({ t: 'elegirPj', pj }),
   listo: (v) => ({ t: 'listo', v }),
   opciones: (dificultad) => ({ t: 'opciones', dificultad }),
+  sinYafar: (v) => ({ t: 'opciones', sinYafar: !!v }),
   iniciar: () => ({ t: 'iniciar' }),
   decidir: (id, resp) => ({ t: 'decidir', id, ...resp }),
   tirarDados: () => ({ t: 'tirarDados' }),

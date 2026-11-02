@@ -54,7 +54,10 @@ export default function Lobby({ s }) {
             </select>
           </label>
         )}
-        <p className="it nota">{todos.filter((j) => j.pj).length === 1 ? 'Con un solo jugador es partida en solitario: Yafar el Bermekí (NPC) juega contra ti. ' : ''}{!todos.some((j) => j.pj === 'B') && todos.filter((j) => j.pj).length >= 4 ? 'Con 4 o más jugadores alguien debe elegir a Yafar el Bermekí. ' : ''}{s.soyHost ? 'Eres el banco/anfitrión: tú inicias la partida y repartes en el panel «Banco». Si te desconectas, la partida sigue en el servidor.' : 'Espera a que el banco/anfitrión inicie la partida.'}</p>
+        {s.soyHost && todos.filter((j) => j.pj).length < 4 && !todos.some((j) => j.pj === 'B') && (
+          <label className="dificultad"><input type="checkbox" checked={!!s.opciones?.sinYafar} onChange={(e) => enviar(ACCIONES.sinYafar(e.target.checked))} /> Jugar sin Yafar NPC</label>
+        )}
+        <p className="it nota">{todos.filter((j) => j.pj).length === 1 && !s.opciones?.sinYafar ? 'Con un solo jugador es partida en solitario: Yafar el Bermekí (NPC) juega contra ti. ' : ''}{!todos.some((j) => j.pj === 'B') && todos.filter((j) => j.pj).length >= 4 ? 'Con 4 o más jugadores alguien debe elegir a Yafar el Bermekí. ' : ''}{s.soyHost ? 'Eres el banco/anfitrión: tú inicias la partida y repartes en el panel «Banco». Si te desconectas, la partida sigue en el servidor.' : 'Espera a que el banco/anfitrión inicie la partida.'}</p>
       </section>
     </main>
   );

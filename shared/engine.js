@@ -86,12 +86,13 @@ function iniciar(data, e) {
     const n = orden.length; [orden[n - 1], orden[n - 2]] = [orden[n - 2], orden[n - 1]];
   }
   const sinNPC = orden.slice();
-  if (!conB) {                                                                                         // Yafar NPC (R 20.4, 21): juega justo antes de Adí
+  const conNPC = !conB && !(e.opciones.sinYafar && ids.length < 4);
+  if (conNPC) {                                                                                      // Yafar NPC (R 20.4, 21): juega justo antes de Adí
     const id = 'npc'; e.jugadores[id] = { ...nuevoJugador(e, id, 'Yafar el Bermekí (NPC)', null), pj: 'B', listo: true, npc: true };
     const iAdi = orden.findIndex((i) => e.jugadores[i].pj === '7');
     if (iAdi >= 0) orden.splice(iAdi, 0, id); else orden.push(id);
   }
-  e.solitario = ids.length === 1;
+  e.solitario = ids.length === 1 && conNPC;
   e.orden = orden.concat(Object.keys(e.jugadores).filter((i) => !orden.includes(i)));
   for (const id of orden) {
     const j = e.jugadores[id], p = pjDe(data, j.pj);
@@ -102,7 +103,7 @@ function iniciar(data, e) {
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;
-  log(e, e.solitario ? 'Empieza el modo solitario contra Yafar NPC.' : 'Empieza la partida.');
+  log(e, e.solitario ? 'Empieza el modo solitario contra Yafar NPC.' : !conB && !conNPC ? 'Empieza la partida sin Yafar NPC.' : 'Empieza la partida.');
   return empezarRonda(data, e);
 }
 
@@ -163,7 +164,7 @@ function cierreRonda(data, e) {
   }
   const hv = humanosVivos(e);                                                                                // R 22.4: último jugador en pie
   if (!hv.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; log(e, 'No queda ningún jugador con vida.'); return ok(); }
-  if (hv.length === 1 && !e.jugadores.npc && !e.solitario) NPC.entraNPC(data, e);
+  if (hv.length === 1 && !e.jugadores.npc && !e.solitario && !e.opciones.sinYafar) NPC.entraNPC(data, e);
   if (hv.length === 1 && e.jugadores.npc && !e.solitario && activos(e).length === 2) e.solitario = true;
   return empezarRonda(data, e);
 }
@@ -214,7 +215,7 @@ export function avanzar(data, e) {
     if (!t) { if (e.paso === 'eventos') { e.paso = null; siguienteTurno(data, e, -1); continue; } return; }
     const j = e.jugadores[t.pid];
     if (j.eliminado || t.fin) { siguienteTurno(data, e, t.idx); continue; }
-    if (t.npc && !t.npcIniciado) { t.npcIniciado = true; NPC.turnoNPC(data, e, t.pid); continue; }
+    if (t.npc && !t.npcIniciado) { if (NPC.esperaLectura(e)) return; t.npcIniciado = true; NPC.turnoNPC(data, e, t.pid); continue; }
     return;
   }
 }
@@ -223,7 +224,7 @@ export function avanzar(data, e) {
 const esHost = (e, pid) => e.host === pid;
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['decidir', 'cerrarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones'];
+const LIBRES = ['decidir', 'cerrarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido'];
 
 export function reducir(data, e, pid, a, ahora = Date.now()) {
   e.ahora = ahora;
@@ -257,6 +258,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'opciones': {
       if (e.fase !== 'lobby') return err('La partida ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión.');
       if (['facil', 'normal', 'dificil'].includes(a.dificultad)) e.opciones.dificultad = a.dificultad;
+      if (typeof a.sinYafar === 'boolean') e.opciones.sinYafar = a.sinYafar;                       // jugar sin Yafar NPC (1 a 3 jugadores)
       return ok();
     }
     case 'iniciar': if (e.fase !== 'lobby') return err('Ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión (banco) inicia la partida.'); return iniciar(data, e);
@@ -273,6 +275,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'viajar': return viajar(data, e, pid, a);
     case 'terminarTurno': return terminarTurno(data, e, pid);
     case 'responderCC': return responderCC(data, e, pid, a);
+    case 'leido': if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }

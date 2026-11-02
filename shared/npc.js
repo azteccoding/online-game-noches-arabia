@@ -33,6 +33,17 @@ function camino(prev, desde, hasta) {
 }
 
 // ---------------------------------------------------------------- turno automático (R 20.4)
+// Yafar NPC no empieza su turno (ni asalta) mientras algún jugador conectado tenga cartas sin cerrar.
+// El cliente avisa con la acción «leido» hasta qué carta cerró; si no avisa, la carta deja de contar al minuto.
+export const ESPERA_LECTURA_MS = 60000;
+export function cartasSinCerrar(e, pid) {
+  const j = e.jugadores[pid], hasta = j?.extra?.leidoHasta || 0;
+  return e.historial.filter((h) => h.nro > hasta && (!h.para || h.para.includes(pid)) && e.ahora - h.t < ESPERA_LECTURA_MS).length;
+}
+export function esperaLectura(e) {
+  return humanosVivos(e).some((x) => { const j = e.jugadores[x]; return j.conectado === true && j.extra?.leidoHasta != null && cartasSinCerrar(e, x) > 0; });   // solo clientes que avisan lo leído
+}
+
 export function turnoNPC(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
@@ -102,11 +113,7 @@ function accionPrincipal(data, e, pid) {
         }
       }
     }
-    // (b) Asesinos en Samarcanda
-    if (j.ciudad === 'Samarcanda' && !e.asesinos.actuaron && vivos(e) > 2 && j.dinares >= 20 * vivos(e) + 30) {
-      const hum = humanosVivos(e).sort((a, b) => e.jugadores[b].noches - e.jugadores[a].noches);
-      if (hum.length && contratoNPC(data, e, pid, hum[0])) { t.principal = true; return cierre(data, e, pid); }
-    }
+    // (b) Yafar NPC ya no contrata a los Asesinos (regla de la casa del juego en línea)
     // (c) una carta de Cuentos respondida con un dado
     const x = dado(e);
     mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC responde una CC (4-6 acierta)', valores: [x] }], resumen: [x >= 4 ? 'Yafar NPC acierta y cobra 10 dinares.' : 'Yafar NPC falla la pregunta.'] });
@@ -176,6 +183,7 @@ export function contratar(data, e, pid, a) {
   return iniciarContrato(data, e, pid, { accion: true });
 }
 function iniciarContrato(data, e, pid, args) {
+  if (e.jugadores[pid]?.npc) return err('Yafar NPC no contrata a los Asesinos.');
   if (e.asesinos.actuaron) return err('Los Asesinos ya actuaron.');
   if (vivos(e) <= 2) return err('Si solo quedan dos jugadores vivos, los Asesinos hacen caso omiso.');
   const op = objetivosValidos(e, pid).map((x) => ({ id: x, texto: nombre(e, x) }));
@@ -215,13 +223,6 @@ function firmar(data, e, pid, v, precio, args = {}) {
   const vic = e.jugadores[v];
   log(e, `${vic.nombre} muere a manos de los Asesinos.`, { pid: v });
   eliminar(data, e, v, { por: pid, soloNoches: true, causa: 'Asesinos', secreto: true });
-}
-function contratoNPC(data, e, pid, v) {
-  const d = dado(e), precio = precioContrato(e, d), j = e.jugadores[pid];
-  mostrarDados(e, { por: pid, motivo: 'asesinos', npc: true, grupos: [{ etq: `${nombre(e, v)}: dado de la víctima`, valores: [d] }], resumen: [] });
-  if (j.dinares < precio) return false;
-  firmar(data, e, pid, v, precio, {});
-  return true;
 }
 
 // ---------------------------------------------------------------- carta E1: los Asesinos aparecen (R 13.4)
