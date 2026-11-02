@@ -239,6 +239,9 @@ function forzar(e, ...valores) {
   assert.equal(j.dinares, antes + Math.floor((50 + 6) / 2), 'la biblioteca paga la mitad del valor (50 + 2 por ronda)');
   for (let k = 0; k < 3; k++) { j.mensaje = { id: 'M6' }; mensajes(data, e, pid, 'trato', { dio: [papiro] }); }
   assert.equal(j.mano.filter((c) => c.ref === 'libroIbnHazm').length, 2, 'máximo 2 en la mano');
+  const otro = g.ids[1], uLibro = j.mano.find((c) => c.ref === 'libroIbnHazm').uid; e.jugadores[otro].ciudad = j.ciudad;
+  const r = g.act(pid, { t: 'proponerTrato', con: otro, ofrece: { dinares: 0, objetos: [uLibro] }, pide: { dinares: 5, objetos: [] } });
+  assert.ok(!r.ok && /biblioteca de Bagdad/.test(r.error), 'el libro de Ibn Hazm no se puede pasar a otro jugador');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

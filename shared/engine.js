@@ -557,6 +557,8 @@ function proponerTrato(data, e, pid, a) {
   if (!k || k.id === pid || k.eliminado || k.npc) return err('Destinatario inválido.');
   if (j.ciudad !== k.ciudad || j.transito || k.transito) return err('Deben estar en la misma ciudad (R 8.6).');
   if (e.mods.sinComercio?.[pid] || e.mods.sinComercio?.[a.con] || j.extra.sinComercioHasta >= e.ronda || k.extra.sinComercioHasta >= e.ronda) return err('Nadie quiere comerciar con esa persona (difamación).');
+  const esHazm = (de, us) => (us || []).some((u) => de.mano.some((c) => c.uid === u && c.ref === 'libroIbnHazm'));
+  if (esHazm(j, a.ofrece?.objetos) || esHazm(k, a.pide?.objetos)) return err('El libro de Ibn Hazm solo se vende en la biblioteca de Bagdad: no se puede regalar ni vender a otro jugador.');
   const val = (x, de) => ({ dinares: Math.max(0, Math.floor(x?.dinares || 0)), objetos: (x?.objetos || []).filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1')) });
   const id = 'tr' + (++e.seq);
   e.tratos[id] = { id, de: pid, con: a.con, ofrece: val(a.ofrece, j), pide: val(a.pide, k), t: e.ahora };
