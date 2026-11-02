@@ -608,6 +608,9 @@ export function mensajes(data, e, pid, ev, inf) {
   const m = data.mensajes.mensajes.find((x) => x.id === id);
   j.dinares += m.dinares; j.noches += m.noches; e.mazos.descarte.mensajes.push(id); j.mensaje = null;
   log(e, `${j.nombre} cumple un mensaje de ${m.de} y cobra ${m.dinares} dinares${m.noches ? ' y ' + m.noches + ' noches' : ''}.`, { pid });
+  if (m.de === 'Ibn Arabi' && !tieneItem(j, 'dadoIbnArabi')) {                          // regla de la casa: el Dado de Ibn Arabi
+    darItem(e, j, 'dadoIbnArabi'); log(e, `Ibn Arabi regala a ${j.nombre} un dado para cambiar su suerte: repetirá la próxima pelea que vaya a perder.`, { pid });
+  }
 }
 
 export function ofrecer5(data, e, pid, a) {

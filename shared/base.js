@@ -81,6 +81,7 @@ export const ITEMS = {
   pergaminoSellado: { nombre: 'Pergamino sellado', texto: 'Carga de R30: entrégalo en Bagdad.' },
   cartaUrgente: { nombre: 'Carta urgente', texto: 'Debe entregarse en la ciudad indicada antes de que venza el plazo.' },
   especias: { nombre: 'Especias', texto: 'Mercancía de comercio: se vende en la ciudad que las pida.' },
+  dadoIbnArabi: { nombre: 'Dado de Ibn Arabi', texto: 'Regalo de Ibn Arabi. La próxima vez que vayas a perder una pelea o un duelo (contra un jugador o un NPC), se repite la tirada una vez. Se gasta al usarlo.' },
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
 };
 export function itemDatos(data, ref, extra = {}) {

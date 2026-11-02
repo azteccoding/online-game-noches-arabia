@@ -116,6 +116,12 @@ function zeinRepite(e, pid) {
   if (j.pj !== '2' || j.extra.cairoRonda === e.ronda) return false;
   j.extra.cairoRonda = e.ronda; return true;
 }
+// Dado de Ibn Arabi (regla de la casa): si vas a perder una pelea, se repite la tirada una vez y el dado se gasta.
+function dadoIbnArabi(e, pid) {
+  const j = e.jugadores[pid];
+  if (!j || !tieneItem(j, 'dadoIbnArabi')) return false;
+  quitarPrimero(j, 'item', 'dadoIbnArabi'); return true;
+}
 
 // ---------------------------------------------------------------- iniciar un ataque (acción principal)
 const AVISO_ATAQUE = { robo: 'te intenta robar', matar: 'te ataca a muerte', duelo: 'te desafía a duelo' };
@@ -294,8 +300,10 @@ function resolver(data, e, { numeros }) {
     const bA = bonos(data, e, atk, pA, 'atk', lineas), bD = bonos(data, e, def, pD, 'def', lineas);
     if (P.polvo && !P.ayudante) { bD.resta = Math.max(bD.resta, 2); const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); lineas.push(`${nD} usa Polvo de pimienta: el atacante resta 2.`); }
     let r = cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, lineas) : luchaD(data, e, atk, def, bA, bD, lineas);
-    if (r.ganaA && zeinRepite(e, def)) { lineas.push(`${nombre(e, def)} usa «Dados del Cairo» y repite la jugada.`); r = cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, lineas) : luchaD(data, e, atk, def, bA, bD, lineas); }
-    else if (!r.ganaA && zeinRepite(e, atk)) { lineas.push(`${nombre(e, atk)} usa «Dados del Cairo» y repite la jugada.`); r = cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, lineas) : luchaD(data, e, atk, def, bA, bD, lineas); }
+    const otraVez = () => (cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, lineas) : luchaD(data, e, atk, def, bA, bD, lineas));
+    const perdedor = r.ganaA ? def : atk;                                    // quien iba a perder puede repetir (Zein o Dado de Ibn Arabi)
+    if (zeinRepite(e, perdedor)) { lineas.push(`${nombre(e, perdedor)} usa «Dados del Cairo» y repite la jugada.`); r = otraVez(); }
+    else if (dadoIbnArabi(e, perdedor)) { lineas.push(`${nombre(e, perdedor)} usa el Dado de Ibn Arabi y repite la jugada.`); r = otraVez(); }
     ganaAtk = r.ganaA; grupos = r.grupos;
     lineas.push(`Gana ${ganaAtk ? nA : (P.ayudante ? nombre(e, P.ayudante) : nD)}.`);
   }
@@ -377,7 +385,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const lineas = [];
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', lineas, { contraNPC: true });
-  let gana = false, grupos = [];
+  let gana = false, grupos = [], usoDado = false;
   for (let g = 0; g < 50; g++) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
     let bn = npc.bono || 0, jd = null;
@@ -387,7 +395,9 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
     grupos = [{ etq: nombre(e, pid), valores: r }, { etq: npc.etq, valores: [...n, ...(jd ? [jd] : [])] }];
     lineas.push(`${nombre(e, pid)}: ${r.join('+')}=${suma(r)} +${b.total} bonos${dest ? ' +1 destreza' : ''} = ${tj}. ${npc.etq}: ${n.join('+')}=${suma(n)} +${bn}${b.resta ? ' −' + b.resta : ''} = ${tn}.`);
     if (tj === tn) { lineas.push('Empate: se repite.'); continue; }
-    gana = tj > tn; break;
+    gana = tj > tn;
+    if (!gana && !usoDado && dadoIbnArabi(e, pid)) { usoDado = true; lineas.push(`${nombre(e, pid)} usa el Dado de Ibn Arabi y repite la pelea.`); continue; }
+    break;
   }
   lineas.push(gana ? `${nombre(e, pid)} vence a ${npc.etq}.` : `${npc.etq} vence a ${nombre(e, pid)}.`);
   mostrarDados(e, { por: pid, motivo: 'pelea', grupos, resumen: [tituloExtra, ...lineas].filter(Boolean) });
