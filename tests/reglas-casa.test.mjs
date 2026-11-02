@@ -321,6 +321,33 @@ function forzar(e, ...valores) {
   assert.ok(e.pend && e.pend.id === 998, 'la decisión espera a que se cierren los dados');
 }
 
+// Transportes propios: destinos de cada uno y si terminan el turno
+{
+  const prep = (ref, ciudad = 'Bagdad') => {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+    turnoDe(e, pid, ciudad); e.turno.fase = 'mov'; j.ciudad = ciudad;
+    const c = { uid: 9300, tipo: 'item', ref }; j.mano.push(c);
+    return { g, e, pid, j, c };
+  };
+  let { g, e, pid, j, c } = prep('burro');
+  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Samarcanda' }).ok, 'el burro no hace viajes largos');
+  assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Damasco' }).ok);
+  assert.equal(j.ciudad, 'Damasco', 'llega en el mismo turno'); assert.ok(!e.turno.fin && !e.turno.principal, 'el burro no termina el turno');
+  ({ g, e, pid, j, c } = prep('caballo'));
+  for (const d of ['Samarcanda', 'Magreb', 'India']) assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: d }).ok, 'el caballo no va a ' + d);
+  assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Andalucía' }).ok); assert.equal(j.ciudad, 'Andalucía');
+  assert.ok(e.turno.principal && (e.turno.fin || e.turno.finTrasCC), 'el caballo termina el turno');
+  if (e.turno.ccActual) { g.act(pid, { t: 'omitirCC' }); assert.ok(e.turno.fin || e.turno.pid !== pid, 'al cerrar la carta de Cuentos termina el turno'); }
+  ({ g, e, pid, j, c } = prep('camello'));
+  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Damasco' }).ok, 'el camello solo va al Magreb y a Samarcanda');
+  assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Samarcanda' }).ok); assert.equal(j.ciudad, 'Samarcanda');
+  ({ g, e, pid, j, c } = prep('alfombra', 'Damasco'));
+  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Bagdad' }).ok, 'la alfombra no va a Bagdad');
+  assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'India' }).ok, 'la alfombra sí llega a India');
+  assert.ok(!j.mano.some((x) => x.uid === 9300), 'la alfombra se gasta');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

@@ -15,6 +15,8 @@ export const leer = () => S;
 export function marcarCartaEnPantalla(nro) { if (S.cartaEnPantalla !== nro) poner({ cartaEnPantalla: nro }); }
 // Aviso verde local (premios, nueva ronda…); se borra solo a los 3.5 s.
 // Como mucho dos avisos juntos.
+// Aviso rojo local (pagos y pérdidas propias); se borra solo a los 4 s.
+export function avisarPerdida(msg) { poner({ error: msg }); setTimeout(() => { if (S.error === msg) poner({ error: null }); }, 4000); }
 export function avisar(msg) { const aviso = S.aviso && S.aviso !== msg && !S.aviso.includes(' · ') ? S.aviso + ' · ' + msg : msg; poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, 3500); }
 
 export async function iniciarJuego(params) {

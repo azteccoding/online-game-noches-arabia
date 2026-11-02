@@ -302,7 +302,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'terminarTurno': return terminarTurno(data, e, pid);
     case 'responderCC': return responderCC(data, e, pid, a);
     case 'leido': if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
-    case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; return ok();
+    case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
     case 'comprar': return OBJ.comprar(data, e, pid, a);
@@ -434,6 +434,18 @@ export function partir(data, e, pid, args) {
   return llegada(data, e, pid, origen);
 }
 
+// Transporte propio (regla de la casa): llega en el mismo turno, sin tarifa ni caravana nueva. El caballo, el camello y la
+// alfombra terminan el turno (en cuanto se resuelve la carta de Cuentos de la llegada); el burro no.
+export function viajarPropio(data, e, pid, { destino, motivo, termina, consumeUid = null }) {
+  const t = e.turno, j = e.jugadores[pid], origen = j.ciudad;
+  if (consumeUid) quitarCarta(j, consumeUid);
+  t.tramos++; t.movio = true; j.ciudad = destino;
+  log(e, `${j.nombre} viaja de ${origen} a ${destino} en ${motivo}${termina ? ' y termina su turno' : ''}.`, { pid });
+  if (termina) { t.principal = true; t.maxTramos = t.tramos; t.finTrasCC = true; }
+  const r = llegada(data, e, pid, origen);
+  if (termina && !t.ccActual) t.fin = true;
+  return r;
+}
 export function viajarTransporte(data, e, pid, { destino, motivo = 'transporte', turnos = 1, consumeUid = null, jorasan = false }) {
   const t = e.turno, j = e.jugadores[pid];
   if (consumeUid) quitarCarta(j, consumeUid);
@@ -520,6 +532,7 @@ function responderCC(data, e, pid, a) {
   if (acierto) { j.dinares += tr.premio; t.ccBien++; }
   log(e, `${j.nombre} ${acierto ? 'acierta la trivia (+' + tr.premio + ' dinares)' : 'falla la trivia'}.`, { pid });
   t.ccActual = null; if (ent) e.ultimaCarta = ent.nro;
+  if (t.finTrasCC) t.fin = true;                                                                             // llegó en caballo, camello o alfombra
   sacarCuento(data, e, pid, 'Respuestas');                                                                   // R 19.7
   if (acierto) RET.mensajes(data, e, pid, 'cc', { n: t.ccBien });
   RET.tras(data, e, pid, 'cc', { acierto });
@@ -531,7 +544,7 @@ function resolverMesa(data, e, pid, a) {
   if (!esHost(e, pid) && t.pid !== pid) return err('Solo el jugador en turno o el anfitrión.');
   const j = e.jugadores[t.pid];
   if (a.ok) { j.dinares += data.config.premioTrivia; log(e, `${j.nombre} cumple la carta de mesa: +${data.config.premioTrivia} dinares.`); t.ccBien++; RET.mensajes(data, e, t.pid, 'cc', { n: t.ccBien }); }
-  t.ccActual = null; return ok();
+  t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
 }
 
 // ---------------------------------------------------------------- fin de turno
@@ -547,8 +560,8 @@ function terminarTurno(data, e, pid) {
       if (e.mods.alojDoble?.includes(j.ciudad)) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);
       if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = 10 * (j.pj === 'B' ? 2 : 1);
       costo = OBJ.sopa(data, e, pid, costo);
-      const p = pagar(data, e, pid, costo);
-      log(e, `${j.nombre} paga el alojamiento en ${j.ciudad}.`, { pid });
+      pagar(data, e, pid, costo);
+      log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad} (no se movió este turno).`, { pid });
     }
   }
   if (j.mensaje && e.ronda > j.mensaje.turnoLimite) { e.mazos.descarte.mensajes.push(j.mensaje.id); j.mensaje = null; log(e, `${j.nombre} deja caducar su mensaje.`); }
@@ -804,5 +817,5 @@ export function migrar(e) {
 }
 
 // ---------------------------------------------------------------- enlaces para los demás módulos
-HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.robarCC = robarCC;
+HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.viajarPropio = viajarPropio; HOOK.robarCC = robarCC;
 HOOK.darMensaje = darMensaje; HOOK.avanzar = avanzar; HOOK.multiplicador = multiplicadorRonda; HOOK.sacarCuento = sacarCuento;

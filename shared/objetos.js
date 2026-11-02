@@ -235,9 +235,9 @@ export function disponibles(data, e, pid) {
       if (vic.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar veneno (Anciana Devota, 20 dinares + transporte)', objetivos: vic, via: 'anciana' });
       if (j.ciudad === 'Bagdad') r.push({ k: 'usar', uid: c.uid, titulo: `Envenenar un abrevadero (Masrur, ${5 * vivos(e)} dinares)`, destinos: data.ciudades.ciudades.map((q) => q.id), via: 'abrevadero' });
     }
-    if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.movio && !t.ccActual && !j.perdido) {
-      const dest = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== j.ciudad && (c.ref === 'alfombra' || q !== 'Samarcanda' || true));
-      r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, destinos: dest });
+    if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && t.tramos < (t.maxTramos || data.config.maxTramosPorTurno)) {
+      const dest = destinosTransporte(data, c.ref, j.ciudad);
+      if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : ''), destinos: dest });
     }
     if (c.tipo === 'ifrit') r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: data.objetos.ifrit.cartas.find((q) => q.id === c.ref).deseos });
   }
@@ -245,6 +245,16 @@ export function disponibles(data, e, pid) {
 }
 
 const ANIMALES = ['caballo', 'camello', 'burro'];
+
+// Destinos de cada transporte propio (objetos.json, «transportes»). India solo se alcanza en caravana o en alfombra.
+export function destinosTransporte(data, ref, desde) {
+  const r = data.objetos.transportes?.[ref], todas = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== desde);
+  if (!r) return todas;
+  if (r.cercanas) return desde === 'Bagdad' ? r.cercanas.slice() : r.cercanas.includes(desde) ? ['Bagdad'] : [];
+  if (r.solo) return todas.filter((q) => r.solo.includes(q));
+  return todas.filter((q) => !(r.excepto || []).includes(q));
+}
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas.', caballo: 'el caballo no va a Samarcanda, al Magreb ni a India.', camello: 'el camello solo va al Magreb y a Samarcanda.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 function usarVeneno(data, e, pid, c, a) {
@@ -297,13 +307,14 @@ export function usar(data, e, pid, a) {
   if (!c) return err('No tienes esa carta.');
   if (c.tipo === 'ifrit') return HOOK.usarIfrit(data, e, pid, c, a);
   if (c.tipo === 'item' && TRANSPORTE[c.ref]) {
-    if (t.movio || t.ccActual) return err('Solo antes de moverte.');
+    if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
+    if (t.tramos >= (t.maxTramos || data.config.maxTramosPorTurno)) return err('Ya no te quedan tramos de viaje este turno.');
     if (j.perdido) return err('Estás perdido.');
     const dest = a.destino;
     if (!ciudadDe(data, dest) || dest === j.ciudad) return err('Destino inválido.');
-    if (e.sinCaravanasBagdad && c.ref !== 'alfombra' && c.ref !== 'caballo' && c.ref !== 'camello' && c.ref !== 'burro') return err('Tormenta de arena.');
+    if (!destinosTransporte(data, c.ref, j.ciudad).includes(dest)) return err(`Ahí no te lleva: ${textoTransporte(c.ref)}`);
     if (e.mods.varado?.[pid]) return err('Estás varado.');
-    return HOOK.viajarTransporte(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre, turnos: TRANSPORTE[c.ref], consumeUid: c.ref === 'alfombra' ? c.uid : null });
+    return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: c.ref === 'alfombra' ? c.uid : null });
   }
   if (c.tipo === 'item' && c.ref === 'veneno') return usarVeneno(data, e, pid, c, a);
   if (c.tipo === 'item' && c.ref === 'recetaAverroes') {

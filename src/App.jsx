@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useJuego, iniciarJuego, leer, avisar, enviar } from './game/store.js';
+import { useJuego, iniciarJuego, leer, avisar, avisarPerdida, enviar } from './game/store.js';
 import { ACCIONES } from './game/protocol.js';
 import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
@@ -47,6 +47,10 @@ function Juego({ lienzo }) {
     if (!p) return;
     if (s.ronda > p.ronda) avisar(`Comienza la ronda ${s.ronda}`);
     const dd = mi.dinares - p.din, dn = mi.noches - p.noc;
+    if (dd < 0) {                                                       // pagos y pérdidas: aviso rojo con el motivo (alojamiento, robo, multa…)
+      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
+      avisarPerdida(`Pierdes ${-dd} dinares${motivo ? ': ' + motivo : ''}`);
+    }
     if (dd > 0 || dn > 0) {
       const motivo = s.log.filter((l) => (l.n || 0) > p.logN && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
       avisar(`Ganaste ${[dd > 0 && `${dd} dinares`, dn > 0 && `${dn} noches`].filter(Boolean).join(' y ')}${motivo ? ': ' + motivo : ''}`);
