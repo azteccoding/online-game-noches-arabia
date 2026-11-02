@@ -206,7 +206,7 @@ function forzar(e, ...valores) {
   assert.equal(e.reposicion[e.reposicion.length - 1], 'OB34', 'lo vendido espera en la reposición');
   const total = (id) => (e.stock[id] || 0) + e.reposicion.filter((x) => x === id).length;
   for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.copias - 1, 'ninguna copia desaparece: ' + o.id);
-  j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco';
+  j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco'; e.mods = {};   // sin feria ni otros eventos que quiten el impuesto
   const a2 = j.dinares; assert.ok(vender(data, e, pid, { uid: 9101 }).ok);
   assert.equal(j.dinares, a2 + seda.valor - Math.floor(seda.valor * 20 / 100), 'en otra ciudad vale lo normal menos impuesto');
   assert.ok(!tienda(data, e, pid).some((x) => x.id === 'OB34'), 'la seda solo se compra en Isfahán');
@@ -225,8 +225,17 @@ function forzar(e, ...valores) {
   assert.equal(y.noches - n0, 15, 'con un jugador en la ciudad: completo');
 }
 
-// 8) Trivias a 5 dinares
+// 8) Trivias a 5 dinares; ids únicos, respuesta válida y mazo existente
 {
+  const ids = data.trivias.trivias.map((t) => t.id);
+  assert.equal(new Set(ids).size, ids.length, 'sin ids repetidos');
+  const mazos = ['Bagdad', 'Isfahán', 'Aleppo', 'Damasco', 'Basra', 'El Cairo'];
+  for (const t of data.trivias.trivias) {
+    assert.ok(t.opciones.length === 3 && t.correcta >= 0 && t.correcta < 3, 'respuesta válida en ' + t.id);
+    assert.ok(mazos.includes(t.ciudad), 'mazo válido en ' + t.id);
+    assert.ok(t.gancho && t.nota, 'gancho y nota en ' + t.id);
+  }
+  assert.ok(data.trivias.trivias.some((t) => t.categoria === 'Palestina'));
   assert.equal(data.config.premioTrivia, 5);
   assert.ok(data.trivias.trivias.every((t) => t.premio === 5));
 }

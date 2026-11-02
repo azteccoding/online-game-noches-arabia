@@ -1199,6 +1199,246 @@
    "correcta": 1,
    "nota": "Fátima murió pocos meses después que su padre, en Medina.",
    "premio": 5
+  },
+  {
+   "id": "CC-96",
+   "n": 96,
+   "ciudad": "Bagdad",
+   "categoria": "Palestina",
+   "gancho": "Una memoria que no se olvida.",
+   "pregunta": "¿En qué año ocurrió la Nakba, la «catástrofe» en que más de 700,000 palestinos fueron expulsados de su tierra?",
+   "opciones": [
+    "1917",
+    "1948",
+    "1967"
+   ],
+   "correcta": 1,
+   "nota": "Durante la Nakba fueron destruidas más de 500 aldeas palestinas. Se recuerda cada 15 de mayo, y los refugiados y sus descendientes siguen reclamando su derecho al retorno.",
+   "premio": 5
+  },
+  {
+   "id": "CC-97",
+   "n": 97,
+   "ciudad": "Bagdad",
+   "categoria": "Palestina",
+   "gancho": "Una voz que el mundo escuchó.",
+   "pregunta": "¿Qué película de 2025 reconstruye la llamada de auxilio de Hind Rajab, niña palestina de 6 años asesinada en Gaza?",
+   "opciones": [
+    "Farha",
+    "No Other Land",
+    "La voz de Hind Rajab"
+   ],
+   "correcta": 2,
+   "nota": "Dirigida por la tunecina Kaouther Ben Hania, ganó el Gran Premio del Jurado en Venecia. Hind murió en enero de 2024 junto a sus familiares y a los dos paramédicos de la Media Luna Roja que fueron a rescatarla. En 2025, una comisión de investigación de la ONU concluyó que Israel comete genocidio en Gaza.",
+   "premio": 5
+  },
+  {
+   "id": "CC-98",
+   "n": 98,
+   "ciudad": "Damasco",
+   "categoria": "Palestina",
+   "gancho": "Una piedra que sigue en pie.",
+   "pregunta": "En 1967, ¿qué rabino general del ejército israelí pidió dinamitar la Cúpula de la Roca en Jerusalén?",
+   "opciones": [
+    "Shlomo Goren",
+    "Meir Kahane",
+    "Moshe Dayan"
+   ],
+   "correcta": 0,
+   "nota": "Lo propuso al general Uzi Narkiss en cuanto las tropas israelíes ocuparon Jerusalén Este. Narkiss se negó, y la Cúpula, levantada en el año 691, sigue en pie.",
+   "premio": 5
+  },
+  {
+   "id": "CC-99",
+   "n": 99,
+   "ciudad": "El Cairo",
+   "categoria": "Palestina",
+   "gancho": "Del fuego nació una unión.",
+   "pregunta": "¿Qué organización nació en 1969 como respuesta al incendio de la mezquita al-Aqsa?",
+   "opciones": [
+    "La Liga Árabe",
+    "La Organización de Cooperación Islámica",
+    "La OPEP"
+   ],
+   "correcta": 1,
+   "nota": "El incendio, provocado por un extremista, destruyó el minbar que Saladino había colocado en 1187 tras liberar Jerusalén. Un mes después, los países musulmanes se reunieron en Rabat y fundaron la organización.",
+   "premio": 5
+  },
+  {
+   "id": "CC-100",
+   "n": 100,
+   "ciudad": "Bagdad",
+   "categoria": "Palestina",
+   "gancho": "Un nombre que pesa en la historia.",
+   "pregunta": "¿Qué aldea palestina sufrió una masacre el 9 de abril de 1948 a manos de las milicias sionistas Irgún y Leji?",
+   "opciones": [
+    "Deir Yassin",
+    "Sabra",
+    "Yenín"
+   ],
+   "correcta": 0,
+   "nota": "Más de un centenar de habitantes fueron asesinados. La noticia sembró el terror y empujó la huida de miles de familias durante la Nakba.",
+   "premio": 5
+  },
+  {
+   "id": "CC-101",
+   "n": 101,
+   "ciudad": "Basra",
+   "categoria": "Palestina",
+   "gancho": "Un niño que nunca da la cara.",
+   "pregunta": "¿Quién creó a Handala, el niño refugiado descalzo que da la espalda y es símbolo de Palestina?",
+   "opciones": [
+    "Ghassan Kanafani",
+    "Naji al-Ali",
+    "Edward Said"
+   ],
+   "correcta": 1,
+   "nota": "Naji al-Ali lo dibujó desde 1969. Handala tiene diez años, la edad en que el autor fue expulsado de su aldea, y no crecerá hasta volver a su tierra. Naji al-Ali fue asesinado en Londres en 1987.",
+   "premio": 5
+  },
+  {
+   "id": "CC-102",
+   "n": 102,
+   "ciudad": "Aleppo",
+   "categoria": "Palestina",
+   "gancho": "Un verso que es un documento.",
+   "pregunta": "¿Qué poeta palestino escribió «Carné de identidad», con el verso «Apunta: soy árabe»?",
+   "opciones": [
+    "Mahmud Darwish",
+    "Nizar Qabbani",
+    "Adonis"
+   ],
+   "correcta": 0,
+   "nota": "Darwish lo escribió en 1964. Es considerado el poeta nacional de Palestina y escribió la Declaración de Independencia palestina de 1988.",
+   "premio": 5
+  },
+  {
+   "id": "CC-103",
+   "n": 103,
+   "ciudad": "El Cairo",
+   "categoria": "Imperios e historia",
+   "gancho": "Una ciudad roja al pie del Atlas.",
+   "pregunta": "¿Qué ciudad fundaron los almorávides hacia 1070 y convirtieron en su capital?",
+   "opciones": [
+    "Fez",
+    "Rabat",
+    "Marrakech"
+   ],
+   "correcta": 2,
+   "nota": "Los almorávides eran bereberes del Sáhara. Desde Marrakech gobernaron el Magreb y al-Ándalus.",
+   "premio": 5
+  },
+  {
+   "id": "CC-104",
+   "n": 104,
+   "ciudad": "Bagdad",
+   "categoria": "Imperios e historia",
+   "gancho": "Una batalla que cambió el rumbo de al-Ándalus.",
+   "pregunta": "¿En qué batalla de 1086 el almorávide Yusuf ibn Tashfin derrotó a Alfonso VI de Castilla?",
+   "opciones": [
+    "Las Navas de Tolosa",
+    "Zalaca (Sagrajas)",
+    "Covadonga"
+   ],
+   "correcta": 1,
+   "nota": "Los reyes de taifas de al-Ándalus pidieron ayuda a Yusuf tras la caída de Toledo en 1085. La victoria detuvo el avance castellano durante décadas.",
+   "premio": 5
+  },
+  {
+   "id": "CC-105",
+   "n": 105,
+   "ciudad": "Damasco",
+   "categoria": "Islam y su cultura",
+   "gancho": "Un nombre que es una creencia.",
+   "pregunta": "¿Qué significa «almohades» (al-muwahhidun)?",
+   "opciones": [
+    "Los que proclaman la unicidad de Dios",
+    "Los del desierto",
+    "Los guerreros del velo"
+   ],
+   "correcta": 0,
+   "nota": "El movimiento lo fundó Ibn Tumart en el siglo XII, centrado en el tawhid, la unicidad divina. «Los del velo» eran sus rivales, los almorávides.",
+   "premio": 5
+  },
+  {
+   "id": "CC-106",
+   "n": 106,
+   "ciudad": "Bagdad",
+   "categoria": "Arquitectura",
+   "gancho": "Una torre que ha cambiado de voz.",
+   "pregunta": "La Giralda de Sevilla fue originalmente el alminar de la gran mezquita de...",
+   "opciones": [
+    "Los omeyas",
+    "Los nazaríes",
+    "Los almohades"
+   ],
+   "correcta": 2,
+   "nota": "Se construyó entre 1184 y 1198. Tras la conquista castellana se le añadió el campanario, pero su cuerpo almohade sigue intacto.",
+   "premio": 5
+  },
+  {
+   "id": "CC-107",
+   "n": 107,
+   "ciudad": "Isfahán",
+   "categoria": "Imperios e historia",
+   "gancho": "Un pueblo de la Ruta de la Seda.",
+   "pregunta": "Los uigures, pueblo túrquico y musulmán, viven sobre todo en...",
+   "opciones": [
+    "El Turquestán Oriental (Xinjiang), en China",
+    "Anatolia",
+    "El Cáucaso"
+   ],
+   "correcta": 0,
+   "nota": "En 2022, la Oficina de Derechos Humanos de la ONU denunció detenciones masivas y graves violaciones que podrían constituir crímenes de lesa humanidad.",
+   "premio": 5
+  },
+  {
+   "id": "CC-108",
+   "n": 108,
+   "ciudad": "Bagdad",
+   "categoria": "Arquitectura",
+   "gancho": "Una mezquita en el confín de la Ruta.",
+   "pregunta": "¿En qué ciudad uigur está la mezquita Id Kah, la más grande de China?",
+   "opciones": [
+    "Urumqi",
+    "Kashgar",
+    "Turfán"
+   ],
+   "correcta": 1,
+   "nota": "Kashgar fue una parada clave de la Ruta de la Seda, el camino que unía Samarcanda con China.",
+   "premio": 5
+  },
+  {
+   "id": "CC-109",
+   "n": 109,
+   "ciudad": "Aleppo",
+   "categoria": "Imperios e historia",
+   "gancho": "Un alfabeto cambiado por decreto.",
+   "pregunta": "¿En qué año Mustafá Kemal Atatürk cambió la escritura del turco del alfabeto árabe al latino?",
+   "opciones": [
+    "1908",
+    "1928",
+    "1950"
+   ],
+   "correcta": 1,
+   "nota": "De un día para otro, los turcos quedaron separados de siglos de su propia literatura otomana, escrita en caracteres árabes.",
+   "premio": 5
+  },
+  {
+   "id": "CC-110",
+   "n": 110,
+   "ciudad": "Bagdad",
+   "categoria": "Imperios e historia",
+   "gancho": "El fin de un título de trece siglos.",
+   "pregunta": "¿En qué año la Turquía de Atatürk abolió el califato otomano?",
+   "opciones": [
+    "1924",
+    "1918",
+    "1938"
+   ],
+   "correcta": 0,
+   "nota": "El 3 de marzo de 1924 la Asamblea de Ankara abolió el califato y desterró a la familia otomana. Poco después prohibió las órdenes sufíes y cerró sus tekkes.",
+   "premio": 5
   }
  ],
  "deMesa": [
