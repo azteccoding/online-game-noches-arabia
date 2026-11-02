@@ -206,7 +206,7 @@ function ips() {
   for (const [n, l] of Object.entries(os.networkInterfaces())) for (const i of l || []) if (i.family === 'IPv4' && !i.internal) r.push({ n, ip: i.address });
   return r;
 }
-servidor.on('error', (e) => { console.error(e.code === 'EADDRINUSE' ? `El puerto ${PUERTO} ya está en uso (otra instancia?). Usa --puerto OTRO.` : e.message); process.exit(1); });
+servidor.on('error', (e) => { console.error(e.code === 'EADDRINUSE' ? `El puerto ${PUERTO} ya está en uso (¿otra instancia?). Usa --puerto OTRO.` : e.message); process.exit(1); });
 servidor.listen(PUERTO, '0.0.0.0', () => {
   const lista = ips();
   console.log('\n  MIL Y UNA NOCHES · servidor listo');

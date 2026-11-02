@@ -118,7 +118,7 @@ function zeinRepite(e, pid) {
 }
 
 // ---------------------------------------------------------------- iniciar un ataque (acción principal)
-const NOMBRE_TIPO = { robo: 'robar', matar: 'matar', duelo: 'desafiar a duelo' };
+const AVISO_ATAQUE = { robo: 'te intenta robar', matar: 'te ataca a muerte', duelo: 'te desafía a duelo' };
 
 export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   const t = e.turno, j = e.jugadores[pid], d = e.jugadores[a.objetivo];
@@ -176,7 +176,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
     op.push({ id: 'rechazar', texto: `Rechazar el duelo pagando ${costo}` });
   }
   pedir(e, { tipo: 'defensa', para: [a.objetivo], titulo: a.tipo === 'robo' ? '¡Te asaltan!' : a.tipo === 'matar' ? '¡Intentan matarte!' : '¡Te desafían a duelo!',
-    texto: `${j.nombre} ${NOMBRE_TIPO[a.tipo]} contigo en ${j.ciudad}. ¿Qué haces?`, opciones: op, porDefecto: 'luchar', cont: { fn: 'pelea.defensa', args: {} } });
+    texto: `${j.nombre} ${AVISO_ATAQUE[a.tipo]} en ${j.ciudad}. ¿Qué haces?`, opciones: op, porDefecto: 'luchar', cont: { fn: 'pelea.defensa', args: {} } });
   return ok();
 }
 registrar('pelea.defensa', (data, e, args, resp) => elegirDefensa(data, e, resp));
