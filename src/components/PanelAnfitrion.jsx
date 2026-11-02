@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
@@ -15,6 +15,8 @@ export default function PanelAnfitrion({ s, onCerrar }) {
   const [obj, setObj] = useState(DATA.objetos.mazo[0].id);
   const [pin, setPin] = useState('');
   const [ocupado, una] = useBloqueo();
+  const caja = !!s.cajaAbierta, cajaRef = useRef(caja); cajaRef.current = caja;
+  useEffect(() => () => { if (cajaRef.current) enviar(ACCIONES.host.caja(false)); }, []);   // al cerrar el panel se cierra la caja
   const sel = <label>Jugador <select value={pid} onChange={(e) => setPid(e.target.value)}>{jug.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>;
   if (!s.soyHost) {
     return (
@@ -34,17 +36,18 @@ export default function PanelAnfitrion({ s, onCerrar }) {
     <div className="hoja-modal panel" role="dialog" aria-label="Panel del banco">
       <div className="desp-cab"><h2>Banco / anfitrión</h2><span className="chip">{s.host_info?.pinHost ? `PIN ${s.host_info.pinHost}` : 'PIN = clave de la partida'}</span><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo anf">
+        <label className={`caja-banco${caja ? ' abierta' : ''}`}><input type="checkbox" checked={caja} onChange={(e) => enviar(ACCIONES.host.caja(e.target.checked))} /> Abrir la caja del banco <small>(todos verán quién la abre)</small></label>
         {sel}
-        <fieldset><legend>Dar</legend>
+        <fieldset disabled={!caja}><legend>Dar</legend>
           <label>Dinares <input type="number" value={din} onChange={(e) => setDin(e.target.value)} /></label>
           <label>Noches <input type="number" value={noc} onChange={(e) => setNoc(e.target.value)} /></label>
           <button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.dar(pid, Number(din), Number(noc))))}>Entregar</button></fieldset>
-        <fieldset><legend>Corregir</legend>
+        <fieldset disabled={!caja}><legend>Corregir</legend>
           <label>Campo <select value={campo} onChange={(e) => setCampo(e.target.value)}>{['dinares', 'noches', 'escondido', 'buscado', 'herido', 'perdido', 'destreza', 'ciudad'].map((c) => <option key={c}>{c}</option>)}</select></label>
           <label>Valor <input value={valor} onChange={(e) => setValor(e.target.value)} /></label>
           <button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.corregir(pid, campo, ['herido', 'perdido', 'destreza'].includes(campo) ? valor === 'true' || valor === '1' : campo === 'ciudad' ? valor : Number(valor))))}>Aplicar</button>
           <small className="it">herido/perdido/destreza: 1 o 0; ciudad: nombre exacto. Para eliminar usa «Eliminar jugador».</small></fieldset>
-        <fieldset><legend>Repartir</legend>
+        <fieldset disabled={!caja}><legend>Repartir</legend>
           <label>Objeto <select value={obj} onChange={(e) => setObj(e.target.value)}>{DATA.objetos.mazo.map((o) => <option key={o.id} value={o.id}>{o.nombre} ({s.stockPublico[o.id]})</option>)}</select></label>
           <div className="fila-btn"><button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.repartir(pid, 'objeto', obj)))}>Dar objeto</button><button className="btn mini" disabled={ocupado} onClick={una(() => enviar(ACCIONES.host.repartir(pid, 'mensaje')))}>Dar mensaje</button></div></fieldset>
         <fieldset><legend>Mazos y dados</legend>
@@ -60,7 +63,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
         <fieldset><legend>Mesa</legend>
           <div className="fila-btn">
             <button className="btn mini" onClick={() => enviar(ACCIONES.host.pasarTurno())}>Pasar el turno</button>
-            <button className="btn mini sec" onClick={() => window.confirm('¿Eliminar a este jugador?') && enviar(ACCIONES.host.eliminar(pid))}>Eliminar jugador</button>
+            <button className="btn mini sec" disabled={!caja} onClick={() => window.confirm('¿Eliminar a este jugador?') && enviar(ACCIONES.host.eliminar(pid))}>Eliminar jugador</button>
             <button className="btn mini sec" onClick={() => window.confirm('¿Ceder el rol de banco?') && enviar(ACCIONES.host.ceder(pid))}>Ceder el banco</button>
           </div></fieldset>
         {s.host_info && <p className="it">Mazos: {s.host_info.mazos.eventos} eventos, {s.host_info.mazos.historicos} históricos, {s.host_info.mazos.mensajes} mensajes por salir (no se repiten), {s.host_info.mazos.botin} botín, {s.host_info.mazos.ifrit} ifrit.</p>}

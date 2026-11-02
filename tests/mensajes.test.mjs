@@ -16,6 +16,7 @@ function partida(pjs, semilla = 11) {
   const ids = pjs.map((pj, i) => { const id = unir(e, { nombre: 'J' + i, token: 't' + i }); assert.ok(act(id, { t: 'elegirPj', pj }).ok); return id; });
   for (const id of ids) act(id, { t: 'listo', v: true });
   assert.ok(act(ids[0], { t: 'iniciar' }).ok);
+  e.cajaAbierta = true;                       // las pruebas reparten mensajes desde el banco
   const asentar = () => { for (let k = 0; k < 40 && (e.pend || e.dados || !e.turno) && e.fase === 'juego'; k++) { now += 100000; tick(data, e, now); } };
   return { e, act, ids, asentar };
 }

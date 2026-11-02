@@ -256,3 +256,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .guia-pj h4 { margin: 0 0 6px; color: var(--oro-claro); font-family: var(--f-titulo); }
 .guia-pj ul, .consejos-venta { margin: 4px 0 8px; padding-left: 20px; }
 .guia-pj li, .consejos-venta li { margin: 2px 0; }
+.caja-banco { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px dashed var(--oro); border-radius: 10px; margin-bottom: 8px; font-family: var(--f-titulo); }
+.caja-banco.abierta { border-style: solid; background: rgba(239, 208, 143, .12); }
+.caja-banco small { font-family: inherit; opacity: .75; }
+fieldset:disabled { opacity: .5; }

@@ -16,7 +16,7 @@ export function crearWs() {
       if (m.t === 'estado') cb.estado(m.s);
       else if (m.t === 'bienvenida') localStorage.setItem('mun.token', m.token);
       else if (m.t === 'error') cb.error(m.msg);
-      else if (m.t === 'hecho') cb.hecho(m.msg);
+      else if (m.t === 'hecho' || m.t === 'aviso') cb.hecho(m.msg);   // aviso: para todos (p. ej. la caja del banco)
       else if (m.t === 'rechazo') { cerrado = true; if (m.clave) localStorage.removeItem('mun.clave'); cb.rechazo(m.msg, !!m.clave); ws.close(); }
     };
     ws.onclose = () => { clearInterval(ping); if (cerrado) return; cb.conexion('caido'); intento++; setTimeout(abrir, Math.min(500 * 2 ** intento, 5000)); };

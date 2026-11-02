@@ -35,7 +35,7 @@ export const enCiudad = (e, ciudad, salvo = null) => activos(e).filter((id) => i
 export const ordenTurno = (e, pid) => e.orden.indexOf(pid);
 export const npcId = (e) => e.orden.find((id) => e.jugadores[id].npc) || null;
 
-export function log(e, texto, extra = {}) { e.log.push({ t: e.ahora, texto, ...extra }); if (e.log.length > 300) e.log.shift(); }
+export function log(e, texto, extra = {}) { e.logN = (e.logN || 0) + 1; e.log.push({ t: e.ahora, texto, n: e.logN, ...extra }); if (e.log.length > 300) e.log.shift(); }
 
 // ---------------------------------------------------------------- cartas (datos para dibujarlas en el cliente)
 export function cartaDatos(data, tipo, id) {

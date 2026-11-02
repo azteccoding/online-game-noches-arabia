@@ -137,11 +137,15 @@ function confirmacion(a, pid) {
     default: return null;
   }
 }
+// Abrir o cerrar la caja del banco se anuncia a todos los jugadores (aviso visible) además de quedar en el registro.
+function avisarCaja(nAntes) {
+  for (const l of estado.log) if (l.caja && (l.n || 0) > nAntes) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
+}
 function desconectar(ws) {
   const pid = clientes.get(ws);
   if (!pid) return;
   clientes.delete(ws);
-  if (![...clientes.values()].includes(pid)) { conexion(estado, pid, false); marcar(); difundir(); }
+  if (![...clientes.values()].includes(pid)) { const antes = estado.logN || 0; conexion(estado, pid, false); avisarCaja(antes); marcar(); difundir(); }
 }
 
 wss.on('connection', (ws, req) => {
@@ -186,10 +190,11 @@ wss.on('connection', (ws, req) => {
         if (!pinOk(String(m.a.pin ?? ''))) { fallo(ws.ip); return enviar(ws, { t: 'error', msg: 'PIN incorrecto.', n: m.n }); }
         m.a = { t: 'reclamarAnfitrion', pin: estado.pinHost };
       }
-      let r; const copia = serializar(estado);
+      let r; const copia = serializar(estado); const antesLog = estado.logN || 0;
       try { r = reducir(data, estado, pid, m.a, ahora); } catch (x) { estado = restaurar(copia); console.error('Error del motor en', m.a.t, x.stack); r = { ok: false, error: 'Error interno del servidor (anotado en la consola). Prueba de nuevo.' }; }
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
       else { const msg = confirmacion(m.a, pid); if (msg) enviar(ws, { t: 'hecho', msg, n: m.n }); }
+      if (r.ok) avisarCaja(antesLog);
       marcar(); difundir();
     }
   });

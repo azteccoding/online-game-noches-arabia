@@ -90,6 +90,8 @@ const sinMensaje = (j) => { j.mensaje = null; };
 {
   const g = partida(['4', '7', '5']); const { e, act, ids } = g; g.listos();
   assert.ok(!act(ids[1], { t: 'host.corregir', pid: ids[1], campo: 'dinares', valor: 99 }).ok, 'solo el anfitrión');
+  assert.ok(!act(ids[0], { t: 'host.corregir', pid: ids[1], campo: 'dinares', valor: 99 }).ok, 'con la caja del banco cerrada no se corrige');
+  assert.ok(act(ids[0], { t: 'host.caja', abrir: true }).ok); assert.ok(e.log.some((l) => /abrió la caja del banco/.test(l.texto)));
   assert.ok(act(ids[0], { t: 'host.corregir', pid: ids[1], campo: 'dinares', valor: 99 }).ok);
   assert.equal(e.jugadores[ids[1]].dinares, 99);
   assert.ok(act(ids[0], { t: 'host.dar', pid: ids[1], dinares: 1, noches: 2 }).ok);

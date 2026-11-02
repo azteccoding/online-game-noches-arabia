@@ -49,5 +49,6 @@ export const ACCIONES = {
     revelarCarta: (mazo) => ({ t: 'host.revelarCarta', mazo }),
     ceder: (pid) => ({ t: 'host.ceder', pid }),
     eliminar: (pid) => ({ t: 'host.eliminar', pid }),
+    caja: (abrir) => ({ t: 'host.caja', abrir: !!abrir }),
   },
 };

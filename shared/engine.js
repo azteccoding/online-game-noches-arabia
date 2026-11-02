@@ -48,7 +48,10 @@ export function unir(e, { nombre: nom, token }) {
   if (!e.host) e.host = id;
   return id;
 }
-export function conexion(e, pid, conectado) { if (e.jugadores[pid]) e.jugadores[pid].conectado = conectado; }
+export function conexion(e, pid, conectado) {
+  if (e.jugadores[pid]) e.jugadores[pid].conectado = conectado;
+  if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
+}
 
 // ---------------------------------------------------------------- mazos
 function prepararMazos(data, e) {
@@ -222,6 +225,7 @@ export function avanzar(data, e) {
 
 // ---------------------------------------------------------------- acciones
 const esHost = (e, pid) => e.host === pid;
+const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
 const LIBRES = ['decidir', 'cerrarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido'];
@@ -293,16 +297,22 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'asesinos': return NPC.contratar(data, e, pid, a);
     case 'pj': return PJ.accion(data, e, pid, a);
     // ---- anfitrión / banco (R 22): reparte, baraja y corrige errores; no decide por nadie
-    case 'host.dar': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostDar(e, a);
-    case 'host.corregir': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostCorregir(e, a);
-    case 'host.repartir': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRepartir(data, e, a);
+    // Caja del banco: las acciones que mueven recursos solo funcionan con la caja abierta, y abrirla o cerrarla se anuncia a todos.
+    case 'host.caja': {
+      if (!esHost(e, pid)) return err('Solo el anfitrión.');
+      const abrir = !!a.abrir; if (!!e.cajaAbierta === abrir) return ok();
+      e.cajaAbierta = abrir; log(e, abrir ? `${j.nombre} abrió la caja del banco.` : `${j.nombre} cerró la caja del banco.`, { caja: true }); return ok();
+    }
+    case 'host.dar': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.cajaAbierta) return err(CAJA_CERRADA); return hostDar(e, a);
+    case 'host.corregir': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.cajaAbierta) return err(CAJA_CERRADA); return hostCorregir(e, a);
+    case 'host.repartir': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.cajaAbierta) return err(CAJA_CERRADA); return hostRepartir(data, e, a);
     case 'host.barajar': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostBarajar(e, a);
     case 'host.tirarNPC': if (!puedeNPC(e, pid)) return err('Solo el anfitrión (o cualquiera si el banco está desconectado).'); return tirarDadosLibres(e, pid, a);
     case 'host.pasarTurno': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!t) return err('No hay turno.'); e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; return ok();
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
-    case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); e.host = a.pid; return ok();
+    case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
     case 'host.eliminar': {
-      if (!esHost(e, pid)) return err('Solo el anfitrión.');
+      if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.cajaAbierta) return err(CAJA_CERRADA);
       const je = e.jugadores[a.pid]; if (!je || je.eliminado) return err('Jugador inexistente.');
       eliminar(data, e, a.pid, { causa: 'decisión del banco' }); return ok();
     }
@@ -664,7 +674,7 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2 }) => ({ t: tt, texto, pid: p2 })),
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, opciones: { dificultad: e.opciones.dificultad },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c) })) : [],
     tienda: OBJ.tienda(data, e, pid),

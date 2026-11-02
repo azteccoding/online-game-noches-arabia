@@ -60,6 +60,11 @@ for (const [x, propio] of [[A, '1'], [B, '2'], [C, '3']]) {
 }
 
 // privacidad: lo que reparte el banco a B no llega a A ni a C
+// caja del banco: cerrada, las entregas se rechazan; al abrirla todos reciben el aviso con el nombre de quien la abre
+await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
+assert.ok(A.errores.some((m) => /caja del banco está cerrada/.test(m)), 'sin abrir la caja, el banco no entrega');
+await A.a({ t: 'host.caja', abrir: true });
+for (const x of [A, B, C]) assert.ok(x.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Ana abrió la caja del banco')), 'todos ven quién abrió la caja');
 await A.a({ t: 'host.repartir', pid: B.pid, mazo: 'objeto', id: 'OB01' });
 await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
 assert.ok(A.crudos.some((r) => r.includes('"t":"hecho"') && r.includes('Entregado a Beto: 5 dinares')), 'el banco recibe confirmación de la entrega');
