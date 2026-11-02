@@ -49,7 +49,12 @@ export function unir(e, { nombre: nom, token }) {
   return id;
 }
 export function conexion(e, pid, conectado) {
-  if (e.jugadores[pid]) e.jugadores[pid].conectado = conectado;
+  const j = e.jugadores[pid];
+  if (j && e.fase === 'juego' && !j.npc && !j.eliminado && j.conectado !== conectado) {   // aviso a todos: se desconectó / volvió
+    const esperando = !conectado && e.turno?.pid === pid;
+    log(e, conectado ? `${j.nombre} volvió a la partida.` : `${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
+  }
+  if (j) j.conectado = conectado;
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
 }
 
@@ -318,7 +323,8 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
     case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
     case 'host.eliminar': {
-      if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.cajaAbierta) return err(CAJA_CERRADA);
+      if (!esHost(e, pid)) return err('Solo el anfitrión.');
+      if (!e.cajaAbierta && e.jugadores[a.pid]?.conectado !== false) return err(CAJA_CERRADA);   // a un desconectado se le puede sacar sin abrir la caja
       const je = e.jugadores[a.pid]; if (!je || je.eliminado) return err('Jugador inexistente.');
       eliminar(data, e, a.pid, { causa: 'decisión del banco' }); return ok();
     }

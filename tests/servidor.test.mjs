@@ -84,6 +84,9 @@ for (const x of [A, B, C]) {
 
 // continuidad: el banco se desconecta y la partida sigue
 A.ws.close(); await dormir(300);
+assert.ok(B.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Ana se desconectó')), 'todos ven la alarma de desconexión');
+await B.a({ t: 'host.eliminar', pid: A.pid }); // B no es el banco: se rechaza (A sigue siendo el banco)
+assert.ok(B.errores.some((m) => /anfitrión/.test(m)));
 assert.equal(B.s.hostConectado, false, 'se informa «banco ausente»');
 const quien = [B, C].find((x) => x.pid === B.s.turno.pid) || null;     // si el turno era de Ana, no hay quien tire: la prueba sigue con el NPC
 if (quien) { await quien.a({ t: 'tirarDados' }); assert.ok(quien.s.dados, 'el jugador en turno tira aunque el banco no esté'); }
@@ -103,6 +106,7 @@ assert.equal(JSON.stringify({ r: B2.s.ronda, t: B2.s.turno.pid, din: B2.s.jugado
 const intruso = await new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const m = JSON.parse(r); if (m.t === 'rechazo') ok(m.msg); }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre: 'Intruso' }))); });
 assert.ok(/ya empez/.test(intruso), 'un desconocido no puede entrar a media partida');
 const A2 = await cliente('ana'); await dormir(200);
+assert.ok(B2.crudos.some((r) => r.includes('"t":"aviso"') && /ana volvió a la partida/i.test(r)), 'al volver se avisa a todos');
 assert.equal(A2.pid, A.pid, 'quien perdió su token recupera su sitio con su nombre si su dispositivo está desconectado');
 assert.notEqual(A2.token, A.token);
 

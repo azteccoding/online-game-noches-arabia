@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useJuego, iniciarJuego, leer, avisar } from './game/store.js';
+import { useJuego, iniciarJuego, leer, avisar, enviar } from './game/store.js';
+import { ACCIONES } from './game/protocol.js';
 import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
@@ -101,6 +102,17 @@ function Juego({ lienzo }) {
       <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} />
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
+      {s.fase === 'juego' && (() => {
+        const fuera = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.npc && !j.eliminado && j.conectado === false && j.id !== s.yo);
+        return fuera.length > 0 && (
+          <div className="alarma-desconexion" role="alert">
+            {fuera.map((j) => (
+              <p key={j.id}>⚠ {j.nombre} se desconectó{s.turno?.pid === j.id ? ': es su turno y la partida lo está esperando' : ''}.
+                {s.soyHost && <button className="btn mini sec" onClick={() => window.confirm(`¿Sacar a ${j.nombre} de la partida?`) && enviar(ACCIONES.host.eliminar(j.id))}>Sacar de la partida</button>}</p>
+            ))}
+          </div>
+        );
+      })()}
       {error && <div className="toast" role="alert">{error}</div>}
       {aviso && !error && <div className="toast ok" role="status">✓ {aviso}</div>}
     </div>

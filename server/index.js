@@ -139,7 +139,7 @@ function confirmacion(a, pid) {
 }
 // Abrir o cerrar la caja del banco se anuncia a todos los jugadores (aviso visible) además de quedar en el registro.
 function avisarCaja(nAntes) {
-  for (const l of estado.log) if (l.caja && (l.n || 0) > nAntes) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
+  for (const l of estado.log) if ((l.caja || l.aviso) && (l.n || 0) > nAntes) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
 }
 function desconectar(ws) {
   const pid = clientes.get(ws);
@@ -178,7 +178,7 @@ wss.on('connection', (ws, req) => {
         token = crypto.randomBytes(16).toString('hex');
         pid = unir(estado, { nombre: m.nombre, token });
       } else if (m.nombre) estado.jugadores[pid].nombre = String(m.nombre).slice(0, 24);
-      clientes.set(ws, pid); conexion(estado, pid, true); estado.jugadores[pid].extra ||= {}; estado.jugadores[pid].extra.clienteWeb = true; marcar();
+      clientes.set(ws, pid); const nAntes = estado.logN || 0; conexion(estado, pid, true); avisarCaja(nAntes); estado.jugadores[pid].extra ||= {}; estado.jugadores[pid].extra.clienteWeb = true; marcar();
       enviar(ws, { t: 'bienvenida', token, pid, codigo: estado.codigo });
       return difundir();
     }
