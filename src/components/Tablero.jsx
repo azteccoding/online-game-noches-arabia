@@ -10,13 +10,30 @@ const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r
 
 const Digitos = ({ g }) => g.map(([d, x], i) => <path key={i} d={tablero.glifos[d]} transform={`translate(${x},0)`} />);
 
-const Rutas = memo(function Rutas({ vivas }) {
+// Camino más corto (en tramos) entre dos ciudades por las rutas del tablero; devuelve las claves «a|b» de sus tramos.
+function caminoRutas(desde, hasta) {
+  if (!desde || !hasta || desde === hasta) return null;
+  const prev = { [desde]: null }, cola = [desde];
+  while (cola.length) {
+    const c = cola.shift(); if (c === hasta) break;
+    for (const r of tablero.routes) {
+      const o = r.a === c ? r.b : r.b === c ? r.a : null;
+      if (o && !(o in prev)) { prev[o] = r; cola.push(o); }
+    }
+  }
+  if (!(hasta in prev)) return null;
+  const tramos = new Set();
+  for (let c = hasta; prev[c]; c = prev[c].a === c ? prev[c].b : prev[c].a) tramos.add(prev[c].a + '|' + prev[c].b);
+  return tramos;
+}
+
+const Rutas = memo(function Rutas({ vivas, animadas }) {
   return (
     <g className="rutas">
       {tablero.routes.map((r) => {
         const viva = vivas && (vivas.has(r.a + '>' + r.b) || vivas.has(r.b + '>' + r.a));
         return (
-          <g key={r.a + r.b} className={`ruta ${r.mode}${viva ? ' viva' : ''}`}>
+          <g key={r.a + r.b} className={`ruta ${r.mode}${viva ? ' viva' : ''}${animadas?.has(r.a + '|' + r.b) ? ' animada' : ''}`}>
             <path className="ruta-base" d={r.d} />
             <path className="ruta-linea" d={r.d} />
           </g>
@@ -53,6 +70,8 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
   const [cargado, setCargado] = useState(false);
   const infoRef = useRef(null);
   const peones = useMemo(() => agruparPeones(jugadores, turnoPid), [jugadores, turnoPid]);
+  const miCiudad = jugadores?.[miId]?.ciudad;
+  const animadas = useMemo(() => caminoRutas(miCiudad, ciudadActiva), [miCiudad, ciudadActiva]);   // ruta hacia la ciudad elegida, en movimiento
   const ciudadMia = jugadores[miId]?.ciudad;
 
   useEffect(() => {
@@ -97,7 +116,7 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
           <radialGradient id="aroTurno"><stop offset="0" stopColor="#efd08f" stopOpacity=".95" /><stop offset="1" stopColor="#efd08f" stopOpacity="0" /></radialGradient>
         </defs>
         <g ref={baseRef} className="base-mapa" />
-        <Rutas vivas={vivas} />
+        <Rutas vivas={vivas} animadas={animadas} />
         <g className="ciudades">
           {Object.entries(tablero.cities).map(([id, c]) => <Pin key={id} id={id} c={c} resaltada={ciudadesAlcance?.has(id)} activa={id === ciudadActiva} />)}
           <g className="ciudad jorasan" transform={`translate(${tablero.jorasan.x},${tablero.jorasan.y})`}><g className="escala-pin"><polygon points="0,-30 9,-12 29,-9 14,5 18,26 0,16 -18,26 -14,5 -29,-9 -9,-12" /><circle r="6" /></g></g>

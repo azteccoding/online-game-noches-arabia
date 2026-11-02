@@ -47,3 +47,11 @@
 .mini-vista { fill: rgba(239, 208, 143, .22); stroke: #fff; stroke-width: 18; vector-effect: none; }
 .minimapa circle { fill: #efd08f; stroke: #4d0e17; stroke-width: 8; }
 .minimapa circle.yo { fill: #8be3d8; }
+/* Ruta hacia la ciudad elegida: la línea punteada avanza como una banda (se distingue de las demás rutas). */
+.ruta.animada .ruta-base { stroke: #efd08f; opacity: 1; stroke-width: 18; }
+.ruta.animada .ruta-linea { stroke: #b8331f; stroke-width: 9; animation: banda 0.9s linear infinite; }
+.ruta.mar.animada .ruta-linea, .ruta.rio.animada .ruta-linea { stroke: #1d5fbf; }
+@keyframes banda { to { stroke-dashoffset: -37; } }
+.ruta.mar.animada .ruta-linea { animation-name: banda-mar; }
+@keyframes banda-mar { to { stroke-dashoffset: -15; } }
+@media (prefers-reduced-motion: reduce) { .ruta.animada .ruta-linea { animation: none; } }
