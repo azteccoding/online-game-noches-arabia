@@ -38,6 +38,7 @@ export default function Dados({ s }) {
   const idVisto = useRef(null);
   useEffect(() => {
     if (!d) { setRodando(false); idVisto.current = null; return undefined; }
+    if (!d.lanzado) { setRodando(false); idVisto.current = null; return undefined; }       // espera a que su dueño pulse «Lanzar dados»
     if (idVisto.current === d.id) return undefined;
     idVisto.current = d.id;
     const transcurrido = Math.max(0, s.ahora - d.t0);                      // reloj del servidor: quien se une tarde ve el final
@@ -46,9 +47,21 @@ export default function Dados({ s }) {
     setRodando(true);
     const t = setTimeout(() => setRodando(false), resto);
     return () => clearTimeout(t);
-  }, [d?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.id, d?.lanzado]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!d) return null;
   const por = s.jugadores[d.por];
+  if (!d.lanzado) {
+    const mio = d.por === s.yo;
+    return (
+      <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Lanzar los dados">
+        <div className="dados-resultado panel">
+          <p className="quien">{(d.grupos?.[0]?.etq) || (por?.nombre || 'Banco')}</p>
+          {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Lanzar {d.n > 1 ? 'los dados' : 'el dado'}</button>
+            : <p className="it">{por?.nombre || 'Alguien'} va a lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>}
+        </div>
+      </div>
+    );
+  }
   const total = d.valores.reduce((a2, b) => a2 + b, 0);
   const MOTIVOS = { ingreso: 'dado de ingreso', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas' };
   const motivo = d.npc || d.motivo.startsWith('npc:') ? `NPC ${d.motivo.startsWith('npc:') ? d.motivo.slice(4) : ''}`.trim() : MOTIVOS[d.motivo] || d.motivo;

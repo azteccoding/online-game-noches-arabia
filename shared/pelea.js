@@ -246,11 +246,11 @@ function pasoCategoria(data, e) {
   if (cat === 'C') {                                                          // con armas sin destreza: dado, par = como D, impar = como A
     const x = dado(e);
     cat = par(x) ? 'D' : 'A';
-    mostrarDados(e, { por: quien, motivo: 'categoria', grupos: [{ etq: `${nombre(e, quien)} (armas sin destreza)`, valores: [x] }], resumen: [`Dado ${x}: ${par(x) ? 'juega como si tuviera destreza (D)' : 'juega como sin armas ni destreza (A)'}.`] });
+    mostrarDados(e, { por: quien, motivo: 'categoria', grupos: [{ etq: `${nombre(e, quien)} (armas sin destreza)`, valores: [x] }], resumen: [par(x) ? `${nombre(e, quien)} tiene arma, pero no destreza. Dado ${x} (par): acierta a usarla y pelea como si tuviera destreza.` : `${nombre(e, quien)} tiene arma, pero no destreza. Dado ${x} (impar): con los nervios no acierta a usarla y pelea como si no tuviera armas. No la pierde; solo no le sirvió en esta pelea.`] });
   }
   if (cat === 'B' && (P.tipo !== 'robo')) {                                   // B en matar/duelo: dado par = piedras (+1 agresor), impar (+2)
     const x = dado(e); P.ventajaB = par(x) ? 1 : 2;
-    mostrarDados(e, { por: quien, motivo: 'categoria', grupos: [{ etq: `${nombre(e, quien)} (sin armas, con destreza)`, valores: [x] }], resumen: [`Dado ${x}: el agresor suma ${P.ventajaB} punto${P.ventajaB > 1 ? 's' : ''} de ventaja.`] });
+    mostrarDados(e, { por: quien, motivo: 'categoria', grupos: [{ etq: `${nombre(e, quien)} (sin armas, con destreza)`, valores: [x] }], resumen: [`${nombre(e, quien)} tiene destreza, pero ningún arma que pueda usar aquí. Dado ${x}: el agresor suma ${P.ventajaB} punto${P.ventajaB > 1 ? 's' : ''} de ventaja.`] });
   }
   P.cat = cat;
   const defHumano = !e.jugadores[P.def].npc;

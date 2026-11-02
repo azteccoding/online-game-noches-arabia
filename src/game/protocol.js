@@ -19,6 +19,7 @@ export const ACCIONES = {
   decidir: (id, resp) => ({ t: 'decidir', id, ...resp }),
   tirarDados: () => ({ t: 'tirarDados' }),
   cerrarDados: () => ({ t: 'cerrarDados' }),
+  lanzarDados: () => ({ t: 'lanzarDados' }),
   viajar: (destino) => ({ t: 'viajar', destino }),
   terminarTurno: () => ({ t: 'terminarTurno' }),
   responderCC: (opcion) => ({ t: 'responderCC', opcion }),

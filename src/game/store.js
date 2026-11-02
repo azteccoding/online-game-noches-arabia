@@ -11,6 +11,8 @@ export function useJuego(sel = (s) => s) {
   return useSyncExternalStore((f) => { oyentes.add(f); return () => oyentes.delete(f); }, () => sel(S), () => sel(S));
 }
 export const leer = () => S;
+// Aviso verde local (premios, nueva ronda…); se borra solo a los 3.5 s.
+export function avisar(msg) { const aviso = S.aviso && S.aviso !== msg ? S.aviso + ' · ' + msg : msg; poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, 3500); }
 
 export async function iniciarJuego(params) {
   const { crearAdaptador } = await import('./adapters/index.js');

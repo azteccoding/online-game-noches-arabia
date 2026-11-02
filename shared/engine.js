@@ -5,7 +5,7 @@
 // Módulos: base (utilidades, decisiones, dados), pelea (R 11-12), objetos (R 15), retos (R 14), tesoros (R 16), eventos (R 17),
 // npc (R 13, 20, 21), personajes (R 10).
 import {
-  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, nombre, log,
+  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, LANZAR_AUTO_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
 } from './base.js';
@@ -228,7 +228,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['decidir', 'cerrarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido'];
+const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido'];
 
 export function reducir(data, e, pid, a, ahora = Date.now()) {
   e.ahora = ahora;
@@ -270,8 +270,14 @@ function despachar(data, e, pid, j, a, ahora) {
     // ---- decisiones y dados
     case 'decidir': return responderPend(data, e, pid, a);
     case 'tirarDados': return tirarDados(data, e, pid, a);
+    case 'lanzarDados': {
+      if (!e.dados || e.dados.lanzado) return ok();
+      if (pid !== e.dados.por) return err('Solo quien tira puede lanzar estos dados.');
+      e.dados.lanzado = true; e.dados.t0 = ahora; return ok();
+    }
     case 'cerrarDados': {
       if (!e.dados) return ok();
+      if (!e.dados.lanzado) { if (pid !== e.dados.por) return err(`Espera a que ${nombre(e, e.dados.por)} lance los dados.`); e.dados.lanzado = true; e.dados.t0 = ahora; return ok(); }
       if (ahora - e.dados.t0 < MIN_DADOS_MS) return err('Los dados siguen rodando.');
       siguienteDados(e); return ok();
     }
@@ -673,7 +679,7 @@ export function vista(data, e, pid) {
     opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid) };
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
-    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2 }) => ({ t: tt, texto, pid: p2 })),
+    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n }) => ({ t: tt, texto, pid: p2, n })),
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c) })) : [],
@@ -692,7 +698,8 @@ const publicMods = (e) => { const { sinIngreso, varado, huir, ...r } = e.mods ||
 export function tick(data, e, ahora = Date.now()) {
   e.ahora = ahora;
   let cambio = false;
-  if (e.dados && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
+  if (e.dados && !e.dados.lanzado && ahora - e.dados.t0 > LANZAR_AUTO_MS) { e.dados.lanzado = true; e.dados.t0 = ahora; cambio = true; }
+  else if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   if (e.fase === 'juego') {
     if (e.pend && vencerPend(data, e, ahora)) cambio = true;
     const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '');

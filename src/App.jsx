@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useJuego, iniciarJuego, leer } from './game/store.js';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useJuego, iniciarJuego, leer, avisar } from './game/store.js';
 import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
@@ -36,6 +36,20 @@ function Juego({ lienzo }) {
   const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
+  // Avisos verdes: premios propios (dinares o noches que suben) y comienzo de cada ronda.
+  const prev = useRef(null);
+  useEffect(() => {
+    const mi = s?.jugadores?.[s.yo];
+    if (!s || !mi || s.fase !== 'juego') { prev.current = null; return; }
+    const p = prev.current; prev.current = { din: mi.dinares, noc: mi.noches, ronda: s.ronda, logN: s.log.length ? s.log[s.log.length - 1].n || 0 : 0 };
+    if (!p) return;
+    if (s.ronda > p.ronda) avisar(`Comienza la ronda ${s.ronda}`);
+    const dd = mi.dinares - p.din, dn = mi.noches - p.noc;
+    if (dd > 0 || dn > 0) {
+      const motivo = s.log.filter((l) => (l.n || 0) > p.logN && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
+      avisar(`Ganaste ${[dd > 0 && `${dd} dinares`, dn > 0 && `${dn} noches`].filter(Boolean).join(' y ')}${motivo ? ': ' + motivo : ''}`);
+    }
+  }, [s]);
 
   useEffect(() => {
     if (DEMO && params.get('demo')) iniciarJuego({ demo: true, nombre: params.get('nombre') || 'Ana' });
