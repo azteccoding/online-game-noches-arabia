@@ -11,8 +11,8 @@ const zeinId = (e) => activos(e).find((x) => jug(e, x).pj === '2') || null;
 export function inicioTurno(data, e, pid) {
   const j = jug(e, pid);
   if (j.pj === 'B') {                                                                          // R 20.2: comisión de bolsillo
-    const n = enCiudad(e, j.ciudad, pid).length;
-    const c = Math.min(15, 5 * n);
+    const n = enCiudad(e, j.ciudad, pid).length, eq = data.config.equilibrio || {};
+    const c = Math.min(eq.yafarComisionMax ?? 15, (eq.yafarComisionPorJugador ?? 5) * n);   // equilibrio: config.json
     if (c) { j.dinares += c; log(e, `${j.nombre} cobra ${c} dinares de comisión de bolsillo.`, { pid }); }
   }
   const d = j.extra.deudaAsesinos;

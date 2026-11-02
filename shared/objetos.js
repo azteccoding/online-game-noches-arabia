@@ -1,7 +1,7 @@
 // Objetos (R 15): tienda y mercado, venta, reventa y uso de los objetos del mazo, objetos originales (R 15.1), transporte y cartas de Ifrit.
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
-  publicarCarta, cartaDatos, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
+  publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
@@ -10,6 +10,9 @@ const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flec
 const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'] };
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 
+// Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
+export const BAZAR_IFRIT = { ciudades: ['Samarcanda', 'India'], precio: 60 };
+const ifritEnVenta = (e) => e.ifritVendida !== e.ronda && ((e.mazos?.ifrit?.length || 0) + (e.mazos?.descarte?.ifrit?.length || 0)) > 0;
 const puedeTienda = (e, pid) => e.fase === 'juego' && e.turno && e.turno.pid === pid && !e.jugadores[pid].transito && !e.jugadores[pid].perdido && !e.turno.fin;
 
 function ciudadesDe(o) {
@@ -39,6 +42,18 @@ export function comprar(data, e, pid, a) {
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
+  }
+  if (a.ref === 'ifrit') {
+    if (!BAZAR_IFRIT.ciudades.includes(j.ciudad)) return err('El bazar del genio está en Samarcanda y en India.');
+    if (e.ifritVendida === e.ronda) return err('Ya se vendió la carta de Ifrit de esta ronda: vuelve en la siguiente.');
+    if (j.dinares < BAZAR_IFRIT.precio) return err(`Cuesta ${BAZAR_IFRIT.precio} dinares.`);
+    const id = robar(e, 'ifrit');
+    if (!id) return err('No quedan cartas de Ifrit.');
+    j.dinares -= BAZAR_IFRIT.precio; e.ifritVendida = e.ronda;
+    j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id });
+    publicarCarta(e, cartaDatos(data, 'ifrit', id), pid, [pid]);
+    log(e, `${j.nombre} compra una carta de Ifrit en el bazar de ${j.ciudad}.`, { pid });
+    return ok();
   }
   if (a.ref) {                                                                                           // objetos originales
     const base = VENTA_ORIGINAL[a.ref];
@@ -143,6 +158,10 @@ export function tienda(data, e, pid) {
     r.push({ ref, nombre: ITEMS[ref].nombre, tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : 'Objeto original', texto: ITEMS[ref].texto, precio, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)), cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta'].forEach(orig);
+  if (BAZAR_IFRIT.ciudades.includes(j.ciudad)) {
+    const hay = ifritEnVenta(e);
+    r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });
+  }
   if (j.ciudad === 'Bagdad') {
     let p = j.extra.joyaVisir ? 30 : 40; if (j.pj === 'B') p = Math.ceil(p / 2);
     r.push({ ref: 'firman', nombre: 'Firmán del Califa', tipo: 'Especial', texto: 'Permite portar arco y jambiya en Bagdad, desafiar y robar allí.', precio: p, stock: e.firmanes, puede: e.firmanes > 0 && !tieneEsp(j, 'F1') && j.dinares >= p });

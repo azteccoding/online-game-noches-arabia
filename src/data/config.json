@@ -104,5 +104,15 @@
    "bono": 1,
    "precio": 15
   }
+ },
+ "equilibrio": {
+  "nota": "Palancas de equilibrio del juego en línea (reversibles): comisión de bolsillo de Yafar jugador, dinares extra de ingreso por personaje y dado mínimo de la ventana de Anís.",
+  "yafarComisionPorJugador": 3,
+  "yafarComisionMax": 9,
+  "ingresoExtra": {
+   "7": 3,
+   "3": 3
+  },
+  "anisVentanaMin": 5
  }
 }

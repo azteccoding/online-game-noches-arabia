@@ -40,7 +40,8 @@
    "resumen": "El joven y guapo: difícil de atrapar.",
    "fuerte": [
     "Por la ventana: una vez por ronda, si lo atacan, con 5 o 6 huye y el agresor pierde su acción.",
-    "Amigo de Zein: gana 10 dinares, y 20 más si no los sorprenden."
+    "Amigo de Zein: gana 10 dinares, y 20 más si no los sorprenden.",
+    "Juego en línea: cobra 3 dinares más de ingreso cada turno (8 en total)."
    ],
    "debil": [
     "Empieza sin armas ni destreza.",
@@ -106,7 +107,8 @@
    "resumen": "El rico: empieza con más dinero y gana el doble por turno.",
    "fuerte": [
     "Empieza con 30 dinares y gana 10 por turno (el doble que los demás).",
-    "Cuentos de noche: invita a otro jugador; ambos ganan 5 dinares y el invitado 10 noches."
+    "Cuentos de noche: invita a otro jugador; ambos ganan 5 dinares y el invitado 10 noches.",
+    "Juego en línea: cobra 3 dinares más de ingreso cada turno (13 en total)."
    ],
    "debil": [
     "Siempre es el último en el orden de turnos.",
@@ -121,7 +123,7 @@
   "B": {
    "resumen": "El visir: cobra comisión y viaja a mitad de precio.",
    "fuerte": [
-    "Comisión de bolsillo: 5 dinares por cada otro jugador en su ciudad (máximo 15).",
+    "Comisión de bolsillo: 3 dinares por cada otro jugador en su ciudad (máximo 9).",
     "Paga la mitad de caravanas, sobornos y servicios.",
     "Empieza con un Firmán (puede atacar en Bagdad), jambiya y destreza."
    ],

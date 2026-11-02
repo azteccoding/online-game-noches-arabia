@@ -168,9 +168,9 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   // Anís: «Por la ventana» (una vez por ronda; solo si el agresor es un jugador con acción principal)
   if (d.pj === '3' && d.extra.ventanaRonda !== e.ronda && a.tipo !== 'duelo') {
     d.extra.ventanaRonda = e.ronda;
-    const x = dado(e);
-    mostrarDados(e, { por: a.objetivo, motivo: 'ventana', grupos: [{ etq: `${d.nombre} escapa por la ventana (5 o 6)`, valores: [x] }], resumen: [x >= 5 ? `${d.nombre} escapa por el tejado: el agresor pierde su acción principal.` : `${d.nombre} no consigue escapar.`] });
-    if (x >= 5) { log(e, `${d.nombre} escapa por la ventana.`); return terminarPelea(data, e, { cancelada: true }); }
+    const x = dado(e), min = data.config.equilibrio?.anisVentanaMin ?? 5;   // equilibrio: config.json
+    mostrarDados(e, { por: a.objetivo, motivo: 'ventana', grupos: [{ etq: `${d.nombre} escapa por la ventana (${min <= 4 ? `${min} a 6` : '5 o 6'})`, valores: [x] }], resumen: [x >= min ? `${d.nombre} escapa por el tejado: el agresor pierde su acción principal.` : `${d.nombre} no consigue escapar.`] });
+    if (x >= min) { log(e, `${d.nombre} escapa por la ventana.`); return terminarPelea(data, e, { cancelada: true }); }
   }
   if (d.pj === 'B' && d.herido && d.dinares >= 50) return ofertaYafar(data, e);   // regla de la casa: Yafar herido puede pagar 50 para huir
   return seguirAtaque(data, e);

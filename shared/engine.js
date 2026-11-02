@@ -195,7 +195,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   if (j.pierdeTurno > 0) { j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true; }
-  let ing = p.inicio.ingreso;
+  let ing = p.inicio.ingreso + (data.config.equilibrio?.ingresoExtra?.[j.pj] || 0);   // equilibrio: config.json
   if (e.mods.sinIngreso?.[id]) ing = 0;
   j.dinares += ing;
   if (j.pj === '4') j.noches += 5;                                                                       // Jamil: +5 noches por turno (R 10.6)
