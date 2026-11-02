@@ -1,7 +1,7 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, tick } from '../shared/engine.js';
-import { publicarCarta } from '../shared/base.js';
+import { publicarCarta, mostrarDados } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { cargarDatos } from '../server/datos.js';
 import { simular } from './sim.mjs';
@@ -55,5 +55,21 @@ function partida(pjs, opciones = {}, semilla = 5) {
   publicarCarta(e, { deck: 'evento', titulo: 'Otra' }, null);
   e.ahora += NPC.ESPERA_LECTURA_MS + 1;
   assert.equal(NPC.esperaLectura(e), false, 'como máximo espera un minuto');
+}
+// 14) Los dados de un jugador (con cliente web) nunca se lanzan solos
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = [g.ids[1], g.ids[2]];
+  while (e.dados) e.dados = null; e.colaDados = [];
+  e.jugadores[a].extra.clienteWeb = true;
+  mostrarDados(e, { por: a, motivo: 'reto', grupos: [{ etq: 'prueba', valores: [3] }] });
+  assert.equal(e.dados.lanzado, false, 'espera el botón «Lanzar»');
+  g.tickear(120000); assert.ok(e.dados && !e.dados.lanzado, 'ni a los 2 minutos se lanzan solos');
+  assert.ok(!g.act(b, { t: 'cerrarDados' }).ok, 'otro jugador no puede cerrarlos');
+  assert.ok(!g.act(e.host === a ? b : e.host, { t: 'lanzarDados' }).ok || e.jugadores[a].conectado === false, 'el banco no lanza por alguien conectado');
+  e.jugadores[a].conectado = false;
+  if (e.host !== a) { assert.ok(g.act(e.host, { t: 'lanzarDados' }).ok); assert.ok(e.dados.lanzado, 'el banco lanza por un desconectado'); }
+  e.dados.lanzado = false; e.jugadores[a].conectado = true;
+  assert.ok(g.act(a, { t: 'lanzarDados' }).ok); assert.ok(e.dados.lanzado, 'su dueño los lanza');
 }
 console.log('reglas de la casa OK');

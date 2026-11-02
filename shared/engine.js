@@ -5,7 +5,7 @@
 // Módulos: base (utilidades, decisiones, dados), pelea (R 11-12), objetos (R 15), retos (R 14), tesoros (R 16), eventos (R 17),
 // npc (R 13, 20, 21), personajes (R 10).
 import {
-  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, LANZAR_AUTO_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, nombre, log,
+  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
 } from './base.js';
@@ -272,12 +272,12 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'tirarDados': return tirarDados(data, e, pid, a);
     case 'lanzarDados': {
       if (!e.dados || e.dados.lanzado) return ok();
-      if (pid !== e.dados.por) return err('Solo quien tira puede lanzar estos dados.');
+      if (pid !== e.dados.por && !(esHost(e, pid) && e.jugadores[e.dados.por]?.conectado === false)) return err('Solo quien tira puede lanzar estos dados (el banco, si se desconectó).');
       e.dados.lanzado = true; e.dados.t0 = ahora; return ok();
     }
     case 'cerrarDados': {
       if (!e.dados) return ok();
-      if (!e.dados.lanzado) { if (pid !== e.dados.por) return err(`Espera a que ${nombre(e, e.dados.por)} lance los dados.`); e.dados.lanzado = true; e.dados.t0 = ahora; return ok(); }
+      if (!e.dados.lanzado) { if (pid !== e.dados.por) return err(`Esperando a que ${nombre(e, e.dados.por)} lance los dados.`); e.dados.lanzado = true; e.dados.t0 = ahora; return ok(); }
       if (ahora - e.dados.t0 < MIN_DADOS_MS) return err('Los dados siguen rodando.');
       siguienteDados(e); return ok();
     }
@@ -698,8 +698,7 @@ const publicMods = (e) => { const { sinIngreso, varado, huir, ...r } = e.mods ||
 export function tick(data, e, ahora = Date.now()) {
   e.ahora = ahora;
   let cambio = false;
-  if (e.dados && !e.dados.lanzado && ahora - e.dados.t0 > LANZAR_AUTO_MS) { e.dados.lanzado = true; e.dados.t0 = ahora; cambio = true; }
-  else if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
+  if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   if (e.fase === 'juego') {
     if (e.pend && vencerPend(data, e, ahora)) cambio = true;
     const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '');

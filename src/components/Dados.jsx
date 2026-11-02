@@ -57,7 +57,7 @@ export default function Dados({ s }) {
         <div className="dados-resultado panel">
           <p className="quien">{(d.grupos?.[0]?.etq) || (por?.nombre || 'Banco')}</p>
           {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Lanzar {d.n > 1 ? 'los dados' : 'el dado'}</button>
-            : <p className="it">{por?.nombre || 'Alguien'} va a lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>}
+            : <><p className="it">Esperando a {por?.nombre || 'alguien'} para lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>{s.soyHost && por && !por.conectado && <button className="btn mini sec" onClick={() => enviar(ACCIONES.lanzarDados())}>Lanzar por {por.nombre} (desconectado)</button>}</>}
         </div>
       </div>
     );

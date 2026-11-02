@@ -6,7 +6,6 @@ export const MIN_LECTURA_MS = 5000;
 export const MIN_DADOS_MS = 1900;
 export const LIMITE_PEND_MS = 90000;           // una decisión sin respuesta se resuelve sola con su opción por defecto
 export const AUTOCIERRE_DADOS_MS = 30000;   // tras lanzarlos, los dados se cierran solos a los 30 s
-export const LANZAR_AUTO_MS = 30000;        // si el jugador no pulsa «Lanzar dados» en 30 s, se lanzan solos
 
 // ---------------------------------------------------------------- azar
 export function rnd(e) {                                   // mulberry32 con estado en e.semilla (partidas reproducibles y restaurables)
@@ -118,8 +117,9 @@ export function robar(e, mazo) {
 // Los resultados se calculan y APLICAN al instante en el servidor; los dados son la vista pública del resultado (modal sincronizado).
 export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false }) {
   const valores = grupos.flatMap((g) => g.valores);
-  // Los dados de un jugador nunca se lanzan solos en pantalla: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
-  const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por] && !e.jugadores[por].npc;
+  // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
+  // Si se desconecta, el banco puede lanzarlos por él. (Bots y pruebas, sin cliente web, siguen como antes.)
+  const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
   const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar };
   for (const r of resumen) if (r) log(e, r, { pid: por });
   if (e.opciones?.rapido) return d;

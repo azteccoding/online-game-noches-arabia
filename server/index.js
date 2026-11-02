@@ -178,7 +178,7 @@ wss.on('connection', (ws, req) => {
         token = crypto.randomBytes(16).toString('hex');
         pid = unir(estado, { nombre: m.nombre, token });
       } else if (m.nombre) estado.jugadores[pid].nombre = String(m.nombre).slice(0, 24);
-      clientes.set(ws, pid); conexion(estado, pid, true); marcar();
+      clientes.set(ws, pid); conexion(estado, pid, true); estado.jugadores[pid].extra ||= {}; estado.jugadores[pid].extra.clienteWeb = true; marcar();
       enviar(ws, { t: 'bienvenida', token, pid, codigo: estado.codigo });
       return difundir();
     }
