@@ -4,7 +4,7 @@ MIL Y UNA NOCHES — juego web en red local
 Varios teléfonos, tabletas o PC abren una dirección en el navegador (misma red Wi-Fi, sin internet).
 Todos ven el tablero; cada jugador ve SOLO su propia mano, cartas privadas y objetos.
 Un servidor Node muy ligero guarda y reparte el estado (puede ser un PC o una Raspberry Pi sin pantalla).
-Es el juego COMPLETO, de 2 a 8 jugadores (también solitario contra Yafar NPC), jugable de principio a fin hasta las 1.001 noches.
+Es el juego COMPLETO, de 2 a 8 jugadores (también solitario contra Yafar NPC), jugable de principio a fin hasta las 1,001 noches.
 
 Documento completo y detallado: plan-juego-web.md (árbol de archivos, reglas implementadas y decisiones de
 interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
@@ -103,7 +103,7 @@ interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
   mercado y objetos (efectos automáticos), tratos, trueque, venta y robo; combate, duelos y rechazos (R 11), robos (R 12),
   Asesinos y subasta de contratos (R 13), retos y misiones (R 14), tesoros y Jorasán (R 16), Yafar NPC y Yafar como jugador
   (R 20), modo solitario (R 21), cartas de evento y eventos históricos, mensajes de sheijs (uno a la vez, sin repetirse),
-  trivias CC/CRP y cuentos de ambiente, economía, muerte y eliminación, victoria única a 1.001 noches con pantalla final,
+  trivias CC/CRP y cuentos de ambiente, economía, muerte y eliminación, victoria única a 1,001 noches con pantalla final,
   registro de eventos, «Acerca de» con créditos, panel del banco.
   Las reglas del juego no se cambian desde el código: la fuente es el reglamento extendido. Reglas de la casa y ajustes
   (p. ej. la cimitarra) están en src/data/config.json (reglasCasa, armas) y se explican en plan-juego-web.md, sección 8.
@@ -133,7 +133,7 @@ interpretación, protocolo, presupuestos, pruebas, mejoras futuras).
 ----------
     npm test                         motor (reglas, privacidad, empate/victoria, veneno, cimitarra), cuentos, mensajes,
                                      48 partidas aleatorias completas con serializar/restaurar, y servidor real
-    npm run simular                  partidas completas por WebSocket con varios clientes: 4 jugadores hasta 1.001 noches,
+    npm run simular                  partidas completas por WebSocket con varios clientes: 4 jugadores hasta 1,001 noches,
                                      solitario con Yafar, 8 jugadores y 3 + NPC difícil (servidor con --rapido)
     node tests/sim.mjs 6000          6000 partidas aleatorias (1 a 8 jugadores) sin excepciones ni bloqueos
     tests/navegador/*.py             Chrome headless con Playwright para Python (pip install playwright; usa Chrome instalado).
