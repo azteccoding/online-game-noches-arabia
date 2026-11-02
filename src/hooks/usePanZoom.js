@@ -78,6 +78,7 @@ export function crearPanZoom({ contenedor, svg, ancho, alto, spanMaxPct = 0.6, s
   const relMarco = (x, y) => { const r = contenedor.getBoundingClientRect(); return aMarco(x - (r.left + r.width / 2), y - (r.top + r.height / 2)); };
 
   function bajar(ev) {
+    if (ev.target.closest?.('.tablero-controles, .minimapa, button')) return;   // los botones del mapa reciben su clic (sin captura del puntero)
     cancelAnimationFrame(anim);
     contenedor.setPointerCapture?.(ev.pointerId);
     ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });

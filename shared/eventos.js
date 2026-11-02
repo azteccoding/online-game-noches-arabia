@@ -20,7 +20,11 @@ const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]
 const vecinaBarata = (data, ciudad, excl = []) => vecinas(data, ciudad).filter((x) => !excl.includes(x.id)).sort((a, b) => a.tarifa - b.tarifa)[0]?.id || 'Bagdad';
 
 // ---------------------------------------------------------------- Eventos
-export function aplicarEvento(data, e, id) {
+// Las tiradas que provoca una carta llevan su título como contexto (se muestra antes de lanzar los dados).
+function conContexto(e, titulo, fn) { const antes = e.ctxCarta; e.ctxCarta = titulo; try { return fn(); } finally { e.ctxCarta = antes; } }
+export function aplicarEvento(data, e, id) { return conContexto(e, data.eventos.eventos.find((x) => x.id === id)?.nombre, () => aplicarEvento0(data, e, id)); }
+export function aplicarHistorico(data, e, id) { return conContexto(e, data.eventos.historicos.find((x) => x.id === id)?.nombre, () => aplicarHistorico0(data, e, id)); }
+function aplicarEvento0(data, e, id) {
   const act = activos(e);
   switch (id) {
     case 'E1': NPC.eventoAsesinos(data, e); break;
@@ -72,7 +76,7 @@ export function finTurno(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- Eventos históricos
-export function aplicarHistorico(data, e, id) {
+function aplicarHistorico0(data, e, id) {
   const cola = (ids, fn) => { const ord = ordenadoPorTurno(e, ids.filter((x) => !jug(e, x).npc)); ord.forEach((x, i) => fn(x, i === ord.length - 1)); };
   switch (id) {
     case 'H1': cola(humanosEn(e, ['Bagdad', 'Basra']), (pid) => {

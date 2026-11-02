@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { enviar } from '../game/store.js';
+import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 
 // Dados rojos con puntos blancos, 100 % SVG (caras) sobre un cubo CSS 3D. El servidor decide los valores; el cliente solo anima.
@@ -53,6 +53,7 @@ function Cubo({ valor, rodando, idx, color }) {
 
 export default function Dados({ s }) {
   const d = s.dados;
+  const cartaPrevia = useJuego((x) => x.cartaEnPantalla);
   const [fila, setFila] = useState(-1);          // fila que está rodando; -1 = ninguna (todas fijas)
   const idVisto = useRef(null);
   const nFilas = Math.max(1, d?.grupos?.length || 1);
@@ -73,12 +74,18 @@ export default function Dados({ s }) {
   if (!d) return null;
   const por = s.jugadores[d.por];
   if (s.pend?.mia && !s.pend.respondiste) return null;              // primero tu decisión; los dados esperan detrás
+  if (cartaPrevia != null && cartaPrevia < d.id) return null;          // primero se lee la carta que explica la tirada
   if (!d.lanzado) {
     const mio = d.por === s.yo;
     return (
       <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Lanzar los dados">
         <div className="dados-resultado panel">
           <p className="quien">{(d.grupos?.[0]?.etq) || (por?.nombre || 'Banco')}</p>
+          {(() => {                                                       // contexto: la carta que provoca esta tirada
+            const cerca = s.historial.filter((h) => h.nro < d.id && d.id - h.nro < 12 && h.deck !== 'cuento' && h.deck !== 'trivia');
+            const c = (d.contexto && cerca.filter((h) => h.titulo === d.contexto).pop()) || cerca.pop();
+            return c ? <p className="dados-contexto">Por la carta «{c.titulo}»: {c.texto}</p> : d.contexto ? <p className="dados-contexto">Por «{d.contexto}».</p> : null;
+          })()}
           {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Lanzar {d.n > 1 ? 'los dados' : 'el dado'}</button>
             : <><p className="it">Esperando a {por?.nombre || 'alguien'} para lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>{s.soyHost && por && !por.conectado && <button className="btn mini sec" onClick={() => enviar(ACCIONES.lanzarDados())}>Lanzar por {por.nombre} (desconectado)</button>}</>}
         </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Carta from './Carta.jsx';
-import { enviar } from '../game/store.js';
+import { enviar, marcarCartaEnPantalla } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
@@ -45,9 +45,11 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
   // Una carta nueva espera a que se cierren los dados en pantalla (p. ej. el Botín tras ganar una pelea no tapa el resultado).
   // Prioridad de ventanas: primero lo que hay que responder (tu decisión, tu voto) y los dados; las cartas nuevas esperan detrás.
   const debesResponder = (s.pend?.mia && !s.pend.respondiste) || (s.votoReinicio?.votas && s.votoReinicio.miVoto == null);
-  const tapaDados = consulta == null && cola.length > 0 && (!!s.dados || !!debesResponder);
+  // Una carta publicada ANTES que los dados se lee primero (da el contexto de la tirada); las posteriores (p. ej. el Botín) esperan a que se cierren.
+  const tapaDados = consulta == null && cola.length > 0 && ((!!s.dados && s.dados.id < cola[0]) || !!debesResponder);
   const nroActual = consultaObj ? consultaObj.nro : tapaDados ? null : (consulta ?? cola[0] ?? null);
   const modoLectura = consulta == null && cola.length > 0 && !tapaDados;
+  useEffect(() => { marcarCartaEnPantalla(modoLectura ? cola[0] : null); }, [modoLectura, cola[0]]);   // eslint-disable-line react-hooks/exhaustive-deps
   const carta = useMemo(() => consultaObj || (nroActual != null ? s.historial.find((h) => h.nro === nroActual) : null), [nroActual, s.historial, consultaObj]);
 
   useLayoutEffect(() => {

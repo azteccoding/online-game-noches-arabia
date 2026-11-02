@@ -91,7 +91,7 @@ export function iniciarReto(data, e, pid, a) {
 registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.id, (resp.valores || []).map((u) => e.jugadores[resp.pid].mano.find((c) => c.uid === u)?.ref).filter(Boolean)));
 function ejecutar(data, e, pid, id, usados) {
   const ctx = nuevoCtx(e, pid, id);
-  T[id].run(data, e, pid, ctx, usados);
+  { const antes = e.ctxCarta; e.ctxCarta = cartaDatos(data, 'reto', id).titulo; try { T[id].run(data, e, pid, ctx, usados); } finally { e.ctxCarta = antes; } }   // contexto de las tiradas del reto
   ctx.fin();
 }
 const usa = (data, e, pid, usados, id) => { if (!usados.includes(id)) return false; return consumirObj(data, e, pid, id); };

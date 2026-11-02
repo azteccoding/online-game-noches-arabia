@@ -11,6 +11,8 @@ export function useJuego(sel = (s) => s) {
   return useSyncExternalStore((f) => { oyentes.add(f); return () => oyentes.delete(f); }, () => sel(S), () => sel(S));
 }
 export const leer = () => S;
+// Carta que se está leyendo (nro del historial): los dados lanzados después de ella esperan a que se cierre.
+export function marcarCartaEnPantalla(nro) { if (S.cartaEnPantalla !== nro) poner({ cartaEnPantalla: nro }); }
 // Aviso verde local (premios, nueva ronda…); se borra solo a los 3.5 s.
 // Como mucho dos avisos juntos.
 export function avisar(msg) { const aviso = S.aviso && S.aviso !== msg && !S.aviso.includes(' · ') ? S.aviso + ' · ' + msg : msg; poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, 3500); }
