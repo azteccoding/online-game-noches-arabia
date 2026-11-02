@@ -14,7 +14,7 @@
 
 ## ✨ Qué es
 
-**Mil y una Noches** es un juego de viajes, comercio, intriga y cuentos por las ciudades del mundo clásico islámico. Gana el primero en reunir **1.001 noches**.
+**Mil y una Noches** es un juego de viajes, comercio, intriga y cuentos por las ciudades del mundo clásico islámico. Gana el primero en reunir **1,001 noches**.
 
 Esta versión web es el **juego completo** del reglamento extendido, jugable de principio a fin:
 

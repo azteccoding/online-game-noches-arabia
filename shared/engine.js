@@ -152,13 +152,13 @@ function cierreRonda(data, e) {
   if (ganan.length) {
     const npcId = ganan.find((id) => e.jugadores[id].npc);
     const hum = ganan.filter((id) => !e.jugadores[id].npc);
-    if (npcId && !hum.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega primero a las 1.001 noches: los jugadores pierden.'); return ok(); }
+    if (npcId && !hum.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega primero a las 1,001 noches: los jugadores pierden.'); return ok(); }
     if (npcId && Math.max(...hum.map((id) => e.jugadores[id].noches)) < e.jugadores[npcId].noches) {                  // R 2.4: si ambos llegan, gana quien tenga más noches; empate: ganan los jugadores
-      e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1.001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
+      e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1,001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
     }
     const g = hum;
     e.fase = 'fin'; e.ganadores = g; e.turno = null;
-    log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1.001 noches.');
+    log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1,001 noches.');
     return ok();
   }
   const hv = humanosVivos(e);                                                                                // R 22.4: último jugador en pie

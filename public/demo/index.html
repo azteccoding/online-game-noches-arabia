@@ -49,8 +49,8 @@
  </nav>
  <div class="stats" aria-label="Tus recursos">
   <span class="chip" id="cDin"><svg><use href="#ic-d"/></svg><b id="sDin">15</b> dinares</span>
-  <span class="chip" id="cNoc"><svg><use href="#ic-n"/></svg><b id="sNoc">112</b> / 1.001 noches</span>
-  <i class="meta" role="progressbar" aria-label="Camino a las 1.001 noches" aria-valuemin="0" aria-valuemax="1001" aria-valuenow="112"><i id="metaBar"></i></i>
+  <span class="chip" id="cNoc"><svg><use href="#ic-n"/></svg><b id="sNoc">112</b> / 1,001 noches</span>
+  <i class="meta" role="progressbar" aria-label="Camino a las 1,001 noches" aria-valuemin="0" aria-valuemax="1001" aria-valuenow="112"><i id="metaBar"></i></i>
  </div>
 </header>
 <main class="mesa" id="mesa">
@@ -170,7 +170,7 @@ segs.forEach(s=>$('#r'+s.i).classList.remove('viva'));act.classList.remove('act'
 const paga=Math.min(p.din,tarifa);p.din-=paga;stats(true);log(`${yo().jug} viaja a ${dest}${paga?` y paga ${paga} dinares de caravana`:''}.`);toast(`Llegas a ${dest}`);pintaPers()}})(t0);
 }
 /* ---------- Estado, registro y avisos ---------- */
-const fmt=n=>n.toLocaleString('es-ES');
+const fmt=n=>n.toLocaleString('es-MX');
 function stats(b){$('#sDin').textContent=yo().din;$('#sNoc').textContent=fmt(yo().noc);$('#metaBar').style.width=Math.min(100,yo().noc/10.01)+'%';$('#cNoc').parentNode.querySelector('.meta').setAttribute('aria-valuenow',yo().noc);
 if(b){const e=$('#cDin');e.classList.remove('bump');void e.offsetWidth;e.classList.add('bump')}}
 const REG=['Ronda 3: es el turno de Jorge.','Carolina llegó a Bagdad.','Papá Jorge paga 5 dinares de hospedaje en Damasco.','Mamá Isabel vende una Balanza de mercader en Isfahán.'];
