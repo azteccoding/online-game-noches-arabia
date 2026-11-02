@@ -1,10 +1,8 @@
 {
- "nota": "Guía privada por personaje: el servidor la envía SOLO al jugador que lleva ese personaje (no está en el cliente). Datos de tools/estadisticas-personajes.mjs: 900 partidas simuladas con jugadores automáticos que eligen al azar (sirven para comparar personajes, no son estrategia experta).",
- "datos": "Datos de 900 partidas simuladas con jugadores automáticos que eligen al azar: sirven para comparar personajes, no son una estrategia perfecta.",
+ "nota": "Guía privada por personaje: el servidor la envía SOLO al jugador que lleva ese personaje (no está en el cliente). Basada en las reglas y en partidas simuladas (tools/estadisticas-personajes.mjs); los números no se muestran en el juego.",
  "guias": {
   "1": {
    "resumen": "El guerrero: el único que empieza armado y con destreza.",
-   "simulacion": "Victorias 13,9 % · eliminado en el 30 % de las partidas · 19,6 noches por ronda · 33 dinares al final. Fue de quienes más duelos ganaron, pero también de quienes más perdieron (0,2 ganados por 0,5 perdidos por partida).",
    "fuerte": [
     "Empieza con cimitarra y destreza: puede hacer retos de combate sin pagar entrenamiento ni comprar armas.",
     "Es inmune a los robos.",
@@ -23,7 +21,6 @@
   },
   "2": {
    "resumen": "La hermosa: gana dinares en compañía y tiene suerte con los dados.",
-   "simulacion": "Victorias 9,6 % (la más baja) · eliminada en el 30 % · 17,7 noches por ronda · 22 dinares al final. Sin una estrategia clara, le cuesta despegar.",
    "fuerte": [
     "Noche discreta: con otro jugador de su ciudad gana 25 dinares (10 si es con Anís), si el esposo no los sorprende.",
     "Dados del Cairo: una vez por ronda repite sus dados en una pelea que iba a perder."
@@ -41,7 +38,6 @@
   },
   "3": {
    "resumen": "El joven y guapo: difícil de atrapar.",
-   "simulacion": "Victorias 13,4 % · eliminado en el 26 % (de los que menos) · 19,7 noches por ronda · 28 dinares al final.",
    "fuerte": [
     "Por la ventana: una vez por ronda, si lo atacan, con 5 o 6 huye y el agresor pierde su acción.",
     "Amigo de Zein: gana 10 dinares, y 20 más si no los sorprenden."
@@ -58,7 +54,6 @@
   },
   "4": {
    "resumen": "El poeta: junta noches sin moverse.",
-   "simulacion": "Victorias 10,5 % · eliminado en el 33 % (de los más altos) · 18,1 noches por ronda · 22 dinares al final.",
    "fuerte": [
     "Gana 5 noches por turno sin hacer nada.",
     "Viaja gratis de El Cairo a Bagdad.",
@@ -66,7 +61,7 @@
    ],
    "debil": [
     "Empieza sin armas ni destreza.",
-    "En las simulaciones fue de los más eliminados y de los que menos dinares juntaron."
+    "Le cuesta juntar dinares: su fuerte son las noches."
    ],
    "consejos": [
     "Quédate quieto cuando viajar no compense: tus 5 noches por turno se acumulan.",
@@ -76,7 +71,6 @@
   },
   "5": {
    "resumen": "El sabio: empieza muy adelantado en noches.",
-   "simulacion": "Victorias 15,2 % (3.º) · eliminado en el 25 % (de los que menos) · 25,8 noches por ronda · 30 dinares al final.",
    "fuerte": [
     "Empieza con 200 noches y 20 CRP que puede vender o usar.",
     "Cada visitante recibe 50 noches y le paga 5 dinares.",
@@ -94,7 +88,6 @@
   },
   "6": {
    "resumen": "La del harén: Bagdad es su refugio y su banco.",
-   "simulacion": "Victorias 13,8 % · eliminada en el 33 % (de los más altos) · 22,6 noches por ronda · 32 dinares al final.",
    "fuerte": [
     "Harén del Califa en Bagdad: termina su turno, gana 15 dinares y allí no la pueden robar ni asesinar.",
     "Puede pagar caravanas con servicios en lugar de dinares."
@@ -110,8 +103,7 @@
    ]
   },
   "7": {
-   "resumen": "El rico: el personaje original más fuerte en las simulaciones.",
-   "simulacion": "Victorias 29,5 % (el mejor después de Yafar) · eliminado en el 23 % (el que menos) · 33,4 noches por ronda · 47 dinares al final. También fue de los más robados.",
+   "resumen": "El rico: empieza con más dinero y gana el doble por turno.",
    "fuerte": [
     "Empieza con 30 dinares y gana 10 por turno (el doble que los demás).",
     "Cuentos de noche: invita a otro jugador; ambos ganan 5 dinares y el invitado 10 noches."
@@ -128,7 +120,6 @@
   },
   "B": {
    "resumen": "El visir: cobra comisión y viaja a mitad de precio.",
-   "simulacion": "Victorias 39,2 % en partidas de 4 y 5 jugadores (el más alto) · eliminado en el 27 % · 35,4 noches por ronda · 77 dinares al final. No sufrió robos en las simulaciones (los robos fueron raros en general).",
    "fuerte": [
     "Comisión de bolsillo: 5 dinares por cada otro jugador en su ciudad (máximo 15).",
     "Paga la mitad de caravanas, sobornos y servicios.",

@@ -120,7 +120,7 @@ function difundir() {
       const v = vista(data, estado, pid);
       if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
-      if (g) v.miGuia = { ...g, datos: GUIAS.datos };
+      if (g) v.miGuia = g;
       enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
     }
   }, 25);
