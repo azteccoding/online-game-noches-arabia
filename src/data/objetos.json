@@ -63,7 +63,7 @@
    "valor": 22,
    "duracion": "Permanente",
    "momento": "Pelea",
-   "efecto": "+2 a tu puntaje final solo como defensor (robo o asesinato). Objeto de combate.",
+   "efecto": "+2 a tu puntaje final como defensor. Además, cuando te asaltan o te atacan a muerte (jugadores, Yafar o los ladrones de Alí Babá), tiras un dado: con 5 o 6 el escudo para el golpe y el ataque fracasa; con 1 se rompe y lo pierdes. Objeto de combate.",
    "sirvePara": "R8, R36, E8",
    "seConsigueEn": "Estambul, Yemen",
    "humor": "Pesa, pero te quedas con el cuerpo en una pieza.",
@@ -513,12 +513,17 @@
    "valor": 15,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Isfahán por 15. Se vende en Bagdad por 28 (sin impuesto).",
+   "efecto": "Solo se compra en Isfahán por 15. Se vende caro, sin impuesto, en Bagdad 28, Estambul 34 y Andalucía 40 dinares; en otras ciudades vale 15 menos el impuesto.",
    "sirvePara": "R22, R35, comercio",
    "seConsigueEn": "Isfahán",
    "humor": "Suave al tacto y al bolsillo.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Bagdad": 28,
+    "Estambul": 34,
+    "Andalucía": 40
+   }
   },
   {
    "id": "OB35",
@@ -528,12 +533,17 @@
    "valor": 6,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Yemen por 6. Se vende en El Cairo por 14 (neto de impuesto).",
+   "efecto": "Solo se compra en Yemen por 6. Se vende caro, sin impuesto, en El Cairo 14, Bagdad 16 y Estambul 20 dinares; en otras ciudades vale 6 menos el impuesto.",
    "sirvePara": "R22, R35, comercio",
    "seConsigueEn": "Yemen",
    "humor": "Huele a dinero, que es mejor.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "El Cairo": 14,
+    "Bagdad": 16,
+    "Estambul": 20
+   }
   },
   {
    "id": "OB36",
@@ -543,12 +553,17 @@
    "valor": 10,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Damasco por 10. Se vende en Estambul por 18 (neto). Se rompe si pierdes una pelea mientras lo llevas.",
+   "efecto": "Solo se compra en Damasco por 10. Se vende caro, sin impuesto, en Estambul 18, Isfahán 22 y Samarcanda 28 dinares; en otras ciudades vale 10 menos el impuesto. Se rompe si pierdes una pelea mientras lo llevas.",
    "sirvePara": "R22, R35, comercio",
    "seConsigueEn": "Damasco",
    "humor": "Frágil, como la paciencia del comprador.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Estambul": 18,
+    "Isfahán": 22,
+    "Samarcanda": 28
+   }
   },
   {
    "id": "OB37",
@@ -558,12 +573,17 @@
    "valor": 10,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Andalucía por 10. Se vende en El Cairo por 22 (neto).",
+   "efecto": "Solo se compra en Andalucía por 10. Se vende caro, sin impuesto, en Magreb 16, El Cairo 22 y Bagdad 26 dinares; en otras ciudades vale 10 menos el impuesto.",
    "sirvePara": "R22, comercio",
    "seConsigueEn": "Andalucía",
    "humor": "Con olor a taller y a ganancia.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Magreb": 16,
+    "El Cairo": 22,
+    "Bagdad": 26
+   }
   },
   {
    "id": "OB38",
@@ -573,12 +593,18 @@
    "valor": 8,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Samarcanda por 8. Se vende en Bagdad por 22 (sin impuesto). Cuenta como papiro para M2 y M6.",
+   "efecto": "Solo se compra en Samarcanda por 8. Se vende caro, sin impuesto, en Bagdad 22, Damasco 24, El Cairo 26 y Andalucía 32 dinares; en otras ciudades vale 8 menos el impuesto. Cuenta como papiro para M2 y M6.",
    "sirvePara": "M2, M6, R22, comercio",
    "seConsigueEn": "Samarcanda",
    "humor": "Fino, blanco y caro en cuanto sale de la ciudad.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Bagdad": 22,
+    "Damasco": 24,
+    "El Cairo": 26,
+    "Andalucía": 32
+   }
   },
   {
    "id": "OB39",
@@ -588,12 +614,18 @@
    "valor": 12,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en India por 12. Se vende en Isfahán por 24 (neto).",
+   "efecto": "Solo se compra en India por 12. Se vende caro, sin impuesto, en Isfahán 24, Bagdad 26, El Cairo 30 y Estambul 34 dinares; en otras ciudades vale 12 menos el impuesto.",
    "sirvePara": "R22, comercio, H17",
    "seConsigueEn": "India",
    "humor": "Estornuda el que la compra y llora el que la paga.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Isfahán": 24,
+    "Bagdad": 26,
+    "El Cairo": 30,
+    "Estambul": 34
+   }
   },
   {
    "id": "OB40",
@@ -603,12 +635,17 @@
    "valor": 9,
    "duracion": "1 vez",
    "momento": "Venta",
-   "efecto": "Compra en Damasco por 9. Se vende en Bagdad por 17 (sin impuesto). Vale +2 como regalo en R35.",
+   "efecto": "Solo se compra en Damasco por 9. Se vende caro, sin impuesto, en Bagdad 17, Samarcanda 24 y India 26 dinares; en otras ciudades vale 9 menos el impuesto. Vale +2 como regalo en R35.",
    "sirvePara": "R35, R22, comercio",
    "seConsigueEn": "Damasco",
    "humor": "Convence más que un argumento.",
    "arte": "ob-lujo-comercio",
-   "sinVenta": false
+   "sinVenta": false,
+   "reventa": {
+    "Bagdad": 17,
+    "Samarcanda": 24,
+    "India": 26
+   }
   },
   {
    "id": "OB41",
@@ -1005,5 +1042,9 @@
  "limiteManoObjetos": 5,
  "botin": 47,
  "mercado": 89,
- "refReglamento": "15"
+ "refReglamento": "15",
+ "escasez": {
+  "nota": "Regla de la casa del juego en línea: el mercado empieza con copias - 2 de cada objeto (mínimo 1) y lo que se vende o se gasta vuelve poco a poco, unos pocos objetos al empezar cada ronda.",
+  "reposicionPorRonda": 2
+ }
 }

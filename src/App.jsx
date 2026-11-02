@@ -21,6 +21,7 @@ import PanelAnfitrion from './components/PanelAnfitrion.jsx';
 import { Historial, Registro } from './components/Registro.jsx';
 import AcercaDe from './components/AcercaDe.jsx';
 import Fin from './components/Fin.jsx';
+import VotoReinicio from './components/VotoReinicio.jsx';
 import './styles/ui.css';
 
 const params = new URLSearchParams(location.search);
@@ -96,6 +97,7 @@ function Juego({ lienzo }) {
         {panel === 'anfitrion' && <PanelAnfitrion s={s} onCerrar={cerrar} />}
         {panel === 'acerca' && <AcercaDe onCerrar={cerrar} />}
         {s.fase !== 'fin' && <Decision s={s} />}
+        {s.fase === 'juego' && <VotoReinicio s={s} />}
         {s.fase === 'fin' && !verFin && <button className="btn flotante" onClick={() => setVerFin(true)}>Ver resultado</button>}
       </main>
       <PanelAcciones s={s} abrir={abrir} panel={panel} />

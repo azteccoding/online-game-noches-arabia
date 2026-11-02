@@ -117,6 +117,15 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'index.html'))) {
   assert.equal(r.status, 200); assert.match(r.headers.get('content-type'), /html/);
 }
 assert.deepEqual(await (await fetch(`http://127.0.0.1:${PUERTO}/api/config`)).json(), { clave: false }, 'sin MUN_CLAVE no se pide clave');
+
+// partida nueva: el banco la propone, la mayoría acepta, todos vuelven a la sala y la anterior se guarda en datos/
+await A2.a({ t: 'host.reiniciar' }); await dormir(150);
+assert.ok(B2.s.votoReinicio && B2.s.votoReinicio.votas, 'los jugadores conectados ven la votación');
+assert.ok(B2.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('propone terminar esta partida')), 'todos reciben el aviso de la propuesta');
+await B2.a({ t: 'votarReinicio', si: true }); await dormir(600);
+assert.equal(B2.s.fase, 'lobby', 'con mayoría vuelven todos a la sala');
+assert.equal(B2.s.jugadores[B2.pid].pj != null, true, 'cada uno conserva su personaje');
+assert.ok(fs.readdirSync(DIR).some((f) => /^partida-terminada-\d+\.json$/.test(f)), 'la partida anterior se archiva en datos/');
 B2.ws.close(); C.ws.close();
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
 

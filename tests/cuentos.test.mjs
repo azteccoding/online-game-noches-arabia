@@ -57,7 +57,7 @@ function aViajar(g, pid, destino = 'Damasco') {
   const dinAntes = e.jugadores[p1].dinares;
   const tr = data.trivias.trivias.find((t) => t.id === e.turno.ccActual.id);
   assert.ok(act(p1, { t: 'responderCC', opcion: tr.correcta }).ok);
-  assert.equal(e.jugadores[p1].dinares, dinAntes + 10 + 2, 'trivia (10) y cuento de Respuestas (2)');
+  assert.equal(e.jugadores[p1].dinares, dinAntes + data.config.premioTrivia + 2, 'trivia (5) y cuento de Respuestas (2)');
   const resp = e.historial.filter((h) => h.deck === 'cuento');
   assert.deepEqual(resp.map((h) => h.titulo), ['Alí Babá y los cuarenta ladrones', 'Scheherezade y el sultán']);
   assert.ok(act(p1, { t: 'terminarTurno' }).ok);

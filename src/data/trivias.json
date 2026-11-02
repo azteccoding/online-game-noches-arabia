@@ -14,7 +14,7 @@
    ],
    "correcta": 0,
    "nota": "Ramadán es el noveno mes del calendario lunar y termina con la fiesta de Eid al-Fitr.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-02",
@@ -30,7 +30,7 @@
    ],
    "correcta": 1,
    "nota": "Al-Juarismi trabajó en la Casa de la Sabiduría. Su nombre latinizado, «Algoritmi», dio «algoritmo»; «al-jabr», del título de su libro, dio «álgebra».",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-03",
@@ -46,7 +46,7 @@
    ],
    "correcta": 2,
    "nota": "En el movimiento de traducción de los siglos VIII al X se tradujeron al árabe obras de Aristóteles, Euclides, Galeno y Ptolomeo, que así se conservaron y se ampliaron.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-05",
@@ -62,7 +62,7 @@
    ],
    "correcta": 2,
    "nota": "Se terminó en 1673. Su gran patio puede reunir a decenas de miles de personas.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-06",
@@ -78,7 +78,7 @@
    ],
    "correcta": 2,
    "nota": "Esa ruta se conoce como el Camino de Zubayda y conserva restos de pozos y embalses.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-07",
@@ -94,7 +94,7 @@
    ],
    "correcta": 0,
    "nota": "Babur venció en la batalla de Panipat. Sus descendientes gobernaron gran parte del sur de Asia y construyeron el Taj Mahal.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-09",
@@ -110,7 +110,7 @@
    ],
    "correcta": 0,
    "nota": "Iqbal escribió en urdu y en persa y murió en Lahore en 1938, antes de que Pakistán naciera como país en 1947.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-10",
@@ -126,7 +126,7 @@
    ],
    "correcta": 2,
    "nota": "En «La escatología musulmana en la Divina Comedia» (1919) demostró la influencia del Libro de la Escala del Profeta Muhammad (la paz sea con él) y de la obra de Ibn Arabi en el viaje de Dante.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-11",
@@ -142,7 +142,7 @@
    ],
    "correcta": 2,
    "nota": "Se prepara en capas de arroz y especias, y cada región tiene su propia receta.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-13",
@@ -158,7 +158,7 @@
    ],
    "correcta": 0,
    "nota": "Eid al-Fitr significa «fiesta de la ruptura del ayuno». Se celebra con oración, dulces y visitas a la familia.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-14",
@@ -174,7 +174,7 @@
    ],
    "correcta": 1,
    "nota": "Al-Razi (c. 865-925) trabajó en Rey y en Bagdad y escribió una gran enciclopedia médica, el «Libro completo» (al-Hawi).",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-15",
@@ -190,7 +190,7 @@
    ],
    "correcta": 2,
    "nota": "Hunayn ibn Ishaq (809-873) dirigió un equipo de traductores en Bagdad. También tradujo obras de Hipócrates.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-17",
@@ -206,7 +206,7 @@
    ],
    "correcta": 2,
    "nota": "Mumtaz Mahal murió en 1631; el mausoleo se inició en 1632 y se terminó hacia 1653. Allí descansa también Shah Jahan.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-18",
@@ -222,7 +222,7 @@
    ],
    "correcta": 1,
    "nota": "La ciudad se trazó en círculo, por eso se la llamó la «Ciudad Redonda», y su nombre oficial era Madinat al-Salam, la Ciudad de la Paz.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-19",
@@ -238,7 +238,7 @@
    ],
    "correcta": 0,
    "nota": "Ibn Hazm (994-1064) lo escribió hacia el año 1022 en Al-Ándalus. Es una de las obras más célebres de la literatura andalusí.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-21",
@@ -254,7 +254,7 @@
    ],
    "correcta": 0,
    "nota": "El persa y el urdu le añaden letras. La caligrafía es un arte muy apreciado, con estilos como el cúfico, el nasji y el nastaliq.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-22",
@@ -270,7 +270,7 @@
    ],
    "correcta": 1,
    "nota": "Se desarrollaron en la India. De la palabra árabe «sifr» (vacío) vienen «cifra» y «cero».",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-23",
@@ -286,7 +286,7 @@
    ],
    "correcta": 0,
    "nota": "Mezcla reflexión, poesía y relatos de su época. Se ha traducido a muchos idiomas.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-25",
@@ -302,7 +302,7 @@
    ],
    "correcta": 1,
    "nota": "Se fabricaba papel en Bagdad desde finales del siglo VIII; de allí pasó a Al-Ándalus (Xàtiva) y a Europa.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-26",
@@ -318,7 +318,7 @@
    ],
    "correcta": 2,
    "nota": "«Isfahán es la mitad del mundo», decía un dicho persa. Su plaza Naqsh-e Jahan es Patrimonio de la Humanidad.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-27",
@@ -334,7 +334,7 @@
    ],
    "correcta": 0,
    "nota": "Rumi murió en 1273. El Masnavi es un largo poema de relatos y enseñanzas escrito en persa.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-29",
@@ -350,7 +350,7 @@
    ],
    "correcta": 2,
    "nota": "Se celebra en el equinoccio de primavera (hacia el 20 o 21 de marzo) con la mesa haft-sin, que reúne siete objetos cuyo nombre empieza con «s».",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-30",
@@ -366,7 +366,7 @@
    ],
    "correcta": 2,
    "nota": "Hafez vivió en el siglo XIV. Su tumba, en Shiraz y rodeada de jardines, recibe muchas visitas.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-31",
@@ -382,7 +382,7 @@
    ],
    "correcta": 2,
    "nota": "Darío I empezó a construirla hacia el 518 a. C. El imperio lo había fundado Ciro el Grande en el siglo VI a. C.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-33",
@@ -398,7 +398,7 @@
    ],
    "correcta": 0,
    "nota": "Omar Jayam (1048-1131) participó en la reforma del calendario persa en el siglo XI y escribió sobre álgebra.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-34",
@@ -414,7 +414,7 @@
    ],
    "correcta": 0,
    "nota": "Ciudades como Isfahán, Kashan y Tabriz son famosas por sus alfombras; una pieza fina puede llevar meses de trabajo.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-35",
@@ -430,7 +430,7 @@
    ],
    "correcta": 2,
    "nota": "Lo terminó hacia el año 1010, tras unos treinta años de trabajo. Escrito en persa, ayudó a conservar esa lengua.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-37",
@@ -446,7 +446,7 @@
    ],
    "correcta": 1,
    "nota": "Los primeros testimonios fiables de la bebida vienen de Yemen, desde donde el café llegó a Estambul y a Europa.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-38",
@@ -462,7 +462,7 @@
    ],
    "correcta": 0,
    "nota": "Su enorme cúpula inspiró a grandes arquitectos otomanos, como Sinán, que construyó la mezquita de Solimán.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-39",
@@ -478,7 +478,7 @@
    ],
    "correcta": 1,
    "nota": "Hürrem fue una de las mujeres más influyentes de la historia otomana. Llegó a casarse con el sultán, algo muy poco habitual.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-41",
@@ -494,7 +494,7 @@
    ],
    "correcta": 1,
    "nota": "El sultán Mehmed II conquistó Constantinopla en 1453; con el tiempo la ciudad pasó a llamarse Estambul.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-42",
@@ -510,7 +510,7 @@
    ],
    "correcta": 0,
    "nota": "Se construyó entre 1609 y 1616 y tiene seis minaretes.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-43",
@@ -526,7 +526,7 @@
    ],
    "correcta": 1,
    "nota": "Abarca buena parte de los siglos XVI y XVII. Hürrem Sultan es una de sus figuras más conocidas.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-45",
@@ -542,7 +542,7 @@
    ],
    "correcta": 0,
    "nota": "El sultán Alp Arslan ganó en Manzikert. Los selyúcidas protegieron a sabios y poetas, entre ellos Omar Jayam.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-46",
@@ -558,7 +558,7 @@
    ],
    "correcta": 1,
    "nota": "Son la profesión de fe (shahada), la oración (salat), la limosna (zakat), el ayuno de Ramadán (sawm) y la peregrinación a La Meca (hajj).",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-47",
@@ -574,7 +574,7 @@
    ],
    "correcta": 0,
    "nota": "El mundo islámico perfeccionó este instrumento, que se usó para orientarse, calcular el tiempo y hallar la dirección de La Meca.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-49",
@@ -590,7 +590,7 @@
    ],
    "correcta": 1,
    "nota": "Averroes (1126-1198) fue también juez y médico; en Europa se le llamó «el Comentador» de Aristóteles.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-50",
@@ -606,7 +606,7 @@
    ],
    "correcta": 2,
    "nota": "Su construcción empezó en el siglo VIII por orden de Abderramán I y se amplió varias veces.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-51",
@@ -622,7 +622,7 @@
    ],
    "correcta": 1,
    "nota": "Reinó de 1236 a 1240 y es considerada la única mujer que gobernó como sultana en Delhi.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-53",
@@ -638,7 +638,7 @@
    ],
    "correcta": 2,
    "nota": "Los omeyas llegaron hasta Al-Ándalus. En Damasco levantaron la Mezquita Omeya, a comienzos del siglo VIII.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-54",
@@ -654,7 +654,7 @@
    ],
    "correcta": 0,
    "nota": "Nació en Córdoba en el año 994, en tiempos del califato. Fue poeta, jurista, historiador y pensador.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-55",
@@ -670,7 +670,7 @@
    ],
    "correcta": 1,
    "nota": "Ibn Arabi (1165-1240) nació en Murcia y murió en Damasco. Sus escritos sobre el viaje espiritual por los cielos influyeron en Dante.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-57",
@@ -686,7 +686,7 @@
    ],
    "correcta": 2,
    "nota": "Mide unos 8,600 m. Solo el Everest, con 8,849 m, es más alto.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-58",
@@ -702,7 +702,7 @@
    ],
    "correcta": 0,
    "nota": "El año 1 del calendario hégira corresponde al 622 d. C. Es un calendario lunar de 12 meses.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-59",
@@ -718,7 +718,7 @@
    ],
    "correcta": 1,
    "nota": "Las madrasas de Ulugh Beg, Sher-Dor y Tilya-Kori se levantaron entre los siglos XV y XVII. Samarcanda está hoy en Uzbekistán.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-61",
@@ -734,7 +734,7 @@
    ],
    "correcta": 0,
    "nota": "Su nombre se relaciona con la idea de purificación. Cada año se entrega una pequeña parte de los bienes ahorrados.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-62",
@@ -750,7 +750,7 @@
    ],
    "correcta": 1,
    "nota": "Ibn al-Haytham (c. 965 - c. 1040) mostró que vemos porque la luz de los objetos llega al ojo. Su libro influyó en la ciencia europea.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-63",
@@ -766,7 +766,7 @@
    ],
    "correcta": 0,
    "nota": "La palabra «laúd» viene del árabe «al-ud». El ney es una flauta de caña y la darbuka, un tambor.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-65",
@@ -782,7 +782,7 @@
    ],
    "correcta": 1,
    "nota": "Al-Biruni (973-1048) nació en Asia Central y escribió su libro sobre la India (Kitab al-Hind) hacia el año 1030.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-66",
@@ -798,7 +798,7 @@
    ],
    "correcta": 2,
    "nota": "Se realiza cada año en Dhu al-Hijja, el último mes del calendario islámico, y es uno de los cinco pilares.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-67",
@@ -814,7 +814,7 @@
    ],
    "correcta": 0,
    "nota": "Terminado hacia 1025, el Canon se usó como libro de texto de medicina en universidades europeas durante siglos.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-69",
@@ -830,7 +830,7 @@
    ],
    "correcta": 1,
    "nota": "En Toledo se tradujeron del árabe al latín y al castellano obras de ciencia y filosofía, como el Almagesto de Ptolomeo (Gerardo de Cremona, hacia 1175).",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-70",
@@ -846,7 +846,7 @@
    ],
    "correcta": 2,
    "nota": "Se construyó sobre todo en los siglos XIII y XIV. Es famosa por sus patios, sus yeserías y el Patio de los Leones.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-71",
@@ -862,7 +862,7 @@
    ],
    "correcta": 2,
    "nota": "Nur Jahan (1577-1645) llegó a acuñar monedas con su nombre y tuvo gran poder en la corte.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-73",
@@ -878,7 +878,7 @@
    ],
    "correcta": 2,
    "nota": "Su capital, Granada, conserva la Alhambra, símbolo de la cultura andalusí.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-74",
@@ -894,7 +894,7 @@
    ],
    "correcta": 1,
    "nota": "Se tradujo del árabe al castellano y de allí al latín y al francés. Su relato de la ascensión por los cielos influyó en la Divina Comedia.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-75",
@@ -910,7 +910,7 @@
    ],
    "correcta": 0,
    "nota": "Tuvo calles en cuadrícula y desagües hace unos 4,500 años. Es Patrimonio de la Humanidad.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-77",
@@ -926,7 +926,7 @@
    ],
    "correcta": 2,
    "nota": "El Corán es el libro sagrado del islam. Se recita, se memoriza y se copia con gran cuidado desde hace más de 1,400 años.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-78",
@@ -942,7 +942,7 @@
    ],
    "correcta": 1,
    "nota": "Es un mausoleo de mármol blanco, Patrimonio de la Humanidad y uno de los monumentos más visitados del mundo.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-79",
@@ -958,7 +958,7 @@
    ],
    "correcta": 1,
    "nota": "Al-Qarawiyyin es una de las instituciones de enseñanza más antiguas del mundo. Fátima la financió con su herencia.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-81",
@@ -974,7 +974,7 @@
    ],
    "correcta": 0,
    "nota": "Al-Muhalla («El adornado») es un gran compendio jurídico escrito con el método zahirí: cada norma se apoya en el Corán y la Sunna.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-82",
@@ -990,7 +990,7 @@
    ],
    "correcta": 1,
    "nota": "En Al-Ajlaq wa-s-siyar Ibn Hazm reflexiona sobre la amistad, la envidia o la búsqueda del bien, a partir de su propia experiencia. «El collar de la paloma» es su libro sobre el amor.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-83",
@@ -1006,7 +1006,7 @@
    ],
    "correcta": 2,
    "nota": "Al-Fisal se considera una de las primeras obras de historia comparada de las religiones.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-84",
@@ -1022,7 +1022,7 @@
    ],
    "correcta": 1,
    "nota": "«Zahir» significa «lo aparente». Esta escuela rechaza deducir normas por analogía cuando el texto no las da.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-85",
@@ -1038,7 +1038,7 @@
    ],
    "correcta": 0,
    "nota": "La reunió el erudito ash-Sharif ar-Radi hacia el año 1000. Es un modelo de prosa árabe.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-86",
@@ -1054,7 +1054,7 @@
    ],
    "correcta": 2,
    "nota": "Dhu al-Fiqar aparece a menudo dibujada con la punta partida en dos en estandartes y adornos.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-87",
@@ -1070,7 +1070,7 @@
    ],
    "correcta": 1,
    "nota": "Según la tradición, el Profeta lo llamó así al encontrarlo dormido sobre el suelo, cubierto de polvo.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-88",
@@ -1086,7 +1086,7 @@
    ],
    "correcta": 0,
    "nota": "Alí trasladó el gobierno de Medina a Kufa. Fue califa del año 656 al 661.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-89",
@@ -1102,7 +1102,7 @@
    ],
    "correcta": 2,
    "nota": "Los nazaríes gobernaron el reino de Granada hasta 1492. Sus muros están llenos de versos en árabe.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-90",
@@ -1118,7 +1118,7 @@
    ],
    "correcta": 0,
    "nota": "Fátima az-Zahra fue esposa de Alí ibn Abi Tálib y madre de al-Hasan, al-Husayn y Zaynab.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-91",
@@ -1134,7 +1134,7 @@
    ],
    "correcta": 2,
    "nota": "Ibn Tufayl fue médico y visir en la corte almohade. Su obra se tradujo al latín y al inglés y se leyó mucho en Europa.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-92",
@@ -1150,7 +1150,7 @@
    ],
    "correcta": 1,
    "nota": "Además de filósofo y médico, Averroes (Ibn Rushd) fue juez en Córdoba y Sevilla.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-93",
@@ -1166,7 +1166,7 @@
    ],
    "correcta": 2,
    "nota": "Según la tradición, el Profeta los llamó «señores de la juventud del Paraíso».",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-94",
@@ -1182,7 +1182,7 @@
    ],
    "correcta": 0,
    "nota": "La escribió en Damasco, donde murió en 1240.",
-   "premio": 10
+   "premio": 5
   },
   {
    "id": "CC-95",
@@ -1198,7 +1198,7 @@
    ],
    "correcta": 1,
    "nota": "Fátima murió pocos meses después que su padre, en Medina.",
-   "premio": 10
+   "premio": 5
   }
  ],
  "deMesa": [

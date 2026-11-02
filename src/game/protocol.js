@@ -40,6 +40,7 @@ export const ACCIONES = {
   asesinos: () => ({ t: 'asesinos' }),
   pj: (sub, extra = {}) => ({ t: 'pj', sub, ...extra }),
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
+  votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),
   host: {
     dar: (pid, dinares, noches) => ({ t: 'host.dar', pid, dinares, noches }),
     corregir: (pid, campo, valor) => ({ t: 'host.corregir', pid, campo, valor }),
@@ -51,5 +52,6 @@ export const ACCIONES = {
     ceder: (pid) => ({ t: 'host.ceder', pid }),
     eliminar: (pid) => ({ t: 'host.eliminar', pid }),
     caja: (abrir) => ({ t: 'host.caja', abrir: !!abrir }),
+    reiniciar: () => ({ t: 'host.reiniciar' }),
   },
 };

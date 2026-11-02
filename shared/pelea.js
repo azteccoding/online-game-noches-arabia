@@ -203,8 +203,51 @@ registrar('pelea.retadorDecide', (data, e, args, resp) => {
   seguirAtaque(data, e);
 });
 
+// Regla de la casa (arco y escudo): antes de un asalto o un ataque a muerte, el defensor dispara su arco (gasta 1 flecha;
+// con 5 o 6 el atacante queda herido y huye) y, si sigue, levanta su Escudo de cuero (con 5 o 6 para el golpe; con 1 se rompe).
+// Se aplica sola, sin preguntar; en los duelos no, porque son una pelea limpia. Devuelve true si el ataque se frustró.
+export const ARCO_ACIERTA = 5, ESCUDO_PARA = 5;
+export function tiroDeArco(data, e, pid, ciudad) {
+  const j = e.jugadores[pid];
+  if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
+  quitarPrimero(j, 'item', 'flechas');
+  const x = dado(e);
+  return { x, acierta: x >= ARCO_ACIERTA, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
+}
+export function golpeAlEscudo(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (!tieneObj(j, 'OB04')) return null;
+  const x = dado(e), rompe = x === 1;
+  if (rompe) { quitarPrimero(j, 'objeto', 'OB04'); devolverObjeto(data, e, 'OB04'); }
+  return { x, para: x >= ESCUDO_PARA, rompe };
+}
+function defensaPrevia(data, e) {
+  const P = e.pelea, A = e.jugadores[P.atk], D = e.jugadores[P.def];
+  if (P.tipo === 'duelo') return false;
+  const grupos = [], resumen = [];
+  const arco = tiroDeArco(data, e, P.def, P.ciudad);
+  if (arco) {
+    grupos.push({ etq: `${D.nombre} dispara su arco (5 o 6 acierta)`, valores: [arco.x] });
+    resumen.push(arco.acierta ? `La flecha de ${D.nombre} hiere a ${A.nombre}, que huye sin atacar.` : `La flecha de ${D.nombre} no acierta (le quedan ${arco.quedan} flecha${arco.quedan === 1 ? '' : 's'}).`);
+  }
+  let frustrado = !!arco?.acierta;
+  if (!frustrado) {
+    const esc = golpeAlEscudo(data, e, P.def);
+    if (esc) {
+      grupos.push({ etq: `${D.nombre} levanta su Escudo de cuero (5 o 6 para el golpe; 1 lo rompe)`, valores: [esc.x] });
+      resumen.push(esc.para ? `El escudo de ${D.nombre} para el golpe: ${A.nombre} no consigue nada.` : esc.rompe ? `El escudo de ${D.nombre} se rompe y la pelea sigue.` : `El golpe pasa el escudo; la pelea sigue (el escudo aún da +2 al defenderse).`);
+      frustrado = esc.para;
+    }
+  }
+  if (!grupos.length) return false;
+  mostrarDados(e, { por: P.def, motivo: 'defensa', grupos, resumen });
+  if (arco?.acierta) A.herido = true;
+  return frustrado;
+}
+
 function seguirAtaque(data, e) {
   const P = e.pelea, j = e.jugadores[P.atk], d = e.jugadores[P.def];
+  if (!P.previa) { P.previa = true; if (defensaPrevia(data, e)) return terminarPelea(data, e, { cancelada: true, frustrado: true }); }
   const a = { tipo: P.tipo, objetivo: P.def, noRechazable: P.noRechazable }, pedirNur = P.pedirNur;
   if (d.npc) { elegirDefensa(data, e, { opcion: 'luchar' }); return ok(); }
   const op = [{ id: 'luchar', texto: 'Defenderme' }];
@@ -420,6 +463,12 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', lineas, { contraNPC: true });
   let gana = false, grupos = [], usoDado = false;
+  const arco = tiroDeArco(data, e, pid);                                       // regla de la casa: el arco dispara antes de la pelea
+  if (arco) lineas.push(arco.acierta ? `${nombre(e, pid)} dispara su arco (${arco.x}) y pone en fuga a ${npc.etq}.` : `${nombre(e, pid)} dispara su arco (${arco.x}) y falla.`);
+  if (arco?.acierta) {
+    mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${nombre(e, pid)} dispara su arco (5 o 6 acierta)`, valores: [arco.x] }], resumen: [tituloExtra, ...lineas].filter(Boolean) });
+    return true;
+  }
   for (let g = 0; g < 50; g++) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
     let bn = npc.bono || 0, jd = null;

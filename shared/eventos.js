@@ -4,7 +4,7 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 } from './base.js';
-import { luchaLibre, peleaNPC, perfil, armasUsables } from './pelea.js';
+import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -64,6 +64,9 @@ export function finTurno(data, e, pid) {
   const j = jug(e, pid), t = e.turno;
   if (e.mods.ladrones && t && !t.movio && !j.eliminado) {
     if (tieneObj(j, 'OB23')) { consumirObj(data, e, pid, 'OB23'); log(e, `${j.nombre} espanta a los ladrones con su Amuleto de turquesa.`, { pid }); return; }
+    const arco = tiroDeArco(data, e, pid), esc = arco?.acierta ? null : golpeAlEscudo(data, e, pid);   // regla de la casa: arco y escudo
+    if (arco || esc) mostrarDados(e, { por: pid, motivo: 'defensa', grupos: [arco && { etq: `${j.nombre} dispara su arco a los ladrones (5 o 6)`, valores: [arco.x] }, esc && { etq: `${j.nombre} levanta su escudo (5 o 6 para; 1 lo rompe)`, valores: [esc.x] }].filter(Boolean), resumen: [] });
+    if (arco?.acierta || esc?.para) { log(e, `${j.nombre} ahuyenta a los ladrones de Alí Babá ${arco?.acierta ? 'con su arco' : 'con su escudo'}.`, { pid }); return; }
     const p = Math.min(10, j.dinares); j.dinares -= p; log(e, `Los ladrones de Alí Babá asaltan a ${j.nombre}: pierde ${p} dinares.`, { pid });
   }
 }

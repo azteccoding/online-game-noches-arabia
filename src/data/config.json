@@ -2,7 +2,7 @@
  "meta": 1001,
  "dinaresIniciales": 10,
  "ingresoTurno": 5,
- "premioTrivia": 10,
+ "premioTrivia": 5,
  "premioCuento": 2,
  "reglasCasa": {
   "bonosArmaAmbosBandos": true,

@@ -5,7 +5,7 @@
 // Módulos: base (utilidades, decisiones, dados), pelea (R 11-12), objetos (R 15), retos (R 14), tesoros (R 16), eventos (R 17),
 // npc (R 13, 20, 21), personajes (R 10).
 import {
-  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, nombre, log,
+  VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, enCiudad, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
 } from './base.js';
@@ -67,14 +67,23 @@ function prepararMazos(data, e) {
   const botin = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else { botin.push(o.id); e.stock[o.id] = o.copias - 1; }
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); }   // escasez: copias − 2 en el mercado
   }
+  e.reposicion = [];
   e.mazos = {
     eventos: barajar(e, data.eventos.eventos.map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.map((x) => x.id)),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
     descarte: { eventos: [], historicos: [], mensajes: [] /* Mensajes fuera de juego: registro, nunca se barajan de nuevo */, botin: [], ifrit: [], cc: {} },
   };
   e.cuentosSacados = [];
+}
+
+// Escasez (regla de la casa): lo vendido o gastado no vuelve al mercado al instante; al empezar cada ronda regresan unos pocos objetos.
+function reponerMercado(data, e) {
+  const n = data.objetos.escasez?.reposicionPorRonda ?? 2;
+  const vuelven = (e.reposicion ||= []).splice(0, n);
+  for (const id of vuelven) e.stock[id] = (e.stock[id] || 0) + 1;
+  if (vuelven.length) log(e, `Vuelven al mercado: ${vuelven.map((id) => objDe(data, id)?.nombre || id).join(', ')}.`);
 }
 
 // ---------------------------------------------------------------- partida
@@ -117,6 +126,7 @@ function iniciar(data, e) {
 
 function empezarRonda(data, e) {
   e.ronda++;
+  reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
   const act = activos(e);
@@ -233,7 +243,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido'];
+const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 export function reducir(data, e, pid, a, ahora = Date.now()) {
   e.ahora = ahora;
@@ -320,6 +330,8 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'host.barajar': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostBarajar(e, a);
     case 'host.tirarNPC': if (!puedeNPC(e, pid)) return err('Solo el anfitrión (o cualquiera si el banco está desconectado).'); return tirarDadosLibres(e, pid, a);
     case 'host.pasarTurno': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!t) return err('No hay turno.'); e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; return ok();
+    case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
+    case 'votarReinicio': return votarReinicio(data, e, pid, a);
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
     case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
     case 'host.eliminar': {
@@ -443,8 +455,10 @@ export function llegada(data, e, pid, origen) {
     if (c.nochesLlegada !== c.nochesLuego) { if (primera) bono = c.nochesLlegada - c.nochesLuego; } else base = c.nochesLlegada;   // Magreb 50/5, Andalucía 30/5
     let n = base * mult + bono;
     if (e.mods.cordoba && j.ciudad === 'Andalucía') n *= 2;
+    const npcSolo = j.npc && !enCiudad(e, j.ciudad, pid).some((x) => !e.jugadores[x].npc);   // regla de la casa: Yafar NPC solo cobra completo si alcanza a alguien
+    if (npcSolo) n = Math.floor(n / 2);
     j.noches += n;
-    log(e, `${j.nombre} gana ${n} noches en ${j.ciudad} (x${mult}).`, { pid });
+    log(e, `${j.nombre} gana ${n} noches en ${j.ciudad} (x${mult})${npcSolo ? ': la mitad, porque no hay ningún jugador en la ciudad' : ''}.`, { pid });
     if (e.evento.actual === 'E4' && nadieAntes) { j.noches += 20; log(e, `Peregrinación: ${j.nombre} gana 20 noches extra.`); }
   }
   PJ.alLlegar(data, e, pid, origen);
@@ -687,6 +701,7 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n }) => ({ t: tt, texto, pid: p2, n })),
+    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c) })) : [],
@@ -701,11 +716,61 @@ export function vista(data, e, pid) {
 }
 const publicMods = (e) => { const { sinIngreso, varado, huir, ...r } = e.mods || {}; return r; };
 
+// ---------------------------------------------------------------- terminar y empezar otra partida (regla de la casa del juego en línea)
+// El banco lo propone en cualquier momento; votan los jugadores humanos conectados y basta la mayoría (más de la mitad).
+// Al terminar la partida de forma normal, el banco empieza la nueva sin votación. La partida anterior se guarda en datos/.
+export const VOTO_REINICIO_MS = 60000;
+const votantes = (e) => e.orden.filter((id) => { const j = e.jugadores[id]; return j && !j.npc && j.pj && j.conectado !== false; });
+function proponerReinicio(data, e, pid) {
+  if (e.fase === 'lobby') return err('La partida todavía no empieza.');
+  if (e.fase === 'fin') return reiniciar(data, e);
+  if (e.votoReinicio) return err('Ya hay una votación en curso.');
+  e.votoReinicio = { por: pid, t0: e.ahora, limiteMs: VOTO_REINICIO_MS, votos: { [pid]: true } };
+  log(e, `${e.jugadores[pid].nombre} (banco) propone terminar esta partida y empezar otra desde cero: voten sí o no.`, { aviso: true });
+  return revisarVoto(data, e);
+}
+function votarReinicio(data, e, pid, a) {
+  const v = e.votoReinicio;
+  if (!v) return err('No hay ninguna votación en curso.');
+  if (!votantes(e).includes(pid)) return err('No participas en esta votación.');
+  v.votos[pid] = !!a.si;
+  return revisarVoto(data, e);
+}
+function revisarVoto(data, e, vencido = false) {
+  const v = e.votoReinicio; if (!v) return ok();
+  const vs = votantes(e), si = vs.filter((id) => v.votos[id] === true).length, no = vs.filter((id) => v.votos[id] === false).length;
+  if (si * 2 > vs.length) { e.votoReinicio = null; log(e, `La mayoría aceptó (${si} de ${vs.length}): termina la partida y empieza otra desde cero.`, { aviso: true }); return reiniciar(data, e); }
+  if (no * 2 >= vs.length || vencido) { e.votoReinicio = null; log(e, `No hubo mayoría para empezar de nuevo (${si} sí, ${no} no): la partida sigue.`, { aviso: true }); }
+  return ok();
+}
+function vistaVoto(e, pid) {
+  const v = e.votoReinicio; if (!v) return null;
+  const vs = votantes(e);
+  return { por: v.por, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, si: vs.filter((id) => v.votos[id] === true).length, no: vs.filter((id) => v.votos[id] === false).length, votas: vs.includes(pid), miVoto: v.votos[pid] ?? null };
+}
+// Sala nueva con los mismos jugadores humanos (personaje elegido y «listo»), el mismo banco y las mismas opciones; los nuevos pueden unirse.
+function reiniciar(data, e) {
+  const archivo = serializar(e);
+  const viejo = e.jugadores, humanos = e.orden.filter((id) => viejo[id] && !viejo[id].npc);
+  const n = nuevoJuego(data, { codigo: e.codigo, semilla: (e.semilla ^ e.ahora) & 0x7fffffff, ahora: e.ahora, opciones: { ...e.opciones } });
+  Object.assign(n, { seq: e.seq, logN: e.logN, host: e.host, pinHost: e.pinHost, partidaN: (e.partidaN || 1) + 1, archivoPendiente: archivo });
+  for (const id of humanos) {
+    const o = viejo[id], j = nuevoJugador(n, id, o.nombre, o.token);
+    Object.assign(j, { pj: o.pj, listo: !!o.pj, conectado: o.conectado, extra: o.extra?.clienteWeb ? { clienteWeb: true } : {} });
+    n.jugadores[id] = j; n.orden.push(id);
+  }
+  for (const k of Object.keys(e)) delete e[k];
+  Object.assign(e, n);
+  log(e, `Partida nueva (${e.partidaN}): pueden cambiar de personaje y entrar jugadores nuevos; el banco la inicia cuando todos estén listos.`, { aviso: true });
+  return ok();
+}
+
 // ---------------------------------------------------------------- reloj del servidor (cada segundo)
 export function tick(data, e, ahora = Date.now()) {
   e.ahora = ahora;
   let cambio = false;
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
+  if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
   if (e.fase === 'juego') {
     if (e.pend && vencerPend(data, e, ahora)) cambio = true;
     const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '');

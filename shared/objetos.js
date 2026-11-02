@@ -4,7 +4,8 @@ import {
   publicarCarta, cartaDatos, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 } from './base.js';
 
-export const REVENTA = { OB34: ['Bagdad', 28], OB35: ['El Cairo', 14], OB36: ['Estambul', 18], OB37: ['El Cairo', 22], OB38: ['Bagdad', 22], OB39: ['Isfahán', 24], OB40: ['Bagdad', 17] };
+// Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
+export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
 const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5 };
 const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'] };
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
@@ -86,7 +87,7 @@ export function vender(data, e, pid, a) {
   if (c.tipo === 'objeto') {
     const o = objDe(data, c.ref);
     texto = o.nombre;
-    if (REVENTA[c.ref] && REVENTA[c.ref][0] === ciudad) { precio = REVENTA[c.ref][1]; sinImp = true; }
+    if (reventaDe(data, c.ref, ciudad) != null) { precio = reventaDe(data, c.ref, ciudad); sinImp = true; }
     else if (c.ref === 'OB41') { precio = 20; sinImp = true; }                                            // banco: 20
     else if (c.ref === 'OB24' ) { precio = 40; sinImp = true; }                                           // Botella de genio: 40 al banco (R 15.2)
     else precio = o.valor;
@@ -103,7 +104,7 @@ export function vender(data, e, pid, a) {
   if (esLibro(c)) {
     if (ciudad !== 'Bagdad') return err('Solo la biblioteca de Bagdad compra libros y papiros.');
     const v = valorLibro(data, e, c); precio = e.mods.sabiduria ? v : Math.floor(v / 2);                  // H8: precio completo
-    quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende un ${c.ref} a la biblioteca por ${precio} dinares.`, { pid });
+    quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${c.ref === 'libroIbnHazm' ? `«${c.extra?.titulo || 'un libro de Ibn Hazm'}»` : 'un ' + c.ref} a la biblioteca por ${precio} dinares.`, { pid });
     return ok();
   }
   if (c.ref === 'vino') {
@@ -160,7 +161,7 @@ export function estimarVenta(data, e, pid, c) {
   try {
     if (c.tipo === 'objeto') {
       const o = objDe(data, c.ref); let p = o.valor, sin = false;
-      if (REVENTA[c.ref] && REVENTA[c.ref][0] === ciudad) { p = REVENTA[c.ref][1]; sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
+      if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
       return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : null;
     }
     if (c.tipo === 'ifrit') return 40;

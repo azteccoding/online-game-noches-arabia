@@ -55,11 +55,11 @@ export function cartaDatos(data, tipo, id) {
 
 // Objetos de la tabla original (R 15.1): se dibujan con el marco de «objeto».
 export const ITEMS = {
-  arco: { nombre: 'Arco', arma: 1, precio: 15, texto: '+1 a tu puntaje final en cualquier pelea o duelo, al atacar o al defenderte. Necesita flechas. En Bagdad solo con Firmán.' },
+  arco: { nombre: 'Arco', arma: 1, precio: 15, texto: '+1 a tu puntaje final en cualquier pelea o duelo. Además, cuando te asaltan o te atacan a muerte (jugadores, Yafar, bandoleros o los ladrones de Alí Babá) disparas primero, gastando 1 flecha: con 5 o 6 el atacante queda herido y huye. Necesita flechas. En Bagdad solo con Firmán.' },
   alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, texto: '+1 a tu puntaje final en cualquier pelea o duelo. No se usa en Bagdad.' },
   cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, texto: '+2 a tu puntaje final en cualquier pelea o duelo, y +2 más cuando eres tú quien ataca. No se usa en Bagdad.' },
   jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, texto: '+3 si el dado de sorpresa (lo tira quien la lleva) cae par; si no, nada. En Bagdad solo con Firmán.' },
-  flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco.' },
+  flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco. Cada disparo de defensa gasta 1 flecha.' },
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio: llegas a la ciudad que elijas en 1 turno, sin tarifa.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio: llegas en 2 turnos, sin tarifa.' },
   burro: { nombre: 'Burro', transporte: 3, texto: 'Transporte propio: llegas en 3 turnos, sin tarifa.' },
@@ -81,6 +81,7 @@ export const ITEMS = {
   pergaminoSellado: { nombre: 'Pergamino sellado', texto: 'Carga de R30: entrégalo en Bagdad.' },
   cartaUrgente: { nombre: 'Carta urgente', texto: 'Debe entregarse en la ciudad indicada antes de que venza el plazo.' },
   especias: { nombre: 'Especias', texto: 'Mercancía de comercio: se vende en la ciudad que las pida.' },
+  libroIbnHazm: { nombre: 'Libro de Ibn Hazm', texto: 'Regalo del sheij Ibn Hazm al cumplir su Mensaje. Empieza valiendo 50 dinares y gana 2 por ronda; la biblioteca de Bagdad lo compra a la mitad de su valor actual. Se puede regalar o vender a otros jugadores (máximo 2 en la mano).' },
   dadoIbnArabi: { nombre: 'Dado de Ibn Arabi', texto: 'Regalo de Ibn Arabi. La próxima vez que vayas a perder una pelea o un duelo (contra un jugador o un NPC), se repite la tirada una vez. Se gasta al usarlo.' },
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
 };
@@ -90,6 +91,7 @@ export function itemDatos(data, ref, extra = {}) {
     return { id: 'mapa:' + t, deck: 'objeto', titulo: 'Mapa de tesoro' + (d ? ' · ' + d.nombre : t === 'jugador' ? ' · tesoro escondido' : ''), sub: 'Mapa · ' + (extra.ciudad || d?.ciudad || ''), texto: ITEMS.mapa.texto + (d ? ' Botín: ' + d.valor + ' dinares.' : ''), valor: null, duracion: null, arte: 'ob-lujo', ref: '16.1' };
   }
   const it = ITEMS[ref]; if (!it) return null;
+  if (ref === 'libroIbnHazm') return { id: 'it:' + ref, deck: 'objeto', titulo: it.nombre + (extra.titulo ? ` · «${extra.titulo}»` : ''), sub: 'Regalo de un sheij', texto: it.texto, valor: null, duracion: null, arte: 'ob-docum', ref: '18.3' };
   return { id: 'it:' + ref, deck: 'objeto', titulo: it.nombre, sub: 'Objeto original · R 15.1', texto: it.texto, valor: it.precio ?? null, duracion: null, arte: it.arma ? 'ob-arma' : ref === 'libro' ? 'ob-docum' : 'ob-herr', ref: '15.1' };
 }
 export const TESOROS = {
@@ -208,7 +210,7 @@ export function quitarPrimero(j, tipo, ref) { const c = j.mano.find((x) => x.tip
 // Devuelve un objeto de mazo a su pila (mercado) o al descarte del botín.
 export function devolverObjeto(data, e, id) {
   const o = objDe(data, id);
-  if (o.sinVenta) (e.mazos.descarte.botin ||= []).push(id); else e.stock[id] = (e.stock[id] || 0) + 1;
+  if (o.sinVenta) (e.mazos.descarte.botin ||= []).push(id); else (e.reposicion ||= []).push(id);   // escasez: vuelve al mercado al empezar una ronda (engine.reponerMercado)
 }
 // R 15.2: más de 5 objetos del mazo => el sobrante se vende al banco de inmediato (mitad del valor, hacia abajo).
 export function recortarMano(data, e, pid) {
@@ -301,7 +303,7 @@ export function tarifa(data, e, j, a, b) {
   if (j.pj === 'B') t = Math.ceil(t / 2);
   return t;
 }
-export const esLibro = (c) => c.tipo === 'item' && (c.ref === 'libro' || c.ref === 'papiro');
+export const esLibro = (c) => c.tipo === 'item' && (c.ref === 'libro' || c.ref === 'papiro' || c.ref === 'libroIbnHazm');
 export function valorLibro(data, e, c) { return (c.extra?.valor ?? 0) + 2 * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
 export function valorVino(c, e) { return 20 + 6 * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
 export const vivos = (e) => activos(e).length;

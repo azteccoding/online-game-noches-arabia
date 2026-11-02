@@ -132,6 +132,14 @@ function OfrecerCinco({ s, ids }) {
   );
 }
 
+// Explica por qué no aparece ninguna opción de combate aunque haya otros jugadores en la ciudad.
+function porQueNoAtacar(s, mi) {
+  const firman = s.mano.some((c) => c.tipo === 'especial' && c.ref === 'F1');
+  if (mi.ciudad === 'Bagdad' && !firman && !s.mods?.armasBagdad) return 'En Bagdad solo se puede desafiar a duelo, robar o atacar con un Firmán del Califa (lo vende el visir aquí, en el Mercado). En cualquier otra ciudad sí puedes desafiar.';
+  if (s.turno?.principal) return 'Ya usaste tu acción principal de este turno: los desafíos y ataques serán en tu próximo turno.';
+  return 'Ahora no puedes desafiar ni atacar a nadie aquí (por ejemplo, por estar herido o porque nadie puede ser atacado en este momento).';
+}
+
 const SECCIONES = [['atacar', 'Combate y robos'], ['reto', 'Retos y misiones'], ['pj', 'Tu personaje'], ['tesoro', 'Tesoros y Jorasán'], ['asesinos', 'Los Asesinos'], ['usar', 'Usar objetos']];
 
 export default function AccionesTurno({ s, onCerrar }) {
@@ -170,7 +178,7 @@ export default function AccionesTurno({ s, onCerrar }) {
             </section>
           );
         })}
-        {mt && s.turno.fase !== 'ingreso' && aqui.length > 0 && <section className="accion-sec"><h3 className="sub-h">Con otros jugadores</h3><OfrecerCinco s={s} ids={aqui} /><p className="it">Para comerciar usa Mercado → Tratos.</p></section>}
+        {mt && s.turno.fase !== 'ingreso' && aqui.length > 0 && <section className="accion-sec"><h3 className="sub-h">Con otros jugadores</h3><OfrecerCinco s={s} ids={aqui} /><p className="it">Para comerciar usa Mercado → Tratos.</p>{!hay('atacar').length && <p className="it aviso-regla">{porQueNoAtacar(s, mi)}</p>}</section>}
         {mt && !lista.some((a) => !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)) && s.turno.fase !== 'ingreso' && <p className="it">No hay acciones especiales disponibles aquí. Puedes viajar, comprar o vender, o terminar el turno.</p>}
       </div>
     </div>

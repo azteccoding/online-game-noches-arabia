@@ -42,8 +42,10 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
   }, [cola.length, s.historial]);
 
   const consultaObj = consulta && typeof consulta === 'object' ? consulta : null;
-  const nroActual = consultaObj ? consultaObj.nro : (consulta ?? cola[0] ?? null);
-  const modoLectura = consulta == null && cola.length > 0;
+  // Una carta nueva espera a que se cierren los dados en pantalla (p. ej. el Botín tras ganar una pelea no tapa el resultado).
+  const tapaDados = consulta == null && cola.length > 0 && !!s.dados;
+  const nroActual = consultaObj ? consultaObj.nro : tapaDados ? null : (consulta ?? cola[0] ?? null);
+  const modoLectura = consulta == null && cola.length > 0 && !tapaDados;
   const carta = useMemo(() => consultaObj || (nroActual != null ? s.historial.find((h) => h.nro === nroActual) : null), [nroActual, s.historial, consultaObj]);
 
   useLayoutEffect(() => {

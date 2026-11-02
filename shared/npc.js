@@ -70,7 +70,8 @@ function elegirDestino(data, e, pid) {
     for (const c of alcanzables) {
       const p = camino(prev, j.ciudad, c);
       if (!p || p.length > 3 || c === j.ciudadPrevia) continue;
-      const ci = ciudadDe(data, c), noches = j.visitadas.includes(c) ? ci.nochesLuego : ci.nochesLlegada;
+      const ci = ciudadDe(data, c), conGente = enCiudad(e, c, pid).some((x) => !e.jugadores[x].npc);
+      const noches = (j.visitadas.includes(c) ? ci.nochesLuego : ci.nochesLlegada) / (conGente ? 1 : 2);   // solo cobra completo donde hay jugadores
       if (!mejor || noches > mejor.noches || (noches === mejor.noches && dist[c] < dist[mejor.c])) mejor = { c, noches };
     }
     destino = mejor?.c || null;
@@ -116,8 +117,9 @@ function accionPrincipal(data, e, pid) {
     // (b) Yafar NPC ya no contrata a los Asesinos (regla de la casa del juego en línea)
     // (c) una carta de Cuentos respondida con un dado
     const x = dado(e);
-    mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC responde una CC (4-6 acierta)', valores: [x] }], resumen: [x >= 4 ? 'Yafar NPC acierta y cobra 10 dinares.' : 'Yafar NPC falla la pregunta.'] });
-    if (x >= 4) j.dinares += 10;
+    const premio = data.config.premioTrivia;
+    mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC responde una CC (4-6 acierta)', valores: [x] }], resumen: [x >= 4 ? `Yafar NPC acierta y cobra ${premio} dinares.` : 'Yafar NPC falla la pregunta.'] });
+    if (x >= 4) j.dinares += premio;
     t.principal = true;
   }
   cierre(data, e, pid);

@@ -1,5 +1,7 @@
 import React from 'react';
 import Sprite from './Sprite.jsx';
+import { enviar } from '../game/store.js';
+import { ACCIONES } from '../game/protocol.js';
 
 const MOTIVO = {
   npc: 'Yafar el Bermekí (NPC) llegó primero a las 1,001 noches: los jugadores pierden.',
@@ -22,7 +24,8 @@ export default function Fin({ s, onCerrar }) {
             <span>{j.eliminado ? 'eliminado · ' : ''}{j.noches} noches · {j.dinares} dinares</span>
           </li>
         ))}</ul>
-        <p className="it">Ronda {s.ronda}. Para empezar otra partida, reinicia el servidor con <code>npm start -- --nuevo</code>.</p>
+        <p className="it">Ronda {s.ronda}. {s.soyHost ? 'Como banco, puedes empezar otra partida con los mismos jugadores (y dejar entrar a nuevos).' : 'El banco puede empezar otra partida con los mismos jugadores.'}</p>
+        {s.soyHost && <button className="btn" onClick={() => enviar(ACCIONES.host.reiniciar())}>Nueva partida</button>}
         {onCerrar && <button className="btn sec" onClick={onCerrar}>Ver el tablero</button>}
       </div>
     </div>

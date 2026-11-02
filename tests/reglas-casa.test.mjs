@@ -1,10 +1,12 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick } from '../shared/engine.js';
-import { publicarCarta, mostrarDados } from '../shared/base.js';
+import { nuevoJuego, unir, reducir, tick, llegada } from '../shared/engine.js';
+import { publicarCarta, mostrarDados, dado } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes } from '../shared/retos.js';
-import { peleaNPC } from '../shared/pelea.js';
+import { peleaNPC } from '../shared/pelea.js';
+import { vender, tienda } from '../shared/objetos.js';
+import { finTurno } from '../shared/eventos.js';
 import { tieneItem } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
 import { simular } from './sim.mjs';

@@ -195,12 +195,19 @@ wss.on('connection', (ws, req) => {
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
       else { const msg = confirmacion(m.a, pid); if (msg) enviar(ws, { t: 'hecho', msg, n: m.n }); }
       if (r.ok) avisarCaja(antesLog);
+      archivarTerminada();
       marcar(); difundir();
     }
   });
 });
 
-setInterval(() => { try { if (tick(data, estado, Date.now())) { marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
+// Al empezar una partida nueva (voto del banco o tras el final), la anterior se guarda aparte en datos/.
+function archivarTerminada() {
+  if (!estado.archivoPendiente) return;
+  try { fs.writeFileSync(path.join(DIR_DATOS, `partida-terminada-${Date.now()}.json`), estado.archivoPendiente, { mode: 0o600 }); } catch (x) { console.error('No se pudo archivar la partida terminada:', x.message); }
+  delete estado.archivoPendiente;
+}
+setInterval(() => { try { const nAntes = estado.logN || 0; if (tick(data, estado, Date.now())) { avisarCaja(nAntes); archivarTerminada(); marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
 setInterval(() => { for (const ws of wss.clients) { if (!ws.vivo) { ws.terminate(); continue; } ws.vivo = false; ws.ping(); } }, 25000);
 
 // ---------------------------------------------------------------- arranque

@@ -66,6 +66,9 @@ export default function PanelAnfitrion({ s, onCerrar }) {
             <button className="btn mini sec" disabled={!caja} onClick={() => window.confirm('¿Eliminar a este jugador?') && enviar(ACCIONES.host.eliminar(pid))}>Eliminar jugador</button>
             <button className="btn mini sec" onClick={() => window.confirm('¿Ceder el rol de banco?') && enviar(ACCIONES.host.ceder(pid))}>Ceder el banco</button>
           </div></fieldset>
+        <fieldset><legend>Partida nueva</legend>
+          <button className="btn mini sec" disabled={!!s.votoReinicio} onClick={() => window.confirm('¿Proponer a todos terminar esta partida y empezar otra desde cero?') && enviar(ACCIONES.host.reiniciar())}>Proponer terminar y empezar de nuevo</button>
+          <small className="it">Votan los jugadores conectados durante 1 minuto; si más de la mitad acepta, todos vuelven a la sala con su personaje y pueden entrar jugadores nuevos. La partida actual se guarda aparte.</small></fieldset>
         {s.host_info && <p className="it">Mazos: {s.host_info.mazos.eventos} eventos, {s.host_info.mazos.historicos} históricos, {s.host_info.mazos.mensajes} mensajes por salir (no se repiten), {s.host_info.mazos.botin} botín, {s.host_info.mazos.ifrit} ifrit.</p>}
       </div>
     </div>

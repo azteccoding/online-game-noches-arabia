@@ -63,7 +63,7 @@ export default function Dados({ s }) {
     );
   }
   const total = d.valores.reduce((a2, b) => a2 + b, 0);
-  const MOTIVOS = { ingreso: 'dado de ingreso', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas' };
+  const MOTIVOS = { ingreso: 'dado de ingreso', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas', defensa: 'arco y escudo' };
   const motivo = d.npc || d.motivo.startsWith('npc:') ? `NPC ${d.motivo.startsWith('npc:') ? d.motivo.slice(4) : ''}`.trim() : MOTIVOS[d.motivo] || d.motivo;
   const grupos = d.grupos?.length ? d.grupos : [{ etq: '', valores: d.valores }];
   return (

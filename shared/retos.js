@@ -583,6 +583,9 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ?
 } };
 
 // ---------------------------------------------------------------- Mensajes de los sheijs (R 18): se completan solos
+// Obras reales de Ibn Hazm de Córdoba (Dios tenga misericordia de él) que regala al cumplir su Mensaje.
+const OBRAS_IBN_HAZM = ['El collar de la paloma', 'Al-Muhalla', 'Los caracteres y las conductas', 'Al-Fisal', 'Al-Ihkam fi usul al-ahkam'];
+const LIBROS_IBN_HAZM_MAX = 2;
 const IDS_LIBRO = (c) => esLibro(c) || (c.tipo === 'objeto' && c.ref === 'OB38');
 export function mensajes(data, e, pid, ev, inf) {
   const j = e.jugadores[pid];
@@ -610,6 +613,11 @@ export function mensajes(data, e, pid, ev, inf) {
   log(e, `${j.nombre} cumple un mensaje de ${m.de} y cobra ${m.dinares} dinares${m.noches ? ' y ' + m.noches + ' noches' : ''}.`, { pid });
   if (m.de === 'Ibn Arabi' && !tieneItem(j, 'dadoIbnArabi')) {                          // regla de la casa: el Dado de Ibn Arabi
     darItem(e, j, 'dadoIbnArabi'); log(e, `Ibn Arabi regala a ${j.nombre} un dado para cambiar su suerte: repetirá la próxima pelea que vaya a perder.`, { pid });
+  }
+  if (m.de === 'Ibn Hazm' && j.mano.filter((c) => c.tipo === 'item' && c.ref === 'libroIbnHazm').length < LIBROS_IBN_HAZM_MAX) {   // regla de la casa: libros de Ibn Hazm
+    const titulo = OBRAS_IBN_HAZM[((e.librosIbnHazm = (e.librosIbnHazm || 0) + 1) - 1) % OBRAS_IBN_HAZM.length];
+    darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo });
+    log(e, `Ibn Hazm regala a ${j.nombre} un ejemplar de «${titulo}»: la biblioteca de Bagdad lo compra a buen precio.`, { pid });
   }
 }
 
