@@ -1044,7 +1044,7 @@
  "mercado": 89,
  "refReglamento": "15",
  "escasez": {
-  "nota": "Regla de la casa del juego en línea: el mercado empieza con copias - 2 de cada objeto (mínimo 1) y lo que se vende o se gasta vuelve poco a poco, unos pocos objetos al empezar cada ronda.",
+  "nota": "Regla de la casa del juego en línea: el mercado empieza con copias - 2 de cada objeto (mínimo 1); las copias restantes no desaparecen: esperan en la reposición junto con lo que se vende o se gasta, y vuelven al mercado poco a poco (unos pocos objetos al empezar cada ronda).",
   "reposicionPorRonda": 2
  }
 }

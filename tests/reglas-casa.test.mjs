@@ -188,7 +188,12 @@ function forzar(e, ...valores) {
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta)) assert.equal(e.stock[o.id], Math.max(1, o.copias - 2), 'stock inicial ' + o.id);
+  const enRepo = (id) => e.reposicion.filter((x) => x === id).length;
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta)) {
+    assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
+    assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
+  }
+  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 53 + 2, 'empieza con 53 y en la ronda 1 ya vuelven 2');
   const seda = data.objetos.mazo.find((o) => o.id === 'OB34');
   assert.ok(seda.reventa.Bagdad && seda.reventa['Andalucía'] > seda.reventa.Bagdad, 'la seda se vende más cara lejos');
   turnoDe(e, pid, 'Andalucía'); j.ciudad = 'Andalucía'; e.turno.fase = 'acciones';
@@ -197,7 +202,9 @@ function forzar(e, ...valores) {
   assert.ok(vender(data, e, pid, { uid: 9100 }).ok);
   assert.equal(j.dinares, antes + seda.reventa['Andalucía'], 'sin impuesto en una ciudad de reventa');
   assert.equal(e.stock.OB34, stock, 'lo vendido no vuelve al instante al mercado');
-  assert.deepEqual(e.reposicion, ['OB34']);
+  assert.equal(e.reposicion[e.reposicion.length - 1], 'OB34', 'lo vendido espera en la reposición');
+  const total = (id) => (e.stock[id] || 0) + e.reposicion.filter((x) => x === id).length;
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.copias - 1, 'ninguna copia desaparece: ' + o.id);
   j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco';
   const a2 = j.dinares; assert.ok(vender(data, e, pid, { uid: 9101 }).ok);
   assert.equal(j.dinares, a2 + seda.valor - Math.floor(seda.valor * 20 / 100), 'en otra ciudad vale lo normal menos impuesto');

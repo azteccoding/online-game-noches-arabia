@@ -64,12 +64,13 @@ function prepararMazos(data, e) {
   for (const t of data.trivias.trivias) (cc[t.ciudad] ||= []).push({ k: 't', id: t.id });
   if (data.config.cartasDeMesa !== false) for (const t of data.trivias.deMesa) (cc[t.ciudad] ||= []).push({ k: 'm', id: t.id });
   for (const c of Object.keys(cc)) barajar(e, cc[c]);
-  const botin = [];
+  const botin = [], guardadas = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); }   // escasez: copias − 2 en el mercado
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
   }
-  e.reposicion = [];
+  // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
+  e.reposicion = barajar(e, guardadas);
   e.mazos = {
     eventos: barajar(e, data.eventos.eventos.map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.map((x) => x.id)),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
