@@ -19,9 +19,12 @@ try { ({ simular } = await import(pathToFileURL(tmp).href)); } finally { fs.rmSy
 
 const N = Number(process.argv[2] || 300);
 const NOMBRES = { 1: 'Nur al Din', 2: 'Zein', 3: 'Anís', 4: 'Jamil', 5: 'Ruyán', 6: 'Zubayda', 7: 'Adí', B: 'Yafar (jugador)' };
-const est = {};
-const s = (pj) => (est[pj] ||= { partidas: 0, victorias: 0, eliminado: 0, nochesRonda: 0, dinares: 0, robosHechos: 0, robado: 0, duelosG: 0, duelosP: 0, premios: 0, rondas: 0 });
-let terminadas = 0, total = 0;
+const est = {}, porCfg = {};
+// En 1 a 3 jugadores, Yafar el Bermekí juega como NPC (los robos que sufren los demás vienen casi todos de él).
+const nuevo = () => ({ partidas: 0, victorias: 0, eliminado: 0, nochesRonda: 0, dinares: 0, robosHechos: 0, robado: 0, duelosG: 0, duelosP: 0, premios: 0, rondas: 0 });
+const s = (pj) => (est[pj] ||= nuevo());
+const sc = (cfg, pj) => ((porCfg[cfg] ||= {})[pj] ||= nuevo());
+let terminadas = 0, total = 0; const rondasCfg = {};
 for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { jugadores: 5 }].entries()) {
   for (let k = 0; k < N; k++) {
     total++;
@@ -29,9 +32,12 @@ for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { j
     if (!r.ok) continue;
     terminadas++;
     const { e, todo } = r;
+    const etq = cfg.jugadores + ' jugadores' + (cfg.conYafar === false ? ' (sin Yafar)' : ' (uno lleva a Yafar)');
+    (rondasCfg[etq] ||= []).push(e.ronda);
     for (const j of Object.values(e.jugadores)) {
       if (j.npc || !j.pj) continue;
-      const x = s(j.pj), n = j.nombre;
+      const xs = [s(j.pj), sc(etq, j.pj)], n = j.nombre;
+      for (const x of xs) {
       x.partidas++; x.rondas += e.ronda;
       if ((e.ganadores || []).includes(j.id)) x.victorias++;
       if (j.eliminado) x.eliminado++;
@@ -44,13 +50,20 @@ for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { j
         if (t.includes(': ' + n + ' entrega ')) x.duelosP++;
         if (l.pid === j.id && /\+\d+ (dinares|noches)\.$/.test(t)) x.premios++;
       }
+      }
     }
   }
 }
 const f = (v, d = 1) => v.toFixed(d);
-console.log(`Partidas terminadas: ${terminadas}/${total} (bots al azar)\n`);
+console.log(`Partidas terminadas: ${terminadas}/${total} (bots al azar)
+`);
+function tabla(est) {
 console.log('Personaje        | partidas | victoria | eliminado | noches/ronda | dinares final | robos hechos | robado | duelos G/P | premios retos/tesoros');
 for (const [pj, x] of Object.entries(est).sort()) {
   const p = x.partidas;
   console.log(`${(NOMBRES[pj] || pj).padEnd(16)} | ${String(p).padStart(8)} | ${f(100 * x.victorias / p).padStart(7)}% | ${f(100 * x.eliminado / p).padStart(8)}% | ${f(x.nochesRonda / p).padStart(12)} | ${f(x.dinares / p, 0).padStart(13)} | ${f(x.robosHechos / p, 2).padStart(12)} | ${f(x.robado / p, 2).padStart(6)} | ${f(x.duelosG / p, 2)}/${f(x.duelosP / p, 2)} | ${f(x.premios / p, 2)}`);
 }
+}
+tabla(est);
+for (const [etq, t] of Object.entries(porCfg)) { const rs = rondasCfg[etq]; console.log(`
+--- ${etq}: ${rs.length} partidas, ${f(rs.reduce((a, b) => a + b, 0) / rs.length)} rondas de media`); tabla(t); }
