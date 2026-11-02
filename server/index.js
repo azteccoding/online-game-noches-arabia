@@ -111,16 +111,25 @@ const clientes = new Map();            // ws -> pid
 let difusionPendiente = false;
 
 function enviar(ws, obj) { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); }
+// Primero los dados, después las consecuencias: mientras haya dados en pantalla, cada jugador sigue viendo la vista de
+// antes de la tirada (solo cambian los dados). Al cerrarse los últimos dados se muestra todo lo que ocurrió.
+const ultimaVista = new Map();   // pid -> última vista enviada sin congelar
+let congelada = null;            // pid -> vista de antes de la tirada
 function difundir() {
   if (difusionPendiente) return;
   difusionPendiente = true;
   setTimeout(() => {
     difusionPendiente = false;
+    if (estado.dados && !congelada && estado.fase === 'juego') congelada = new Map(ultimaVista);
+    if (!estado.dados && congelada) congelada = null;
     for (const [ws, pid] of clientes) {
-      const v = vista(data, estado, pid);
+      let v = vista(data, estado, pid);
       if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
+      const antes = congelada?.get(pid);
+      if (antes && antes.fase === v.fase) v = { ...antes, dados: v.dados, enCola: v.enCola, ahora: v.ahora, conectado: v.conectado, congelada: true };
+      else ultimaVista.set(pid, v);
       enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
     }
   }, 25);

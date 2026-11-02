@@ -781,7 +781,8 @@ export function tick(data, e, ahora = Date.now()) {
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
   if (e.fase === 'juego') {
-    if (e.pend && vencerPend(data, e, ahora)) cambio = true;
+    if (e.pend && e.dados) e.pend.t0 = ahora;                     // el plazo de una decisión empieza cuando se cierran los dados
+    else if (e.pend && vencerPend(data, e, ahora)) cambio = true;
     const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '');
     avanzar(data, e);
     if (antes !== e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '')) cambio = true;

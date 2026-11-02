@@ -3,6 +3,7 @@ import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
+import Dinares from './Dinares.jsx';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
@@ -26,7 +27,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           <small>{miTurno ? FASE[t.fase] : `${nombreCorto(enTurno?.pj) || ''} · ${t ? FASE[t.fase] : ''}`} · ronda {s.ronda}</small>
         </div>
         <div className="acc-yo">
-          <span className="chip" title="Dinares">{yo.dinares} din.</span><span className="chip" title="Noches">{yo.noches} noches</span>
+          <Dinares valor={yo.dinares} /><span className="chip" title="Noches">{yo.noches} noches</span>
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscado > 0 && <span className="chip mal">Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>

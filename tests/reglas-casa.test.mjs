@@ -311,6 +311,16 @@ function forzar(e, ...valores) {
   assert.ok(e.dados.sheij && !e.dados.sheij.ok && /No hay carta de sheij/.test(e.dados.sheij.texto), 'aviso rojo sin el 6');
 }
 
+// Primero los dados: mientras hay dados en pantalla, el plazo de una decisión no corre
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, pid = g.ids[0];
+  e.dados = { id: 999, n: 1, valores: [3], grupos: [], resumen: [], por: pid, motivo: 'pelea', t0: e.ahora, lanzado: false };
+  e.pend = { id: 998, tipo: 'reto', para: [pid], titulo: 'Prueba', modo: 'una', opciones: [{ id: 'a', texto: 'A' }], porDefecto: 'a', limiteMs: 1000, t0: e.ahora, resp: {}, cont: { fn: 'nada', args: {} } };
+  g.tickear(500000);
+  assert.ok(e.pend && e.pend.id === 998, 'la decisión espera a que se cierren los dados');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

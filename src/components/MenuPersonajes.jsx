@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Dinares from './Dinares.jsx';
 import HojaPersonaje from './HojaPersonaje.jsx';
 import Sprite from './Sprite.jsx';
 import GuiaPersonaje from './GuiaPersonaje.jsx';
@@ -19,7 +20,7 @@ export default function MenuPersonajes({ s, onCerrar }) {
             <button className="acordeon-cab" aria-expanded={abierto === j.id} onClick={() => toggle(j.id)}>
               <Sprite pj={j.pj} alto={36} />
               <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}</span>
-              <span className="chip">{j.dinares} din.</span><span className="chip">{j.noches} noches</span>
+              <Dinares valor={j.dinares} /><span className="chip">{j.noches} noches</span>
               {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{j.buscado > 0 && <span className="chip mal">B</span>}
             </button>
             {abierto === j.id && <HojaPersonaje pj={j.pj} jugador={j} esYo={j.id === s.yo} />}
