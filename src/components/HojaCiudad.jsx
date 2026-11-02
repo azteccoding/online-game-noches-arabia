@@ -18,7 +18,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
   const presentes = Object.values(s.jugadores).filter((j) => j.ciudad === id && j.pj && !j.eliminado);
   const vende = DATA.objetos.mazo.filter((o) => o.seConsigueEn.split(/,| y /).map((x) => x.trim()).includes(id));
   return (
-    <div className="hoja-modal panel" role="dialog" aria-label={`Ciudad ${id}`}>
+    <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}`}>
       <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
         <p><b>Llegada:</b> {c.nochesLlegada === c.nochesLuego ? `${c.nochesLlegada}` : `${c.nochesLlegada} la primera vez, luego ${c.nochesLuego}`} noches (×{mult} esta ronda) · <b>Alojamiento:</b> {c.alojamiento} dinares · <b>Impuesto de venta:</b> {c.impuestoVenta}%</p>

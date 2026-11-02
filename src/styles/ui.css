@@ -262,3 +262,5 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 fieldset:disabled { opacity: .5; }
 .alarma-desconexion { position: absolute; top: calc(var(--barra-alto, 56px) + 6px); left: 50%; transform: translateX(-50%); z-index: 85; max-width: 92%; background: #7a1d1d; color: #fff; border: 1px solid var(--oro-claro); border-radius: 12px; padding: 6px 12px; box-shadow: var(--sombra); }
 .alarma-desconexion p { margin: 4px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* En pantallas verticales la ficha de ciudad baja y deja ver la ruta animada en el mapa */
+.lienzo[data-forma='alta'] .hoja-modal.hoja-ciudad { top: auto; bottom: calc(var(--acciones-alto, 110px) + 8px); max-height: 36%; }

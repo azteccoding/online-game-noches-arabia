@@ -114,7 +114,7 @@ function Juego({ lienzo }) {
         );
       })()}
       {error && <div className="toast" role="alert">{error}</div>}
-      {aviso && !error && <div className="toast ok" role="status">✓ {aviso}</div>}
+      {aviso && !error && <div className="toast ok" role="status">{aviso.startsWith('⚠') ? '' : '✓ '}{aviso}</div>}
     </div>
   );
 }

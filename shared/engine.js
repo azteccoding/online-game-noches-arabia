@@ -52,7 +52,7 @@ export function conexion(e, pid, conectado) {
   const j = e.jugadores[pid];
   if (j && e.fase === 'juego' && !j.npc && !j.eliminado && j.conectado !== conectado) {   // aviso a todos: se desconectó / volvió
     const esperando = !conectado && e.turno?.pid === pid;
-    log(e, conectado ? `${j.nombre} volvió a la partida.` : `${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
+    log(e, conectado ? `${j.nombre} volvió a la partida.` : `⚠ ${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
   }
   if (j) j.conectado = conectado;
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
