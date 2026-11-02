@@ -8,8 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // Copia de sim.mjs que conserva el registro completo (el motor solo guarda los últimos 300 mensajes).
 const fuente = fs.readFileSync(path.join(RAIZ, 'tests', 'sim.mjs'), 'utf8')
-  .replace("let e = nuevoJuego(data, { semilla, ahora: 1000, opciones: { rapido, dificultad } });",
-    "let e = nuevoJuego(data, { semilla, ahora: 1000, opciones: { rapido, dificultad } }); const todo = []; const _push = e.log.push.bind(e.log); e.log.push = (...x) => { todo.push(...x); return _push(...x); };")
+  .replace(/let e = nuevoJuego\(data, \{.*\}\);/, (m) => m + " const todo = []; const _push = e.log.push.bind(e.log); e.log.push = (...x) => { todo.push(...x); return _push(...x); };")
   .replace(/return \{ ok: e\.fase === 'fin'/, "return { todo, ok: e.fase === 'fin'")
   .replace(/if \(process\.argv\[1\][\s\S]*$/, '');
 const tmp = path.join(RAIZ, 'tests', `_sim-estadisticas-${process.pid}.mjs`);
