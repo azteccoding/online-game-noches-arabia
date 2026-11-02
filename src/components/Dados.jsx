@@ -80,6 +80,7 @@ export default function Dados({ s }) {
                 {g.valores.length > 1 && <p className="suma">Suma {g.valores.reduce((a2, b) => a2 + b, 0)}</p>}
               </div>
             ))}
+            {d.sheij && <p className={`aviso-sheij ${d.sheij.ok ? 'si' : 'no'}`} role="status">{d.sheij.texto}</p>}
             {d.resumen?.length > 0 && <ul className="dados-resumen" role="status">{d.resumen.map((r, i) => <li key={i}>{r}</li>)}</ul>}
             {!d.resumen?.length && grupos.length === 1 && <p className="total" role="status">{d.valores.length > 1 ? `Suma: ${total}` : `Salió ${total}`}</p>}
             <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar para todos</button>

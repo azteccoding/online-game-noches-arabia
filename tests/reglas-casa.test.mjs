@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, tick, llegada } from '../shared/engine.js';
 import { publicarCarta, mostrarDados, dado } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
-import { mensajes } from '../shared/retos.js';
+import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC } from '../shared/pelea.js';
 import { vender, tienda } from '../shared/objetos.js';
 import { finTurno } from '../shared/eventos.js';
@@ -288,6 +288,27 @@ function forzar(e, ...valores) {
   assert.ok(e.log.some((l) => /bendición de Abu Madyan protege la caravana/.test(l.texto)));
   assert.equal(A.mano.filter((c) => c.ref === 'sal').length, 3, 'conserva los 3 sacos');
   assert.ok(!tieneItem(A, 'bendicionAbuMadyan'), 'sirve una sola vez: se gasta al proteger');
+}
+
+// Ningún premio da dos transportes; quien ya tiene un animal recibe dinares en su lugar
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+  const din = j.dinares;
+  darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello');
+  assert.equal(j.mano.filter((c) => ['caballo', 'camello', 'burro'].includes(c.ref)).length, 1, 'un solo transporte');
+  assert.ok(tieneItem(j, 'caballo')); assert.equal(j.dinares, din + 20, 'el camello se cambia por 20 dinares');
+}
+
+// Dado de ingreso: aviso verde si llega carta de sheij, rojo si no
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e;
+  for (let k = 0; k < 40 && (e.pend || e.dados || !e.turno || e.turno.fase !== 'ingreso' || e.turno.pid === 'npc'); k++) { g.tickear(100000); if (e.dados) e.dados = null; }
+  const pid = e.turno.pid;
+  e.jugadores[pid].mensaje = null; e.log = e.log.filter((l) => !l.msgRonda);
+  forzar(e, 3); assert.ok(g.act(pid, { t: 'tirarDados' }).ok);
+  assert.ok(e.dados.sheij && !e.dados.sheij.ok && /No hay carta de sheij/.test(e.dados.sheij.texto), 'aviso rojo sin el 6');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

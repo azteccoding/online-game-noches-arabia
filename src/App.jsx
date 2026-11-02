@@ -53,6 +53,14 @@ function Juego({ lienzo }) {
     }
   }, [s]);
 
+  // El panel de Acciones se cierra solo al viajar, al usar la acción principal o al comprar/vender; se vuelve a abrir a mano.
+  const huellaAcc = s?.jugadores?.[s.yo] ? `${s.jugadores[s.yo].ciudad}|${s.turno?.principal}|${s.jugadores[s.yo].dinares}|${s.mano?.length}` : '';
+  const huellaPrev = useRef(huellaAcc);
+  useEffect(() => {
+    if (huellaPrev.current !== huellaAcc && panel === 'acciones') setPanel(null);
+    huellaPrev.current = huellaAcc;
+  }, [huellaAcc]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (DEMO && params.get('demo')) iniciarJuego({ demo: true, nombre: params.get('nombre') || 'Ana' });
     else if (localStorage.getItem('mun.token') && localStorage.getItem('mun.nombre')) iniciarJuego({ nombre: localStorage.getItem('mun.nombre') });

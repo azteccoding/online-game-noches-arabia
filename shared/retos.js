@@ -19,6 +19,13 @@ export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
 const cobrarFijo = (data, e, pid, monto) => { const j = e.jugadores[pid]; if (j.dinares < monto) return false; j.dinares -= monto; return true; };
 function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.includes(id)) j.retosHechos.push(id); }
 const REPETIBLES = ['R8', 'R9'];
+// Regla de la casa: ningún premio da dos transportes. Si el jugador ya tiene un animal, recibe dinares en su lugar.
+const ANIMALES = ['caballo', 'camello', 'burro'], VALOR_ANIMAL = { caballo: 30, camello: 20, burro: 10 };
+export function darTransporte(data, e, pid, ref) {
+  const j = e.jugadores[pid];
+  if (ANIMALES.some((a) => tieneItem(j, a))) { j.dinares += VALOR_ANIMAL[ref]; log(e, `${j.nombre} ya tiene transporte: en lugar del ${ref} recibe ${VALOR_ANIMAL[ref]} dinares.`, { pid }); return null; }
+  return darItem(e, j, ref);
+}
 const libroNuevo = (e) => ({ valor: nProb(e) * 4, ronda: e.ronda });
 export function darLibro(e, pid, ref = 'libro') { return darItem(e, e.jugadores[pid], ref, libroNuevo(e)); }
 const bonoCim = (data) => data.config.armas?.cimitarra?.bono ?? 2;
@@ -208,7 +215,7 @@ function pagarDeudaR1(e, j, m) {
 function r1Exito(data, e, pid, m) {
   const j = e.jugadores[pid];
   quitarMision(j, m); hacer(e, pid, 'R1');
-  darItem(e, j, 'camello'); darItem(e, j, 'caballo'); darItem(e, j, 'pergamino'); j.extra.viajeCalifa = true;
+  darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello'); darItem(e, j, 'pergamino'); j.extra.viajeCalifa = true;   // el caballo (mejor) y, como ya tiene transporte, 20 dinares por el camello
   premio(data, e, pid, { dinares: 50, noches: 50 }, `${j.nombre} halla el cofre del Éufrates:`);
   pagar(data, e, pid, m.deuda);
 }
@@ -271,7 +278,7 @@ T.R5 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   for (let i = 0; i < 4; i++) { const x = dado(e); v.push(x); if (x === 6) break; }
   ctx.grupos.push({ etq: `${j.nombre}: alquimia`, valores: v });
   hacer(e, pid, 'R5');
-  if (v[v.length - 1] === 6) { const pr = [50, 40, 30, 20][v.length - 1]; darItem(e, j, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
+  if (v[v.length - 1] === 6) { const pr = [50, 40, 30, 20][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
   else { darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
 } };
 T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {

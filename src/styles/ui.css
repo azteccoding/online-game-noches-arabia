@@ -264,3 +264,7 @@ fieldset:disabled { opacity: .5; }
 .alarma-desconexion p { margin: 4px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* En pantallas verticales la ficha de ciudad baja y deja ver la ruta animada en el mapa */
 .lienzo[data-forma='alta'] .hoja-modal.hoja-ciudad { top: auto; bottom: calc(var(--acciones-alto, 110px) + 8px); max-height: 36%; }
+/* Aviso del dado de ingreso: ¿llega carta de sheij? */
+.aviso-sheij { margin: 0; padding: 6px 12px; border-radius: 8px; font-weight: 600; text-align: center; }
+.aviso-sheij.si { background: #1f5a3a; color: #fff; border: 1px solid var(--oro-claro); }
+.aviso-sheij.no { background: var(--alerta); color: #fff; }

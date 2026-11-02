@@ -353,10 +353,16 @@ function tirarDados(data, e, pid, a) {
   if (t.fase !== 'ingreso') return err('Ya tiraste el dado de ingreso.');
   const j = e.jugadores[pid];
   const v = dado(e);
-  mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
+  const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
   t.fase = 'mov';
+  const tenia = j.mensaje;
   if (v === data.config.minimoMensajeDado) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
+  // Aviso en el resultado del dado: verde si llega una carta de sheij, rojo si no (y por qué, cuando salió el 6).
+  const recibe = !!j.mensaje && j.mensaje !== tenia;
+  d.sheij = { ok: recibe, texto: recibe ? '¡Hay carta de sheij! Recibes un Mensaje.'
+    : v !== data.config.minimoMensajeDado ? `No hay carta de sheij (hace falta un ${data.config.minimoMensajeDado}).`
+      : tenia ? 'No hay carta de sheij: ya tienes un Mensaje activo.' : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' };
   return ok();
 }
 function tirarDadosLibres(e, pid, a) {
