@@ -448,7 +448,8 @@ T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 
   const j = e.jugadores[pid]; j.dinares -= 15;
   const carga = [0, 1, 2].map(() => ({ uid: darItem(e, j, 'sal').uid }));
   const [x] = ctx.t(`${j.nombre}: caravana de la sal`, 1);
-  if (x <= 2) {
+  if (x <= 2 && tieneItem(j, 'bendicionAbuMadyan')) { ctx.say('Asoman bandoleros, pero la bendición de Abu Madyan protege la caravana: pasan de largo.'); nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); }
+  else if (x <= 2) {
     ctx.say('Bandoleros asaltan la caravana.');
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R23 · Bandoleros', texto: 'Pelea (ellos tiran 2 dados con 1 de ventaja) o pierdes un saco.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'saco', texto: 'Perder un saco' }], porDefecto: 'saco', cont: { fn: 'r23.banditos', args: { carga } } });
   } else nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
@@ -465,7 +466,9 @@ T.R24 = { ciudad: 'Basra', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ? 
 T.R26 = { ciudad: 'Andalucía', req: (data, e) => (activos(e).some((x) => e.jugadores[x].pj === '2') ? 'Zein juega: se usan las reglas de Zein (R 10.3).' : null), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R26');
   const r = zeinTirada(data, e, ctx, pid);
-  if (r.salvo || j.pj === '3') { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
+  const bendito = !r.salvo && j.pj !== '3' && tieneItem(j, 'bendicionAbuMadyan');
+  if (bendito) ctx.say('El esposo llega a la Giralda, pero la bendición de Abu Madyan lo aparta: no los sorprende.');
+  if (r.salvo || j.pj === '3' || bendito) { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); if (!bendito) ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
   else {
     ctx.say('El esposo los sorprende.'); ctx.fin(); ctx.grupos = []; ctx.res = [];
     if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { j.noches = Math.max(0, j.noches - 30); j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
@@ -618,6 +621,10 @@ export function mensajes(data, e, pid, ev, inf) {
   if (m.de === 'Averroes' && !e.recetaAverroesDada) {                                   // regla de la casa: una sola Receta de Averroes por partida
     e.recetaAverroesDada = true; darItem(e, j, 'recetaAverroes');
     log(e, `Averroes regala a ${j.nombre} su receta de médico: la única de la partida, cura una herida.`, { pid, aviso: true });
+  }
+  if (m.de === 'Abu Madyan' && !e.bendicionAbuMadyanDada) {                             // regla de la casa: una sola Bendición de Abu Madyan por partida
+    e.bendicionAbuMadyanDada = true; darItem(e, j, 'bendicionAbuMadyan');
+    log(e, `Abu Madyan bendice a ${j.nombre}: la única bendición de la partida, lo protege de los asaltos en el Magreb y Andalucía.`, { pid, aviso: true });
   }
   if (id === LIBRO_IBN_HAZM_MSG && j.mano.filter((c) => c.tipo === 'item' && c.ref === 'libroIbnHazm').length < LIBROS_IBN_HAZM_MAX) {   // regla de la casa: libros de Ibn Hazm
     const titulo = OBRAS_IBN_HAZM[((e.librosIbnHazm = (e.librosIbnHazm || 0) + 1) - 1) % OBRAS_IBN_HAZM.length];

@@ -271,6 +271,25 @@ function forzar(e, ...valores) {
   assert.ok(!tieneItem(A, 'recetaAverroes'), 'se gasta');
 }
 
+// Abu Madyan: la única Bendición de la partida, para el primero que cumple uno de sus Mensajes; protege en R23 y R26
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.mensaje = { id: 'M12' }; A.ciudad = 'Yemen'; mensajes(data, e, a, 'llegada', { primera: false });
+  assert.ok(tieneItem(A, 'bendicionAbuMadyan'), 'el primero que cumple un Mensaje de Abu Madyan recibe la bendición');
+  assert.ok(e.log.some((l) => l.aviso && /Abu Madyan bendice/.test(l.texto)), 'aviso para todos');
+  B.mensaje = { id: 'M12' }; B.ciudad = 'Yemen'; mensajes(data, e, b, 'llegada', { primera: false });
+  assert.ok(!tieneItem(B, 'bendicionAbuMadyan'), 'solo hay una por partida');
+  // R23: con un 1 o 2 asoman bandoleros, pero con la bendición pasan de largo
+  turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones'; A.ciudad = 'Magreb'; A.dinares = 50;
+  forzar(e, 1);
+  assert.ok(g.act(a, { t: 'reto', id: 'R23' }).ok);
+  assert.ok(!e.pend || !/Bandoleros/.test(e.pend.titulo), 'sin pelea con los bandoleros');
+  assert.ok(e.log.some((l) => /bendición de Abu Madyan protege la caravana/.test(l.texto)));
+  assert.equal(A.mano.filter((c) => c.ref === 'sal').length, 3, 'conserva los 3 sacos');
+  assert.ok(tieneItem(A, 'bendicionAbuMadyan'), 'no se gasta');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

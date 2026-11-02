@@ -82,6 +82,7 @@ export const ITEMS = {
   cartaUrgente: { nombre: 'Carta urgente', texto: 'Debe entregarse en la ciudad indicada antes de que venza el plazo.' },
   especias: { nombre: 'Especias', texto: 'Mercancía de comercio: se vende en la ciudad que las pida.' },
   recetaAverroes: { nombre: 'Receta de Averroes', texto: 'Regalo del cadí y médico Averroes: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. Úsala cuando estés herido: te cura y recuperas tu acción principal de ese turno. Se gasta al usarla.' },
+  bendicionAbuMadyan: { nombre: 'Bendición de Abu Madyan', texto: 'Regalo del sufí Abu Madyan: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. En el Magreb y Andalucía te protege: los bandoleros de la caravana de la sal (R23) pasan de largo y el esposo de Zein no te sorprende en la Giralda (R26). No se gasta.' },
   libroIbnHazm: { nombre: 'Libro de Ibn Hazm', texto: 'Regalo del sheij Ibn Hazm al cumplir su Mensaje de entregar un libro, papiro o mapa. Empieza valiendo 50 dinares y gana 2 por ronda; solo lo compra la biblioteca de Bagdad, a la mitad de su valor actual. No se puede regalar ni vender a otros jugadores.' },
   dadoIbnArabi: { nombre: 'Dado de Ibn Arabi', texto: 'Regalo de Ibn Arabi. La próxima vez que vayas a perder una pelea o un duelo (contra un jugador o un NPC), se repite la tirada una vez. Se gasta al usarlo.' },
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
