@@ -208,7 +208,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 /* ---------- Selector de vista ---------- */
 
 /* ---------- Decisiones pendientes ---------- */
-.decision-fondo { z-index: 78; background: rgba(12, 3, 5, .6); }
+.decision-fondo { z-index: 88; background: rgba(12, 3, 5, .6); }
 .decision { padding: 16px 18px; width: min(480px, 100%); max-height: 100%; overflow: auto; display: flex; flex-direction: column; gap: 10px; animation: aparece .18s ease-out; }
 .decision h2 { color: var(--oro-claro); font-size: 22px; }
 .decision-texto { margin: 0; white-space: pre-line; user-select: text; -webkit-user-select: text; }

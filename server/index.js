@@ -128,7 +128,7 @@ function difundir() {
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
       const antes = congelada?.get(pid);
-      if (antes && antes.fase === v.fase) v = { ...antes, dados: v.dados, enCola: v.enCola, ahora: v.ahora, conectado: v.conectado, congelada: true };
+      if (antes && antes.fase === v.fase) v = { ...antes, dados: v.dados, enCola: v.enCola, ahora: v.ahora, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
       else ultimaVista.set(pid, v);
       enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
     }

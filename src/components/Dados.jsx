@@ -72,6 +72,7 @@ export default function Dados({ s }) {
   const rodando = fila >= 0;
   if (!d) return null;
   const por = s.jugadores[d.por];
+  if (s.pend?.mia && !s.pend.respondiste) return null;              // primero tu decisión; los dados esperan detrás
   if (!d.lanzado) {
     const mio = d.por === s.yo;
     return (
