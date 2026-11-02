@@ -62,7 +62,7 @@ export const ITEMS = {
   flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco. Cada disparo de defensa gasta 1 flecha.' },
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb e India. Termina tu turno.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa. Termina tu turno.' },
-  burro: { nombre: 'Burro', transporte: 3, texto: 'Transporte propio para viajes cortos entre Bagdad y las ciudades cercanas (Damasco, Aleppo, Basra y Yemen), sin tarifa. No termina tu turno.' },
+  burro: { nombre: 'Burro', transporte: 3, texto: 'Transporte propio para viajes cortos entre Bagdad y las ciudades cercanas (Damasco, Aleppo y Basra), sin tarifa. No termina tu turno.' },
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, consume: true, texto: 'Un viaje gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. Se gasta y termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },

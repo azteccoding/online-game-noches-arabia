@@ -334,6 +334,7 @@ function forzar(e, ...valores) {
   let { g, e, pid, j, c } = prep('burro');
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Samarcanda' }).ok, 'el burro no hace viajes largos');
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Estambul' }).ok && !g.act(pid, { t: 'usar', uid: c.uid, destino: 'Isfahán' }).ok, 'el burro no va a Estambul ni a Isfahán');
+  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Yemen' }).ok, 'el burro no va a Yemen');
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Damasco' }).ok);
   assert.equal(j.ciudad, 'Damasco', 'llega en el mismo turno'); assert.ok(!e.turno.fin && !e.turno.principal, 'el burro no termina el turno');
   ({ g, e, pid, j, c } = prep('caballo'));
