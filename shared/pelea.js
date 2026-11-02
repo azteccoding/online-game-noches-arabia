@@ -163,7 +163,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   if (t) t.principal = true;
   const nurHonor = (j.pj === '1' || d.pj === '1') && ['El Cairo', 'Damasco', 'Aleppo'].includes(j.ciudad) && a.tipo === 'duelo';
   const pedirNur = j.pj === '1' && nurHonor ? { dinares: Math.max(0, Math.floor(a.pedirDinares || 0)), noches: Math.max(0, Math.floor(a.pedirNoches || 0)) } : null;
-  const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [] };
+  const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [], noRechazable: !!a.noRechazable };
   log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid });
   // Anís: «Por la ventana» (una vez por ronda; solo si el agresor es un jugador con acción principal)
   if (d.pj === '3' && d.extra.ventanaRonda !== e.ronda && a.tipo !== 'duelo') {
@@ -172,6 +172,40 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
     mostrarDados(e, { por: a.objetivo, motivo: 'ventana', grupos: [{ etq: `${d.nombre} escapa por la ventana (5 o 6)`, valores: [x] }], resumen: [x >= 5 ? `${d.nombre} escapa por el tejado: el agresor pierde su acción principal.` : `${d.nombre} no consigue escapar.`] });
     if (x >= 5) { log(e, `${d.nombre} escapa por la ventana.`); return terminarPelea(data, e, { cancelada: true }); }
   }
+  if (d.pj === 'B' && d.herido && d.dinares >= 50) return ofertaYafar(data, e);   // regla de la casa: Yafar herido puede pagar 50 para huir
+  return seguirAtaque(data, e);
+}
+
+// Yafar herido (jugador o NPC) puede ofrecer 50 dinares al retador para huir. Si no hay oferta, no hay fondos o el
+// retador no acepta, la pelea sigue exactamente igual que si la oferta no hubiera existido.
+function ofertaYafar(data, e) {
+  const P = e.pelea, j = e.jugadores[P.atk], d = e.jugadores[P.def];
+  if (d.npc) return preguntarRetador(data, e);
+  pedir(e, { tipo: 'defensa', para: [P.def], titulo: 'Estás herido', texto: `${j.nombre} ${AVISO_ATAQUE[P.tipo]} en ${P.ciudad}. Como estás herido, puedes ofrecerle 50 dinares para huir sin pelear; puede no aceptar.`,
+    opciones: [{ id: 'ofrecer', texto: 'Ofrecer 50 dinares para huir' }, { id: 'no', texto: 'No ofrecer: pelear' }], porDefecto: 'no', cont: { fn: 'pelea.yafarOfrece', args: {} } });
+  return ok();
+}
+registrar('pelea.yafarOfrece', (data, e, args, resp) => { if (resp.opcion === 'ofrecer') preguntarRetador(data, e); else seguirAtaque(data, e); });
+function preguntarRetador(data, e) {
+  const P = e.pelea, j = e.jugadores[P.atk], d = e.jugadores[P.def];
+  if (j.npc) return seguirAtaque(data, e);
+  pedir(e, { tipo: 'reto', para: [P.atk], titulo: 'Yafar ofrece 50 dinares', texto: `${d.nombre} está herido y te ofrece 50 dinares para huir sin pelear. Si aceptas, cobras y no hay pelea; si no, la pelea sigue normal.`,
+    opciones: [{ id: 'acepto', texto: 'Aceptar los 50 dinares' }, { id: 'no', texto: 'Rechazar y pelear' }], porDefecto: 'no', cont: { fn: 'pelea.retadorDecide', args: {} } });
+  return ok();
+}
+registrar('pelea.retadorDecide', (data, e, args, resp) => {
+  const P = e.pelea; if (!P) return;
+  const j = e.jugadores[P.atk], d = e.jugadores[P.def];
+  if (resp.opcion === 'acepto' && d.dinares >= 50) {
+    d.dinares -= 50; j.dinares += 50; log(e, `${d.nombre} paga 50 dinares a ${j.nombre} y huye herido, sin pelear.`, { pid: P.def });
+    return terminarPelea(data, e, { cancelada: true });
+  }
+  seguirAtaque(data, e);
+});
+
+function seguirAtaque(data, e) {
+  const P = e.pelea, j = e.jugadores[P.atk], d = e.jugadores[P.def];
+  const a = { tipo: P.tipo, objetivo: P.def, noRechazable: P.noRechazable }, pedirNur = P.pedirNur;
   if (d.npc) { elegirDefensa(data, e, { opcion: 'luchar' }); return ok(); }
   const op = [{ id: 'luchar', texto: 'Defenderme' }];
   if (a.tipo === 'robo' && tieneObj(d, 'OB23')) op.push({ id: 'amuleto', texto: 'Usar Amuleto de turquesa (cancela el robo)' });
