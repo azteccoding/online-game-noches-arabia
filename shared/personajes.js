@@ -134,7 +134,7 @@ export function accion(data, e, pid, a) {
       v.extra.difamadoRonda = v.extra.vergonzoso;
       const perdida = Math.min(v.noches, 10 * vivos(e));
       v.noches -= perdida; v.extra.sinComercioHasta = e.ronda + 1; t.principal = true;
-      log(e, `${j.nombre} canta versos sobre ${v.nombre}: pierde ${perdida} noches y nadie querrá comerciar con él durante 2 turnos.`, { pid });
+      log(e, `${j.nombre} canta versos sobre ${v.nombre}: pierde ${perdida} noches y nadie querrá comerciar con ${v.nombre} durante 2 turnos.`, { pid });
       return ok();
     }
     default: return err('Acción de personaje desconocida.');

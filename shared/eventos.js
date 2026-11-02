@@ -79,7 +79,7 @@ export function aplicarHistorico(data, e, id) {
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
     }); break;
     case 'H2': cola(humanosEn(e, ['Andalucía']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los cristianos toman Toledo', texto: 'Paga 20 dinares a un rey cristiano para quedarte o abandona al-Ándalus.',
-      opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme a Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
+      opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme al Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
     case 'H3': e.mods.premioDuelo = 30; break;
     case 'H4': {
       const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Bagdad']).filter((x) => !jug(e, x).npc));
@@ -169,7 +169,7 @@ registrar('ev.h2', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'quedar') { const r = pagar(data, e, pid, 20); if (r.debe > 0) mover(data, e, pid, 'Magreb', 0, 'es escoltado por un rey cristiano'); else log(e, `${j.nombre} paga 20 dinares y se queda en Andalucía.`, { pid }); return; }
   const t = tarifa(data, e, j, 'Andalucía', resp.opcion);
-  if (patrimonio(j) < t * 1) mover(data, e, pid, 'Magreb', 0, 'es escoltado a Magreb'); else mover(data, e, pid, resp.opcion, t, 'abandona al-Ándalus');
+  if (patrimonio(j) < t * 1) mover(data, e, pid, 'Magreb', 0, 'es escoltado al Magreb'); else mover(data, e, pid, resp.opcion, t, 'abandona al-Ándalus');
 });
 registrar('ev.h4', (data, e, args, resp) => {
   const ord = ordenadoPorTurno(e, Object.keys(resp).filter((k) => resp[k].opcion === 'si')), vistos = {};

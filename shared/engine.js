@@ -152,13 +152,13 @@ function cierreRonda(data, e) {
   if (ganan.length) {
     const npcId = ganan.find((id) => e.jugadores[id].npc);
     const hum = ganan.filter((id) => !e.jugadores[id].npc);
-    if (npcId && !hum.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a 1,001 noches primero: los jugadores pierden.'); return ok(); }
+    if (npcId && !hum.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega primero a las 1.001 noches: los jugadores pierden.'); return ok(); }
     if (npcId && Math.max(...hum.map((id) => e.jugadores[id].noches)) < e.jugadores[npcId].noches) {                  // R 2.4: si ambos llegan, gana quien tenga más noches; empate: ganan los jugadores
-      e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a 1,001 con más noches que los jugadores: los jugadores pierden.'); return ok();
+      e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1.001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
     }
     const g = hum;
     e.fase = 'fin'; e.ganadores = g; e.turno = null;
-    log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + ' alcanza(n) 1,001 noches.');
+    log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1.001 noches.');
     return ok();
   }
   const hv = humanosVivos(e);                                                                                // R 22.4: último jugador en pie
@@ -553,7 +553,7 @@ function responderTrato(data, e, pid, a) {
 function hostDar(e, a) {
   const j = e.jugadores[a.pid]; if (!j) return err('Jugador inexistente.');
   j.dinares += Math.floor(a.dinares || 0); j.noches += Math.floor(a.noches || 0);
-  log(e, `Banco: ${j.nombre} recibe ${a.dinares || 0} dinares y ${a.noches || 0} noches.`); return ok();
+  log(e, `El banco da a ${j.nombre} ${a.dinares || 0} dinares y ${a.noches || 0} noches.`); return ok();
 }
 function hostCorregir(e, a) {
   const j = e.jugadores[a.pid]; if (!j) return err('Jugador inexistente.');
@@ -561,7 +561,7 @@ function hostCorregir(e, a) {
   else if (['herido', 'perdido', 'destreza'].includes(a.campo)) j[a.campo] = !!a.valor;
   else if (a.campo === 'ciudad') { if (!ciudadDe({ ciudades: { ciudades: [] } }, 'x') && false) return err('x'); j.ciudad = String(a.valor); }
   else return err('Campo no corregible.');
-  log(e, `Banco corrige ${a.campo} de ${j.nombre}.`); return ok();
+  log(e, `El banco corrige ${a.campo} de ${j.nombre}.`); return ok();
 }
 function hostRepartir(data, e, a) {
   const j = e.jugadores[a.pid]; if (!j) return err('Jugador inexistente.');
@@ -576,7 +576,7 @@ function hostRepartir(data, e, a) {
     const id = robar(e, 'mensajes'); if (!id) return err('No quedan mensajes: cada uno sale una sola vez por partida.');
     j.mensaje = { id, turnoLimite: e.ronda + 3 }; publicarCarta(e, cartaDatos(data, 'mensaje', id), a.pid, [a.pid]);
   } else return err('Mazo no repartible.');
-  log(e, `Banco reparte una carta a ${j.nombre}.`); return ok();
+  log(e, `El banco reparte una carta a ${j.nombre}.`); return ok();
 }
 function hostBarajar(e, a) {
   if (!e.mazos) return err('No hay mazos.');
@@ -584,7 +584,7 @@ function hostBarajar(e, a) {
   if (['eventos', 'historicos', 'botin', 'ifrit'].includes(m)) { e.mazos[m] = barajar(e, e.mazos[m].concat(e.mazos.descarte[m] ? e.mazos.descarte[m].splice(0) : [])); }
   else if (m === 'mensajes') { barajar(e, e.mazos.mensajes); }
   else return err('Mazo inválido.');
-  log(e, `Banco baraja el mazo ${m}.`); return ok();
+  log(e, `El banco baraja el mazo ${m}.`); return ok();
 }
 function hostRevelar(data, e, a) {
   const tipo = a.mazo; if (!['evento', 'historico'].includes(tipo)) return err('Mazo inválido.');
