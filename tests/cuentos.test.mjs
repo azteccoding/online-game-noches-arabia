@@ -3,7 +3,11 @@ import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, vista, serializar, restaurar, sacarCuento } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
 
-const data = cargarDatos();
+const todos = cargarDatos();
+assert.equal(todos.cuentos.cuentos.length, 21, '7 originales + 14 nuevos');
+for (const clave of ['Bagdad', 'Isfahán', 'Aleppo', 'Damasco', 'Basra', 'El Cairo', 'Respuestas']) assert.equal(todos.cuentos.cuentos.filter((c) => c.clave === clave).length, 3, '3 cuentos en ' + clave);
+// Las pruebas de la regla 19.7 usan solo los 7 cuentos originales (uno por mazo) para que el resultado no dependa del azar.
+const data = { ...todos, cuentos: { ...todos.cuentos, cuentos: todos.cuentos.cuentos.filter((c) => !/\d$/.test(c.id)) } };
 assert.equal(data.cuentos.cuentos.length, 7);
 assert.equal(data.config.premioCuento, 2);
 
@@ -133,5 +137,18 @@ assert.equal(new Set(data.cuentos.cuentos.map((c) => c.id)).size, data.cuentos.c
     vistos.add(e.historial.find((h) => h.deck === 'cuento').titulo);
   }
   assert.equal(vistos.size, 2, 'salen los dos cuentos de Bagdad en distintas partidas');
+}
+// Con los datos reales (3 por mazo): cada mazo da uno solo y ningún cuento se repite en una partida, ni tras guardar y restaurar
+{
+  const claves = [...new Set(todos.cuentos.cuentos.map((c) => c.clave))];
+  const vistos = new Set();
+  for (let semilla = 1; semilla <= 200; semilla++) {
+    let e = nuevoJuego(todos, { semilla, ahora: 1000 }); const id = unir(e, { nombre: 'J', token: 't' });
+    for (const [k, clave] of claves.entries()) { if (k === 3) e = restaurar(serializar(e)); sacarCuento(todos, e, id, clave); sacarCuento(todos, e, id, clave); }
+    const t = e.historial.filter((h) => h.deck === 'cuento').map((h) => h.titulo);
+    assert.equal(t.length, claves.length, 'un cuento por mazo'); assert.equal(new Set(t).size, t.length, 'sin repetir');
+    t.forEach((x) => vistos.add(x));
+  }
+  assert.equal(vistos.size, 21, 'en 200 partidas salen los 21 cuentos');
 }
 console.log('cuentos OK');

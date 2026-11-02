@@ -69,6 +69,146 @@
    "arabe": "شهرزاد",
    "premio": 2,
    "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-B2",
+   "clave": "Bagdad",
+   "titulo": "El banquete del barmakí",
+   "sub": "Cuento de Bagdad · carta de ambiente",
+   "texto": "Un mendigo hambriento entra en la casa de un señor de los Barmakíes, que lo invita a comer… platos que no existen. «¡Prueba este cordero!», y no hay nada. El mendigo finge masticar con entusiasmo, hasta que «se emborracha» con el vino invisible y le da al anfitrión un bofetón muy real. Al barmakí le hace gracia y, desde ese día, lo sienta a su mesa de verdad. Con los poderosos, hasta el hambre es un juego.",
+   "arabe": "بغداد",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-B3",
+   "clave": "Bagdad",
+   "titulo": "La caída de los Barmakíes",
+   "sub": "Cuento de Bagdad · carta de ambiente",
+   "texto": "Durante diecisiete años Yahya y su hijo Ja'far gobernaron el imperio en nombre de Harún al-Rashid: nombraban gobernadores, repartían cargos entre los suyos y vivían con más lujo que el califa. En el año 803 Harún mandó ejecutar a Ja'far y encarcelar a la familia. Las crónicas discuten el motivo; la leyenda de un amor secreto con la hermana del califa, Ibn Jaldún la tacha de invento. Quien guarda la llave del tesoro suele olvidar de quién es la casa.",
+   "arabe": "بغداد",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-I2",
+   "clave": "Isfahán",
+   "titulo": "El príncipe de mármol",
+   "sub": "Cuento de Isfahán · carta de ambiente",
+   "texto": "Un pescador encuentra un palacio donde un príncipe está convertido en piedra de la cintura para abajo. Lo hechizó su esposa, que de magia sabía mucho y de paciencia nada. El sultán rompe el encantamiento y el príncipe vuelve a caminar. Mejor no hacer enojar a quien conoce los conjuros.",
+   "arabe": "أصفهان",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-I3",
+   "clave": "Isfahán",
+   "titulo": "La clara de huevo",
+   "sub": "Cuento de Isfahán · carta de ambiente",
+   "texto": "Un hombre se enamora de una mujer casta y casada, y como no logra nada con ella, soborna al muchacho de la casa y vierte una clara de huevo en la cama del marido. El marido la toma por prueba de infidelidad, golpea a su esposa y está a punto de degollarla. Los vecinos acuden, uno fríe la clara al fuego y todos la prueban: era solo huevo. El marido pide perdón y hacen las paces. A veces la mejor prueba de inocencia cabe en una sartén.",
+   "arabe": "أصفهان",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-A2",
+   "clave": "Aleppo",
+   "titulo": "El mercader y el genio",
+   "sub": "Cuento de Aleppo · carta de ambiente",
+   "texto": "Un mercader come dátiles en el camino y tira los huesos. Uno golpea al hijo invisible de un genio, que exige venganza. Tres ancianos que pasaban por ahí cuentan historias tan buenas que el genio perdona al mercader a cambio del final de cada una. A veces una buena historia vale más que una bolsa de oro.",
+   "arabe": "حلب",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-A3",
+   "clave": "Aleppo",
+   "titulo": "La carta falsificada",
+   "sub": "Cuento de Aleppo · carta de ambiente",
+   "texto": "Un hombre sin fortuna falsifica una carta de recomendación de Yahya el Barmakí y la presenta a un gobernador, que lo colma de regalos. Cuando descubren el engaño, Yahya no lo castiga: dice que la carta ya es auténtica y le da todavía más. Generosidad para unos; para otros, la prueba de que en la corte todo dependía de la firma de un Barmakí.",
+   "arabe": "حلب",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-D2",
+   "clave": "Damasco",
+   "titulo": "Las tres manzanas",
+   "sub": "Cuento de Damasco · carta de ambiente",
+   "texto": "Harún encuentra en el Tigris un cofre con un terrible secreto y da tres días a Ja'far el Barmakí para hallar al culpable, o lo colgará a él. Todo empezó con una manzana que un esclavo le quitó a un niño y una mentira contada a la ligera. Ja'far salva el cuello en el último momento. En la corte de Bagdad, el visir siempre paga los platos rotos.",
+   "arabe": "دمشق",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-D3",
+   "clave": "Damasco",
+   "titulo": "El velo quemado",
+   "sub": "Cuento de Damasco · carta de ambiente",
+   "texto": "Un joven rico se encapricha de la esposa de un mercader de Bagdad y paga a una vieja muy devota para que lo ayude. Ella le hace comprar el velo más caro de la tienda del marido, le quema una punta y lo esconde bajo la almohada de la esposa: el mercader lo encuentra, cree lo peor y la manda con su madre. Cuando el joven ya se ha salido con la suya, la vieja arma un escándalo en el mercado para que el marido crea que el velo se perdió al llevarlo a remendar; él pide perdón y recupera a su esposa sin enterarse de nada. En el bazar de Bagdad, hasta las intrigas se tejen con el rosario en la mano.",
+   "arabe": "دمشق",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-S2",
+   "clave": "Basra",
+   "titulo": "El viejo del mar",
+   "sub": "Cuento de Basra · carta de ambiente",
+   "texto": "En su quinto viaje, Simbad ayuda a un anciano a cruzar un arroyo cargándolo en hombros… y el viejo ya no se baja. Lo monta día y noche como a un burro, hasta que Simbad lo emborracha con vino de calabaza y se lo quita de encima. Hay socios que, una vez arriba, no se bajan nunca.",
+   "arabe": "البصرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-S3",
+   "clave": "Basra",
+   "titulo": "Hasan el orfebre",
+   "sub": "Cuento de Basra · carta de ambiente",
+   "texto": "Hasan, un orfebre de Basra, se deja engañar por un alquimista persa que promete convertir el cobre en oro. Termina en una isla lejana, se casa con una princesa de los genios y vuelve a casa con más aventuras que joyas. La codicia lleva lejos; regresar cuesta más.",
+   "arabe": "البصرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-C2",
+   "clave": "El Cairo",
+   "titulo": "Ma'ruf el zapatero",
+   "sub": "Cuento de El Cairo · carta de ambiente",
+   "texto": "Ma'ruf huye de su esposa y llega a una ciudad lejana, donde se hace pasar por un gran mercader cuya caravana «está por llegar». Pide prestado a todos y nadie se atreve a cobrarle. Un anillo mágico hace que la caravana llegue de verdad. Con buena labia y algo de suerte, hasta las deudas se vuelven ganancias.",
+   "arabe": "القاهرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-C3",
+   "clave": "El Cairo",
+   "titulo": "El sueño del hombre de El Cairo",
+   "sub": "Cuento de El Cairo · carta de ambiente",
+   "texto": "Un hombre arruinado sueña que en Bagdad lo espera un tesoro. Viaja hasta allá, lo arrestan, y el jefe de la guardia se ríe: «Yo soñé con un tesoro enterrado en una casa de El Cairo». Era la casa del viajero. A veces hay que dar la vuelta al mundo para encontrar lo que estaba en casa.",
+   "arabe": "القاهرة",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-R2",
+   "clave": "Respuestas",
+   "titulo": "Dunyazad, la hermana menor",
+   "sub": "Cuento de las Respuestas · carta de ambiente",
+   "texto": "Cada noche, Dunyazad pide a su hermana: «Cuéntanos una historia». Sin esa pregunta a tiempo, Scheherezade no habría empezado nunca. Detrás de cada gran narradora hay alguien que sabe preguntar en el momento justo.",
+   "arabe": "شهرزاد",
+   "premio": 2,
+   "refReglamento": "19.7"
+  },
+  {
+   "id": "CU-R3",
+   "clave": "Respuestas",
+   "titulo": "El mercader que entendía a los animales",
+   "sub": "Cuento de las Respuestas · carta de ambiente",
+   "texto": "Un mercader recibe el don de entender a los animales, con una condición: si cuenta lo que oye, muere. Se ríe de lo que dicen el buey y el asno, y su esposa exige saber por qué. Un gallo le da la respuesta: no hay que contar todo lo que uno sabe. El visir le contó este cuento a su hija Scheherezade para que no se casara con el sultán; ella no le hizo caso.",
+   "arabe": "شهرزاد",
+   "premio": 2,
+   "refReglamento": "19.7"
   }
  ],
  "premioLector": 2,
