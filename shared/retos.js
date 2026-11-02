@@ -448,7 +448,7 @@ T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 
   const j = e.jugadores[pid]; j.dinares -= 15;
   const carga = [0, 1, 2].map(() => ({ uid: darItem(e, j, 'sal').uid }));
   const [x] = ctx.t(`${j.nombre}: caravana de la sal`, 1);
-  if (x <= 2 && tieneItem(j, 'bendicionAbuMadyan')) { ctx.say('Asoman bandoleros, pero la bendición de Abu Madyan protege la caravana: pasan de largo.'); nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); }
+  if (x <= 2 && tieneItem(j, 'bendicionAbuMadyan')) { quitarPrimero(j, 'item', 'bendicionAbuMadyan'); ctx.say('Asoman bandoleros, pero la bendición de Abu Madyan protege la caravana: pasan de largo (la bendición se gasta).'); nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); }
   else if (x <= 2) {
     ctx.say('Bandoleros asaltan la caravana.');
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R23 · Bandoleros', texto: 'Pelea (ellos tiran 2 dados con 1 de ventaja) o pierdes un saco.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'saco', texto: 'Perder un saco' }], porDefecto: 'saco', cont: { fn: 'r23.banditos', args: { carga } } });
@@ -467,7 +467,7 @@ T.R26 = { ciudad: 'Andalucía', req: (data, e) => (activos(e).some((x) => e.juga
   const j = e.jugadores[pid]; hacer(e, pid, 'R26');
   const r = zeinTirada(data, e, ctx, pid);
   const bendito = !r.salvo && j.pj !== '3' && tieneItem(j, 'bendicionAbuMadyan');
-  if (bendito) ctx.say('El esposo llega a la Giralda, pero la bendición de Abu Madyan lo aparta: no los sorprende.');
+  if (bendito) { quitarPrimero(j, 'item', 'bendicionAbuMadyan'); ctx.say('El esposo llega a la Giralda, pero la bendición de Abu Madyan lo aparta: no los sorprende (la bendición se gasta).'); }
   if (r.salvo || j.pj === '3' || bendito) { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); if (!bendito) ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
   else {
     ctx.say('El esposo los sorprende.'); ctx.fin(); ctx.grupos = []; ctx.res = [];

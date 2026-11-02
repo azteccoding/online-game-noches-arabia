@@ -287,7 +287,7 @@ function forzar(e, ...valores) {
   assert.ok(!e.pend || !/Bandoleros/.test(e.pend.titulo), 'sin pelea con los bandoleros');
   assert.ok(e.log.some((l) => /bendición de Abu Madyan protege la caravana/.test(l.texto)));
   assert.equal(A.mano.filter((c) => c.ref === 'sal').length, 3, 'conserva los 3 sacos');
-  assert.ok(tieneItem(A, 'bendicionAbuMadyan'), 'no se gasta');
+  assert.ok(!tieneItem(A, 'bendicionAbuMadyan'), 'sirve una sola vez: se gasta al proteger');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
