@@ -60,6 +60,9 @@ function Juego({ lienzo }) {
   // El panel de Acciones se cierra solo al viajar, al usar la acción principal o al comprar/vender; se vuelve a abrir a mano.
   const huellaAcc = s?.jugadores?.[s.yo] ? `${s.jugadores[s.yo].ciudad}|${s.turno?.principal}|${s.jugadores[s.yo].dinares}|${s.mano?.length}` : '';
   const huellaPrev = useRef(huellaAcc);
+  // Cuando salen dados se cierran los paneles abiertos (Acciones, Mercado, Mano…) para que se vea la tirada.
+  const idDados = s?.dados?.id;
+  useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
   useEffect(() => {
     if (huellaPrev.current !== huellaAcc && panel === 'acciones') setPanel(null);
     huellaPrev.current = huellaAcc;

@@ -6,7 +6,8 @@ import '../styles/board.css';
 
 const W = tablero.width, H = tablero.height;
 let mapaPromesa = null;
-const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r) => r.text()).then((t) => t.replace('<svg ', `<svg x="0" y="0" width="${W}" height="${H}" `)));
+// Los glifos del mapa (id g1, g2…) se renombran: los sprites de personajes, incrustados en la misma página, también usan g1…g7 y tapaban letras.
+const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r) => r.text()).then((t) => t.replace(/id="g(\d+)"/g, 'id="mapa-g$1"').replace(/href="#g(\d+)"/g, 'href="#mapa-g$1"').replace('<svg ', `<svg x="0" y="0" width="${W}" height="${H}" `)));
 
 const Digitos = ({ g }) => g.map(([d, x], i) => <path key={i} d={tablero.glifos[d]} transform={`translate(${x},0)`} />);
 
