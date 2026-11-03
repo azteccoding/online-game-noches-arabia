@@ -59,6 +59,7 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | ☐ 51 | **India sin caballo ni camello**: ni el caballo ni el camello van a India ni salen de allí (tampoco para huir al Jorasán; desde India, solo en burro). A India se llega en caravana o en alfombra. En Acciones, la opción aparece deshabilitada con el motivo. | (este commit) | Reglamento 7.1 y tabla de objetos originales; hoja resumen | O1, O2 |
 | ☐ 52 | **Tope de 1,001 noches**: nadie puede tener más de 1,001 noches; lo que pase de ahí se pierde (se avisa en el registro). Consecuencia: si Yafar NPC y un jugador llegan en la misma ronda, quedan empatados en 1,001 y el empate es de los jugadores (R 2.4), así que Yafar NPC solo gana si llega él solo primero. | (este commit) | Reglamento 2.3 y 2.4; hoja resumen | — |
 | ✔ 53 | **Fin de partida**: con el tablero a la vista, un botón fijo «Volver al resultado · Nueva partida» (arriba al centro) regresa a la pantalla final. | (este commit) | — | — |
+| ☐ 54 | **R12 y R13 con noches** (sin multiplicar por ronda; dinares igual): R12 piratas, +60 noches si ganas y +20 si pierdes; R13 gigante, +80 si ganas y +20 si pierdes. | (este commit) | Reglamento 14.4 (tabla) | R12, R13 |
 
 ## Estado
 Aplicado el 3 de noviembre de 2026 (respaldo previo en `respaldo-antes-de-cambios-2026-11-03/`):

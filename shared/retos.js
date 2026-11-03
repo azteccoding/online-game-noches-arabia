@@ -357,14 +357,15 @@ T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
 } };
 T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ? null : 'Debes haber completado R11.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R12');
-  if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 0 })) premio(data, e, pid, { dinares: 120 }, 'Vences a los piratas:');
-  else { pagar(data, e, pid, 60); j.herido = true; log(e, `${j.nombre} pierde ante los piratas.`, { pid }); }
+  // Regla de la casa (noviembre de 2026): noches por la historia, sin multiplicar por ronda.
+  if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 0 })) premio(data, e, pid, { dinares: 120, noches: 60 }, 'Vences a los piratas:');
+  else { pagar(data, e, pid, 60); j.herido = true; j.noches += 20; log(e, `${j.nombre} pierde ante los piratas y queda herido, pero gana 20 noches por la historia.`, { pid }); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
 T.R13 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R12') ? null : 'Debes haber completado R12.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R13');
-  if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150 }, 'Vences al gigante:');
-  else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'arco', 'jambiya'].find((r) => tieneItem(j, r)); if (arma) quitarPrimero(j, 'item', arma); log(e, `${j.nombre} pierde ante el gigante y su arma.`, { pid }); }
+  if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150, noches: 80 }, 'Vences al gigante:');
+  else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'arco', 'jambiya'].find((r) => tieneItem(j, r)); if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
 T.R14 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R13') ? null : 'Debes haber completado R13.'), run(data, e, pid, ctx) {

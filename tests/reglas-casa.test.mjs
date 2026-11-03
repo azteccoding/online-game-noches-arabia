@@ -464,6 +464,25 @@ function avanzarHasta(g, cond, pasos = 400) {
   const ult = e.log.filter((l) => l.saldo && l.pid === a).pop(); assert.equal(ult.saldo.dn, 11, 'el saldo anota +11');
 }
 
+// R12 y R13 (Sindbad): noches por la historia, sin multiplicar por ronda (R12: +60 / +20; R13: +80 / +20)
+{
+  for (const [rid, prev, gana, pierde, din] of [['R12', ['R11'], 60, 20, 120], ['R13', ['R11', 'R12'], 80, 20, 150]]) {
+    const vistos = new Set();
+    for (let sem = 1; sem <= 40 && vistos.size < 2; sem++) {
+      const g = partida(['4', '7'], {}, sem); assert.ok(g.iniciar().ok);
+      const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+      turnoDe(e, pid, 'India'); j.ciudad = 'India'; e.ronda = 8; j.retosHechos.push(...prev); j.noches = 100; j.dinares = 200; j.mano = j.mano.filter((c) => c.ref !== 'arco');
+      const L = e.log.length;
+      assert.ok(g.act(pid, { t: 'reto', id: rid }).ok);
+      const gano = e.log.slice(L).some((l) => /Vences/.test(l.texto)); vistos.add(gano);
+      const extra = j.noches - 100 - (gano ? gana : pierde);
+      assert.ok(extra >= 0 && extra <= 60, `${rid} ${gano ? 'gana' : 'pierde'}: noches ${j.noches - 100} (más la llegada a Basra)`);
+      if (gano) assert.ok(j.dinares - 200 >= din, `${rid}: dinares sin cambio`);
+    }
+    assert.equal(vistos.size, 2, rid + ': se probaron los dos resultados');
+  }
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
