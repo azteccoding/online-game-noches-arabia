@@ -192,6 +192,7 @@ function cierreRonda(data, e) {
   EVE.finRonda(data, e);
   NPC.finRonda(data, e);
   for (const id of activos(e)) { const j = e.jugadores[id]; if (j.buscado > 0) j.buscado--; if (j.extra.bajoTecho && j.extra.techoRonda !== e.ronda) j.extra.bajoTecho = false; }
+  topeNoches(e, data.config.meta);
   const ganan = activos(e).filter((id) => e.jugadores[id].noches >= data.config.meta);                         // R 2.3, 2.4, 20.6 (regla de la casa: solo cuentan las noches)
   if (ganan.length) {
     const npcId = ganan.find((id) => e.jugadores[id].npc);
@@ -354,8 +355,14 @@ const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'c
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
 const saldos = (e) => Object.fromEntries(Object.values(e.jugadores).map((j) => [j.id, [j.dinares, j.noches]]));
 const fmt = (n) => n.toLocaleString('es-MX');
-function anotarSaldos(e, antes) {
+// Regla de la casa: nadie tiene más de 1,001 noches (la meta). Se aplica al cerrar cada acción o tick, antes del libro de saldos,
+// y antes de comprobar la victoria al cierre de la ronda.
+function topeNoches(e, meta) {
+  for (const j of Object.values(e.jugadores)) if (j.pj && j.noches > meta) { j.noches = meta; log(e, `${j.nombre} llega al tope de ${fmt(meta)} noches: lo que pase de ahí no cuenta.`, { pid: j.id }); }
+}
+function anotarSaldos(e, antes, data) {
   if (!antes || e.fase === 'lobby') return;
+  if (data) topeNoches(e, data.config.meta);
   for (const j of Object.values(e.jugadores)) {
     const a = antes[j.id]; if (!a || !j.pj) continue;
     const dd = j.dinares - a[0], dn = j.noches - a[1];
@@ -367,7 +374,7 @@ function anotarSaldos(e, antes) {
 }
 export function reducir(data, e, pid, a, ahora = Date.now()) {
   const antes = saldos(e);
-  try { return reducir0(data, e, pid, a, ahora); } finally { anotarSaldos(e, antes); }
+  try { return reducir0(data, e, pid, a, ahora); } finally { anotarSaldos(e, antes, data); }
 }
 function reducir0(data, e, pid, a, ahora) {
   e.ahora = ahora;
@@ -986,7 +993,7 @@ function reiniciar(data, e) {
 // ---------------------------------------------------------------- reloj del servidor (cada segundo)
 export function tick(data, e, ahora = Date.now()) {
   const antes = saldos(e);
-  try { return tick0(data, e, ahora); } finally { anotarSaldos(e, antes); }
+  try { return tick0(data, e, ahora); } finally { anotarSaldos(e, antes, data); }
 }
 function tick0(data, e, ahora) {
   e.ahora = ahora;

@@ -250,6 +250,8 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .peon.npc .sombra-peon { fill: rgba(60, 0, 0, .55); }
 .peon.camino { opacity: .7; }
 .flotante { position: absolute; z-index: 22; right: 10px; bottom: 10px; }
+/* Tras el fin de la partida, con el tablero a la vista: siempre arriba y al centro, por encima de paneles y botones flotantes. */
+.volver-fin { position: fixed; top: calc(var(--barra-alto) + 10px); left: 50%; transform: translateX(-50%); z-index: 96; box-shadow: var(--sombra); max-width: calc(100vw - 120px); }
 .lienzo[data-forma='alta'] .barra { height: auto; min-height: var(--barra-alto); flex-wrap: wrap; padding: 4px 8px; row-gap: 4px; }
 .lienzo[data-forma='alta'] .barra-izq { flex: 1 1 100%; flex-wrap: wrap; }
 .lienzo[data-forma='alta'] .barra-der { flex: 1 1 100%; justify-content: space-between; }

@@ -453,6 +453,17 @@ function avanzarHasta(g, cond, pasos = 400) {
   void nb; void n2;
 }
 
+// Tope de 1,001 noches: nadie pasa de la meta, y el libro de saldos anota el valor ya topado
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, j = e.jugadores[a];
+  j.noches = 990; turnoDe(e, a, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50;
+  assert.ok(g.act(a, { t: 'reto', id: 'R18' }).ok);
+  assert.equal(j.noches, 1001, 'entrenar con 990 noches deja 1,001, no 1,040');
+  assert.ok(e.log.some((l) => /tope de 1,001 noches/.test(l.texto)), 'se avisa del tope');
+  const ult = e.log.filter((l) => l.saldo && l.pid === a).pop(); assert.equal(ult.saldo.dn, 11, 'el saldo anota +11');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

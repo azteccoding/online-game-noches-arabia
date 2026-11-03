@@ -222,7 +222,7 @@ const sinMensaje = (j) => { j.mensaje = null; };
   const g = partida(['4']); const { e } = g; g.listos();
   e.jugadores.npc.noches = 1400; e.jugadores[g.ids[0]].noches = 1001;
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]); g.cerrar(p);
-  assert.equal(e.fase, 'fin'); assert.equal(e.derrota, 'npc'); assert.deepEqual(e.ganadores, [], 'si ambos llegan y Yafar NPC tiene más noches: pierden los jugadores');
+  assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [g.ids[0]], 'regla de la casa (tope de 1,001): si ambos llegan en la misma ronda quedan empatados en 1,001 y el empate es de los jugadores');
 }
 
 // ---------------------------------------------------------------- cimitarra: +2 de arma y +2 propio al atacar (decisión pro-jugador de Jorge)

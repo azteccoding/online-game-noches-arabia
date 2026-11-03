@@ -122,11 +122,11 @@ function Juego({ lienzo }) {
         {panel === 'acerca' && <AcercaDe onCerrar={cerrar} />}
         {s.fase !== 'fin' && <Decision s={s} />}
         {s.fase === 'juego' && <VotoReinicio s={s} />}
-        {s.fase === 'fin' && !verFin && <button className="btn flotante" onClick={() => setVerFin(true)}>Ver resultado</button>}
       </main>
       <PanelAcciones s={s} abrir={abrir} panel={panel} />
       <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} />
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
+      {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {s.fase === 'juego' && (() => {
         const fuera = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.npc && !j.eliminado && j.conectado === false && j.id !== s.yo);

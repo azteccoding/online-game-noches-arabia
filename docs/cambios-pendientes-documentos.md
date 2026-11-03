@@ -57,6 +57,8 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | ✔ 49 | **R11 Sindbad**: bien, 100 dinares y 50 noches; naufragio, 0 dinares, 30 noches y pierdes tu siguiente turno (ya no pierdes noches). Llegas gratis a Basra. | b34b6d2 | Reglamento 14.4 (tabla) | R11 |
 | ✔ 50 | **Carta especial S1 «Te presentan ante Saladino»**: una vez por partida, a la vista de todos, cuando jugadores humanos ya visitaron Aleppo y Damasco (Yafar NPC no cuenta; Yafar jugador sí). Cada jugador vivo recibe 10 dinares y 50 noches; Yafar NPC nada. | b34b6d2, da78e78 | Reglamento 17.1; guía; diseño; hoja resumen | Carta nueva S1 |
 | ☐ 51 | **India sin caballo ni camello**: ni el caballo ni el camello van a India ni salen de allí (tampoco para huir al Jorasán; desde India, solo en burro). A India se llega en caravana o en alfombra. En Acciones, la opción aparece deshabilitada con el motivo. | (este commit) | Reglamento 7.1 y tabla de objetos originales; hoja resumen | O1, O2 |
+| ☐ 52 | **Tope de 1,001 noches**: nadie puede tener más de 1,001 noches; lo que pase de ahí se pierde (se avisa en el registro). Consecuencia: si Yafar NPC y un jugador llegan en la misma ronda, quedan empatados en 1,001 y el empate es de los jugadores (R 2.4), así que Yafar NPC solo gana si llega él solo primero. | (este commit) | Reglamento 2.3 y 2.4; hoja resumen | — |
+| ✔ 53 | **Fin de partida**: con el tablero a la vista, un botón fijo «Volver al resultado · Nueva partida» (arriba al centro) regresa a la pantalla final. | (este commit) | — | — |
 
 ## Estado
 Aplicado el 3 de noviembre de 2026 (respaldo previo en `respaldo-antes-de-cambios-2026-11-03/`):
