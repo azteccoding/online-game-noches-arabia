@@ -258,7 +258,7 @@ export function eventoAsesinos(data, e) {
   const para = hum.filter((x) => e.jugadores[x].dinares >= min);
   e.asesinos.evento = { probable };
   if (!para.length) return sinPuja(data, e, probable);
-  pedir(e, { tipo: 'subasta', para, modo: 'todos', titulo: 'Los Asesinos llegan a la ciudad', texto: `Se subasta su contrato en secreto (mínimo ${min} dinares). El mejor postor elige a la víctima; los Asesinos no fallan. Víctima probable si nadie puja: ${nombre(e, probable)}.`,
+  pedir(e, { tipo: 'subasta', para, modo: 'todos', titulo: 'Los Asesinos ofrecen sus servicios', texto: `¿Quieres pagar para mandarlos contra alguien? Gana la puja más alta (mínimo ${min} dinares), elige a la víctima y paga su puja + 30 por cada punto del dado de la víctima (si no le alcanza, paga todo lo que tenga). Los Asesinos no fallan; quien gane queda Buscado y toda la mesa lo sabrá. Si nadie puja, irán a buscar a ${nombre(e, probable)}, que podrá escapar herido con 3 a 6.`,
     opciones: [{ id: '0', texto: 'No pujar' }, ...Array.from({ length: 6 }, (_, k) => ({ id: String(min + 20 * k), texto: `Pujar ${min + 20 * k} dinares` }))], porDefecto: '0', limiteMs: 60000, cont: { fn: 'npc.subasta', args: { probable, min } } });
 }
 registrar('npc.subasta', (data, e, args, resp) => {
@@ -278,8 +278,9 @@ registrar('npc.victimaE1', (data, e, args, resp) => {
   if (!e.jugadores[v] || e.jugadores[v].eliminado || e.asesinos.actuaron) return;
   const d = dado(e);
   mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima (cuanto más alto, más caro le sale a ${nombre(e, resp.pid)} mandarte matar)`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 dinares.`] });
-  const total = args.puja + 30 * d;
-  if (e.jugadores[resp.pid].dinares < total) { log(e, `${nombre(e, resp.pid)} no tiene los ${total} dinares del precio final: los Asesinos rompen el trato.`, { pid: resp.pid, aviso: true }); return sinPuja(data, e, args.probable && !e.jugadores[args.probable]?.eliminado ? args.probable : v); }
+  // Regla de la casa: si el precio final pasa de lo que tiene, paga todos sus dinares (nunca menos que su puja) y el trato sigue.
+  const tiene = Math.max(0, e.jugadores[resp.pid].dinares), total = Math.max(args.puja, Math.min(args.puja + 30 * d, tiene));
+  if (total < args.puja + 30 * d) log(e, `A ${nombre(e, resp.pid)} no le alcanza el precio completo (${args.puja + 30 * d}): los Asesinos se conforman con todo lo que tiene, ${total} dinares.`, { pid: resp.pid });
   firmar(data, e, resp.pid, v, total, {});
 });
 function sinPuja(data, e, probable) {

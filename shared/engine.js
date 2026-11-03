@@ -244,7 +244,8 @@ export function avanzar(data, e) {
     if (e.fase !== 'juego') return;
     if (e.pend) {
       const falta = e.pend.para.filter((x) => !e.pend.resp[x]);
-      if (falta.every((x) => !e.jugadores[x] || e.jugadores[x].eliminado || e.jugadores[x].npc)) { vencerPend(data, e, Infinity); continue; }
+      const ausente = (x) => !e.jugadores[x] || e.jugadores[x].eliminado || e.jugadores[x].npc || (e.pend.tipo === 'subasta' && e.jugadores[x].conectado === false);   // en la subasta, quien está desconectado no puja
+      if (falta.every(ausente)) { vencerPend(data, e, Infinity); continue; }
       return;
     }
     if (ultimoEnPie(e)) return;
@@ -824,7 +825,8 @@ export function vista(data, e, pid) {
   const esAnf = e.host === pid;
   const p = e.pend;
   const pend = p && { id: p.id, tipo: p.tipo, titulo: p.titulo, texto: p.texto, modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
-    opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid) };
+    opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid),
+    subasta: p.tipo === 'subasta' ? { mejor: Math.max(0, ...Object.values(p.resp).map((r) => Number(r.opcion || 0))), pujas: Object.values(p.resp).filter((r) => Number(r.opcion) > 0).length, minimo: p.cont?.args?.min } : undefined };
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),

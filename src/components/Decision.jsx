@@ -24,7 +24,7 @@ export default function Decision({ s }) {
   if (!p) return null;
   const nombres = (ids) => ids.map((x) => s.jugadores[x]?.nombre || x).join(', ');
   if (!p.mia || p.respondiste) {
-    return <div className="espera-pend" role="status">{p.respondiste ? 'Respuesta enviada. ' : ''}Esperando a {nombres(p.faltan)} · {p.titulo}</div>;
+    return <div className="espera-pend" role="status">{p.respondiste ? 'Respuesta enviada. ' : ''}Esperando a {nombres(p.faltan)} · {p.titulo}{p.subasta ? ` · puja más alta: ${p.subasta.mejor || 'ninguna'} · quedan ${resta} s` : ''}</div>;
   }
   const responder = (r) => enviar(ACCIONES.decidir(p.id, r));
   const pct = Math.min(100, Math.max(0, (resta / (p.limiteMs / 1000)) * 100));
@@ -34,6 +34,7 @@ export default function Decision({ s }) {
       <div className="panel decision">
         <h2>{p.titulo}</h2>
         {p.texto && <p className="decision-texto">{p.texto}</p>}
+        {p.subasta && <p className="it"><b>{p.subasta.mejor ? `Puja más alta por ahora: ${p.subasta.mejor} dinares` : 'Nadie ha pujado todavía'}</b> · tienes {s.jugadores[s.yo]?.dinares} dinares (no puedes pujar más de lo que tienes).</p>}
         {p.para.length > 1 && <p className="it">Deciden: {nombres(p.para)}{p.faltan.length ? ` · faltan ${nombres(p.faltan)}` : ''}</p>}
         {p.modo === 'multi' ? (
           <>
@@ -62,7 +63,7 @@ export default function Decision({ s }) {
           </>
         ) : (
           <div className="decision-botones">
-            {p.opciones.map((o) => <button key={o.id} className="btn" disabled={o.desactivada} onClick={() => responder({ opcion: o.id })}>{o.texto}</button>)}
+            {p.opciones.map((o) => <button key={o.id} className="btn" disabled={o.desactivada || (p.tipo === 'subasta' && Number(o.id) > (s.jugadores[s.yo]?.dinares ?? 0))} onClick={() => responder({ opcion: o.id })}>{o.texto}</button>)}
           </div>
         )}
         <div className="barra-decision" aria-hidden="true"><i style={{ width: pct + '%' }} /></div>
