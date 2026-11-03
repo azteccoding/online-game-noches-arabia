@@ -305,7 +305,9 @@ function enJuego(data, e, tipo, A, D, pedirNur) {
   const mitad = (x) => Math.max(0, Math.floor(x.dinares / 2)), n = data.config.duelo.nochesPerdedor;
   if (tipo === 'duelo') {
     const rechazo = pedirNur ? `${pedirNur.dinares} dinares y ${pedirNur.noches} noches` : `${data.config.duelo.rechazo} dinares`;
-    return `Si ganas recibes ${mitad(A)} dinares y ${Math.min(n, A.noches)} noches de ${A.nombre}; si pierdes entregas ${mitad(D)} dinares y ${Math.min(n, D.noches)} noches y quedas herido. Rechazar cuesta ${rechazo}. `;
+    const gana = A.herido ? `${A.nombre} está herido: si ganas tú, muere y recibes su botín` : `Si ganas recibes ${mitad(A)} dinares y ${Math.min(n, A.noches)} noches de ${A.nombre}`;
+    const pierde = D.herido ? 'estás herido: si pierdes este duelo, mueres' : `si pierdes entregas ${mitad(D)} dinares y ${Math.min(n, D.noches)} noches y quedas herido`;
+    return `${gana}; ${pierde}. Rechazar cuesta ${rechazo}. `;
   }
   if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas; si fracasa no pierdes nada. `;
   return `Golpe de gracia: si gana por 3 o más mueres; por 1 o 2 quedas herido; empate, heridos los dos. Si ganas tú por 3 o más, muere ${A.nombre} y recibes su botín. `;
@@ -419,7 +421,8 @@ function consecuencia(e, P, ganaAtk, numeroOk, cat) {
   const nA = nombre(e, P.atk), nD = nombre(e, P.def), sinArmas = cat === 'A' || cat === 'B';
   if (P.tipo === 'robo') return ganaAtk ? `${nA} le roba a ${nD} sus dinares y sus cartas.` : `${nA} no se lleva nada${sinArmas && numeroOk ? ' y queda herido' : ''}.`;
   if (P.tipo === 'matar') return ganaAtk ? `${nD} muere a manos de ${nA}.` : numeroOk ? `${nD} se salva a pedradas y ${nA} queda herido.` : `${nA} muere en el intento.`;
-  return `${ganaAtk ? nD : nA} pierde el duelo: entrega la mitad de sus dinares y 30 noches y queda herido.`;
+  const perd = e.jugadores[ganaAtk ? P.def : P.atk];
+  return perd.herido ? `${perd.nombre} pierde el duelo estando herido: muere.` : `${perd.nombre} pierde el duelo: entrega la mitad de sus dinares y 30 noches y queda herido.`;
 }
 function resolver(data, e, { numeros }) {
   const P = e.pelea; if (!P) return;
@@ -501,6 +504,11 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
 // R 11.6: el perdedor entrega la mitad de sus dinares (hacia abajo) y 30 noches (o todas) y queda herido.
 export function duelo(data, e, ganador, perdedor, P = {}) {
   const G = e.jugadores[ganador], L = e.jugadores[perdedor];
+  if (L.herido) {                                                             // regla de la casa: quien pierde un duelo estando herido, muere
+    log(e, `${L.nombre} ya estaba herido y pierde el duelo: muere a manos de ${G.nombre}.`, { pid: ganador, aviso: true });
+    eliminar(data, e, perdedor, { por: ganador, causa: 'murió en duelo estando herido' });
+    return;
+  }
   const nur = P.nur || (['1'].includes(G.pj) || L.pj === '1') && ['El Cairo', 'Damasco', 'Aleppo'].includes(G.ciudad);
   let din, noc;
   if (nur && G.pj === '1') { din = Math.max(0, Math.floor(L.dinares / 2)); noc = L.noches; }

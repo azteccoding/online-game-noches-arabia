@@ -86,7 +86,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         case 'tirarDados': a = { t: 'tirarDados' }; break;
         case 'cc': { const cc = t.ccActual; a = cc?.tipo === 'trivia' ? { t: 'responderCC', opcion: Math.floor(R() * (data.trivias.trivias.find((x) => x.id === cc.id)?.opciones.length || 3)) } : { t: 'resolverMesa', ok: R() < 0.5 }; break; }
         case 'viajar': a = { t: 'viajar', destino: elegida.destino }; if (e.jugadores[pid].pj === '6' && R() < 0.3) a.servicios = true; break;
-        case 'atacar': a = { t: 'atacar', tipo: elegida.tipo, objetivo: pick(elegida.objetivos), pedirDinares: 5, pedirNoches: 0 }; break;
+        case 'atacar': a = elegida.tipo === 'duelo' && e.jugadores[pid].herido ? { t: 'terminarTurno' } : { t: 'atacar', tipo: elegida.tipo, objetivo: pick(elegida.objetivos), pedirDinares: 5, pedirNoches: 0 }; break;   // herido, no se arriesga a un duelo
         case 'reto': a = { t: 'reto', id: elegida.id, sub: elegida.sub }; break;
         case 'tesoro': a = { t: 'tesoro', sub: elegida.sub, uid: elegida.uid, via: elegida.via }; break;
         case 'esconder': a = { t: 'esconder', monto: 1 + Math.floor(R() * Math.max(1, e.jugadores[pid].dinares - 1)) }; break;

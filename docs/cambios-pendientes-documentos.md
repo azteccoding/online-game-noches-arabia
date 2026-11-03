@@ -34,6 +34,7 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | 26 | **E1 sin dados automáticos**: el sorteo de la víctima probable lo lanza con botón el primer jugador de la ronda (el banco si está desconectado), solo entre los jugadores vivos (los números sin jugador se repiten) y muestra quién salió. Textos: «Dado de la víctima (cuanto más alto, más caro le sale a X mandarte matar)» y «¿Escapas? Con 3 a 6 te salvas herido; con 1 o 2 mueres». | (este commit) | Reglamento R 13.4 (E1) | E1 |
 | 27 | **Barajar (banco)**: en Eventos, Históricos, Botín, Ifrit y Cuentos reordena solo las cartas que quedan; las ya salidas no vuelven hasta que el mazo se agota. Los objetos del Botín usados que se venden vuelven al mercado al empezar la ronda (escasez), como antes. | (este commit) | Guía del banco | — |
 | 28 | **Último en pie**: si solo queda un participante vivo gana al instante (Yafar NPC cuenta: si solo queda él, gana). Ya no entra Yafar NPC cuando queda un solo jugador. | (este commit) | Reglamento R 22.4 y R 2 | — |
+| 29 | **Duelo con herido**: quien pierde un duelo estando herido muere (botín para el ganador, que no queda Buscado); se avisa antes a los dos. Los robos no cambian. | (este commit) | Reglamento R 11.6 (duelo) | — |
 
 ## Pendientes en cola
 - Ninguno por ahora.

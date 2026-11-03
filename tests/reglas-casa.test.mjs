@@ -5,7 +5,7 @@ const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
-import { peleaNPC } from '../shared/pelea.js';
+import { peleaNPC, duelo } from '../shared/pelea.js';
 import { vender, tienda } from '../shared/objetos.js';
 import { finTurno } from '../shared/eventos.js';
 import { tieneItem, darItem } from '../shared/base.js';
@@ -597,6 +597,18 @@ for (let k = 0; k < 6; k++) {
   e.ronda = 3; eliminar(data, e, a, { causa: 'prueba' }); eliminar(data, e, b, { causa: 'prueba' });
   g.act(a, { t: 'leido', nro: 0 }); g.tickear(10);
   assert.equal(e.fase, 'fin'); assert.equal(e.derrota, 'npc'); assert.ok(e.finUltimo, 'gana Yafar NPC, último en pie');
+}
+
+// Duelo: quien lo pierde estando herido, muere (y se avisa antes)
+{
+  const g = partida(['4', '2', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  B.herido = true; A.ciudad = B.ciudad = 'Damasco'; e.ronda = 4; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: b }).ok);
+  if (e.pend?.tipo === 'defensa') assert.match(e.pend.texto, /estás herido: si pierdes este duelo, mueres/);
+  e.pelea = null; e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  duelo(data, e, a, b); assert.ok(B.eliminado, 'el herido que pierde el duelo muere');
+  const C = e.jugadores[g.ids[2]]; C.herido = false; duelo(data, e, a, g.ids[2]); assert.ok(!C.eliminado && C.herido, 'sano: solo queda herido');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

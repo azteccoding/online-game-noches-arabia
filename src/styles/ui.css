@@ -327,3 +327,5 @@ fieldset:disabled { opacity: .5; }
 .trato-bloque.entregas { background: rgba(120, 30, 30, .45); border: 1px solid #ffb3b3; }
 .btn.trato-pendiente { animation: pulso-oro 1.4s ease-in-out infinite; border-color: #ffd36b; }
 @media (prefers-reduced-motion: reduce) { .btn.trato-pendiente { animation: none; outline: 3px solid #ffd36b; } }
+.aviso-mal { color: #ffb3b3; font-weight: 700; }
+.aviso-bien { color: #9fe3b8; font-weight: 700; }

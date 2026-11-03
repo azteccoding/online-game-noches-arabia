@@ -58,7 +58,9 @@ function Atacar({ s, a }) {
   return (
     <div className="accion-fila">
       <div className="accion-txt"><b>{t}…</b><small>{ayuda}</small>
-        {nur && <small>Nur al Din (honor): puedes pedir una indemnización si ganas.</small>}</div>
+        {nur && <small>Nur al Din (honor): puedes pedir una indemnización si ganas.</small>}
+        {a.tipo === 'duelo' && mi.herido && <small className="aviso-mal">Estás herido: si pierdes este duelo, mueres.</small>}
+        {a.tipo === 'duelo' && obj && s.jugadores[obj]?.herido && <small className="aviso-bien">{s.jugadores[obj].nombre} está herido: si ganas tú, muere.</small>}</div>
       <div className="accion-ctl">
         <Objetivo s={s} ids={a.objetivos} valor={obj} onChange={setObj} />
         {nur && <><input type="number" min="0" value={din} onChange={(e) => setDin(e.target.value)} aria-label="Dinares que pides" title="Dinares que pides" style={{ width: 70 }} /><input type="number" min="0" value={noc} onChange={(e) => setNoc(e.target.value)} aria-label="Noches que pides" title="Noches que pides" style={{ width: 70 }} /></>}
