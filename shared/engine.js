@@ -508,6 +508,7 @@ export function llegada(data, e, pid, origen) {
     if (e.evento.actual === 'E4' && nadieAntes) { j.noches += 20; log(e, `Peregrinación: ${j.nombre} gana 20 noches extra.`); }
   }
   PJ.alLlegar(data, e, pid, origen);
+  TES.quizaLampara(data, e, pid);
   RET.alLlegar(data, e, pid, origen);
   RET.mensajes(data, e, pid, 'llegada', { primera, origen });
   EVE.alLlegar(data, e, pid, origen, primera);

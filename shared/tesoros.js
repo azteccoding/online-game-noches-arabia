@@ -1,7 +1,7 @@
 // Tesoros, mapas, tesoro propio escondido, el Jorasán, genios y cartas de Ifrit (R 16, R 15.4).
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
-  eliminar, TESOROS, HOOK, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS,
+  eliminar, TESOROS, HOOK, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd,
 } from './base.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -176,6 +176,29 @@ HOOK.usarIfrit = (data, e, pid, c, a) => {
   deseo(data, e, pid, a.deseo, {});
   return ok();
 };
+// Lámpara mágica (regla de la casa): una vez por partida, desde la ronda 4, quien llega de viaje puede encontrarla en el camino.
+// El genio le concede 1 deseo a elegir entre los 4 de una carta de Ifrit; toda la mesa sabe quién, dónde y qué pidió.
+export const LAMPARA = { desdeRonda: 4, prob: 0.055 };   // ~85 % de las partidas la encuentran (simulación)
+export function quizaLampara(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (e.lampara || j.npc || j.eliminado || (e.ronda || 0) < LAMPARA.desdeRonda) return;
+  if (rnd(e) >= (data.config.lampara?.prob ?? LAMPARA.prob)) return;
+  const id = robar(e, 'ifrit') || data.objetos.ifrit.cartas[0].id;
+  const card = data.objetos.ifrit.cartas.find((x) => x.id === id);
+  e.lampara = { pid, ciudad: j.ciudad, ronda: e.ronda, carta: id };
+  log(e, `¡${j.nombre} encuentra una lámpara mágica en el camino a ${j.ciudad}! El genio le concederá un deseo.`, { pid, aviso: true });
+  const op = card.deseos.map((d) => ({ id: d, texto: d + '. ' + data.objetos.ifrit.deseos[d], desactivada: !!deseoValido(data, e, pid, d) }));
+  pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'La lámpara mágica', texto: `Frotas la lámpara que encontraste camino de ${j.ciudad} y sale un genio: te concede un deseo. Elige uno (toda la mesa sabrá cuál pediste).`,
+    opciones: op, porDefecto: (op.find((o) => !o.desactivada) || op[0]).id, limiteMs: 120000, cont: { fn: 'tes.lampara', args: { carta: id } } });
+}
+registrar('tes.lampara', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  e.mazos.descarte.ifrit.push(args.carta);
+  if (deseoValido(data, e, pid, resp.opcion)) return;
+  log(e, `${j.nombre} pide al genio de la lámpara: ${data.objetos.ifrit.deseos[resp.opcion]}`, { pid, aviso: true });
+  deseo(data, e, pid, resp.opcion, {});
+});
+
 function deseoValido(data, e, pid, d) {
   if (d === 'B' && e.asesinos.actuaron) return 'Los Asesinos ya actuaron.';
   if (d === 'J' && activos(e).filter((x) => x !== pid).length === 0) return 'No hay a quién maldecir.';

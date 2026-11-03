@@ -23,7 +23,7 @@ const est = {}, porCfg = {};
 const nuevo = () => ({ partidas: 0, victorias: 0, eliminado: 0, nochesRonda: 0, dinares: 0, robosHechos: 0, robado: 0, duelosG: 0, duelosP: 0, premios: 0, rondas: 0 });
 const s = (pj) => (est[pj] ||= nuevo());
 const sc = (cfg, pj) => ((porCfg[cfg] ||= {})[pj] ||= nuevo());
-let terminadas = 0, total = 0; const rondasCfg = {};
+let terminadas = 0, total = 0, lamparas = 0; const rondasCfg = {};
 for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { jugadores: 5 }].entries()) {
   for (let k = 0; k < N; k++) {
     total++;
@@ -31,6 +31,7 @@ for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { j
     if (!r.ok) continue;
     terminadas++;
     const { e, todo } = r;
+    if (e.lampara) lamparas++;
     const etq = cfg.jugadores + ' jugadores' + (cfg.conYafar === false ? ' (sin Yafar)' : ' (uno lleva a Yafar)');
     (rondasCfg[etq] ||= []).push(e.ronda);
     for (const j of Object.values(e.jugadores)) {
@@ -55,6 +56,7 @@ for (const [i, cfg] of [{ jugadores: 4 }, { jugadores: 3, conYafar: false }, { j
 }
 const f = (v, d = 1) => v.toFixed(d);
 console.log(`Partidas terminadas: ${terminadas}/${total} (bots al azar)
+Lámpara mágica encontrada en ${f(100 * lamparas / Math.max(1, terminadas))}% de las partidas
 `);
 function tabla(est) {
 console.log('Personaje        | partidas | victoria | eliminado | noches/ronda | dinares final | robos hechos | robado | duelos G/P | premios retos/tesoros');
