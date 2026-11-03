@@ -17,7 +17,7 @@ export const ESPERA_REACCION_MS = 10000;
 export function armarReaccion(e, pid, id, ahora, ultima = 0) {
   const def = REACCIONES.find((x) => x.id === id), j = e.jugadores[pid];
   if (!def) return { error: 'Reacción desconocida.' };
-  if (!j || !j.pj || j.npc || e.fase !== 'juego') return { error: 'Las reacciones son para quien juega la partida.' };
+  if (!j || !j.pj || j.npc || (e.fase !== 'juego' && e.fase !== 'fin')) return { error: 'Las reacciones son para quien juega la partida.' };   // también eliminados y al final
   const falta = ESPERA_REACCION_MS - (ahora - ultima);
   if (falta > 0) return { error: `Espera ${Math.ceil(falta / 1000)} s para mandar otra reacción.` };
   const turno = e.turno?.pid && e.jugadores[e.turno.pid];

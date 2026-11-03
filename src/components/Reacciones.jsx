@@ -16,7 +16,7 @@ export function BotonReacciones({ s }) {
   }, []);
   useEffect(() => { if (Date.now() >= hasta) return; const t = setInterval(() => refrescar((n) => n + 1), 1000); return () => clearInterval(t); }, [hasta]);
   const yo = s.jugadores[s.yo];
-  if (s.fase !== 'juego' || !yo?.pj || yo.eliminado) return null;
+  if ((s.fase !== 'juego' && s.fase !== 'fin') || !yo?.pj) return null;   // cualquier jugador, en cualquier momento de la partida
   const turno = s.turno?.pid && s.jugadores[s.turno.pid];
   const puedeTurno = turno && turno.id !== s.yo && !turno.npc;
   const falta = Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
