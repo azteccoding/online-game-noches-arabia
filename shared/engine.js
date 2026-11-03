@@ -734,7 +734,8 @@ function hostRepartir(data, e, a) {
 function hostBarajar(e, a) {
   if (!e.mazos) return err('No hay mazos.');
   const m = a.mazo;
-  if (['eventos', 'historicos', 'botin', 'ifrit'].includes(m)) { e.mazos[m] = barajar(e, e.mazos[m].concat(e.mazos.descarte[m] ? e.mazos.descarte[m].splice(0) : [])); }
+  // Regla de la casa: barajar reordena solo las cartas que quedan; las ya salidas no vuelven (al agotarse, el mazo se rebaraja solo).
+  if (['eventos', 'historicos', 'botin', 'ifrit'].includes(m)) { barajar(e, e.mazos[m]); }
   else if (m === 'mensajes') { barajar(e, e.mazos.mensajes); }
   else if (m === 'cc') { for (const k of Object.keys(e.mazos.cc)) barajar(e, e.mazos.cc[k]); }   // reordena las que quedan; las ya salidas no vuelven
   else return err('Mazo inválido.');

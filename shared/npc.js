@@ -207,7 +207,7 @@ registrar('npc.victima', (data, e, args, resp) => {
   const j = e.jugadores[pid];
   const zub = j.pj === '6';
   if (zub) precio = Math.ceil(precio / 2);
-  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima`, valores: [d] }], resumen: [`Los Asesinos fijan su precio: ${vivos(e)} jugadores vivos × 20 + ${d} × 30.`] });
+  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima (cuanto más alto, más caro le sale a ${nombre(e, pid)} mandarte matar)`, valores: [d] }], resumen: [`Los Asesinos fijan su precio: ${vivos(e)} jugadores vivos × 20 + ${d} × 30.`] });
   const alcanza = j.dinares >= precio;                                    // regla de la casa: solo con los dinares completos, sin deudas
   pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Precio del contrato', texto: `Víctima: ${nombre(e, v)} (dado ${d}). Precio: ${precio} dinares${zub ? ' (con tu descuento del 50%)' : ''}.${alcanza ? '' : ' No te alcanzan los dinares: no puedes firmar.'} Si firmas, tu turno termina, quedas Buscado y todos sabrán que mandaste matar a ${nombre(e, v)}.`,
     opciones: [{ id: 'si', texto: `Pagar ${precio}`, desactivada: !alcanza }, { id: 'no', texto: 'No firmar' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'npc.firma', args: { ...args, victima: v, precio } } });
@@ -236,15 +236,23 @@ function firmar(data, e, pid, v, precio, args = {}) {
 export function eventoAsesinos(data, e) {
   const viv = activos(e);
   if (viv.length <= 2 || e.asesinos.actuaron) { log(e, 'Los Asesinos pasan de largo: quedan muy pocos jugadores.'); return; }
-  let i; do { i = 1 + Math.floor(rnd(e) * 8); } while (i > viv.length);
-  let probable = viv[i - 1];
+  // Sorteo con dado y botón (nunca automático), solo entre los jugadores vivos: lo lanza el primer jugador humano de la ronda
+  // (si está desconectado, el banco). Con más de 6 jugadores se cuenta en círculo; si sale un número sin jugador, se repite.
+  const lanza = e.orden.find((x) => viv.includes(x) && !e.jugadores[x].npc) || viv[0];
+  const sortear = (extra = []) => {
+    const tabla = viv.map((x, k) => `${k + 1} = ${nombre(e, x)}`).join(', ');
+    const tiradas = []; let d;
+    for (let g = 0; g < 30; g++) { d = dado(e); tiradas.push(d); if (viv.length >= 6 || d <= viv.length) break; }
+    const v = viv[(d - 1) % viv.length];
+    mostrarDados(e, { por: lanza, npc: !!e.jugadores[lanza].npc, motivo: 'asesinos', titulo: 'Los Asesinos llegan a la ciudad', grupos: [{ etq: `${nombre(e, lanza)}: sorteo de a quién irán a buscar si nadie compra el contrato`, valores: tiradas }],
+      resumen: [...extra, `Números: ${tabla}.${tiradas.length > 1 ? ' Los números sin jugador se repiten.' : ''}`, `Sale ${d}: si nadie compra el contrato, irán a buscar a ${nombre(e, v)}.`] });
+    return v;
+  };
+  let probable = sortear();
   if (tieneObj(e.jugadores[probable], 'OB44')) {
     consumirObj(data, e, probable, 'OB44');
-    log(e, `${nombre(e, probable)} se cubre con su Velo de viajero y los Asesinos vuelven a elegir.`, { pid: probable });
-    do { i = 1 + Math.floor(rnd(e) * 8); } while (i > viv.length);
-    probable = viv[i - 1];
+    probable = sortear([`${nombre(e, probable)} se cubre con su Velo de viajero y los Asesinos vuelven a elegir.`]);
   }
-  mostrarDados(e, { por: probable, motivo: 'asesinos', npc: true, grupos: [{ etq: 'Víctima probable de los Asesinos', valores: [Math.min(6, i)] }], resumen: [`Víctima probable: ${nombre(e, probable)}.`] });
   const min = 20 * viv.length;
   const hum = humanosVivos(e);
   const para = hum.filter((x) => e.jugadores[x].dinares >= min);
@@ -269,14 +277,14 @@ registrar('npc.victimaE1', (data, e, args, resp) => {
   const v = resp.opcion;
   if (!e.jugadores[v] || e.jugadores[v].eliminado || e.asesinos.actuaron) return;
   const d = dado(e);
-  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 dinares.`] });
+  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima (cuanto más alto, más caro le sale a ${nombre(e, resp.pid)} mandarte matar)`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 dinares.`] });
   const total = args.puja + 30 * d;
   if (e.jugadores[resp.pid].dinares < total) { log(e, `${nombre(e, resp.pid)} no tiene los ${total} dinares del precio final: los Asesinos rompen el trato.`, { pid: resp.pid, aviso: true }); return sinPuja(data, e, args.probable && !e.jugadores[args.probable]?.eliminado ? args.probable : v); }
   firmar(data, e, resp.pid, v, total, {});
 });
 function sinPuja(data, e, probable) {
   const x = dado(e), j = e.jugadores[probable];
-  mostrarDados(e, { por: probable, motivo: 'asesinos', grupos: [{ etq: `${j.nombre}: ¿escapa de los Asesinos? (3 a 6)`, valores: [x] }], resumen: [x >= 3 ? `${j.nombre} escapa de los Asesinos y queda herido.` : `${j.nombre} muere a manos de los Asesinos.`] });
+  mostrarDados(e, { por: probable, motivo: 'asesinos', grupos: [{ etq: `${j.nombre}: ¿escapas de los Asesinos? Con 3 a 6 te salvas herido; con 1 o 2 mueres`, valores: [x] }], resumen: [x >= 3 ? `${j.nombre} escapa de los Asesinos y queda herido.` : `${j.nombre} muere a manos de los Asesinos.`] });
   e.asesinos.actuaron = true;
   log(e, 'Los Asesinos (Hashashín) se retiran para siempre.');
   if (x >= 3) { j.herido = true; return; }

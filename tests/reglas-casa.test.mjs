@@ -557,6 +557,30 @@ for (let k = 0; k < 6; k++) {
   assert.equal(e.mazos.ccVistas.length, 1);
 }
 
+// Barajar (banco) reordena solo lo que queda en Eventos, Históricos, Botín e Ifrit; las ya salidas no vuelven.
+// E1: el sorteo de la víctima probable lo lanza un jugador con botón y solo entre los vivos
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, host = Object.keys(e.jugadores).find((x) => e.host === x) || g.ids[0];
+  for (const m of ['eventos', 'historicos', 'botin', 'ifrit']) {
+    e.mazos.descarte[m] = (e.mazos.descarte[m] || []).concat(['YA-SALIO']);
+    const antes = e.mazos[m].slice().sort();
+    assert.ok(g.act(host, { t: 'host.barajar', mazo: m }).ok);
+    assert.deepEqual(e.mazos[m].slice().sort(), antes, `${m}: mismas cartas, otro orden`);
+    assert.ok(!e.mazos[m].includes('YA-SALIO'), `${m}: no regresan las ya salidas`);
+    e.mazos.descarte[m] = e.mazos.descarte[m].filter((x) => x !== 'YA-SALIO');
+  }
+  for (const j of Object.values(e.jugadores)) j.extra.clienteWeb = !j.npc;
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.asesinos.actuaron = false;
+  NPC.eventoAsesinos(data, e);
+  const sorteo = [e.dados, ...e.colaDados].find((d) => d && /sorteo de a quién/.test(d.grupos[0].etq));
+  assert.ok(sorteo && !sorteo.npc && !sorteo.lanzado, 'el sorteo lo lanza un jugador con su botón');
+  const vivos = Object.values(e.jugadores).filter((j) => j.pj && !j.eliminado).length;
+  const ultimo = sorteo.valores.at(-1);
+  assert.ok(vivos >= 6 || ultimo <= vivos, 'solo cuentan los números con jugador');
+  assert.match(sorteo.resumen.join(' '), /irán a buscar a /);
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
