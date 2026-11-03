@@ -20,7 +20,7 @@ function Producto({ it, puedeActuar, s }) {
   );
 }
 
-export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
+export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe = null }) {
   const [tab, setTab] = useState(inicial);
   const yo = s.jugadores[s.yo];
   const miTurno = s.turno?.pid === s.yo && s.fase === 'juego' && s.turno.fase !== 'ingreso' && !yo.transito && !yo.perdido && !s.turno.fin && !s.pend;
@@ -35,15 +35,18 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
   const [nchOfrece, setNchOfrece] = useState(0);
   const [nchPide, setNchPide] = useState(0);
   const [pideObjs, setPideObjs] = useState([]);
+  const [esContra, setEsContra] = useState(false);
   const suyas = (con && s.comerciables?.[con]) || [];
   // Contraoferta: rechaza la propuesta y abre el formulario con los lados invertidos para ajustarlo
   const contraofertar = (t) => {
-    enviar(ACCIONES.responderTrato(t.id, false));
+    enviar(ACCIONES.responderTrato(t.id, false, true)); setEsContra(true);
     setCon(t.de); setDinOfrece(t.pide.dinares); setNchOfrece(t.pide.noches || 0); setObjs(t.pide.objetos || []);
     setDinPide(t.ofrece.dinares); setNchPide(t.ofrece.noches || 0); setPideObjs(t.ofrece.idx || []);
   };
   const lado = (x) => [x.dinares ? `${x.dinares} dinares` : '', x.noches ? `${x.noches} noches` : '', ...(x.nombres || [])].filter(Boolean).join(', ') || 'nada';
   const entrantes = s.tratos.filter((t) => t.con === s.yo);
+  const contraHecha = React.useRef(false);
+  React.useEffect(() => { if (contraDe && !contraHecha.current) { const t = entrantes.find((x) => x.id === contraDe); if (t) { contraHecha.current = true; contraofertar(t); } } });   // desde la alerta de trato
   return (
     <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
       <div className="desp-cab">
@@ -80,7 +83,11 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
           <>
             {entrantes.map((t) => (
               <div key={t.id} className="trato entrante">
-                <p><b>{s.jugadores[t.de].nombre}</b> te ofrece <b>{lado(t.ofrece)}</b> a cambio de <b>{lado(t.pide)}</b>.</p>
+                <p><b>{s.jugadores[t.de].nombre}</b> {t.contra ? 'te hace una contraoferta' : 'te propone un trato'}:</p>
+                <div className="trato-bloques">
+                  <div className="trato-bloque recibes"><b>Recibes</b><span>{lado(t.ofrece)}</span></div>
+                  <div className="trato-bloque entregas"><b>Entregas</b><span>{lado(t.pide)}</span></div>
+                </div>
                 <div className="fila-btn"><button className="btn mini" onClick={() => enviar(ACCIONES.responderTrato(t.id, true))}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => enviar(ACCIONES.responderTrato(t.id, false))}>Rechazar</button></div>
               </div>
             ))}
@@ -89,7 +96,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
             ))}
             <h3 className="sub-h">Proponer un trato (misma ciudad)</h3>
             {!companeros.length ? <p className="it">Nadie más está en {yo.ciudad}.</p> : (
-              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs })); setObjs([]); setPideObjs([]); } }}>
+              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs }, esContra)); setObjs([]); setPideObjs([]); setEsContra(false); } }}>
                 <label>Con <select value={con} onChange={(e) => { setCon(e.target.value); setPideObjs([]); }}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
                 <fieldset className="lado-trato"><legend>Yo doy</legend>
                   <label>Dinares <input type="number" min="0" max={yo.dinares} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>

@@ -18,6 +18,7 @@ import Mano from './components/Mano.jsx';
 import Misiones from './components/Misiones.jsx';
 import HojaCiudad from './components/HojaCiudad.jsx';
 import Intercambio from './components/Intercambio.jsx';
+import AlertaTrato, { AvisosTrato } from './components/AlertaTrato.jsx';
 import PanelAnfitrion from './components/PanelAnfitrion.jsx';
 import { Historial, Registro } from './components/Registro.jsx';
 import AcercaDe from './components/AcercaDe.jsx';
@@ -76,6 +77,7 @@ function Juego({ lienzo }) {
 
   const abrir = useCallback((p) => {
     if (p === 'ultima') { const u = leer().estado?.ultimaCarta; if (u != null) setConsulta(u); return; }
+    if (p === 'mercado-tratos' || p.startsWith('mercado-contra:')) { setPanel(p); return; }   // desde la alerta de trato
     if (p.startsWith('carta:')) { setPanel(null); setConsulta(Number(p.slice(6))); return; }   // la carta que falta responder
     if (p === 'evento') { const h = leer().estado?.historial.slice().reverse().find((x) => x.deck === 'evento'); if (h) setConsulta(h.nro); return; }
     setPanel((a) => (a === p ? null : p));
@@ -107,6 +109,9 @@ function Juego({ lienzo }) {
         {panel === 'mano' && <Mano s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}
         {ciudadPanel && <HojaCiudad s={s} id={ciudadPanel} onCerrar={cerrar} />}
         {panel === 'mercado' && <Intercambio s={s} onCerrar={cerrar} />}
+        {panel?.startsWith('mercado-') && <Intercambio key={panel} s={s} onCerrar={cerrar} inicial="tratos" contraDe={panel.startsWith('mercado-contra:') ? panel.slice(15) : null} />}
+        {s.fase === 'juego' && !panel?.startsWith('mercado') && <AlertaTrato s={s} abrir={abrir} />}
+        {s.fase === 'juego' && <AvisosTrato s={s} />}
         {panel === 'acciones' && <AccionesTurno s={s} onCerrar={cerrar} />}
         {panel === 'misiones' && <Misiones s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}
         {panel === 'historial' && <Historial s={s} onCerrar={cerrar} onAbrir={(n) => { setConsulta(n); }} />}
@@ -134,7 +139,7 @@ function Juego({ lienzo }) {
       })()}
       <BurbujasReacciones yo={s.yo} />
       {error && <div className="toast" role="alert">{error}</div>}
-      {aviso && !error && <div className="toast ok" role="status">{aviso.startsWith('⚠') ? '' : '✓ '}{aviso}</div>}
+      {aviso && !error && <div className="toast ok" role="status">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
     </div>
   );
 }

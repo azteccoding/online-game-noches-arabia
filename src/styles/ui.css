@@ -311,3 +311,14 @@ fieldset:disabled { opacity: .5; }
 .lienzo[data-forma='alta'] .acc-responde .btn.responde { flex: 1; max-width: none; min-height: 38px; }
 .lado-trato { border: 1px solid rgba(239, 208, 143, .4); border-radius: 10px; padding: 6px 10px 8px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
 .lado-trato legend { color: var(--oro-claro); padding: 0 4px; }
+/* Alerta de trato: tarjeta bajo la barra superior (no tapa la mano ni los botones) */
+.alerta-trato { position: absolute; top: calc(var(--barra-alto) + 8px); right: 10px; z-index: 86; width: min(360px, calc(100vw - 20px)); padding: 10px 12px; border: 2px solid var(--oro); box-shadow: var(--sombra); animation: burbuja-entra .25s ease-out; }
+.alerta-trato p { margin: 0 0 6px; }
+.alerta-trato-tit { font-size: 1.05em; }
+.trato-bloques { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 8px; }
+.trato-bloque { border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
+.trato-bloque b { font-size: .8em; letter-spacing: .08em; text-transform: uppercase; }
+.trato-bloque.recibes { background: rgba(31, 90, 58, .55); border: 1px solid #7fd3a0; }
+.trato-bloque.entregas { background: rgba(120, 30, 30, .45); border: 1px solid #ffb3b3; }
+.btn.trato-pendiente { animation: pulso-oro 1.4s ease-in-out infinite; border-color: #ffd36b; }
+@media (prefers-reduced-motion: reduce) { .btn.trato-pendiente { animation: none; outline: 3px solid #ffd36b; } }

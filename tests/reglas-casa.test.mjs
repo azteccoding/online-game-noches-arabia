@@ -522,6 +522,24 @@ for (let k = 0; k < 6; k++) {
   assert.ok(vistos.muere && vistos.herido && vistos.ambos && vistos.atkMuere, JSON.stringify(vistos));
 }
 
+// Una propuesta que no se acepta no gasta la acción principal (duelo rechazado, compañía rechazada); el rechazo queda en el registro
+{
+  const g = partida(['4', '2']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const j of [A, B]) { j.ciudad = 'Damasco'; j.mano = j.mano.filter((c) => c.ref !== 'arco'); }
+  B.dinares = 40; e.ronda = 4; e.mods = {}; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: b }).ok);
+  assert.ok(e.turno.principal, 'al retar se aparta la acción');
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'rechazar' }).ok);
+  assert.ok(!e.turno.principal, 'duelo rechazado: la acción principal no se gasta');
+  assert.ok(e.log.some((l) => /rechaza el duelo/.test(l.texto)) && e.log.some((l) => /no gasta su acción principal/.test(l.texto)));
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(b, { t: 'pj', sub: 'prost', con: a, precio: 10 }).ok);
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok);
+  assert.ok(!e.turno.principal, 'compañía rechazada: tampoco se gasta');
+  assert.ok(e.log.some((l) => /rechaza la propuesta de compañía/.test(l.texto)));
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

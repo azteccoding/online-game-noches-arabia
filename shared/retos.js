@@ -221,7 +221,7 @@ function r1Exito(data, e, pid, m) {
 }
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
-    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda con la ciudad (alojamiento 15 + ${data.config.r1?.costoAyudante ?? 2} por ayudante). Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda con la ciudad (15 dinares + ${data.config.r1?.costoAyudante ?? 2} por ayudante). Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
       opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r1.acepta', args: {} } });
   } };
 registrar('r1.acepta', (data, e, args, resp) => {

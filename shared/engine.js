@@ -648,14 +648,14 @@ function proponerTrato(data, e, pid, a) {
   if (ofrece.dinares > j.dinares || ofrece.noches > j.noches) return err('No tienes todo lo que ofreces.');
   if (!ofrece.dinares && !ofrece.noches && !ofrece.nombres.length && !pide.dinares && !pide.noches && !pide.nombres.length) return err('El trato está vacío.');
   const id = 'tr' + (++e.seq);
-  e.tratos[id] = { id, de: pid, con: a.con, ofrece, pide, t: e.ahora };
+  e.tratos[id] = { id, de: pid, con: a.con, ofrece, pide, t: e.ahora, contra: !!a.contra };
   return ok();
 }
 function responderTrato(data, e, pid, a) {
   const tr = e.tratos[a.id];
   if (!tr || tr.con !== pid) return err('Trato inexistente.');
   delete e.tratos[a.id];
-  if (!a.ok) { log(e, `${e.jugadores[pid].nombre} rechaza un trato.`); return ok(); }
+  if (!a.ok) { log(e, `${e.jugadores[pid].nombre} rechaza el trato de ${e.jugadores[tr.de]?.nombre}${a.contra ? ' y le hace una contraoferta' : ''}.`, { pid: tr.de }); return ok(); }
   const A = e.jugadores[tr.de], B = e.jugadores[tr.con];
   if (A.eliminado || B.eliminado) return err('El trato ya no es posible.');
   { const o = tratoOcupado(e, [A.id, B.id]); if (o) { e.tratos[a.id] = tr; return err(o); } }

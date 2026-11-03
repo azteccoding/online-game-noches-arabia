@@ -3,7 +3,7 @@
 // Todo se resuelve en el servidor; las decisiones del defensor se piden con «pend» y las tiradas se muestran con la cola de dados.
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
-  tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto,
+  tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
 } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
@@ -319,6 +319,7 @@ function elegirDefensa(data, e, resp) {
   if (o === 'rechazar') {
     if (P.pedirNur) { const p = pagarNur(data, e, P.def, P.atk, P.pedirNur); log(e, `${d.nombre} rechaza el duelo y paga ${p}.`, { pid: P.def }); }
     else { const r = Math.max(0, Math.min(data.config.duelo.rechazo, d.dinares)); d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def }); }
+    devolverPrincipal(e, P.atk, `${d.nombre} rechazó el duelo`);
     return terminarPelea(data, e, { cancelada: true });
   }
   if (o === 'polvo') d.extra.usaPolvo = false;

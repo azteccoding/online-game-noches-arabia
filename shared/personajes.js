@@ -1,6 +1,6 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
-  ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, puedePrincipal, vivos,
+  ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos,
 } from './base.js';
 import { peleaNPC } from './pelea.js';
 
@@ -143,13 +143,17 @@ export function accion(data, e, pid, a) {
 
 registrar('pj.cuentos', (data, e, args, resp) => {
   const adi = jug(e, args.adi), c = jug(e, resp.pid);
-  if (resp.opcion !== 'si' || !adi || adi.eliminado || c.eliminado || adi.ciudad !== c.ciudad) return;
+  if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza los cuentos de noche de ${adi?.nombre}.`, { pid: args.adi }); return devolverPrincipal(e, args.adi, 'su propuesta no fue aceptada'); }
+  if (!adi || adi.eliminado || c.eliminado || adi.ciudad !== c.ciudad) return devolverPrincipal(e, args.adi, 'la propuesta no se llevó a cabo');
+  log(e, `${c.nombre} acepta los cuentos de noche de ${adi.nombre}.`, { pid: args.adi });
   adi.dinares += 5; c.dinares += 5; c.noches += 10;
   log(e, `${adi.nombre} pasa la noche contando cuentos con ${c.nombre}: ambos ganan 5 dinares y ${c.nombre} 10 noches.`, { pid: args.adi });
 });
 registrar('pj.prost', (data, e, args, resp) => {
   const v = jug(e, args.vend), c = jug(e, resp.pid);
-  if (resp.opcion !== 'si' || !v || v.eliminado || c.eliminado || v.ciudad !== c.ciudad || c.dinares < args.precio) return;
+  if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza la propuesta de compañía de ${v?.nombre}.`, { pid: args.vend }); return devolverPrincipal(e, args.vend, 'su propuesta no fue aceptada'); }
+  if (!v || v.eliminado || c.eliminado || v.ciudad !== c.ciudad || c.dinares < args.precio) return devolverPrincipal(e, args.vend, 'la propuesta no se llevó a cabo');
+  log(e, `${c.nombre} acepta la propuesta de compañía de ${v.nombre}.`, { pid: args.vend });
   const impuesto = v.ciudad === 'Yemen' ? Math.floor(args.precio / 10) : 0;
   c.dinares -= args.precio; v.dinares += args.precio - impuesto;
   if (v.pj === '6') { const n = Math.min(50, v.noches); v.noches -= n; c.noches += n; }

@@ -49,7 +49,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
             <button className={`btn${marca('acciones')}`} onClick={() => abrir('acciones')}>Acciones{nAcc ? ` (${nAcc})` : ''}</button>
           </>
         )}
-        <button className={`btn sec${marca('mercado')}`} onClick={() => abrir('mercado')}>Mercado{s.tratos.some((x) => x.con === s.yo) ? ' •' : ''}</button>
+        <button className={`btn sec${marca('mercado')}${s.tratos.some((x) => x.con === s.yo) ? ' trato-pendiente' : ''}`} onClick={() => abrir(s.tratos.some((x) => x.con === s.yo) ? 'mercado-tratos' : 'mercado')}>Mercado{s.tratos.some((x) => x.con === s.yo) ? ' 🤝' : ''}</button>
         <button className={`btn sec${marca('mano')}`} onClick={() => abrir('mano')}>Mano ({mano})</button>
         <button className={`btn sec${marca('misiones')}`} onClick={() => abrir('misiones')}>Retos{s.misiones.length ? ` (${s.misiones.length})` : ''}</button>
         {miTurno && t.fase !== 'ingreso' && <button className={`btn claro${bloqueo ? ' bloq' : ''}`} aria-disabled={!!bloqueo} onClick={intentar(() => enviar(ACCIONES.terminarTurno()))}>Terminar turno</button>}

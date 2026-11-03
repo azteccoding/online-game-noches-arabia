@@ -264,6 +264,13 @@ export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
 }
 export const puedePagar = (data, j, monto) => j.dinares >= monto;   // regla de la casa: solo con los dinares completos (las noches no cuentan)
 export const puedePagarDinares = (j, monto) => j.dinares >= monto;
+// Regla de la casa: una propuesta a otro jugador que no se acepta (duelo rechazado, compañía o cuentos rechazados) no gasta la acción principal.
+export function devolverPrincipal(e, pid, motivo) {
+  const t = e.turno;
+  if (!t || t.pid !== pid || t.fin || !t.principal) return;
+  t.principal = false;
+  log(e, `${e.jugadores[pid].nombre} no gasta su acción principal: ${motivo}.`, { pid });
+}
 
 // ---------------------------------------------------------------- eliminación (R 11.8)
 // por: pid del asesino/vencedor que hereda el botín (o null); soloNoches: opción 4 de R 12.3 (Asesinos).
