@@ -483,6 +483,15 @@ function avanzarHasta(g, cond, pasos = 400) {
   }
 }
 
+// Zubayda: la propuesta dice las noches que de verdad recibe el cliente
+{
+  const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, c] = g.ids;
+  turnoDe(e, z, 'Damasco'); e.jugadores[z].ciudad = e.jugadores[c].ciudad = 'Damasco'; e.jugadores[z].noches = 12;
+  assert.ok(g.act(z, { t: 'pj', sub: 'prost', con: c, precio: 10 }).ok);
+  assert.match(e.pend.texto, /y 12 noches de su haber/, 'con 12 noches, la propuesta dice 12');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
