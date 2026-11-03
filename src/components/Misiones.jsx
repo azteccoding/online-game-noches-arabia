@@ -1,5 +1,28 @@
 import React from 'react';
 
+// Hazañas (Tariq, al-Quds) y vida de los animales propios.
+export function NochesExtra({ s }) {
+  const yo = s.jugadores[s.yo], hz = Object.entries(yo?.hazanas || {});
+  const animales = (s.mano || []).filter((c) => c.datos?.vida != null);
+  if (!hz.length && !animales.length) return null;
+  return (
+    <>
+      <h3 className="sub-h">Noches extra y animales</h3>
+      <ul className="lista-merc">
+        {hz.map(([k, h]) => (
+          <li key={k}><div className="prod"><b>{h.nombre}</b> (+{h.noches} noches, cruzando entre {h.par.join(' y ')}{k === 'quds' ? ' en burro' : ''})
+            <br /><small>{h.bloqueada ? `Bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.` : `Disponible: ${h.quedan} de 2 este turno.`}</small></div>
+            <div className="der"><span className={`chip${h.bloqueada ? ' mal' : ''}`}>{h.bloqueada ? 'bloqueada' : 'disponible'}</span></div></li>
+        ))}
+        {animales.map((c) => (
+          <li key={c.uid}><div className="prod"><b>{c.datos.titulo}</b><br /><small>Albéitar y comida cada turno; muere al cumplir sus turnos.</small></div>
+            <div className="der"><span className={`chip${c.datos.vida <= 1 ? ' mal' : ''}`}>{c.datos.vida ? `${c.datos.vida} turno(s) más` : 'último turno'}</span></div></li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
 // Retos en curso (misiones con plazo, deudas, encargos), retos ya cumplidos y mensaje del sheij.
 export default function Misiones({ s, onCerrar, onAbrir }) {
   const msg = s.mensaje && s.historial.slice().reverse().find((h) => h.deck === 'mensaje' && h.para?.includes(s.yo));
@@ -19,6 +42,7 @@ export default function Misiones({ s, onCerrar, onAbrir }) {
               {m.turnosRestantes != null && <div className="der"><span className={`chip${m.turnosRestantes <= 1 ? ' mal' : ''}`}>{m.turnosRestantes} turno(s)</span></div>}</li>
           ))}
         </ul>
+        <NochesExtra s={s} />
         <h3 className="sub-h">Cumplidos</h3>
         {s.retosHechos.length ? <p>{s.retosHechos.map((r) => <span className="chip" key={r}>{r}</span>)}</p> : <p className="it">Ninguno todavía.</p>}
       </div>

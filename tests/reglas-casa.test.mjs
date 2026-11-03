@@ -6,7 +6,8 @@ import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/ba
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC, duelo } from '../shared/pelea.js';
-import { vender, tienda } from '../shared/objetos.js';
+import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
+import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
 import { tieneItem, darItem } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
@@ -351,7 +352,111 @@ function forzar(e, ...valores) {
   ({ g, e, pid, j, c } = prep('alfombra', 'Damasco'));
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Bagdad' }).ok, 'la alfombra no va a Bagdad');
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'India' }).ok, 'la alfombra sí llega a India');
-  assert.ok(!j.mano.some((x) => x.uid === 9300), 'la alfombra se gasta');
+  assert.ok(j.mano.some((x) => x.uid === 9300), 'la alfombra ya no se gasta');
+}
+
+// Animales: albéitar y comida cada turno (con deuda), mueren a los 4 (burro) o 5 turnos; el burro se repone en Basra y el caballo reactiva R1
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+  const burro = darItem(e, j, 'burro'), b0 = e.burros;
+  j.dinares = 0;
+  for (let n = 1; n <= 4; n++) {
+    animalesInicioTurno(data, e, pid);
+    assert.equal(j.dinares, -n, 'el burro cuesta 1 dinar por turno y, sin dinero, queda como deuda');
+    assert.match(vistaDe(e, pid).mano.find((c) => c.uid === burro.uid).datos.texto, n < 4 ? new RegExp(`Le quedan ${4 - n} turno`) : /último turno/);
+    animalesFinTurno(data, e, pid);
+    assert.equal(!!tieneItem(j, 'burro'), n < 4, n < 4 ? 'el burro sigue vivo' : 'el burro muere a los 4 turnos');
+  }
+  assert.equal(e.burros, b0 + 1, 'llega otro burro a Basra');
+  assert.ok(e.log.some((l) => /Muere de viejo el burro/.test(l.texto) && l.aviso), 'se avisa la muerte');
+  j.retosHechos.push('R1'); darItem(e, j, 'caballo'); j.dinares = 100;
+  for (let n = 1; n <= 5; n++) { animalesInicioTurno(data, e, pid); animalesFinTurno(data, e, pid); }
+  assert.equal(j.dinares, 85, 'el caballo cuesta 3 dinares por turno');
+  assert.ok(!tieneItem(j, 'caballo') && !j.retosHechos.includes('R1'), 'el caballo muere a los 5 turnos y R1 se puede volver a hacer');
+}
+
+// Noches extra: Jorasán +50, entrenar +50, al-Quds (+40, burro entre El Cairo y Damasco) y Tariq (+60, Magreb ↔ Andalucía):
+// hasta 2 veces por turno y, tras cobrarla, bloqueada hasta terminar un turno fuera del par
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+  turnoDe(e, pid, 'El Cairo'); j.ciudad = 'El Cairo'; e.mods = {};
+  const b = darItem(e, j, 'burro');
+  let n0 = j.noches;
+  assert.ok(g.act(pid, { t: 'usar', uid: b.uid, destino: 'Damasco' }).ok, 'el burro va de El Cairo a Damasco');
+  if (e.turno.ccActual) g.act(pid, { t: 'omitirCC' });
+  assert.ok(e.log.some((l) => /Visitar al-Quds», \+40/.test(l.texto)), 'al-Quds da +40 noches');
+  assert.ok(j.noches - n0 >= 40);
+  assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.quedan, 1, 'queda una más este turno');
+  e.jugadores[pid].extra.hazanaBloq = { quds: true };
+  assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.bloqueada, true, 'la vista muestra el bloqueo');
+  hazanasFinTurno(data, e); assert.ok(j.extra.hazanaBloq.quds, 'terminar en Damasco no libera al-Quds');
+  j.ciudad = 'Aleppo'; e.turno.hazanas = {}; hazanasFinTurno(data, e); assert.ok(!j.extra.hazanaBloq.quds, 'terminar fuera del par libera al-Quds');
+  turnoDe(e, pid, 'Magreb'); j.ciudad = 'Magreb'; n0 = j.noches;
+  llegada(data, e, pid, 'Andalucía'); llegada(data, e, pid, 'Magreb'); llegada(data, e, pid, 'Andalucía');
+  assert.equal(e.turno.hazanas.tariq, 2, 'Tariq vale como máximo 2 veces por turno');
+  j.ciudad = 'El Cairo'; hazanasFinTurno(data, e); assert.ok(j.extra.hazanaBloq.tariq, 'tras cobrar Tariq queda bloqueada aunque termine el turno fuera del par');
+  j.ciudad = 'Magreb';
+  turnoDe(e, pid, 'Magreb'); const antes = e.log.length; llegada(data, e, pid, 'Andalucía');
+  assert.ok(!e.turno.hazanas?.tariq && e.log.slice(antes).some((l) => /muévete a otra ciudad/.test(l.texto)), 'bloqueada: no cobra y se le avisa');
+  // entrenar
+  turnoDe(e, pid, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50; n0 = j.noches;
+  assert.ok(g.act(pid, { t: 'reto', id: 'R18' }).ok); assert.equal(j.noches - n0, 50, 'entrenar da +50 noches');
+  // Jorasán
+  const k = g.ids[1], jk = e.jugadores[k]; jk.transito = { destino: 'Jorasán', faltan: 1, desde: 'Yemen', jorasan: true }; n0 = jk.noches;
+  turnoDe(e, pid, 'Isfahán'); avanzarHasta(g, () => jk.ciudad === 'Jorasán');
+  assert.ok(jk.noches - n0 >= 50 && jk.perdido, 'llegar al Jorasán da +50 noches');
+}
+
+function avanzarHasta(g, cond, pasos = 400) {
+  const e = g.e;
+  for (let i = 0; i < pasos && e.fase === 'juego' && !cond(); i++) {
+    if (e.dados) e.dados.lanzado = true;
+    if (e.pend) { for (const q of e.pend.para) if (!e.pend.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id }); }
+    else if (e.turno && !e.jugadores[e.turno.pid].npc) { if (e.turno.fase === 'ingreso') g.act(e.turno.pid, { t: 'tirarDados' }); else if (e.turno.ccActual) g.act(e.turno.pid, { t: 'omitirCC' }); else g.act(e.turno.pid, { t: 'terminarTurno' }); }
+    g.tickear(31000);
+  }
+}
+// R11 Sindbad: bien, 100 dinares y 50 noches; naufragio, 30 noches sin dinares y pierde el turno (sin multiplicar por ronda)
+{
+  for (let sem = 1; sem <= 40; sem++) {
+    const g = partida(['4', '7'], {}, sem); assert.ok(g.iniciar().ok);
+    const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
+    turnoDe(e, pid, 'India'); j.ciudad = 'India'; e.ronda = 8; const d0 = j.dinares, n0 = j.noches;
+    assert.ok(g.act(pid, { t: 'reto', id: 'R11' }).ok);
+    const bien = e.log.some((l) => /El viaje sale bien/.test(l.texto));
+    const llegada = j.noches - n0 - (bien ? 50 : 30);
+    const extra = j.dinares - d0 - (bien ? 100 : 0); assert.ok(extra >= 0 && extra <= 5, 'dinares de Sindbad (más lo que dé la carta de Cuentos de Basra): ' + extra);
+    assert.ok(llegada >= 0 && j.ciudad === 'Basra', 'noches de Sindbad (más la llegada a Basra)');
+    if (!bien) assert.equal(j.pierdeTurno, 1, 'el naufragio cuesta el siguiente turno');
+  }
+}
+
+// Carta S1 «Te presentan ante Saladino»: una vez, al quedar visitadas Aleppo y Damasco; 10 dinares y 50 noches a cada jugador vivo, no a Yafar NPC
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, npc = e.jugadores.npc;
+  assert.ok(npc, 'hay Yafar NPC');
+  const antes = Object.fromEntries(Object.values(e.jugadores).map((j) => [j.id, [j.dinares, j.noches]]));
+  turnoDe(e, a, 'Aleppo'); e.jugadores[a].ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
+  assert.ok(!e.saladino, 'con solo Aleppo no sale');
+  turnoDe(e, b, 'Damasco'); e.jugadores[b].ciudad = 'Damasco'; e.jugadores[b].visitadas = e.jugadores[b].visitadas.filter((c) => c !== 'Damasco');
+  const nb = e.jugadores[b].noches; llegada(data, e, b, 'Aleppo');
+  assert.ok(e.saladino && e.historial.some((h) => h.id === 'S1' && !h.para), 'sale a la vista de todos al visitar Damasco (otro jugador)');
+  const da = e.jugadores[a].dinares - antes[a][0]; assert.ok(da >= 10 && da <= 15, '10 dinares a cada jugador (más lo que dé su carta de Cuentos): ' + da);
+  assert.equal(npc.dinares, antes.npc[0], 'Yafar NPC no recibe nada'); assert.equal(npc.noches, antes.npc[1]);
+  const n2 = e.jugadores[a].noches; llegada(data, e, a, 'Aleppo'); assert.equal(e.historial.filter((h) => h.id === 'S1').length, 1, 'sale una sola vez');
+  void nb; void n2;
+}
+
+// Meta: solo cuentan las noches (los dinares ya no se suman)
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids;
+  e.jugadores[a].noches = 900; e.jugadores[a].dinares = 500;
+  avanzarHasta(g, () => e.ronda >= 3);
+  assert.equal(e.fase, 'juego', '900 noches + 500 dinares ya no ganan');
 }
 
 // Libro de saldos: cada cambio de dinares y noches queda en el registro; la suma de lo anotado da el saldo final
@@ -726,7 +831,9 @@ for (let k = 0; k < 6; k++) {
 {
   const { destinosTransporte } = await import('../shared/objetos.js');
   for (const ref of ['caballo', 'camello', 'alfombra']) for (const desde of ['Estambul', 'El Cairo', 'Damasco', 'Andalucía']) assert.ok(!destinosTransporte(data, ref, desde).includes('Bagdad'), `${ref} no va a Bagdad desde ${desde}`);
-  for (const desde of ['Damasco', 'Aleppo', 'Basra']) assert.deepEqual(destinosTransporte(data, 'burro', desde), ['Bagdad'], `burro directo a Bagdad desde ${desde}`);
+  for (const desde of ['Aleppo', 'Basra']) assert.deepEqual(destinosTransporte(data, 'burro', desde), ['Bagdad'], `burro directo a Bagdad desde ${desde}`);
+  assert.deepEqual(destinosTransporte(data, 'burro', 'Damasco'), ['Bagdad', 'El Cairo'], 'desde Damasco el burro va a Bagdad o a El Cairo (al-Quds)');
+  assert.deepEqual(destinosTransporte(data, 'burro', 'El Cairo'), ['Damasco'], 'desde El Cairo el burro solo va a Damasco');
 }
 
 // Solitario: si el humano derrota a Yafar NPC, gana pero la partida sigue

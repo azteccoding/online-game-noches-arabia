@@ -941,6 +941,15 @@
    "nombre": "Genio que te ignora",
    "arte": "es",
    "refReglamento": "16.4"
+  },
+  {
+   "id": "S1",
+   "nombre": "Te presentan ante Saladino",
+   "copias": 1,
+   "arte": "es",
+   "refReglamento": "17.1",
+   "texto": "En la ciudadela de Damasco, el sultán Salah ad-Din al-Ayyubi recibe a los viajeros. Les habla con sencillez: «Sean honestos y crean en Dios con todo el corazón. No busquen la guerra, pero si los atacan, defiéndanse con valor». Al despedirlos, ordena que a cada uno se le entreguen 10 dinares y se le cuenten 50 noches de hospitalidad.",
+   "efecto": "Sale una sola vez por partida, en cuanto Aleppo y Damasco hayan sido visitadas (por cualquier jugador). Cada jugador vivo recibe 10 dinares y 50 noches (no se multiplican por ronda); Yafar NPC no recibe nada."
   }
  ],
  "ifrit": {
@@ -1088,12 +1097,18 @@
   "reposicionPorRonda": 2
  },
  "transportes": {
-  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro: viajes cortos entre Bagdad y las ciudades cercanas, no termina el turno. Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad; termina el turno. Ningún transporte te lleva a Bagdad salvo el burro desde las ciudades cercanas. Camello: solo al Magreb, a Samarcanda y a Yemen; termina el turno. Alfombra mágica (un uso): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
+  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro: viajes cortos entre Bagdad y las ciudades cercanas y entre El Cairo y Damasco, no termina el turno; 1 dinar por turno y muere a los 4 turnos. Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad; termina el turno; 3 dinares por turno y muere a los 5 turnos. Ningún transporte te lleva a Bagdad salvo el burro desde las ciudades cercanas. Camello: solo al Magreb, a Samarcanda y a Yemen; termina el turno; 3 dinares por turno y muere a los 5 turnos. Alfombra mágica (no se gasta): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
   "burro": {
    "cercanas": [
     "Damasco",
     "Aleppo",
     "Basra"
+   ],
+   "rutas": [
+    [
+     "El Cairo",
+     "Damasco"
+    ]
    ],
    "terminaTurno": false
   },

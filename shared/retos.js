@@ -350,8 +350,9 @@ T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
 function sindbadFin(data, e, pid) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; HOOK.llegada(data, e, pid, 'India'); }
 T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
-  if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos.'); }
-  else { premio(data, e, pid, { dinares: 50 }, 'Naufragio:'); j.noches = Math.max(0, j.noches - 20); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: pierdes 20 noches y 1 turno.'); }
+  // Regla de la casa (noviembre de 2026): las noches de Sindbad no se multiplican por ronda; al naufragar no hay dinares pero se ganan 30 noches por la historia vivida.
+  if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100, noches: 50 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos: +100 dinares y +50 noches.'); }
+  else { premio(data, e, pid, { noches: 30 }, 'Naufragio, pero qué historia:'); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: sin dinares, pero +30 noches por la historia vivida; pierdes tu siguiente turno.'); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
 T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ? null : 'Debes haber completado R11.'), run(data, e, pid, ctx) {
@@ -444,8 +445,8 @@ function r16Tira(data, e, pid) {
 const reqEntrenar = (e, pid, costo) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= costo ? null : `Cuesta ${costo} dinares.`);
 function entrenar(e, pid, costo, descuentos) {
   const j = e.jugadores[pid]; if (j.dinares < costo) return false;
-  j.dinares -= costo; j.destreza = true; j.noches += 10; j.extra.descuentos = { ...(j.extra.descuentos || {}), ...descuentos };   // se usan comprando fuera de tu turno, hasta tu siguiente turno
-  log(e, `${j.nombre} entrena: obtiene destreza con armas y +10 noches.`, { pid }); return true;
+  j.dinares -= costo; j.destreza = true; j.noches += 50; j.extra.descuentos = { ...(j.extra.descuentos || {}), ...descuentos };   // se usan comprando fuera de tu turno, hasta tu siguiente turno
+  log(e, `${j.nombre} entrena: obtiene destreza con armas y +50 noches.`, { pid }); return true;
 }
 T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
 T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { alfanje: 15 }); hacer(e, pid, 'R19'); } };

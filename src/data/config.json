@@ -113,7 +113,19 @@
   "ingresoExtra": {
    "3": 3
   },
-  "anisVentanaMin": 5
+  "anisVentanaMin": 5,
+  "hazanas": {
+   "nota": "Visitar al-Quds (+40) y Hazaña de Tariq ibn Ziyad (+60): máximo de cobros por jugador en cada turno suyo (por: turno o partida). Freno: tras cobrarla, no vuelve a valer hasta que el jugador termine un turno fuera de las dos ciudades del par.",
+   "max": 2,
+   "por": "turno",
+   "freno": true
+  }
+ },
+ "animales": {
+  "nota": "Regla de la casa: turnos de vida y dinares de albéitar y comida por turno de su dueño.",
+  "burro": { "vida": 4, "costo": 1 },
+  "caballo": { "vida": 5, "costo": 3 },
+  "camello": { "vida": 5, "costo": 3 }
  },
  "r1": {
   "nota": "Reto del Éufrates (regla de la casa): cada ayudante añade un dado de búsqueda y suma deuda con la ciudad.",

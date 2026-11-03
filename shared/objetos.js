@@ -323,11 +323,14 @@ const ANIMALES = ['caballo', 'camello', 'burro'];
 export function destinosTransporte(data, ref, desde) {
   const r = data.objetos.transportes?.[ref], todas = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== desde);
   if (!r) return todas;
-  if (r.cercanas) return desde === 'Bagdad' ? r.cercanas.slice() : r.cercanas.includes(desde) ? ['Bagdad'] : [];
+  if (r.cercanas) {
+    const extra = (r.rutas || []).filter((p) => p.includes(desde)).map((p) => p.find((q) => q !== desde));
+    return [...new Set([...(desde === 'Bagdad' ? r.cercanas : r.cercanas.includes(desde) ? ['Bagdad'] : []), ...extra])];
+  }
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas, y entre El Cairo y Damasco.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 function usarVeneno(data, e, pid, c, a) {
@@ -387,7 +390,7 @@ export function usar(data, e, pid, a) {
     if (!ciudadDe(data, dest) || dest === j.ciudad) return err('Destino inválido.');
     if (!destinosTransporte(data, c.ref, j.ciudad).includes(dest)) return err(`Ahí no te lleva: ${textoTransporte(c.ref)}`);
     if (e.mods.varado?.[pid]) return err('Estás varado.');
-    return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: c.ref === 'alfombra' ? c.uid : null });
+    return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: null });   // la alfombra ya no se gasta (regla de la casa)
   }
   if (c.tipo === 'item' && c.ref === 'veneno') return usarVeneno(data, e, pid, c, a);
   if (c.tipo === 'item' && c.ref === 'idolo') {
@@ -449,4 +452,35 @@ export function usar(data, e, pid, a) {
     case 'OB42': consumirObj(data, e, pid, 'OB42'); j.buscado = 0; log(e, `${j.nombre} se disfraza de mendigo: ya no es Buscado.`, { pid }); return ok();
     default: return err('Ese objeto se usa en el momento que dice su carta (en un reto, una pelea o un evento).');
   }
+}
+
+// Regla de la casa (noviembre de 2026): los animales comen y envejecen. En cada turno de su dueño se paga el albéitar y la comida
+// (pago obligatorio: si no alcanza, queda como deuda) y, cumplidos sus turnos, el animal muere al cerrar el turno. El burro se
+// repone en el mercado de Basra (siguen siendo N − 1); al morir el caballo o el camello se reactiva el reto que los da (R1 o R5).
+const ANIMAL_DEF = { burro: { vida: 4, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' } };
+export const animalDe = (data, ref) => (ANIMAL_DEF[ref] ? { ...ANIMAL_DEF[ref], ...(data.config.animales?.[ref] || {}) } : null);
+export const turnosAnimal = (data, c) => Math.max(0, animalDe(data, c.ref).vida - (c.extra?.usados || 0));   // turnos que le quedan después del actual
+const animalesDe = (j) => j.mano.filter((c) => c.tipo === 'item' && ANIMAL_DEF[c.ref]);
+export function animalesInicioTurno(data, e, pid) {
+  const j = e.jugadores[pid];
+  for (const c of animalesDe(j)) {
+    const a = animalDe(data, c.ref);
+    c.extra = { ...(c.extra || {}), usados: (c.extra?.usados || 0) + 1 };
+    pagar(data, e, pid, a.costo);
+    const n = turnosAnimal(data, c);
+    log(e, `${j.nombre} paga ${a.costo} dinar${a.costo === 1 ? '' : 'es'} de albéitar y comida para su ${c.ref}${n ? ` (le quedan ${n} turno${n === 1 ? '' : 's'} más)` : ': es su último turno'}.`, { pid });
+  }
+}
+export function animalesFinTurno(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (!j || j.eliminado) return;
+  for (const c of animalesDe(j)) if (turnosAnimal(data, c) <= 0) morirAnimal(data, e, pid, c);
+}
+function morirAnimal(data, e, pid, c) {
+  const j = e.jugadores[pid], a = animalDe(data, c.ref);
+  quitarCarta(j, c.uid);
+  let mas = '';
+  if (c.ref === 'burro') { e.burros = (e.burros || 0) + 1; mas = ' Llega otro burro al mercado de Basra.'; }
+  else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
+  log(e, `Muere de viejo el ${c.ref} de ${j.nombre}.${mas}`, { pid, aviso: true });
 }

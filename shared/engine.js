@@ -176,7 +176,7 @@ function empezarRonda(data, e) {
 }
 
 function siguienteTurno(data, e, desde) {
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -192,7 +192,7 @@ function cierreRonda(data, e) {
   EVE.finRonda(data, e);
   NPC.finRonda(data, e);
   for (const id of activos(e)) { const j = e.jugadores[id]; if (j.buscado > 0) j.buscado--; if (j.extra.bajoTecho && j.extra.techoRonda !== e.ronda) j.extra.bajoTecho = false; }
-  const ganan = activos(e).filter((id) => patrimonio(e.jugadores[id]) >= data.config.meta);                   // R 2.3, 2.4, 20.6
+  const ganan = activos(e).filter((id) => e.jugadores[id].noches >= data.config.meta);                         // R 2.3, 2.4, 20.6 (regla de la casa: solo cuentan las noches)
   if (ganan.length) {
     const npcId = ganan.find((id) => e.jugadores[id].npc);
     const hum = ganan.filter((id) => !e.jugadores[id].npc);
@@ -226,6 +226,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.pj === '4') j.noches += 5;                                                                       // Jamil: +5 noches por turno (R 10.6)
   const esclavas = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclava');
   for (const c of esclavas) { if (j.dinares >= 1) j.dinares -= 1; j.noches += 5; }
+  OBJ.animalesInicioTurno(data, e, id);                                                                   // albéitar y comida de los animales
   log(e, `Turno de ${j.nombre}: cobra ${ing} dinares.`, { pid: id });
   PJ.inicioTurno(data, e, id);
   if (j.eliminado) return;
@@ -236,13 +237,54 @@ function iniciarTurno(data, e, id, idx) {
     if (j.transito.faltan > 0) { t.fase = 'mov'; t.principal = true; t.enTransito = true; t.fin = true; log(e, `${j.nombre} sigue de camino hacia ${j.transito.destino}.`, { pid: id }); return; }
     const tr = j.transito; j.transito = null; j.ciudad = tr.destino; t.movio = true;
     log(e, `${j.nombre} llega a ${tr.destino}.`, { pid: id });
-    if (tr.jorasan) { j.perdido = true; j.ciudad = 'Jorasán'; log(e, `${j.nombre} está perdido en el Jorasán.`, { pid: id }); }
+    if (tr.jorasan) { j.perdido = true; j.ciudad = 'Jorasán'; j.noches += NOCHES_JORASAN; log(e, `${j.nombre} llega al Jorasán (+${NOCHES_JORASAN} noches) y está perdido.`, { pid: id }); }
     else llegada(data, e, id, tr.desde);
   }
   if (j.npc) t.fase = 'mov';
 }
 
 // Carreras de «dos noches»: cuenta los turnos seguidos que cada jugador cierra hospedado (sin moverse) en la ciudad de la carrera.
+// Noches extra (regla de la casa, no se multiplican por ronda). Las hazañas valen hasta 2 veces en cada turno del jugador
+// (config.equilibrio.hazanas) y, con el freno, tras cobrar una no vuelve a valer hasta que termine un turno fuera de su par de ciudades.
+const NOCHES_JORASAN = 50;
+export const HAZANAS = { quds: { nombre: 'Visitar al-Quds', noches: 40, par: ['El Cairo', 'Damasco'] }, tariq: { nombre: 'Hazaña de Tariq ibn Ziyad', noches: 60, par: ['Magreb', 'Andalucía'] } };
+const confHazanas = (data) => ({ max: 2, por: 'turno', freno: true, ...(data.config.equilibrio?.hazanas || {}) });
+const cuentaHazanas = (data, e, j) => (confHazanas(data).por === 'turno' ? (e.turno?.pid === j.id ? e.turno.hazanas || {} : {}) : j.extra.hazanas || {});
+// Para la vista: cuántas le quedan este turno y si está bloqueada por el freno.
+export function hazanasEstado(data, e, j) {
+  const c = confHazanas(data), cuenta = cuentaHazanas(data, e, j);
+  return Object.fromEntries(Object.entries(HAZANAS).map(([k, h]) => [k, { nombre: h.nombre, noches: h.noches, par: h.par, quedan: Math.max(0, c.max - (cuenta[k] || 0)), bloqueada: !!(c.freno && j.extra.hazanaBloq?.[k]) }]));
+}
+function hazana(data, e, pid, k) {
+  const j = e.jugadores[pid], h = HAZANAS[k], c = confHazanas(data), st = hazanasEstado(data, e, j)[k];
+  if (st.bloqueada) { log(e, `«${h.nombre}» no vale todavía para ${j.nombre}. Para volver a ganar estas noches, muévete a otra ciudad (fuera de ${h.par.join(' y ')}).`, { pid }); return; }
+  if (st.quedan <= 0) { log(e, `${j.nombre} ya cobró ${c.max} veces «${h.nombre}»${c.por === 'turno' ? ' este turno' : ''}: no recibe más noches.`, { pid }); return; }
+  const cuenta = c.por === 'turno' ? (e.turno.hazanas ||= {}) : (j.extra.hazanas ||= {});
+  cuenta[k] = (cuenta[k] || 0) + 1; j.noches += h.noches;
+  log(e, `${j.nombre}: «${h.nombre}», +${h.noches} noches.`, { pid });
+}
+// Al cerrar el turno: la hazaña cobrada queda bloqueada; un turno posterior que termine fuera del par la libera.
+export function hazanasFinTurno(data, e) {
+  const t = e.turno, j = e.jugadores[t.pid];
+  if (!j || !confHazanas(data).freno) return;
+  for (const [k, h] of Object.entries(HAZANAS)) {
+    if (t.hazanas?.[k]) (j.extra.hazanaBloq ||= {})[k] = true;                                            // cobrada: en tu siguiente turno ya no vale
+    else if (j.extra.hazanaBloq?.[k] && !h.par.includes(j.ciudad) && !j.transito) delete j.extra.hazanaBloq[k];   // un turno entero terminado fuera del par la libera
+  }
+}
+// Carta especial S1, «Te presentan ante Saladino» (regla de la casa): una vez por partida, en cuanto Aleppo y Damasco ya fueron
+// visitadas por cualquier jugador. Se muestra a toda la mesa y cada jugador vivo recibe 10 dinares y 50 noches; Yafar NPC no.
+function saladino(data, e) {
+  if (e.saladino) return;
+  if (!['Aleppo', 'Damasco'].every((c) => Object.values(e.jugadores).some((x) => x.visitadas.includes(c)))) return;
+  const s = data.objetos.especiales.find((x) => x.id === 'S1');
+  if (!s) return;
+  e.saladino = { ronda: e.ronda };
+  publicarCarta(e, { id: 'S1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
+  const quienes = activos(e).filter((id) => !e.jugadores[id].npc);
+  for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
+  log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
+}
 export function carreraFinTurno(data, e) {
   const t = e.turno, j = e.jugadores[t.pid];
   if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
@@ -522,6 +564,7 @@ export function viajarPropio(data, e, pid, { destino, motivo, termina, consumeUi
   if (consumeUid) quitarCarta(j, consumeUid);
   t.tramos++; t.movio = true; j.ciudad = destino;
   log(e, `${j.nombre} viaja de ${origen} a ${destino} en ${motivo}${termina ? ' y termina su turno' : ''}.`, { pid });
+  if (motivo === 'burro' && [origen, destino].sort().join() === 'Damasco,El Cairo') hazana(data, e, pid, 'quds');
   if (termina) { t.principal = true; t.maxTramos = t.tramos; t.finTrasCC = true; }
   const r = llegada(data, e, pid, origen);
   if (termina && !t.ccActual) t.fin = true;
@@ -548,6 +591,8 @@ export function llegada(data, e, pid, origen) {
     j.extra.viajeGratisBagdad = true;                                                                       // R 7.2: primer visitante, un viaje gratis a Bagdad
   }
   if (e.evento.actual === 'E4' && nadieAntes) j.extra.e4 = true;
+  if (primera) saladino(data, e);
+  if (t && [origen, j.ciudad].sort().join() === 'Andalucía,Magreb') hazana(data, e, pid, 'tariq');                 // cruzar el estrecho, con cualquier medio
   if (!t.llegadas.includes(j.ciudad) && j.ciudad !== j.ciudadPrevia) {                                      // R 8.2: no se ganan al volver a la ciudad que dejaste
     t.llegadas.push(j.ciudad);
     const mult = multiplicadorRonda(data, e.ronda, activos(e).length);
@@ -842,6 +887,7 @@ function datosMano(data, e, c) {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
+    if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }
   if (c.tipo === 'ifrit') return cartaDatos(data, 'ifrit', c.ref);
@@ -855,7 +901,7 @@ export function vista(data, e, pid) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
       buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: !!j.mensaje, transito: j.transito ? { faltan: j.transito.faltan } : null,
-      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined };
+      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j) };
   }
   const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
     ccActual: e.turno.ccActual ? { tipo: e.turno.ccActual.tipo, nro: e.turno.ccActual.nro, descartada: e.turno.ccActual.descartada ?? null } : null };
