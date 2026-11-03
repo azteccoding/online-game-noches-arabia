@@ -439,6 +439,9 @@ function avanzarHasta(g, cond, pasos = 400) {
   const e = g.e, [a, b] = g.ids, npc = e.jugadores.npc;
   assert.ok(npc, 'hay Yafar NPC');
   const antes = Object.fromEntries(Object.values(e.jugadores).map((j) => [j.id, [j.dinares, j.noches]]));
+  npc.visitadas.push('Aleppo', 'Damasco'); npc.ciudad = 'Damasco'; turnoDe(e, 'npc', 'Damasco'); llegada(data, e, 'npc', 'Aleppo');
+  assert.ok(!e.saladino, 'las visitas de Yafar NPC no cuentan');
+  antes.npc = [npc.dinares, npc.noches];
   turnoDe(e, a, 'Aleppo'); e.jugadores[a].ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
   assert.ok(!e.saladino, 'con solo Aleppo no sale');
   turnoDe(e, b, 'Damasco'); e.jugadores[b].ciudad = 'Damasco'; e.jugadores[b].visitadas = e.jugadores[b].visitadas.filter((c) => c !== 'Damasco');

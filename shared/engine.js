@@ -273,10 +273,10 @@ export function hazanasFinTurno(data, e) {
   }
 }
 // Carta especial S1, «Te presentan ante Saladino» (regla de la casa): una vez por partida, en cuanto Aleppo y Damasco ya fueron
-// visitadas por cualquier jugador. Se muestra a toda la mesa y cada jugador vivo recibe 10 dinares y 50 noches; Yafar NPC no.
+// visitadas por jugadores humanos (las visitas de Yafar NPC no cuentan; las de Yafar jugador, sí). Se muestra a toda la mesa y cada jugador vivo recibe 10 dinares y 50 noches; Yafar NPC no.
 function saladino(data, e) {
   if (e.saladino) return;
-  if (!['Aleppo', 'Damasco'].every((c) => Object.values(e.jugadores).some((x) => x.visitadas.includes(c)))) return;
+  if (!['Aleppo', 'Damasco'].every((c) => Object.values(e.jugadores).some((x) => !x.npc && x.visitadas.includes(c)))) return;
   const s = data.objetos.especiales.find((x) => x.id === 'S1');
   if (!s) return;
   e.saladino = { ronda: e.ronda };
