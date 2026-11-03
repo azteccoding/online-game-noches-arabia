@@ -679,6 +679,18 @@ for (let k = 0; k < 6; k++) {
   A.ciudad = 'Bagdad'; A.mano = A.mano.filter((c) => c.ref !== 'burro'); assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'solo en Basra');
 }
 
+// R40 Cruzar a Abisinia (Yemen): pasaje 15; herido no puede; con 6+ carta de Ifrit
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Yemen'); A.ciudad = 'Yemen'; e.turno.fase = 'acciones'; A.dinares = 14;
+  let r = g.act(a, { t: 'reto', id: 'R40' }); assert.ok(!r.ok && !e.turno.principal, 'sin pasaje no hay trato ni se gasta la acción');
+  A.dinares = 50; A.herido = true; r = g.act(a, { t: 'reto', id: 'R40' }); assert.ok(!r.ok && /Herido/.test(r.error));
+  A.herido = false; A.destreza = false; A.mano = A.mano.filter((c) => c.ref !== 'camello'); forzar(e, 6);
+  assert.ok(g.act(a, { t: 'reto', id: 'R40' }).ok); assert.equal(A.dinares, 35);
+  assert.ok(A.mano.some((c) => c.tipo === 'ifrit') || A.dinares === 75, 'con 6: carta de Ifrit (o 40 dinares)'); assert.ok(A.retosHechos.includes('R40'));
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

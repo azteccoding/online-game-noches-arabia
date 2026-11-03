@@ -115,7 +115,7 @@ def label_layer():
     for t, lon, lat, sz, rot in [('Mar Mediterráneo', 17, 35.1, 44, 0), ('Mar Negro', 34.5, 43.2, 38, 0), ('Mar Caspio', 51.2, 41.3, 34, -80), ('Mar Rojo', 37.3, 19.6, 34, -55),
                                  ('Golfo Pérsico', 51.6, 27.6, 32, -38), ('Océano Índico', 58, 5.2, 56, 0), ('Mar Arábigo', 66, 19, 34, 0), ('Océano Atlántico', -8.8, 30, 38, -90)]:
         x, y = P(lon, lat); o.append(text_use(t, ALEGREYA_I, sz, x, y, 'middle', '#e8f2ee', spacing=10, rot=rot, opacity=.85))
-    for t, lon, lat, sz in [('ANATOLIA', 32.3, 38.9, 40), ('ARABIA', 45.5, 24, 58), ('PERSIA', 55.5, 29.6, 52), ('ASIA CENTRAL', 60, 44.3, 46), ('SAHARA', 12, 24.5, 60), ('EGIPTO', 29.7, 26.6, 34), ('SIRIA', 37.6, 35, 26)]:
+    for t, lon, lat, sz in [('ANATOLIA', 32.3, 38.9, 40), ('ARABIA', 45.5, 24, 58), ('PERSIA', 55.5, 29.6, 52), ('ASIA CENTRAL', 60, 44.3, 46), ('SAHARA', 12, 24.5, 60), ('EGIPTO', 29.7, 26.6, 34), ('SIRIA', 37.6, 35, 26), ('ABISINIA', 38.5, 10.5, 34)]:
         x, y = P(lon, lat); o.append(text_use(t, MARCELLUS, sz, x, y, 'middle', '#6a4520', spacing=18, opacity=.5))
     for t, lon, lat, rot in [('Atlas', -2.5, 32.8, -12), ('Zagros', 50, 32.6, -48), ('Hindu Kush', 70, 35, -20), ('Cáucaso', 43.5, 42.8, -8), ('Tauro', 35.5, 38.3, 0)]:
         x, y = P(lon, lat); o.append(text_use(t, ALEGREYA_I, 26, x, y, 'middle', '#5a3a17', spacing=4, rot=rot, opacity=.75))

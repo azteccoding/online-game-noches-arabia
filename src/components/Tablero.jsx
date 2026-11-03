@@ -7,7 +7,10 @@ import '../styles/board.css';
 const W = tablero.width, H = tablero.height;
 let mapaPromesa = null;
 // Los glifos del mapa (id g1, g2…) se renombran: los sprites de personajes, incrustados en la misma página, también usan g1…g7 y tapaban letras.
-const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r) => r.text()).then((t) => t.replace(/id="g(\d+)"/g, 'id="mapa-g$1"').replace(/href="#g(\d+)"/g, 'href="#mapa-g$1"').replace('<svg ', `<svg x="0" y="0" width="${W}" height="${H}" `)));
+// Rótulos agregados después de generar el mapa (al regenerarlo con tools/build_board_svg.py ya vienen dentro).
+const ROTULOS_NUEVOS = '<text x="1662" y="1716" text-anchor="middle" font-family="Marcellus SC, serif" font-size="34" letter-spacing="18" fill="#6a4520" opacity=".5">ABISINIA</text>';
+const conRotulosNuevos = (t) => (t.includes('ABISINIA') ? t : t.replace(/<\/svg>\s*$/, ROTULOS_NUEVOS + '</svg>'));
+const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r) => r.text()).then((t) => conRotulosNuevos(t).replace(/id="g(\d+)"/g, 'id="mapa-g$1"').replace(/href="#g(\d+)"/g, 'href="#mapa-g$1"').replace('<svg ', `<svg x="0" y="0" width="${W}" height="${H}" `)));
 
 const Digitos = ({ g }) => g.map(([d, x], i) => <path key={i} d={tablero.glifos[d]} transform={`translate(${x},0)`} />);
 

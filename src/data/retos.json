@@ -530,6 +530,21 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R40",
+   "nombre": "Cruzar a Abisinia",
+   "ciudad": "Yemen",
+   "tipo": "V",
+   "requisito": "Pagar 15 dinares de pasaje. No se puede intentar herido.",
+   "resolucion": "Desde Moca, un dhow cruza el estrecho de Bab el-Mandeb hacia Abisinia, la tierra del Negus que dio refugio a los primeros musulmanes que huyeron de La Meca en tiempos del Profeta Muhammad (la paz sea con él). Dicen que en sus montañas duermen genios atrapados en lámparas. Tira 1 dado (+1 con destreza, +1 con camello): 6 o más, llegas a Abisinia y encuentras una carta de Ifrit (si no quedan, 40 dinares) y vuelves a Yemen; 4 o 5, las corrientes te regresan a Moca; 1 a 3, tormenta en el estrecho.",
+   "premio": "Una carta de Ifrit (o 40 dinares si no quedan).",
+   "riesgo": "Con 4 o 5 pierdes el pasaje; con 1 a 3 pierdes el pasaje y quedas herido.",
+   "objetos": "",
+   "humor": "En Moca dicen que el estrecho tiene dos humores: el de ida y el de vuelta.",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

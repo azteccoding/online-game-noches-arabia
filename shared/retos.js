@@ -1,8 +1,8 @@
-// Retos y misiones R1-R39 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
+// Retos y misiones R1-R40 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
 // Los retos con varios pasos usan decisiones pendientes (pend) con continuaciones registradas; los plazos cuentan turnos PROPIOS (R 14.1).
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
-  publicarCarta, cartaDatos, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
+  publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
 } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
@@ -594,6 +594,22 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
   const j = e.jugadores[pid]; j.dinares -= 10; const c = darItem(e, j, 'cartaUrgente');
   nuevaMision(e, pid, { id: 'R39', destino: 'El Cairo', carga: [{ uid: c.uid }], texto: 'Lleva la carta urgente a El Cairo.' }, 2);
 } };
+// R40 (regla de la casa): cruzar a Abisinia desde Yemen. Pasaje de 15; 1 dado +1 destreza +1 camello: 6+ carta de Ifrit
+// (o 40 dinares), 4–5 vuelves a Moca, 1–3 tormenta y quedas herido. Se gana una vez por partida; herido no se intenta.
+T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if (j.herido) return 'Herido no puedes embarcarte.'; return j.dinares >= 15 ? null : 'El pasaje cuesta 15 dinares.'; },
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid]; j.dinares -= 15;
+    const [x] = ctx.t(`${j.nombre}: el cruce del estrecho de Bab el-Mandeb`, 1);
+    const b = (j.destreza ? 1 : 0) + (tieneItem(j, 'camello') ? 1 : 0), r = x + b;
+    if (b) ctx.say(`Bonos: ${[j.destreza && 'destreza +1', tieneItem(j, 'camello') && 'camello +1'].filter(Boolean).join(', ')} → ${r}.`);
+    if (r >= 6) {
+      hacer(e, pid, 'R40');
+      const id = robar(e, 'ifrit');
+      if (id) { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id }); publicarCarta(e, cartaDatos(data, 'ifrit', id), pid, [pid]); ctx.say('Llegas a Abisinia y en sus montañas encuentras una lámpara: ganas una carta de Ifrit. Vuelves a Yemen.'); }
+      else { j.dinares += 40; ctx.say('Llegas a Abisinia, pero los genios ya se fueron: te llevas 40 dinares. Vuelves a Yemen.'); }
+    } else if (r >= 4) ctx.say('Las corrientes te regresan a Moca: pierdes el pasaje.');
+    else { j.herido = true; ctx.say('Tormenta en el estrecho: pierdes el pasaje y quedas herido.'); }
+  } };
 
 // ---------------------------------------------------------------- Mensajes de los sheijs (R 18): se completan solos
 // Obras reales de Ibn Hazm de Córdoba (Dios tenga misericordia de él) que regala al cumplir su Mensaje.
