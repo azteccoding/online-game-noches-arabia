@@ -545,6 +545,21 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R41",
+   "nombre": "El ídolo de Toledo",
+   "ciudad": "Andalucía",
+   "tipo": "V",
+   "requisito": "Hay un solo ídolo por partida.",
+   "resolucion": "En una iglesia de Toledo, tras la frontera cristiana, guardan un ídolo cubierto de oro y pedrería. Cruzar la frontera de noche y llevárselo es cosa de valientes… o de locos. Tira 1 dado (+1 con destreza): 5 o más, lo consigues; 3 o 4, los guardias te ven y huyes con las manos vacías; 1 o 2, te atrapan.",
+   "premio": "La carta «Ídolo de Toledo»: destrúyela (150 noches) o véndela en Estambul a los venecianos (150 dinares, con riesgo de herejía).",
+   "riesgo": "Con 1 o 2 quedas herido y pagas 20 dinares de rescate.",
+   "objetos": "",
+   "humor": "En Toledo el ídolo tiene más guardias que fieles.",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

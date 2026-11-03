@@ -691,6 +691,19 @@ for (let k = 0; k < 6; k++) {
   assert.ok(A.mano.some((c) => c.tipo === 'ifrit') || A.dinares === 75, 'con 6: carta de Ifrit (o 40 dinares)'); assert.ok(A.retosHechos.includes('R40'));
 }
 
+// R41 El ídolo de Toledo: uno por partida; destruirlo da 150 noches
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Andalucía'); A.ciudad = 'Andalucía'; e.turno.fase = 'acciones'; A.destreza = false; forzar(e, 5);
+  assert.ok(g.act(a, { t: 'reto', id: 'R41' }).ok);
+  const c = A.mano.find((x) => x.ref === 'idolo'); assert.ok(c, 'con 5 roba el ídolo'); assert.equal(e.idolo, 'robado');
+  turnoDe(e, b, 'Andalucía'); e.jugadores[b].ciudad = 'Andalucía'; e.turno.fase = 'acciones';
+  assert.ok(!g.act(b, { t: 'reto', id: 'R41' }).ok, 'solo hay un ídolo');
+  turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 150); assert.ok(!e.turno.principal, 'acción libre');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

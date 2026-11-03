@@ -1,4 +1,4 @@
-// Retos y misiones R1-R40 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
+// Retos y misiones R1-R41 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
 // Los retos con varios pasos usan decisiones pendientes (pend) con continuaciones registradas; los plazos cuentan turnos PROPIOS (R 14.1).
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
@@ -609,6 +609,17 @@ T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
       else { j.dinares += 40; ctx.say('Llegas a Abisinia, pero los genios ya se fueron: te llevas 40 dinares. Vuelves a Yemen.'); }
     } else if (r >= 4) ctx.say('Las corrientes te regresan a Moca: pierdes el pasaje.');
     else { j.herido = true; ctx.say('Tormenta en el estrecho: pierdes el pasaje y quedas herido.'); }
+  } };
+// R41 (regla de la casa): el ídolo de Toledo, uno solo por partida. 1 dado +1 destreza: 5+ lo robas; 3–4 nada; 1–2 herido y 20 de rescate.
+T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo ya no está en su iglesia.' : null),
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid];
+    const [x] = ctx.t(`${j.nombre}: cruzar de noche hasta la iglesia de Toledo`, 1);
+    const r = x + (j.destreza ? 1 : 0);
+    if (j.destreza) ctx.say(`Destreza +1 → ${r}.`);
+    if (r >= 5) { e.idolo = 'robado'; hacer(e, pid, 'R41'); darItem(e, j, 'idolo'); ctx.say('Te llevas el ídolo: ganas la carta «Ídolo de Toledo».'); log(e, `${j.nombre} roba el Ídolo de Toledo.`, { pid, aviso: true }); }
+    else if (r >= 3) ctx.say('Los guardias te ven y huyes con las manos vacías.');
+    else { j.herido = true; pagar(data, e, pid, 20); ctx.say('Te atrapan: quedas herido y pagas 20 dinares de rescate.'); log(e, `${j.nombre} intenta robar el ídolo de Toledo y lo atrapan: queda herido y paga 20 dinares de rescate.`, { pid, aviso: true }); }
   } };
 
 // ---------------------------------------------------------------- Mensajes de los sheijs (R 18): se completan solos

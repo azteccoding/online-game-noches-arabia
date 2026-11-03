@@ -217,6 +217,7 @@ export function estimarVenta(data, e, pid, c) {
 // Dónde se vende cada carta y a cuánto (o para qué sirve si no se vende), para que «no se vende aquí» nunca quede sin explicación.
 const MITAD = { esclava: 10, alfombraIsfahan: 20, sal: 2, cesta: 1 };
 const USO = {
+  idolo: 'Destrúyelo en cualquier ciudad (150 noches) o véndelo en Estambul a los mercaderes venecianos (150 dinares, con riesgo de herejía). Sirve para: reto R41 (Andalucía).',
   caballo: 'Es tu transporte: úsalo para viajar.', camello: 'Es tu transporte: úsalo para viajar.', burro: 'Es tu transporte: úsalo para viajar.', alfombra: 'Es tu transporte: úsala para viajar.',
   brujula: 'Sirve para buscar tesoros (un segundo intento).', astrolabio: 'Sirve para buscar tesoros (regla del siguiente número).',
   recetaAverroes: 'Úsala para curarte una herida.', bendicionAbuMadyan: 'Te protege una vez de los asaltos en Andalucía y el Magreb.', dadoIbnArabi: 'Repite una pelea que vayas a perder.',
@@ -282,6 +283,10 @@ export function disponibles(data, e, pid) {
       const x = { k: 'usar', uid: c.uid, titulo: 'Usar ' + u.titulo };
       if (u.obj) { const ob = enCiudad(e, j.ciudad, pid).filter((q) => !e.jugadores[q].npc); if (!ob.length) continue; x.objetivos = ob; }
       r.push(x);
+    }
+    if (c.tipo === 'item' && c.ref === 'idolo') {                                                     // R41: destruirlo o venderlo a los venecianos
+      r.push({ k: 'usar', uid: c.uid, titulo: 'Destruir el Ídolo de Toledo (150 noches, acción libre)', via: 'destruir' });
+      if (j.ciudad === 'Estambul') r.push({ k: 'usar', uid: c.uid, titulo: 'Vender el ídolo a los venecianos (150 dinares; con 1–2 te acusan de herejía)', via: 'venecianos' });
     }
     if (c.tipo === 'item' && c.ref === 'recetaAverroes' && (j.herido || t.heridoAhora)) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar la Receta de Averroes (cura tu herida)' });
     if (c.tipo === 'item' && c.ref === 'veneno') {
@@ -371,6 +376,18 @@ export function usar(data, e, pid, a) {
     return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: c.ref === 'alfombra' ? c.uid : null });
   }
   if (c.tipo === 'item' && c.ref === 'veneno') return usarVeneno(data, e, pid, c, a);
+  if (c.tipo === 'item' && c.ref === 'idolo') {
+    if (a.via === 'destruir') { quitarCarta(j, c.uid); e.idolo = 'destruido'; j.noches += 150; log(e, `${j.nombre} destruye el Ídolo de Toledo y gana 150 noches.`, { pid, aviso: true }); return ok(); }
+    if (a.via !== 'venecianos') return err('¿Qué quieres hacer con el ídolo?');
+    if (j.ciudad !== 'Estambul') return err('Los mercaderes venecianos están en Estambul.');
+    quitarCarta(j, c.uid); e.idolo = 'vendido'; j.dinares += 150;
+    const x = dado(e), pillado = x <= 2;
+    mostrarDados(e, { por: pid, motivo: 'idolo', grupos: [{ etq: `${j.nombre}: ¿te descubren vendiendo el ídolo? (1 o 2: herejía)`, valores: [x] }],
+      resumen: [pillado ? `Te acusan de herejía: acabas herido en el Jorasán y sin dinares.` : 'Nadie se entera: te quedas con los 150 dinares.'] });
+    if (pillado) { j.dinares = 0; j.herido = true; j.perdido = true; j.ciudad = 'Jorasán'; j.extra.enRumbo = false; if (t) { t.movio = true; t.fin = true; } }
+    log(e, pillado ? `${j.nombre} vende el Ídolo de Toledo a los venecianos, pero lo acusan de herejía: acaba herido en el Jorasán y sin dinares.` : `${j.nombre} vende el Ídolo de Toledo a los venecianos por 150 dinares.`, { pid, aviso: true });
+    return ok();
+  }
   if (c.tipo === 'item' && c.ref === 'recetaAverroes') {
     if (!(j.herido || t.heridoAhora)) return err('No estás herido.');
     quitarCarta(j, c.uid); j.herido = false;
