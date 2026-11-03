@@ -714,6 +714,15 @@ for (let k = 0; k < 6; k++) {
   assert.ok(A.dinares === 300 || A.dinares === 200, 'dos copias a 150 o a 100: ' + A.dinares); assert.equal(A.mano.length, 0);
 }
 
+// Solitario: con un solo jugador humano se compra también en el propio turno (y Yafar NPC en el suyo)
+{
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Basra'); A.ciudad = 'Basra'; e.turno.fase = 'acciones'; A.dinares = 500; e.mods = {}; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
+  if (!(e.burros > 0)) e.burros = 1;
+  const r = g.act(a, { t: 'comprar', ref: 'burro' }); assert.ok(r.ok, 'en solitario compra en su turno: ' + r.error);
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

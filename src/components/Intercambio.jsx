@@ -26,7 +26,8 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const miTurno = s.turno?.pid === s.yo && s.fase === 'juego' && s.turno.fase !== 'ingreso' && !yo.transito && !yo.perdido && !s.turno.fin && !s.pend;
   const vendibles = s.mano.filter((c) => c.tipo !== 'especial');
   const esMiTurno = s.turno?.pid === s.yo;
-  const puedeComprar = s.fase === 'juego' && !!s.turno && !esMiTurno && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
+  const solo = Object.values(s.jugadores).filter((j) => j.pj && !j.npc && !j.eliminado).length <= 1;   // en solitario también se compra en el propio turno
+  const puedeComprar = s.fase === 'juego' && !!s.turno && (!esMiTurno || solo) && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
   const [dinOfrece, setDinOfrece] = useState(0);

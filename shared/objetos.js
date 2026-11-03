@@ -19,7 +19,8 @@ export function puedeMercado(e, pid) {
   const j = e.jugadores[pid];
   if (!j || e.fase !== 'juego' || !e.turno || j.eliminado || !j.pj || j.transito || j.perdido) return 'Ahora no puedes comprar.';
   if (j.npc) return e.turno.pid === pid ? null : 'Yafar NPC compra en su turno.';
-  return e.turno.pid === pid ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende.' : null;
+  const solo = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado).length <= 1;   // en solitario no hay turnos ajenos: se compra también en el propio
+  return e.turno.pid === pid && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende.' : null;
 }
 const puedeTienda = (e, pid) => e.fase === 'juego' && e.turno && e.turno.pid === pid && !e.jugadores[pid].transito && !e.jugadores[pid].perdido && !e.turno.fin;
 
