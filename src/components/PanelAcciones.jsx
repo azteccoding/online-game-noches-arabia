@@ -1,5 +1,5 @@
 import React from 'react';
-import { enviar } from '../game/store.js';
+import { enviar, avisar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
@@ -18,6 +18,15 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const puedeViajar = s.acciones.some((a) => a.k === 'viajar');
   const mano = s.mano.length + (s.mensaje ? 1 : 0);
   const marca = (p) => (panel === p ? ' on' : '');
+  // Qué impide seguir: una decisión, los dados o una CC sin responder. En vez de un botón muerto, se avisa y se lleva a esa carta.
+  const enPantalla = useJuego((x) => x.cartaEnPantalla);
+  const cc = miTurno && t.ccActual ? s.historial.find((h) => h.nro === t.ccActual.nro) : null;
+  const bloqueo = s.pend?.mia && !s.pend.respondiste ? { texto: `Primero responde: «${s.pend.titulo}»` }
+    : s.pend ? { texto: `Esperando a ${s.pend.faltan.map((x) => s.jugadores[x]?.nombre || x).join(', ')}: «${s.pend.titulo}»` }
+    : s.dados ? { texto: 'Primero cierra los dados en pantalla.' }
+    : cc ? { texto: `Primero responde: «${cc.titulo}»`, carta: cc.nro } : null;
+  const intentar = (fn) => () => { if (!bloqueo) return fn(); avisar('⚠ ' + bloqueo.texto); if (bloqueo.carta != null) abrir('carta:' + bloqueo.carta); };
+  const ccPendiente = cc && enPantalla !== cc.nro;
   return (
     <footer className="acciones">
       <div className="acc-info">
@@ -31,18 +40,19 @@ export default function PanelAcciones({ s, abrir, panel }) {
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscado > 0 && <span className="chip mal">Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>
+      {ccPendiente && <div className="acc-responde"><button className="btn responde" onClick={() => abrir('carta:' + cc.nro)} title={`Falta responder «${cc.titulo}»`}>¡Responde! <small>{cc.titulo}</small></button></div>}
       <div className="acc-botones">
         {miTurno && t.fase === 'ingreso' && <button className="btn grande" disabled={ocupado} onClick={() => enviar(ACCIONES.tirarDados())}>Tirar dado de ingreso</button>}
         {miTurno && t.fase !== 'ingreso' && (
           <>
-            <button className="btn" disabled={ocupado || !puedeViajar || !sinCC} onClick={() => abrir('ciudad:' + yo.ciudad)}>Viajar</button>
+            <button className={`btn${bloqueo ? ' bloq' : ''}`} disabled={!puedeViajar} aria-disabled={!!bloqueo} onClick={intentar(() => abrir('ciudad:' + yo.ciudad))}>Viajar</button>
             <button className={`btn${marca('acciones')}`} onClick={() => abrir('acciones')}>Acciones{nAcc ? ` (${nAcc})` : ''}</button>
           </>
         )}
         <button className={`btn sec${marca('mercado')}`} onClick={() => abrir('mercado')}>Mercado{s.tratos.some((x) => x.con === s.yo) ? ' •' : ''}</button>
         <button className={`btn sec${marca('mano')}`} onClick={() => abrir('mano')}>Mano ({mano})</button>
         <button className={`btn sec${marca('misiones')}`} onClick={() => abrir('misiones')}>Retos{s.misiones.length ? ` (${s.misiones.length})` : ''}</button>
-        {miTurno && t.fase !== 'ingreso' && <button className="btn claro" disabled={ocupado || !sinCC} onClick={() => enviar(ACCIONES.terminarTurno())}>Terminar turno</button>}
+        {miTurno && t.fase !== 'ingreso' && <button className={`btn claro${bloqueo ? ' bloq' : ''}`} aria-disabled={!!bloqueo} onClick={intentar(() => enviar(ACCIONES.terminarTurno()))}>Terminar turno</button>}
       </div>
     </footer>
   );

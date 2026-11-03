@@ -300,3 +300,12 @@ fieldset:disabled { opacity: .5; }
 .dados-resumen.paso-a-paso li { opacity: 0; animation: linea-pelea .35s ease-out forwards; animation-delay: calc(var(--i) * .75s); }
 .dados-resumen li.final { font-weight: 700; color: var(--oro-claro); }
 @keyframes linea-pelea { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+/* Carta sin responder: el acceso llama la atención y los botones bloqueados avisan en vez de no hacer nada */
+.btn.responde { background: linear-gradient(180deg, #ffe39a, #d9a520); color: #3a1218; border-color: #fff3c2; font-weight: 700; animation: pulso-oro 1.4s ease-in-out infinite; max-width: 14em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.responde small { font-weight: 500; opacity: .85; }
+.btn.bloq { opacity: .55; }
+@keyframes pulso-oro { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 211, 107, .75); } 50% { box-shadow: 0 0 0 8px rgba(255, 211, 107, 0); } }
+@media (prefers-reduced-motion: reduce) { .btn.responde { animation: none; outline: 3px solid #ffd36b; } }
+.acc-responde { display: flex; justify-content: center; align-items: center; }
+.lienzo[data-forma='alta'] .acc-responde { width: 100%; }
+.lienzo[data-forma='alta'] .acc-responde .btn.responde { flex: 1; max-width: none; min-height: 38px; }

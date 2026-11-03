@@ -76,6 +76,7 @@ function Juego({ lienzo }) {
 
   const abrir = useCallback((p) => {
     if (p === 'ultima') { const u = leer().estado?.ultimaCarta; if (u != null) setConsulta(u); return; }
+    if (p.startsWith('carta:')) { setPanel(null); setConsulta(Number(p.slice(6))); return; }   // la carta que falta responder
     if (p === 'evento') { const h = leer().estado?.historial.slice().reverse().find((x) => x.deck === 'evento'); if (h) setConsulta(h.nro); return; }
     setPanel((a) => (a === p ? null : p));
   }, []);
