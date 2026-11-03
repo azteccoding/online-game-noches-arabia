@@ -262,7 +262,7 @@ export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
   if (debe > 0) log(e, `${j.nombre} no tiene dinares suficientes y queda en deuda con el banco: ${j.dinares} dinares. Se cobrará de lo próximo que reciba.`, { pid });
   return { dinares: monto, noches: 0, pagado: monto, debe };
 }
-export const puedePagar = (data, j, monto) => j.dinares + Math.floor(j.noches / data.config.cinco_noches_por_dinar) >= monto;
+export const puedePagar = (data, j, monto) => j.dinares >= monto;   // regla de la casa: solo con los dinares completos (las noches no cuentan)
 export const puedePagarDinares = (j, monto) => j.dinares >= monto;
 
 // ---------------------------------------------------------------- eliminación (R 11.8)
