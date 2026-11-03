@@ -276,10 +276,10 @@ registrar('r4.libros', (data, e, args, resp) => {
 // ---------------------------------------------------------------- R5 / R6
 T.R5 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; const v = [];
-  for (let i = 0; i < 4; i++) { const x = dado(e); v.push(x); if (x === 6) break; }
+  for (let i = 0; i < 3; i++) { const x = dado(e); v.push(x); if (x === 6) break; }   // 3 intentos (antes 4)
   ctx.grupos.push({ etq: `${j.nombre}: alquimia`, valores: v });
   hacer(e, pid, 'R5');
-  if (v[v.length - 1] === 6) { const pr = [50, 40, 30, 20][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
+  if (v[v.length - 1] === 6) { const pr = [50, 40, 30][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
   else { darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
 } };
 T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
@@ -436,13 +436,13 @@ function entrenar(e, pid, costo, descuentos) {
   j.dinares -= costo; j.destreza = true; j.noches += 10; e.turno.descuentos = { ...(e.turno.descuentos || {}), ...descuentos };
   log(e, `${j.nombre} entrena: obtiene destreza con armas y +10 noches.`, { pid }); return true;
 }
-T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 20), run(data, e, pid) { entrenar(e, pid, 20, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
-T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => reqEntrenar(e, pid, 20), run(data, e, pid) { entrenar(e, pid, 20, { alfanje: 15 }); hacer(e, pid, 'R19'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => reqEntrenar(e, pid, 30), run(data, e, pid) { entrenar(e, pid, 30, { cimitarra: 25, alfanje: 15 }); hacer(e, pid, 'R25'); } };
+T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
+T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { alfanje: 15 }); hacer(e, pid, 'R19'); } };
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => reqEntrenar(e, pid, 35), run(data, e, pid) { entrenar(e, pid, 35, { cimitarra: 25, alfanje: 15 }); hacer(e, pid, 'R25'); } };
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
-  if (x <= 2) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
+  if (x <= 3) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
   else { premio(data, e, pid, { dinares: 40 }, `${j.nombre} halla un cofre en la casa embrujada:`); if (x === 6) { darItem(e, j, 'mapa', { tesoro: 'ruman' }); ctx.say('Y un mapa de los Rumán.'); } }
 } };
 T.R22 = { ciudad: 'Damasco', req: (data, e, pid) => {
@@ -469,8 +469,8 @@ registrar('r23.banditos', (data, e, args, resp) => {
   if (resp.opcion === 'saco' || !peleaNPC(data, e, pid, { etq: 'Bandoleros', dados: 2, bono: 1 })) { const c = carga.pop(); quitarCarta(j, c.uid); }
   if (carga.length) nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
 });
-T.R24 = { ciudad: 'Basra', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Cuesta 5 dinares.'), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= 5; const c = darItem(e, j, 'cesta');
+T.R24 = { ciudad: 'Basra', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= 10; const c = darItem(e, j, 'cesta');
   nuevaMision(e, pid, { id: 'R24', destino: 'Bagdad', carga: [{ uid: c.uid }], texto: 'Entrega la cesta en Bagdad este turno.' }, 1);
 } };
 T.R26 = { ciudad: 'Andalucía', req: (data, e) => (activos(e).some((x) => e.jugadores[x].pj === '2') ? 'Zein juega: se usan las reglas de Zein (R 10.3).' : null), run(data, e, pid, ctx) {
@@ -521,10 +521,10 @@ T.R29 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
 T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Cuesta 5 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 5; const c = darItem(e, j, 'pergaminoSellado');
   const [x] = ctx.t(`${j.nombre}: el guardia del camino`, 1);
-  if (x <= 2) {
+  if (x <= 3) {
     if (aplic(data, e, pid, us, 'OB21')) ctx.say('El pastel de pistachos suaviza al guardia.');
     else if (aplic(data, e, pid, us, 'OB14') || aplic(data, e, pid, us, 'OB17')) ctx.say('Pagas el peaje con tu objeto.');
-    else if (j.dinares >= 10) { j.dinares -= 10; ctx.say('Pagas 10 dinares de peaje.'); } else { quitarCarta(j, c.uid); ctx.say('No puedes pagar el peaje: pierdes el reto.'); return; }
+    else if (j.dinares >= 15) { j.dinares -= 15; ctx.say('Pagas 15 dinares de peaje.'); } else { quitarCarta(j, c.uid); ctx.say('No puedes pagar el peaje: pierdes el reto.'); return; }
   }
   nuevaMision(e, pid, { id: 'R30', destino: 'Bagdad', carga: [{ uid: c.uid }], texto: 'Entrega el pergamino sellado en Bagdad.' }, 3);
 } };
@@ -550,8 +550,8 @@ T.R33 = { ciudad: 'Damasco', run(data, e, pid, ctx, us) {
 T.R34 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R34');
   const b = (aplic(data, e, pid, us, 'OB09') ? 1 : 0) + (aplic(data, e, pid, us, 'OB06') ? 1 : 0); const [x] = ctx.t(`${j.nombre}: la cueva`, 1); const r = x + b;
-  if (r <= 1) { if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
-  else if (r <= 3) premio(data, e, pid, { dinares: 20 }, 'Un cofre pequeño:');
+  if (r <= 2) { if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
+  else if (r <= 4) premio(data, e, pid, { dinares: 20 }, 'Un cofre pequeño:');
   else { premio(data, e, pid, { dinares: 20 }, 'Una lámpara:'); if (!tomarDeBotin(data, e, pid, 'OB24')) premio(data, e, pid, { dinares: 30, noches: 15 }); }
 } };
 T.R35 = { ciudad: 'India', req: (data, e, pid) => { const j = e.jugadores[pid]; const l = j.mano.filter((c) => c.tipo === 'objeto' && objDe(data, c.ref).tipo === 'Lujo/Comercio'); return suma(l.map((c) => objDe(data, c.ref).valor + (c.ref === 'OB40' ? 2 : 0))) >= 30 ? null : 'Necesitas mercancías de Lujo/Comercio por 30 dinares o más.'; },
@@ -574,7 +574,7 @@ T.R37 = { ciudad: 'El Cairo', req: (data, e, pid) => { const j = e.jugadores[pid
   const j = e.jugadores[pid]; hacer(e, pid, 'R37');
   if (aplic(data, e, pid, us, 'OB30') || (j.dinares < 10 && consumirObj(data, e, pid, 'OB30'))) ctx.say('Entras con tu carta de recomendación.'); else j.dinares -= 10;
   const [x0] = ctx.t(`${j.nombre}: la boda`, 1); const x = x0 + (aplic(data, e, pid, us, 'OB21') ? 1 : 0);
-  if (x <= 1) { j.extra.sinPrincipal = true; ctx.say('Se te sube el vino: perderás tu próxima acción principal.'); }
+  if (x <= 2) { j.extra.sinPrincipal = true; ctx.say('Se te sube el vino: perderás tu próxima acción principal.'); }
   else if (x <= 5) { premio(data, e, pid, { dinares: 30 }, 'Contactos útiles:'); HOOK.robarCC(data, e, pid, 'El Cairo'); }
   else premio(data, e, pid, { dinares: 60 }, 'Un socio generoso:');
 } };
@@ -590,8 +590,8 @@ T.R38 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ?
     return;
   }
 } };
-T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Cuesta 5 dinares.'), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= 5; const c = darItem(e, j, 'cartaUrgente');
+T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= 10; const c = darItem(e, j, 'cartaUrgente');
   nuevaMision(e, pid, { id: 'R39', destino: 'El Cairo', carga: [{ uid: c.uid }], texto: 'Lleva la carta urgente a El Cairo.' }, 2);
 } };
 
