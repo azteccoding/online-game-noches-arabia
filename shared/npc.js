@@ -173,7 +173,8 @@ const objetivosValidos = (e, pid) => activos(e).filter((x) => x !== pid);
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!puedePrincipal(t) || j.transito || j.perdido || j.ciudad !== 'Samarcanda' || e.asesinos.actuaron || vivos(e) <= 2) return [];
-  return [{ k: 'asesinos', titulo: 'Contratar a los Asesinos (opción 4 de R 12.3)', texto: 'Precio: 20 dinares por jugador vivo + 30 por cada punto del dado de la víctima. Nunca fallan y solo actúan una vez.' }];
+  const min = precioContrato(e, 1) / (j.pj === '6' ? 2 : 1);
+  return [{ k: 'asesinos', titulo: 'Contratar a los Asesinos (opción 4 de R 12.3)' + (j.dinares < min ? ` (necesitas al menos ${min} dinares)` : ''), texto: `Precio: 20 dinares por jugador vivo + 30 por cada punto del dado de la víctima, solo en dinares. Nunca fallan y solo actúan una vez. Al contratarlos tu turno termina, quedas Buscado ${data.config.buscadoRondas} rondas y todos sabrán a quién mandaste matar.` }];
 }
 
 export function contratar(data, e, pid, a) {
@@ -182,6 +183,8 @@ export function contratar(data, e, pid, a) {
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   if (!puedePrincipal(t)) return err('Ya usaste tu acción principal.');
   if (j.ciudad !== 'Samarcanda') return err('Los Asesinos se contratan en Samarcanda.');
+  const min = precioContrato(e, 1) / (j.pj === '6' ? 2 : 1);
+  if (j.dinares < min) return err(`Los Asesinos cobran en dinares y como mínimo ${min}: no te alcanza.`);
   return iniciarContrato(data, e, pid, { accion: true });
 }
 function iniciarContrato(data, e, pid, args) {
@@ -205,26 +208,28 @@ registrar('npc.victima', (data, e, args, resp) => {
   const zub = j.pj === '6';
   if (zub) precio = Math.ceil(precio / 2);
   mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima`, valores: [d] }], resumen: [`Los Asesinos fijan su precio: ${vivos(e)} jugadores vivos × 20 + ${d} × 30.`] });
-  const alcanza = zub || puedePagar(data, j, precio);
-  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Precio del contrato', texto: `Víctima: ${nombre(e, v)} (dado ${d}). Precio: ${precio} dinares${zub ? ' (descuento del 50%; puedes deber el resto 2 turnos)' : ''}. ¿Firmas?`,
+  const alcanza = j.dinares >= precio;                                    // regla de la casa: solo con los dinares completos, sin deudas
+  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Precio del contrato', texto: `Víctima: ${nombre(e, v)} (dado ${d}). Precio: ${precio} dinares${zub ? ' (con tu descuento del 50%)' : ''}.${alcanza ? '' : ' No te alcanzan los dinares: no puedes firmar.'} Si firmas, tu turno termina, quedas Buscado y todos sabrán que mandaste matar a ${nombre(e, v)}.`,
     opciones: [{ id: 'si', texto: `Pagar ${precio}`, desactivada: !alcanza }, { id: 'no', texto: 'No firmar' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'npc.firma', args: { ...args, victima: v, precio } } });
 });
 registrar('npc.firma', (data, e, args, resp) => {
-  if (resp.opcion !== 'si') return;
+  if (resp.opcion !== 'si' || e.jugadores[resp.pid].dinares < args.precio) return;
   firmar(data, e, resp.pid, args.victima, args.precio, args);
 });
 function firmar(data, e, pid, v, precio, args = {}) {
   if (e.asesinos.actuaron || e.jugadores[v]?.eliminado) return;
   const j = e.jugadores[pid];
-  const r = pagar(data, e, pid, precio);
-  if (r.debe > 0 && j.pj === '6') j.extra.deudaAsesinos = { monto: r.debe, turnos: 2 };
+  j.dinares -= precio;                                                   // siempre en dinares (se comprobó antes de firmar)
   e.asesinos.actuaron = true; e.asesinos.contrato = { por: pid, victima: v, ronda: e.ronda };
   j.noches += 200;
-  if (args.accion && e.turno) e.turno.principal = true;
-  log(e, 'Los Asesinos (Hashashín) actúan en la sombra y se retiran para siempre.');
+  // Regla de la casa: el contrato es público, deja Buscado al contratante y termina su turno.
+  j.buscado = data.config.buscadoRondas;
+  if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
   const vic = e.jugadores[v];
+  log(e, `${j.nombre} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
+  log(e, 'Los Asesinos (Hashashín) actúan y se retiran para siempre.');
   log(e, `${vic.nombre} muere a manos de los Asesinos.`, { pid: v });
-  eliminar(data, e, v, { por: pid, soloNoches: true, causa: 'Asesinos', secreto: true });
+  eliminar(data, e, v, { por: pid, soloNoches: true, causa: 'Asesinos' });
 }
 
 // ---------------------------------------------------------------- carta E1: los Asesinos aparecen (R 13.4)
@@ -242,7 +247,7 @@ export function eventoAsesinos(data, e) {
   mostrarDados(e, { por: probable, motivo: 'asesinos', npc: true, grupos: [{ etq: 'Víctima probable de los Asesinos', valores: [Math.min(6, i)] }], resumen: [`Víctima probable: ${nombre(e, probable)}.`] });
   const min = 20 * viv.length;
   const hum = humanosVivos(e);
-  const para = hum.filter((x) => e.jugadores[x].dinares + Math.floor(e.jugadores[x].noches / data.config.cinco_noches_por_dinar) >= min);
+  const para = hum.filter((x) => e.jugadores[x].dinares >= min);
   e.asesinos.evento = { probable };
   if (!para.length) return sinPuja(data, e, probable);
   pedir(e, { tipo: 'subasta', para, modo: 'todos', titulo: 'Los Asesinos llegan a la ciudad', texto: `Se subasta su contrato en secreto (mínimo ${min} dinares). El mejor postor elige a la víctima; los Asesinos no fallan. Víctima probable si nadie puja: ${nombre(e, probable)}.`,
@@ -253,19 +258,21 @@ registrar('npc.subasta', (data, e, args, resp) => {
   for (const x of e.orden) {
     const o = resp[x]; if (!o) continue;
     const b = Number(o.opcion || 0), j = e.jugadores[x];
-    if (b >= args.min && b > mejor && j && !j.eliminado && j.dinares + Math.floor(j.noches / data.config.cinco_noches_por_dinar) >= b) { ganador = x; mejor = b; }
+    if (b >= args.min && b > mejor && j && !j.eliminado && j.dinares >= b) { ganador = x; mejor = b; }
   }
   if (!ganador) return sinPuja(data, e, args.probable);
-  log(e, 'Alguien ha comprado el contrato de los Asesinos (no se sabe quién).');
+  log(e, `${nombre(e, ganador)} ha comprado el contrato de los Asesinos.`, { pid: ganador, aviso: true });
   const op = objetivosValidos(e, ganador).map((x) => ({ id: x, texto: nombre(e, x) }));
-  pedir(e, { tipo: 'asesinos', para: [ganador], titulo: 'Has ganado la subasta', texto: `Pagarás ${mejor} dinares más 30 por cada punto del dado de la víctima. Elige a la víctima (no puedes ser tú).`, opciones: op, porDefecto: op[0].id, limiteMs: 60000, cont: { fn: 'npc.victimaE1', args: { puja: mejor } } });
+  pedir(e, { tipo: 'asesinos', para: [ganador], titulo: 'Has ganado la subasta', texto: `Pagarás ${mejor} dinares más 30 por cada punto del dado de la víctima. Elige a la víctima (no puedes ser tú).`, opciones: op, porDefecto: op[0].id, limiteMs: 60000, cont: { fn: 'npc.victimaE1', args: { puja: mejor, probable: args.probable } } });
 });
 registrar('npc.victimaE1', (data, e, args, resp) => {
   const v = resp.opcion;
   if (!e.jugadores[v] || e.jugadores[v].eliminado || e.asesinos.actuaron) return;
   const d = dado(e);
   mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 dinares.`] });
-  firmar(data, e, resp.pid, v, args.puja + 30 * d, {});
+  const total = args.puja + 30 * d;
+  if (e.jugadores[resp.pid].dinares < total) { log(e, `${nombre(e, resp.pid)} no tiene los ${total} dinares del precio final: los Asesinos rompen el trato.`, { pid: resp.pid, aviso: true }); return sinPuja(data, e, args.probable && !e.jugadores[args.probable]?.eliminado ? args.probable : v); }
+  firmar(data, e, resp.pid, v, total, {});
 });
 function sinPuja(data, e, probable) {
   const x = dado(e), j = e.jugadores[probable];

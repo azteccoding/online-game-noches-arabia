@@ -384,6 +384,24 @@ function forzar(e, ...valores) {
   for (const j of Object.values(e.jugadores).filter((x) => x.pj)) assert.deepEqual(suma[j.id] || [0, 0], [j.dinares, j.noches], 'el registro cuadra con el saldo de ' + j.nombre);
 }
 
+// Asesinos: solo con los dinares completos; el contrato es público, deja Buscado y termina el turno
+{
+  const g = partida(['4', '7', '5', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones'; A.ciudad = 'Samarcanda'; A.dinares = 10; A.noches = 900;
+  const r = g.act(a, { t: 'asesinos' });
+  assert.ok(!r.ok && /dinares/.test(r.error), 'sin los dinares completos no se contrata (las noches no cuentan)');
+  A.dinares = 500;
+  assert.ok(g.act(a, { t: 'asesinos' }).ok);
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
+  if (e.dados) e.dados = null;
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.ok(e.jugadores[b].eliminado, 'la víctima muere');
+  assert.equal(A.buscado, data.config.buscadoRondas, 'el contratante queda Buscado');
+  assert.ok(e.log.some((l) => l.aviso && /contrató a los Asesinos contra/.test(l.texto)), 'todos se enteran de quién y contra quién');
+  assert.ok(e.turno.pid !== a || e.turno.fin, 'su turno termina');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

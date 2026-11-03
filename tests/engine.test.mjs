@@ -151,8 +151,10 @@ const sinMensaje = (j) => { j.mensaje = null; };
   assert.ok(e.jugadores[v].eliminado, 'la víctima muere');
   assert.ok(e.asesinos.actuaron);
   assert.equal(j.noches, antes + 200 + nv, 'el contratante cobra 200 noches y se queda las noches de la víctima');
-  assert.ok(!e.log.some((l) => /Asesinos|botín/.test(l.texto) && l.texto.includes(j.nombre) && !/\+/.test(l.texto) && /contrat|botín/.test(l.texto)), 'no se publica quién contrató');
-  assert.ok(!act(p, { t: 'asesinos' }).ok, 'solo una vez por partida');
+  assert.ok(e.log.some((l) => l.texto.includes(j.nombre + ' contrató a los Asesinos contra')), 'regla de la casa: se publica quién contrató y contra quién');
+  assert.ok(j.buscado > 0, 'y queda Buscado');
+  assert.ok(e.turno.pid !== p || e.turno.fin, 'y su turno termina');
+  e.turno = { ...e.turno, pid: p, fin: false, principal: false }; assert.ok(!act(p, { t: 'asesinos' }).ok, 'solo una vez por partida');
 }
 
 // ---------------------------------------------------------------- Yafar NPC y modo solitario

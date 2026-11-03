@@ -52,11 +52,11 @@ function castigoApedreo(data, e, pid) {
   const j = jug(e, pid);
   if (j.ciudad === 'Yemen') return;
   pedir(e, { tipo: 'apedreo', para: [pid], titulo: 'La gente quiere apedrearte', texto: 'Tira 30 dinares para que los recojan en vez de lincharte, o acepta quedar herido.',
-    opciones: [{ id: 'pagar', texto: 'Tirar 30 dinares', desactivada: !puedePagar(data, j, 30) }, { id: 'herido', texto: 'Quedar herido' }], porDefecto: j.dinares >= 30 ? 'pagar' : 'herido', limiteMs: 30000, cont: { fn: 'pj.apedreo', args: {} } });
+    opciones: [{ id: 'pagar', texto: 'Tirar 30 dinares', desactivada: j.dinares < 30 }, { id: 'herido', texto: 'Quedar herido' }], porDefecto: j.dinares >= 30 ? 'pagar' : 'herido', limiteMs: 30000, cont: { fn: 'pj.apedreo', args: {} } });
 }
 registrar('pj.apedreo', (data, e, args, resp) => {
   const j = jug(e, resp.pid);
-  if (resp.opcion === 'pagar' && puedePagar(data, j, 30)) { pagar(data, e, resp.pid, 30); log(e, `${j.nombre} lanza 30 dinares y se libra del linchamiento.`, { pid: resp.pid }); }
+  if (resp.opcion === 'pagar' && j.dinares >= 30) { pagar(data, e, resp.pid, 30); log(e, `${j.nombre} lanza 30 dinares y se libra del linchamiento.`, { pid: resp.pid }); }
   else { j.herido = true; log(e, `${j.nombre} queda herido por las pedradas.`, { pid: resp.pid }); }
 });
 function marcarVergonzoso(e, pid) { jug(e, pid).extra.vergonzoso = e.ronda; }

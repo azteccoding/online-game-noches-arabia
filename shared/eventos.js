@@ -174,7 +174,7 @@ registrar('ev.h1', (data, e, args, resp) => {
 });
 registrar('ev.h2', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
-  if (resp.opcion === 'quedar') { const r = pagar(data, e, pid, 20); if (r.debe > 0) mover(data, e, pid, 'Magreb', 0, 'es escoltado por un rey cristiano'); else log(e, `${j.nombre} paga 20 dinares y se queda en Andalucía.`, { pid }); return; }
+  if (resp.opcion === 'quedar') { if (j.dinares < 20) { mover(data, e, pid, 'Magreb', 0, 'no tiene los 20 dinares y es escoltado por un rey cristiano'); return; } pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares y se queda en Andalucía.`, { pid }); return; }
   const t = tarifa(data, e, j, 'Andalucía', resp.opcion);
   if (patrimonio(j) < t * 1) mover(data, e, pid, 'Magreb', 0, 'es escoltado al Magreb'); else mover(data, e, pid, resp.opcion, t, 'abandona al-Ándalus');
 });
@@ -225,7 +225,7 @@ registrar('ev.h17', (data, e, args, resp) => {
 });
 registrar('ev.h19', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
-  if (resp.opcion === 'pagar') { pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares a los recaudadores.`, { pid }); return; }
+  if (resp.opcion === 'pagar' && j.dinares >= 20) { pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares a los recaudadores.`, { pid }); return; }   // sin los 20 dinares completos, huye
   const dest = vecinaBarata(data, j.ciudad); mover(data, e, pid, dest, tarifa(data, e, j, j.ciudad, dest) ?? 0, 'huye de los recaudadores');
 });
 registrar('ev.h13', (data, e, args, resp) => { const pid = resp.pid, j = jug(e, pid); if (resp.opcion === 'si' && j.dinares >= 10) { j.dinares -= 10; j.noches += 25; log(e, `${j.nombre} disfruta de los baños y el banquete de Córdoba: +25 noches.`, { pid }); } });
