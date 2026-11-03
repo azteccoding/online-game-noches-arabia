@@ -166,6 +166,7 @@ function empezarRonda(data, e) {
 }
 
 function siguienteTurno(data, e, desde) {
+  if (e.turno) NPC.revisarEncargo(data, e, e.turno.pid);
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -177,6 +178,7 @@ function siguienteTurno(data, e, desde) {
 }
 
 function cierreRonda(data, e) {
+  for (const id of activos(e)) NPC.revisarEncargo(data, e, id);
   EVE.finRonda(data, e);
   NPC.finRonda(data, e);
   for (const id of activos(e)) { const j = e.jugadores[id]; if (j.buscado > 0) j.buscado--; if (j.extra.bajoTecho && j.extra.techoRonda !== e.ronda) j.extra.bajoTecho = false; }
@@ -526,6 +528,7 @@ export function llegada(data, e, pid, origen) {
     if (e.evento.actual === 'E4' && nadieAntes) { j.noches += 20; log(e, `Peregrinación: ${j.nombre} gana 20 noches extra.`); }
   }
   PJ.alLlegar(data, e, pid, origen);
+  NPC.revisarEncargo(data, e, pid);
   TES.quizaLampara(data, e, pid);
   RET.alLlegar(data, e, pid, origen);
   RET.mensajes(data, e, pid, 'llegada', { primera, origen });
@@ -839,7 +842,7 @@ export function vista(data, e, pid) {
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: OBJ.dondeVender(data, e, pid, c) })) : [],
     tienda: OBJ.tienda(data, e, pid),
-    misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [],
+    misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [], encargo: yo?.extra?.encargoAsesinos ? { tipo: yo.extra.encargoAsesinos.tipo, ciudad: yo.extra.encargoAsesinos.ciudad, hasta: yo.extra.encargoAsesinos.hasta } : null,
     mensaje: yo?.mensaje || null,
     tratos: Object.values(e.tratos).filter((x) => x.de === pid || x.con === pid).map((x) => ({ ...x, ofrece: ladoVisto(e, pid, x.de, x.ofrece), pide: ladoVisto(e, pid, x.con, x.pide) })),
     comerciables: yo ? comerciables(data, e, pid) : {},

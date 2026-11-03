@@ -93,7 +93,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         case 'esconder': a = { t: 'esconder', monto: 1 + Math.floor(R() * Math.max(1, e.jugadores[pid].dinares - 1)) }; break;
         case 'recuperar': a = { t: 'recuperar' }; break;
         case 'usar': a = { t: 'usar', uid: elegida.uid, destino: elegida.destinos ? pick(elegida.destinos) : undefined, objetivo: elegida.objetivos ? pick(elegida.objetivos) : undefined, deseo: elegida.ifrit ? pick(elegida.ifrit) : undefined }; break;
-        case 'asesinos': a = { t: 'asesinos' }; break;
+        case 'asesinos': a = e.jugadores[pid].dinares >= 6 * Math.max(1, e.ronda) * 35 ? { t: 'asesinos' } : { t: 'terminarTurno' }; break;   // solo si casi seguro le alcanza
         case 'pj': a = { t: 'pj', sub: elegida.sub, con: elegida.objetivos ? pick(elegida.objetivos) : undefined, precio: 10 }; break;
         case 'terminarTurno': a = { t: 'terminarTurno' }; break;
         default: a = { t: 'terminarTurno' };

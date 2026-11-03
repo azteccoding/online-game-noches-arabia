@@ -8,8 +8,9 @@ export default function Misiones({ s, onCerrar, onAbrir }) {
       <div className="desp-cab"><h2>Retos y misiones</h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
         <h3 className="sub-h">En curso</h3>
-        {!s.misiones.length && !msg && <p className="it">No tienes misiones en curso. Los retos se intentan desde Acciones, en la ciudad donde están.</p>}
+        {!s.misiones.length && !msg && !s.encargo && <p className="it">No tienes misiones en curso. Los retos se intentan desde Acciones, en la ciudad donde están.</p>}
         {msg && <div className="trato"><p><b>Mensaje de un sheij</b>: {msg.texto}</p><p className="it">Premio {msg.premio} · plazo hasta la ronda {s.mensaje.turnoLimite}.</p><button className="btn mini sec" onClick={() => onAbrir(msg)}>Ver carta</button></div>}
+        {s.encargo && <div className="trato"><p><b>Encargo de los Asesinos</b>: {s.encargo.tipo === 'reto' ? 'cumple un reto en Samarcanda o Isfahán' : `lleva su mensaje a ${s.encargo.ciudad}`}.</p><p className="it">Premio: 200 noches · plazo hasta el final de la ronda {s.encargo.hasta}. Solo tú lo ves.</p></div>}
         <ul className="lista-merc">
           {s.misiones.map((m, i) => (
             <li key={m.id + i}><div className="prod"><b>{m.id} · {m.nombre}</b>

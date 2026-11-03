@@ -382,14 +382,20 @@ function forzar(e, ...valores) {
 {
   const g = partida(['4', '7', '5', 'B']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
-  turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones'; A.ciudad = 'Samarcanda'; A.dinares = 10; A.noches = 900;
-  const r = g.act(a, { t: 'asesinos' });
-  assert.ok(!r.ok && /dinares/.test(r.error), 'sin los dinares completos no se contrata (las noches no cuentan)');
-  A.dinares = 500;
+  turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones'; A.ciudad = 'Samarcanda'; A.dinares = 10; A.noches = 100;
+  let r = g.act(a, { t: 'asesinos' });
+  assert.ok(!r.ok && /500 noches/.test(r.error), 'hacen falta 500 noches');
+  A.noches = 900; e.ronda = 4;
   assert.ok(g.act(a, { t: 'asesinos' }).ok);
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
-  if (e.dados) e.dados = null;
-  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.ok(A.herido && A.perdido && A.buscado > 0, 'con 10 dinares no alcanza: herido en el Jorasán y Buscado');
+  assert.ok(e.log.some((l) => l.aviso && /por hacerles perder el tiempo/.test(l.texto)));
+  // ahora con dinares de sobra: paga y firma
+  A.herido = false; A.perdido = false; A.ciudad = 'Samarcanda'; A.dinares = 6 * 4 * 35; A.buscado = 0;
+  turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'asesinos' }).ok);
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
+  assert.ok(e.asesinos.pendiente && e.asesinos.pendiente.victima === b, 'contrato firmado');
   assert.ok(e.turno.pid !== a || e.turno.fin, 'su turno termina');
   const B = e.jugadores[b]; B.extra.masrur = false;
   // Masrur avisa en secreto; si la víctima está en el Jorasán cuando actúan, no la encuentran
@@ -630,6 +636,21 @@ for (let k = 0; k < 6; k++) {
     if (B.eliminado) muertos++; else { vivos++; assert.ok(B.herido && B.perdido && B.dinares === 0 && B.noches === 0 && B.ciudad === 'Jorasán'); }
   }
   assert.ok(muertos > vivos && vivos > 0, `casi siempre mueren (${muertos} muertos, ${vivos} vivos)`);
+}
+
+// Encargo de los Asesinos: las 200 noches solo si lo cumples (aquí: llevar su mensaje a una ciudad lejana)
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Samarcanda'; A.noches = 900; A.dinares = 2000; e.ronda = 4; turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'asesinos' }).ok); assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
+  while (e.pend && e.pend.titulo !== 'El encargo de los Asesinos') e.pend = e.colaPend.shift() || null;
+  assert.ok(e.pend, 'se ofrece el encargo'); const n0 = A.noches;
+  const op = e.pend.opciones.find((o) => o.id === 'mensaje'); const ciudad = op.texto.replace('Llevar su mensaje a ', '');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'mensaje' }).ok);
+  assert.equal(A.noches, n0, 'todavía no cobra'); assert.equal(vistaDe(e, a).encargo.ciudad, ciudad, 'el encargo se ve en pantalla');
+  A.ciudad = ciudad; NPC.revisarEncargo(data, e, a);
+  assert.equal(A.noches, n0 + 200, 'cumplido: 200 noches'); assert.ok(!A.extra.encargoAsesinos);
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

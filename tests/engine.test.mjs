@@ -145,14 +145,13 @@ const sinMensaje = (j) => { j.mensaje = null; };
   const g = partida(['1', '2', '5']); const { e, act } = g; g.listos();
   const p = g.turno(); g.entrar(p); const j = e.jugadores[p]; sinMensaje(j);
   const v = g.ids.find((x) => x !== p);
-  j.ciudad = 'Samarcanda'; j.dinares = 400;
+  j.ciudad = 'Samarcanda'; j.dinares = 400; j.noches = 100;
+  assert.ok(!act(p, { t: 'asesinos' }).ok, 'regla de la casa: hacen falta 500 noches');
+  j.noches = 600;
   const antes = j.noches, nv = e.jugadores[v].noches;
   assert.ok(act(p, { t: 'asesinos' }).ok);
   assert.equal(e.pend.tipo, 'asesinos');
-  assert.ok(act(p, { t: 'decidir', id: e.pend.id, opcion: v }).ok);
-  g.tickear(3000); if (e.dados) act(p, { t: 'cerrarDados' });
-  assert.equal(e.pend.tipo, 'asesinos');
-  assert.ok(act(p, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.ok(act(p, { t: 'decidir', id: e.pend.id, opcion: v }).ok);   // lanza el dado del precio (dado × rondas × 35) y, si alcanza, firma
   // regla de la casa: actúan al final del siguiente turno de la víctima; hasta entonces no se sabe quién los contrató
   assert.ok(!e.jugadores[v].eliminado && e.asesinos.actuaron && e.asesinos.pendiente, 'el contrato queda pendiente');
   assert.ok(!e.log.some((l) => l.texto.includes(j.nombre + ' contrató a los Asesinos contra')), 'todavía no se publica');
@@ -162,7 +161,7 @@ const sinMensaje = (j) => { j.mensaje = null; };
   assert.ok(V.eliminado || (V.herido && V.perdido && V.dinares === 0 && V.noches === 0), 'muere o sobrevive herido en el Jorasán sin nada');
   assert.ok(e.log.some((l) => l.texto.includes(j.nombre + ' contrató a los Asesinos contra')), 'al actuar se publica quién contrató y contra quién');
   assert.ok(j.buscado > 0, 'y queda Buscado');
-  if (V.eliminado) assert.equal(j.noches, antes + 200 + nv, 'si muere: 200 noches y las noches de la víctima');
+  if (V.eliminado) assert.equal(j.noches, antes + nv, 'si muere: se queda las noches de la víctima (las 200 noches dependen del encargo)');
   e.turno = { ...e.turno, pid: p, fin: false, principal: false }; assert.ok(!act(p, { t: 'asesinos' }).ok, 'solo una vez por partida');
 }
 

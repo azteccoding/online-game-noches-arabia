@@ -170,11 +170,17 @@ export function entraNPC(data, e) {
 // ---------------------------------------------------------------- Los Asesinos (R 13)
 const objetivosValidos = (e, pid) => activos(e).filter((x) => x !== pid);
 
+// Regla de la casa (contratar en Samarcanda): hace falta tener 500 noches; quien contrata lanza un dado y el precio es
+// dado × rondas jugadas × 35 dinares (Zubayda, la mitad). Si le alcanza, paga y firma; si no, los Asesinos lo dejan herido
+// en el Jorasán por hacerles perder el tiempo y queda Buscado.
+export const NOCHES_ASESINOS = 500, PRECIO_ASESINOS = 35;
+const rangoPrecio = (e, j) => { const f = (d) => Math.ceil(d * Math.max(1, e.ronda) * PRECIO_ASESINOS / (j.pj === '6' ? 2 : 1)); return [f(1), f(6)]; };
+const textoPrecio = (e, j) => { const [a, b] = rangoPrecio(e, j); return `Precio: tu dado × rondas jugadas × ${PRECIO_ASESINOS} dinares${j.pj === '6' ? ' (Zubayda paga la mitad)' : ''}; en la ronda ${e.ronda}: entre ${a.toLocaleString('es-MX')} y ${b.toLocaleString('es-MX')} dinares.`; };
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!puedePrincipal(t) || j.transito || j.perdido || j.ciudad !== 'Samarcanda' || e.asesinos.actuaron || vivos(e) <= 2) return [];
-  const min = precioContrato(e, 1) / (j.pj === '6' ? 2 : 1);
-  return [{ k: 'asesinos', titulo: 'Contratar a los Asesinos (opción 4 de R 12.3)' + (j.dinares < min ? ` (necesitas al menos ${min} dinares)` : ''), texto: `Precio: 20 dinares por jugador vivo + 30 por cada punto del dado de la víctima, solo en dinares. Nunca fallan y solo actúan una vez. Al contratarlos tu turno termina, quedas Buscado ${data.config.buscadoRondas} rondas y todos sabrán a quién mandaste matar.` }];
+  const falta = j.noches < NOCHES_ASESINOS;
+  return [{ k: 'asesinos', bloqueado: falta ? `Necesitas al menos ${NOCHES_ASESINOS} noches.` : undefined, titulo: 'Contratar a los Asesinos', texto: `${textoPrecio(e, j)} Lanzas tú el dado. Si te alcanza, pagas y firmas; si no, te dejan herido en el Jorasán y quedas Buscado. Atacan al final del siguiente turno de la víctima. Contratar termina tu turno.` }];
 }
 
 export function contratar(data, e, pid, a) {
@@ -183,8 +189,7 @@ export function contratar(data, e, pid, a) {
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   if (!puedePrincipal(t)) return err('Ya usaste tu acción principal.');
   if (j.ciudad !== 'Samarcanda') return err('Los Asesinos se contratan en Samarcanda.');
-  const min = precioContrato(e, 1) / (j.pj === '6' ? 2 : 1);
-  if (j.dinares < min) return err(`Los Asesinos cobran en dinares y como mínimo ${min}: no te alcanza.`);
+  if (j.noches < NOCHES_ASESINOS) return err(`Los Asesinos solo tratan con quien tiene al menos ${NOCHES_ASESINOS} noches.`);
   return iniciarContrato(data, e, pid, { accion: true });
 }
 function iniciarContrato(data, e, pid, args) {
@@ -193,25 +198,24 @@ function iniciarContrato(data, e, pid, args) {
   if (vivos(e) <= 2) return err('Si solo quedan dos jugadores vivos, los Asesinos hacen caso omiso.');
   const op = objetivosValidos(e, pid).map((x) => ({ id: x, texto: nombre(e, x) }));
   op.push({ id: 'cancelar', texto: 'No contratar' });
-  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Los Asesinos', texto: 'Elige a la víctima. Los Asesinos nunca fallan y solo actúan una vez; toda la mesa sabrá quién los contrató y contra quién.', opciones: op, porDefecto: 'cancelar', limiteMs: 60000, cont: { fn: 'npc.victima', args } });
+  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Los Asesinos', texto: `Elige a la víctima. ${textoPrecio(e, e.jugadores[pid])} Después lanzas el dado: si no te alcanza, te dejan herido en el Jorasán y quedas Buscado.`, opciones: op, porDefecto: 'cancelar', limiteMs: 60000, cont: { fn: 'npc.victima', args } });
   return ok();
 }
 HOOK.contratarAsesinos = (data, e, pid, args) => { iniciarContrato(data, e, pid, args || {}); };
 HOOK.avisoMasrur = (e, pid) => avisoMasrur(e, pid);
 
-const precioContrato = (e, d) => 20 * vivos(e) + 30 * d;
 registrar('npc.victima', (data, e, args, resp) => {
   const pid = resp.pid;
   if (resp.opcion === 'cancelar' || !e.jugadores[resp.opcion] || e.jugadores[resp.opcion].eliminado || e.asesinos.actuaron) return;
-  const v = resp.opcion, d = dado(e);
-  let precio = precioContrato(e, d);
-  const j = e.jugadores[pid];
-  const zub = j.pj === '6';
-  if (zub) precio = Math.ceil(precio / 2);
-  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima (cuanto más alto, más caro le sale a ${nombre(e, pid)} mandarte matar)`, valores: [d] }], resumen: [`Los Asesinos fijan su precio: ${vivos(e)} jugadores vivos × 20 + ${d} × 30.`] });
-  const alcanza = j.dinares >= precio;                                    // regla de la casa: solo con los dinares completos, sin deudas
-  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Precio del contrato', texto: `Víctima: ${nombre(e, v)} (dado ${d}). Precio: ${precio} dinares${zub ? ' (con tu descuento del 50%)' : ''}.${alcanza ? '' : ' No te alcanzan los dinares: no puedes firmar.'} Si firmas, tu turno termina, quedas Buscado y todos sabrán que mandaste matar a ${nombre(e, v)}.`,
-    opciones: [{ id: 'si', texto: `Pagar ${precio}`, desactivada: !alcanza }, { id: 'no', texto: 'No firmar' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'npc.firma', args: { ...args, victima: v, precio } } });
+  const v = resp.opcion, d = dado(e), j = e.jugadores[pid];
+  const precio = Math.ceil(d * Math.max(1, e.ronda) * PRECIO_ASESINOS / (j.pj === '6' ? 2 : 1));
+  const alcanza = j.dinares >= precio;
+  mostrarDados(e, { por: pid, motivo: 'asesinos', titulo: 'Contrato con los Asesinos', grupos: [{ etq: `${j.nombre}: dado del precio (dado × ${Math.max(1, e.ronda)} rondas × ${PRECIO_ASESINOS}${j.pj === '6' ? ' ÷ 2' : ''})`, valores: [d] }],
+    resumen: [`Precio: ${precio.toLocaleString('es-MX')} dinares.`, alcanza ? `${j.nombre} paga y firma el contrato.` : `${j.nombre} no tiene ${precio.toLocaleString('es-MX')} dinares: los Asesinos lo dejan herido en el Jorasán por hacerles perder el tiempo.`] });
+  if (alcanza) return firmar(data, e, pid, v, precio, args);
+  j.herido = true; j.perdido = true; j.ciudad = 'Jorasán'; j.transito = null; j.extra.enRumbo = false; j.buscado = data.config.buscadoRondas;
+  if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
+  log(e, `${j.nombre} no pudo pagar a los Asesinos: lo dejan herido en el Jorasán por hacerles perder el tiempo y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
 });
 registrar('npc.firma', (data, e, args, resp) => {
   if (resp.opcion !== 'si' || e.jugadores[resp.pid].dinares < args.precio) return;
@@ -228,8 +232,41 @@ function firmar(data, e, pid, v, precio, args = {}) {
   e.asesinos.pendiente = { por: pid, victima: v, precio, turnoVictima: vic.turnos };
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }   // contratar termina el turno
   log(e, 'Alguien ha firmado un contrato con los Asesinos (Hashashín). Actuarán pronto.', { aviso: true });
+  if (!j.npc) pedirEncargo(data, e, pid);
   info(e, pid, 'Contrato firmado', `Los Asesinos irán por ${vic.nombre} al final de su próximo turno. Cuando actúen, toda la mesa sabrá que los contrataste y quedarás Buscado.`);
   if (vic.extra?.masrur) avisoMasrur(e, v);
+}
+// Regla de la casa: el contratante gana las 200 noches solo si cumple el encargo que elige de los Asesinos (plazo: 3 rondas).
+export const ENCARGO_RONDAS = 3, LEJANAS = ['Andalucía', 'Magreb', 'Yemen', 'India'];
+const ARMAS_ORDEN = ['cimitarra', 'alfanje', 'jambiya', 'arco'];
+function pedirEncargo(data, e, pid) {
+  const j = e.jugadores[pid], arma = ARMAS_ORDEN.find((r) => tieneItem(j, r));
+  const ciudad = LEJANAS.filter((c) => c !== j.ciudad)[Math.floor(rnd(e) * 3)];
+  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'El encargo de los Asesinos', texto: `Los Asesinos te pagarán 200 noches si les haces un favor en ${ENCARGO_RONDAS} rondas. Elige uno:`,
+    opciones: [{ id: 'arma', texto: arma ? `Entregarles tu mejor arma ahora (${arma})` : 'Entregarles tu mejor arma (no tienes ninguna)', desactivada: !arma },
+      { id: 'reto', texto: 'Cumplir un reto en Samarcanda o Isfahán' }, { id: 'mensaje', texto: `Llevar su mensaje a ${ciudad}` }, { id: 'nada', texto: 'Ningún encargo (sin las 200 noches)' }],
+    porDefecto: 'nada', limiteMs: 60000, cont: { fn: 'npc.encargo', args: { ciudad, arma } } });
+}
+registrar('npc.encargo', (data, e, args, resp) => {
+  const j = e.jugadores[resp.pid]; if (!j) return;
+  if (resp.opcion === 'nada') return;
+  if (resp.opcion === 'arma') { if (args.arma && tieneItem(j, args.arma)) { quitarPrimero(j, 'item', args.arma); cumplirEncargo(e, resp.pid, `entregaste tu ${args.arma}`); } return; }
+  j.extra.encargoAsesinos = { tipo: resp.opcion, ciudad: args.ciudad, hasta: e.ronda + ENCARGO_RONDAS, retos: j.retosHechos.slice() };
+  info(e, resp.pid, 'Encargo aceptado', resp.opcion === 'reto' ? `Cumple un reto en Samarcanda o Isfahán antes de que acabe la ronda ${e.ronda + ENCARGO_RONDAS}.` : `Lleva el mensaje de los Asesinos a ${args.ciudad} antes de que acabe la ronda ${e.ronda + ENCARGO_RONDAS}.`);
+});
+function cumplirEncargo(e, pid, como) {
+  const j = e.jugadores[pid]; j.noches += 200; delete j.extra.encargoAsesinos;
+  info(e, pid, 'Encargo cumplido', `Los Asesinos cumplen su palabra: ${como}. Ganas 200 noches.`);
+}
+// Se revisa al llegar a una ciudad, al cerrar cada turno y al final de cada ronda (plazo).
+export function revisarEncargo(data, e, pid) {
+  const j = e.jugadores[pid], enc = j?.extra?.encargoAsesinos; if (!enc || j.eliminado) return;
+  if (enc.tipo === 'mensaje' && j.ciudad === enc.ciudad) return cumplirEncargo(e, pid, `llevaste su mensaje a ${enc.ciudad}`);
+  if (enc.tipo === 'reto') {
+    const nuevo = j.retosHechos.find((r) => !enc.retos.includes(r) && ['Samarcanda', 'Isfahán'].includes((data.retos.retos || data.retos).find((x) => x.id === r)?.ciudad));
+    if (nuevo) return cumplirEncargo(e, pid, `cumpliste el reto ${nuevo}`);
+  }
+  if (e.ronda > enc.hasta) { delete j.extra.encargoAsesinos; info(e, pid, 'Encargo vencido', 'No cumpliste a tiempo el encargo de los Asesinos: no ganas las 200 noches.'); }
 }
 export function avisoMasrur(e, v) {
   info(e, v, 'Masrur te avisa en secreto', `Alguien contrató a los Asesinos contra ti. Actuarán al final de tu próximo turno. ${AVISO_HUIDA}`);
@@ -240,7 +277,7 @@ export function actuanAsesinos(data, e) {
   const vic = e.jugadores[p.victima], j = e.jugadores[p.por];
   if (!vic || vic.eliminado || vic.turnos <= p.turnoVictima) { if (vic?.eliminado) { e.asesinos.pendiente = null; log(e, 'Los Asesinos llegan tarde: su víctima ya no está. Se retiran para siempre.'); } return; }
   e.asesinos.pendiente = null;
-  if (j && !j.eliminado) { j.buscado = data.config.buscadoRondas; j.noches += 200; }
+  if (j && !j.eliminado) j.buscado = data.config.buscadoRondas;   // las 200 noches se ganan cumpliendo el encargo de los Asesinos
   const quien = j ? j.nombre : 'Alguien';
   if (vic.perdido || vic.transito?.jorasan) {
     log(e, `${quien} contrató a los Asesinos contra ${vic.nombre}, pero no la encuentran: se escondió en el Jorasán. ${quien} pierde lo pagado y queda Buscado ${data.config.buscadoRondas} rondas.`, { pid: p.por, aviso: true });
