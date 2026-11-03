@@ -112,6 +112,7 @@ function iniciar(data, e) {
   orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
   e.participantes = ids.length + (conNPC ? 1 : 0);
+  e.burros = Math.max(0, ids.filter((id) => e.jugadores[id].pj !== 'B').length - 1);          // regla de la casa: N − 1 burros (Yafar no cuenta)
   // Regla de la casa: cada carrera de «dos noches» sale una sola vez, en una ronda al azar entre la 3 y la 12 (sin coincidir).
   const rondas = barajar(e, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   e.carreras = Object.fromEntries(data.eventos.eventos.filter((x) => x.carrera).map((x, k) => [x.id, rondas[k]])); e.carrerasActivas = [];                                                     // para la regla del último en pie
@@ -856,7 +857,8 @@ export function vista(data, e, pid) {
   });
   const esAnf = e.host === pid;
   const p = e.pend;
-  const pend = p && { id: p.id, tipo: p.tipo, titulo: p.titulo, texto: p.texto, modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
+  const ver = p && (!p.privado || p.para.includes(pid));                     // los avisos privados (Masrur, contratos) no viajan a los demás
+  const pend = p && { id: p.id, tipo: p.tipo, titulo: ver ? p.titulo : 'Decisión privada', texto: ver ? p.texto : '', modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
     opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid),
     subasta: p.tipo === 'subasta' ? { mejor: Math.max(0, ...Object.values(p.resp).map((r) => Number(r.opcion || 0))), pujas: Object.values(p.resp).filter((r) => Number(r.opcion) > 0).length, minimo: p.cont?.args?.min } : undefined };
   return {

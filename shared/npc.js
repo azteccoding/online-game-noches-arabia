@@ -213,10 +213,15 @@ registrar('npc.victima', (data, e, args, resp) => {
   mostrarDados(e, { por: pid, motivo: 'asesinos', titulo: 'Contrato con los Asesinos', grupos: [{ etq: `${j.nombre}: dado del precio (dado × ${Math.max(1, e.ronda)} rondas × ${PRECIO_ASESINOS}${j.pj === '6' ? ' ÷ 2' : ''})`, valores: [d] }],
     resumen: [`Precio: ${precio.toLocaleString('es-MX')} dinares.`, alcanza ? `${j.nombre} paga y firma el contrato.` : `${j.nombre} no tiene ${precio.toLocaleString('es-MX')} dinares: los Asesinos lo dejan herido en el Jorasán por hacerles perder el tiempo.`] });
   if (alcanza) return firmar(data, e, pid, v, precio, args);
+  castigoPorTiempo(data, e, pid);
+});
+// Única excepción a «si no te alcanza, no pasa nada»: a los Asesinos no se les hace perder el tiempo.
+function castigoPorTiempo(data, e, pid) {
+  const j = e.jugadores[pid];
   j.herido = true; j.perdido = true; j.ciudad = 'Jorasán'; j.transito = null; j.extra.enRumbo = false; j.buscado = data.config.buscadoRondas;
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
-  log(e, `${j.nombre} no pudo pagar a los Asesinos: lo dejan herido en el Jorasán por hacerles perder el tiempo y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
-});
+  log(e, `${j.nombre} intentó contratar a los Asesinos y no pudo pagar: lo dejan herido en el Jorasán por hacerles perder el tiempo y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
+}
 registrar('npc.firma', (data, e, args, resp) => {
   if (resp.opcion !== 'si' || e.jugadores[resp.pid].dinares < args.precio) return;
   firmar(data, e, resp.pid, args.victima, args.precio, args);
@@ -231,9 +236,10 @@ function firmar(data, e, pid, v, precio, args = {}) {
   e.asesinos.actuaron = true; e.asesinos.contrato = { por: pid, victima: v, ronda: e.ronda };
   e.asesinos.pendiente = { por: pid, victima: v, precio, turnoVictima: vic.turnos };
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }   // contratar termina el turno
-  log(e, 'Alguien ha firmado un contrato con los Asesinos (Hashashín). Actuarán pronto.', { aviso: true });
+  j.buscado = data.config.buscadoRondas;                                  // regla de la casa: se sabe QUIÉN los contrató, nunca contra quién
+  log(e, `${j.nombre} contrató a los Asesinos y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches). La víctima es secreta.`, { pid, aviso: true });
   if (!j.npc) pedirEncargo(data, e, pid);
-  info(e, pid, 'Contrato firmado', `Los Asesinos irán por ${vic.nombre} al final de su próximo turno. Cuando actúen, toda la mesa sabrá que los contrataste y quedarás Buscado.`);
+  info(e, pid, 'Contrato firmado', `Los Asesinos irán por ${vic.nombre} al final de su próximo turno. Nadie más sabe contra quién.`);
   if (vic.extra?.masrur) avisoMasrur(e, v);
 }
 // Regla de la casa: el contratante gana las 200 noches solo si cumple el encargo que elige de los Asesinos (plazo: 3 rondas).
@@ -277,13 +283,10 @@ export function actuanAsesinos(data, e) {
   const vic = e.jugadores[p.victima], j = e.jugadores[p.por];
   if (!vic || vic.eliminado || vic.turnos <= p.turnoVictima) { if (vic?.eliminado) { e.asesinos.pendiente = null; log(e, 'Los Asesinos llegan tarde: su víctima ya no está. Se retiran para siempre.'); } return; }
   e.asesinos.pendiente = null;
-  if (j && !j.eliminado) j.buscado = data.config.buscadoRondas;   // las 200 noches se ganan cumpliendo el encargo de los Asesinos
-  const quien = j ? j.nombre : 'Alguien';
   if (vic.perdido || vic.transito?.jorasan) {
-    log(e, `${quien} contrató a los Asesinos contra ${vic.nombre}, pero no la encuentran: se escondió en el Jorasán. ${quien} pierde lo pagado y queda Buscado ${data.config.buscadoRondas} rondas.`, { pid: p.por, aviso: true });
+    log(e, `Los Asesinos buscan a ${vic.nombre}, pero no la encuentran: se escondió en el Jorasán. Se retiran para siempre.`, { pid: p.victima, aviso: true });
     return;
   }
-  log(e, `${quien} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid: p.por, aviso: true });
   // La víctima se defiende con el sistema de 2 dados, pero sus bonos cuentan a la mitad y los Asesinos suman +4 (empate: ganan ellos).
   // Sin nada se salva ~10 %; con +6 (armas +4, destreza y escudo) ~34 %. Si gana, queda herida y despierta en el Jorasán sin dinares ni noches.
   const titulo = `Los Asesinos atacan a ${vic.nombre}`, v = p.victima;
@@ -357,10 +360,11 @@ registrar('npc.victimaE1', (data, e, args, resp) => {
   const v = resp.opcion;
   if (!e.jugadores[v] || e.jugadores[v].eliminado || e.asesinos.actuaron) return;
   const d = dado(e);
-  mostrarDados(e, { por: v, motivo: 'asesinos', grupos: [{ etq: `${nombre(e, v)}: dado de la víctima (cuanto más alto, más caro le sale a ${nombre(e, resp.pid)} mandarte matar)`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 dinares.`] });
-  // Regla de la casa: si el precio final pasa de lo que tiene, paga todos sus dinares (nunca menos que su puja) y el trato sigue.
-  const tiene = Math.max(0, e.jugadores[resp.pid].dinares), total = Math.max(args.puja, Math.min(args.puja + 30 * d, tiene));
-  if (total < args.puja + 30 * d) log(e, `A ${nombre(e, resp.pid)} no le alcanza el precio completo (${args.puja + 30 * d}): los Asesinos se conforman con todo lo que tiene, ${total} dinares.`, { pid: resp.pid });
+  mostrarDados(e, { por: resp.pid, motivo: 'asesinos', titulo: 'Contrato con los Asesinos', grupos: [{ etq: `${nombre(e, resp.pid)}: dado del precio (su puja + 30 por punto)`, valores: [d] }], resumen: [`Precio final: ${args.puja} + ${d} × 30 = ${args.puja + 30 * d} dinares.`] });   // la víctima es secreta: lanza quien contrata
+  // Regla de la casa: si no le alcanza el precio final no hay trato ni pago; los Asesinos lo dejan herido en el Jorasán y
+  // queda Buscado, y vuelven a ir por la víctima sorteada.
+  const total = args.puja + 30 * d, j = e.jugadores[resp.pid];
+  if (j.dinares < total) { castigoPorTiempo(data, e, resp.pid); return sinPuja(data, e, args.probable && !e.jugadores[args.probable]?.eliminado ? args.probable : v); }
   firmar(data, e, resp.pid, v, total, {});
 });
 function sinPuja(data, e, probable) {

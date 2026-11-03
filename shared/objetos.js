@@ -6,8 +6,8 @@ import {
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
-const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5 };
-const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'] };
+const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 70 };
+const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'], burro: ['Basra'] };   // regla de la casa: el burro solo en Basra (70 dinares y 20 noches de regalo)
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 
 // Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
@@ -73,7 +73,11 @@ export function comprar(data, e, pid, a) {
     p *= dobleCairo(e, j.ciudad); p *= n;
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     if (ARMAS_ORIG.includes(a.ref) && tieneItem(j, a.ref)) return err('Ya tienes esa arma.');
+    if (a.ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x))) return err('Ya tienes un animal: solo puedes llevar uno a la vez.');
+    if (a.ref === 'burro' && n > 1) return err('Solo un burro.');
+    if (a.ref === 'burro' && !(e.burros > 0)) return err('No quedan burros en Basra.');
     j.dinares -= p;
+    if (a.ref === 'burro') { e.burros--; j.noches += 20; log(e, `${j.nombre} compra un burro en Basra y recibe 20 noches de regalo.`, { pid }); darItem(e, j, 'burro'); return ok(); }
     for (let i = 0; i < n; i++) darItem(e, j, a.ref, a.ref === 'vino' ? { ronda: e.ronda } : undefined);
     log(e, `${j.nombre} compra ${n > 1 ? n + ' ' : ''}${ITEMS[a.ref].nombre}.`, { pid });
     if (a.ref === 'vino') { /* el vino gana 6 dinares por turno */ }
@@ -168,9 +172,9 @@ export function tienda(data, e, pid) {
   const orig = (ref, desde) => {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad)) return;
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
-    r.push({ ref, nombre: ITEMS[ref].nombre, tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : 'Objeto original', texto: ITEMS[ref].texto, precio, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)), cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+    r.push({ ref, nombre: ITEMS[ref].nombre, tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : undefined, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && (['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) || !(e.burros > 0))), cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
-  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta'].forEach(orig);
+  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro'].forEach(orig);
   if (BAZAR_IFRIT.ciudades.includes(j.ciudad)) {
     const hay = ifritEnVenta(e);
     r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });

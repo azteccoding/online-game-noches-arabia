@@ -667,6 +667,18 @@ for (let k = 0; k < 6; k++) {
   assert.equal(A.dinares, d0 + 60); assert.equal(A.noches, n0 + 50); assert.equal(e.carrerasActivas.length, 0, 'la carrera se retira');
 }
 
+// Burro: solo en el mercado de Basra (70 dinares + 20 noches), fuera de tu turno y un animal a la vez
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones'; A.ciudad = 'Basra'; A.dinares = 69; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
+  assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'sin 70 dinares no hay trato');
+  A.dinares = 70; const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'comprar', ref: 'burro' }).ok); assert.equal(A.dinares, 0); assert.equal(A.noches, n0 + 20);
+  A.dinares = 100; assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'un animal a la vez');
+  A.ciudad = 'Bagdad'; A.mano = A.mano.filter((c) => c.ref !== 'burro'); assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'solo en Basra');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

@@ -144,7 +144,7 @@ function aplicarHistorico0(data, e, id) {
         for (const animal of ['caballo', 'camello', 'burro']) {
           while (tieneItem(j, animal)) {
             if (tieneObj(j, 'OB18') && !j.extra.odreH20) { j.extra.odreH20 = true; consumirObj(data, e, pid, 'OB18'); log(e, `${j.nombre} paga el agua con su Odre.`, { pid }); quitarSoloMarca(j, animal); continue; }
-            if (j.dinares >= 5) { j.dinares -= 5; quitarSoloMarca(j, animal); log(e, `${j.nombre} paga 5 dinares por el agua de su ${animal}.`, { pid }); } else { quitarPrimero(j, 'item', animal); log(e, `${j.nombre} pierde su ${animal} por la sequía.`, { pid }); }
+            if (j.dinares >= 5) { j.dinares -= 5; quitarSoloMarca(j, animal); log(e, `${j.nombre} paga 5 dinares por el agua de su ${animal}.`, { pid }); } else { quitarPrimero(j, 'item', animal); if (animal === 'burro') e.burros = (e.burros || 0) + 1; log(e, `${j.nombre} pierde su ${animal} por la sequía.`, { pid }); }
           }
         }
         for (const c of j.mano) if (c.extra?.h20) delete c.extra.h20;
