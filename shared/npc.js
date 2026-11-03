@@ -193,7 +193,7 @@ function iniciarContrato(data, e, pid, args) {
   if (vivos(e) <= 2) return err('Si solo quedan dos jugadores vivos, los Asesinos hacen caso omiso.');
   const op = objetivosValidos(e, pid).map((x) => ({ id: x, texto: nombre(e, x) }));
   op.push({ id: 'cancelar', texto: 'No contratar' });
-  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Los Asesinos', texto: 'Elige a la víctima. Los Asesinos nunca fallan, solo actúan una vez y no revelan quién los contrató.', opciones: op, porDefecto: 'cancelar', limiteMs: 60000, cont: { fn: 'npc.victima', args } });
+  pedir(e, { tipo: 'asesinos', para: [pid], titulo: 'Los Asesinos', texto: 'Elige a la víctima. Los Asesinos nunca fallan y solo actúan una vez; toda la mesa sabrá quién los contrató y contra quién.', opciones: op, porDefecto: 'cancelar', limiteMs: 60000, cont: { fn: 'npc.victima', args } });
   return ok();
 }
 HOOK.contratarAsesinos = (data, e, pid, args) => { iniciarContrato(data, e, pid, args || {}); };

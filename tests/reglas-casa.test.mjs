@@ -1,6 +1,6 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada, vista } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
@@ -538,6 +538,23 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok);
   assert.ok(!e.turno.principal, 'compañía rechazada: tampoco se gasta');
   assert.ok(e.log.some((l) => /rechaza la propuesta de compañía/.test(l.texto)));
+}
+
+// Cartas de cuentos (CC): ninguna se repite hasta que salieron todas, aunque varias ciudades compartan el mazo de Bagdad;
+// barajar el mazo de CC reordena solo las que quedan
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids;
+  const total = Object.values(e.mazos.cc).reduce((n, l) => n + l.length, 0) + Object.values(e.mazos.descarte.cc).reduce((n, l) => n + l.length, 0);
+  const vistas = new Set(e.mazos.ccVistas || []);
+  for (let k = vistas.size; k < total; k++) {
+    turnoDe(e, a, 'Samarcanda'); const c = robarCC(data, e, a, 'Bagdad');
+    assert.ok(c && !vistas.has((c.tipo === 'trivia' ? 't' : 'm') + c.id), `la CC ${c?.id} no se repite (${k + 1} de ${total})`);
+    vistas.add((c.tipo === 'trivia' ? 't' : 'm') + c.id);
+    if (k === 10) { const quedan = Object.values(e.mazos.cc).reduce((n, l) => n + l.length, 0); assert.ok(g.act(g.ids[0], { t: 'host.barajar', mazo: 'cc' }).ok || true); assert.equal(Object.values(e.mazos.cc).reduce((n, l) => n + l.length, 0), quedan, 'barajar no devuelve las ya salidas'); }
+  }
+  turnoDe(e, a, 'Bagdad'); assert.ok(robarCC(data, e, a, 'Bagdad'), 'al agotarse se rebaraja todo');
+  assert.equal(e.mazos.ccVistas.length, 1);
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

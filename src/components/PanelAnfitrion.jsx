@@ -58,7 +58,7 @@ export default function PanelAnfitrion({ s, onCerrar }) {
             <button className="btn mini sec" disabled={!!s.dados} onClick={() => enviar(ACCIONES.host.tirarNPC('Yafar NPC', 2))}>Dados: Yafar NPC</button>
           </div></fieldset>
         <fieldset><legend>Barajar</legend>
-          <div className="fila-btn">{[['eventos', 'Eventos'], ['historicos', 'Históricos'], ['botin', 'Botín'], ['ifrit', 'Ifrit']].map(([m, t]) => <button key={m} className="btn mini sec" onClick={() => enviar(ACCIONES.host.barajar(m))}>{t}</button>)}</div>
+          <div className="fila-btn">{[['eventos', 'Eventos'], ['historicos', 'Históricos'], ['botin', 'Botín'], ['ifrit', 'Ifrit'], ['cc', 'Cuentos (CC)']].map(([m, t]) => <button key={m} className="btn mini sec" onClick={() => enviar(ACCIONES.host.barajar(m))}>{t}</button>)}</div>
           <small className="it">El mazo de mensajes no se vuelve a barajar: cada mensaje sale una sola vez.</small></fieldset>
         <fieldset><legend>Mesa</legend>
           <div className="fila-btn">

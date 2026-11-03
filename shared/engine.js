@@ -520,10 +520,23 @@ export function llegada(data, e, pid, origen) {
 // ---------------------------------------------------------------- cartas de cuentos
 export function robarCC(data, e, pid, ciudad) {
   const t = e.turno, m = e.mazos;
-  if (!m.cc[ciudad] || !m.cc[ciudad].length) { m.cc[ciudad] = barajar(e, (m.descarte.cc[ciudad] || []).splice(0)); }
-  const c = m.cc[ciudad].shift();
-  if (!c) return null;
-  (m.descarte.cc[ciudad] ||= []).push(c);
+  // Regla de la casa: ninguna CC se repite en la partida hasta que hayan salido todas. Se saca del mazo de la ciudad;
+  // si ya no le quedan sin salir, de cualquier otro mazo; cuando salieron todas, se rebarajan todas con las ya salidas.
+  m.ccVistas ||= [];
+  const nueva = (x) => !m.ccVistas.includes(x.k + x.id);
+  let origen = ciudad;
+  if (!(m.cc[ciudad] || []).some(nueva)) origen = Object.keys(m.cc).find((k) => m.cc[k].some(nueva));
+  if (!origen) {                                                                                             // salieron todas: mazo nuevo
+    m.ccVistas = [];
+    for (const k of Object.keys(m.cc)) m.cc[k] = barajar(e, m.cc[k].concat((m.descarte.cc[k] || []).splice(0)));
+    origen = (m.cc[ciudad] || []).length ? ciudad : Object.keys(m.cc).find((k) => m.cc[k].length);
+    if (!origen) return null;
+    log(e, 'Ya salieron todas las cartas de cuentos: se barajan de nuevo.');
+  }
+  const i = m.cc[origen].findIndex(nueva);
+  const [c] = m.cc[origen].splice(i, 1);
+  m.ccVistas.push(c.k + c.id);
+  (m.descarte.cc[origen] ||= []).push(c);
   t.cc++;
   sacarCuento(data, e, pid, ciudad);                                                                          // R 19.7
   const tipo = c.k === 't' ? 'trivia' : 'mesa';
@@ -723,6 +736,7 @@ function hostBarajar(e, a) {
   const m = a.mazo;
   if (['eventos', 'historicos', 'botin', 'ifrit'].includes(m)) { e.mazos[m] = barajar(e, e.mazos[m].concat(e.mazos.descarte[m] ? e.mazos.descarte[m].splice(0) : [])); }
   else if (m === 'mensajes') { barajar(e, e.mazos.mensajes); }
+  else if (m === 'cc') { for (const k of Object.keys(e.mazos.cc)) barajar(e, e.mazos.cc[k]); }   // reordena las que quedan; las ya salidas no vuelven
   else return err('Mazo inválido.');
   log(e, `El banco baraja el mazo ${m}.`); return ok();
 }
