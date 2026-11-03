@@ -8,7 +8,7 @@ import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC } from '../shared/pelea.js';
 import { vender, tienda } from '../shared/objetos.js';
 import { finTurno } from '../shared/eventos.js';
-import { tieneItem } from '../shared/base.js';
+import { tieneItem, darItem } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
 import { simular } from './sim.mjs';
 
@@ -419,6 +419,34 @@ function forzar(e, ...valores) {
   const db = e.jugadores[b].dinares; turnoDe(e, b, 'Isfahán'); e.ronda = 5; forzar(e, 3, 3, 3, 3);
   g.act(b, { t: 'atacar', tipo: 'robo', objetivo: a });
   assert.ok(e.jugadores[b].dinares >= db, 'robar a quien tiene deuda no resta dinares al ladrón');
+}
+
+// Yafar (jugador o NPC) siempre juega el último de cada ronda, también en partidas guardadas con el orden viejo
+for (let k = 0; k < 6; k++) {
+  const g = partida(['B', '4', '7', '5']); assert.ok(g.iniciar().ok);
+  const vivos = g.e.orden.filter((id) => !g.e.jugadores[id].eliminado);
+  assert.equal(g.e.jugadores[vivos.at(-1)].pj, 'B', 'Yafar jugador al final');
+  assert.equal(g.e.jugadores[vivos.at(-2)].pj, '7', 'Adí justo antes');
+}
+{
+  const g = partida(['4', '5']); assert.ok(g.iniciar().ok);
+  const vivos = g.e.orden.filter((id) => !g.e.jugadores[id].eliminado);
+  assert.equal(vivos.at(-1), 'npc', 'Yafar NPC al final');
+}
+
+// Lo que no se vende aquí siempre dice dónde se vende y a cuánto (o para qué sirve); las especias de H17 se venden en Bagdad
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+  for (const ref of ['especias', 'alfombraIsfahan', 'libro', 'caballo', 'brujula', 'pergamino', 'buza', 'vino', 'velo']) darItem(e, A, ref);
+  const v = vistaDe(e, a);
+  for (const c of v.mano) assert.ok(c.donde && c.donde.length > 10, `${c.ref} explica dónde se vende`);
+  const esp = v.mano.find((c) => c.ref === 'especias');
+  assert.equal(esp.venta, null); assert.match(esp.donde, /Bagdad.*30/);
+  assert.match(v.mano.find((c) => c.ref === 'alfombraIsfahan').donde, /R7.*90/);
+  A.ciudad = 'Bagdad'; const antes = A.dinares;
+  assert.ok(g.act(a, { t: 'vender', uid: esp.uid }).ok); assert.equal(A.dinares, antes + 30, 'especias: 30 en Bagdad');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

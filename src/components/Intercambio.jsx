@@ -56,7 +56,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
             {!vendibles.length && <p className="it">No tienes nada que vender.</p>}
             <ul className="lista-merc">
               {vendibles.map((c) => (
-                <li key={c.uid}><div className="prod"><b>{c.datos?.titulo}</b> <small>{c.datos?.sub}</small></div>
+                <li key={c.uid}><div className="prod"><b>{c.datos?.titulo}</b> <small>{c.datos?.sub}</small>{c.donde && <small className="donde-venta">{c.donde}</small>}</div>
                   <div className="der">{c.venta != null ? <span className="chip">≈ {c.venta} din. netos</span> : <span className="chip mal">no se vende aquí</span>}
                     <button className="btn mini sec" disabled={!miTurno || c.venta == null} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender</button></div></li>
               ))}

@@ -25,7 +25,8 @@ export default function Mano({ s, onAbrir, onCerrar }) {
           {mano.map((c) => (
             <div key={c.uid} className="mano-item">
               <button className="mano-carta" onClick={() => onAbrir({ ...c.datos, nro: 'mano-' + c.uid, uid: c.uid })} aria-label={`Abrir ${c.datos?.titulo}`}><Carta datos={c.datos} tam="mini" /></button>
-              {c.venta != null && <button className="btn mini sec mano-vender" disabled={!mt} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender ≈{c.venta}</button>}
+              {c.venta != null ? <button className="btn mini sec mano-vender" disabled={!mt} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender ≈{c.venta}</button>
+                : c.donde && <small className="donde-venta" title={c.donde}>{c.donde}</small>}
             </div>
           ))}
         </div>

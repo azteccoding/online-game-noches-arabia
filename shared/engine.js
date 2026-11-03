@@ -99,17 +99,17 @@ function iniciar(data, e) {
   prepararMazos(data, e);
   let orden = barajar(e, ids.slice());
   const pos = (pj) => orden.findIndex((i) => e.jugadores[i].pj === pj);
-  if (pos('7') >= 0) { const [a] = orden.splice(pos('7'), 1); orden.push(a); }                       // R 4.4: Adí siempre último
+  if (pos('7') >= 0) { const [a] = orden.splice(pos('7'), 1); orden.push(a); }                       // R 4.4: Adí siempre último (solo Yafar va después)
   if (orden.length > 1 && e.jugadores[orden[orden.length - 1]].pj === '5') {                           // Ruyán nunca el último
     const n = orden.length; [orden[n - 1], orden[n - 2]] = [orden[n - 2], orden[n - 1]];
   }
   const sinNPC = orden.slice();
   const conNPC = !conB && !(e.opciones.sinYafar && ids.length < 4);
-  if (conNPC) {                                                                                      // Yafar NPC (R 20.4, 21): juega justo antes de Adí
+  if (conNPC) {                                                                                      // Yafar NPC (R 20.4, 21)
     const id = 'npc'; e.jugadores[id] = { ...nuevoJugador(e, id, 'Yafar el Bermekí (NPC)', null), pj: 'B', listo: true, npc: true };
-    const iAdi = orden.findIndex((i) => e.jugadores[i].pj === '7');
-    if (iAdi >= 0) orden.splice(iAdi, 0, id); else orden.push(id);
+    orden.push(id);
   }
+  orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
   e.orden = orden.concat(Object.keys(e.jugadores).filter((i) => !orden.includes(i)));
   for (const id of orden) {
@@ -125,7 +125,14 @@ function iniciar(data, e) {
   return empezarRonda(data, e);
 }
 
+// Regla de la casa: Yafar (jugador o NPC) siempre juega el último de cada ronda; Adí, justo antes que él.
+function yafarAlFinal(e, orden) {
+  const esB = (i) => e.jugadores[i]?.pj === 'B';
+  return orden.filter((i) => !esB(i)).concat(orden.filter(esB));
+}
+
 function empezarRonda(data, e) {
+  e.orden = yafarAlFinal(e, e.orden);                                                             // también en partidas guardadas con el orden viejo
   e.ronda++;
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
@@ -745,7 +752,7 @@ export function vista(data, e, pid) {
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
-    mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c) })) : [],
+    mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: OBJ.dondeVender(data, e, pid, c) })) : [],
     tienda: OBJ.tienda(data, e, pid),
     misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [],
     mensaje: yo?.mensaje || null,

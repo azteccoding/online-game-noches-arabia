@@ -138,6 +138,10 @@ export function vender(data, e, pid, a) {
   }
   if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; precio = t ? Math.floor(t.valor / 2) : 5; const imp = impuesto(data, e, ciudad, precio); quitarCarta(j, c.uid); j.dinares += precio - imp; log(e, `${j.nombre} vende un mapa.`, { pid }); return ok(); }
   if (c.ref === 'pergamino') { if (ciudad !== 'Damasco') return err('El pergamino se cobra en Damasco.'); quitarCarta(j, c.uid); j.dinares += 30; return ok(); }
+  if (c.ref === 'especias') {                                                                             // H17: en Bagdad por 30, sin impuesto
+    if (ciudad !== 'Bagdad') return err('Las especias se venden en Bagdad (30 dinares, sin impuesto).');
+    quitarCarta(j, c.uid); j.dinares += 30; log(e, `${j.nombre} vende un fardo de especias en Bagdad por 30 dinares.`, { pid }); return ok();
+  }
   if (c.ref === 'esclava' || c.ref === 'alfombraIsfahan' || c.ref === 'sal' || c.ref === 'cesta') {
     const p = { esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref]; quitarCarta(j, c.uid); j.dinares += Math.floor(p / 2); log(e, `${j.nombre} vende ${ITEMS[c.ref].nombre}.`, { pid }); return ok();
   }
@@ -190,10 +194,47 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'buza') return ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : null;
     if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; const p = t ? Math.floor(t.valor / 2) : 5; return p - impuesto(data, e, ciudad, p); }
     if (c.ref === 'pergamino') return ciudad === 'Damasco' ? 30 : null;
+    if (c.ref === 'especias') return ciudad === 'Bagdad' ? 30 : null;
     if (['esclava', 'alfombraIsfahan', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref] / 2);
     const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
     return base ? Math.floor(base / 2) : null;
   } catch { return null; }
+}
+
+// Dónde se vende cada carta y a cuánto (o para qué sirve si no se vende), para que «no se vende aquí» nunca quede sin explicación.
+const MITAD = { esclava: 10, alfombraIsfahan: 20, sal: 2, cesta: 1 };
+const USO = {
+  caballo: 'Es tu transporte: úsalo para viajar.', camello: 'Es tu transporte: úsalo para viajar.', burro: 'Es tu transporte: úsalo para viajar.', alfombra: 'Es tu transporte: úsala para viajar.',
+  brujula: 'Sirve para buscar tesoros (un segundo intento).', astrolabio: 'Sirve para buscar tesoros (regla del siguiente número).',
+  recetaAverroes: 'Úsala para curarte una herida.', bendicionAbuMadyan: 'Te protege una vez de los asaltos en Andalucía y el Magreb.', dadoIbnArabi: 'Repite una pelea que vayas a perder.',
+  pergaminoSellado: 'Es la carga del reto R30.', cartaUrgente: 'Es la carga del reto R39: llévala a El Cairo.',
+};
+export function dondeVender(data, e, pid, c) {
+  const j = e.jugadores[pid]; if (!j) return null;
+  const m = (j.misiones || []).find((x) => (x.carga || []).some((k) => k.uid === c.uid));
+  if (m) return `No se vende: es la carga del reto ${m.id}${m.destino ? `; entrégala en ${m.destino}` : ''}.`;
+  const lista = (o) => Object.entries(o).map(([k, v]) => `${k} ${v}`).join(', ');
+  if (c.tipo === 'objeto') {
+    const o = objDe(data, c.ref);
+    if (c.ref === 'OB41') return 'El banco la compra por 20 dinares en cualquier ciudad.';
+    if (c.ref === 'OB24') return 'El banco la compra por 40 dinares en cualquier ciudad.';
+    if (!o?.valor) return 'Nadie la compra: solo sirve para usarla.';
+    return o.reventa ? `Mejor precio, sin impuesto: ${lista(o.reventa)}. En las demás ciudades, ${o.valor} menos el impuesto.` : `En cualquier ciudad por ${o.valor} dinares, menos el impuesto (Bagdad sin impuesto).`;
+  }
+  if (c.tipo === 'ifrit') return 'El banco paga 40 dinares en cualquier ciudad.';
+  if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
+  if (c.tipo !== 'item') return null;
+  if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
+  if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
+  if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
+  if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
+  if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
+  if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
+  if (c.ref === 'alfombraIsfahan') return `En cualquier ciudad por ${MITAD.alfombraIsfahan}. Mucho mejor: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches.`;
+  if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
+  if (USO[c.ref]) return `No se vende. ${USO[c.ref]}`;
+  const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
+  return base ? `En cualquier ciudad por ${Math.floor(base / 2)} dinares (la mitad de su precio).` : `No se vende.${ITEMS[c.ref]?.texto ? ' ' + ITEMS[c.ref].texto : ''}`;
 }
 
 export const robarBotinPublico = (data, e, pid) => robarBotin(data, e, pid);

@@ -228,7 +228,7 @@
     "Empieza con 30 dinares y gana 10 por turno.",
     "Cuentos de noche: ambos ganan 5 dinares y el invitado 10 noches."
    ],
-   "limite": "Siempre es el último en el orden de turnos.",
+   "limite": "Siempre juega último entre los mercaderes; solo Yafar va después de él.",
    "stats": [
     3,
     3,
