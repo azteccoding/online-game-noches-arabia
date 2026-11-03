@@ -111,6 +111,7 @@ function iniciar(data, e) {
   }
   orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
+  e.participantes = ids.length + (conNPC ? 1 : 0);                                                     // para la regla del último en pie
   e.orden = orden.concat(Object.keys(e.jugadores).filter((i) => !orden.includes(i)));
   for (const id of orden) {
     const j = e.jugadores[id], p = pjDe(data, j.pj);
@@ -190,7 +191,6 @@ function cierreRonda(data, e) {
   }
   const hv = humanosVivos(e);                                                                                // R 22.4: último jugador en pie
   if (!hv.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; log(e, 'No queda ningún jugador con vida.'); return ok(); }
-  if (hv.length === 1 && !e.jugadores.npc && !e.solitario && !e.opciones.sinYafar) NPC.entraNPC(data, e);
   if (hv.length === 1 && e.jugadores.npc && !e.solitario && activos(e).length === 2) e.solitario = true;
   return empezarRonda(data, e);
 }
@@ -226,6 +226,18 @@ function iniciarTurno(data, e, id, idx) {
   if (j.npc) t.fase = 'mov';
 }
 
+// Regla de la casa: si solo queda un participante vivo (Yafar NPC cuenta), gana al instante, sin esperar al cierre de ronda.
+function ultimoEnPie(e) {
+  if (e.fase !== 'juego' || !e.ronda || (e.participantes || 0) < 2) return false;
+  const viv = activos(e);
+  if (viv.length !== 1) return false;
+  const j = e.jugadores[viv[0]];
+  e.fase = 'fin'; e.turno = null; e.pend = null; e.colaPend = []; e.pelea = null; e.finUltimo = true;
+  if (j.npc) { e.ganadores = []; e.derrota = 'npc'; log(e, 'Yafar NPC es el último en pie: gana la partida.', { aviso: true }); }
+  else { e.ganadores = [j.id]; log(e, `${j.nombre} es el último en pie y gana la partida.`, { pid: j.id, aviso: true }); }
+  return true;
+}
+
 // ---------------------------------------------------------------- avance automático (turnos de NPC, cierre de turno, eliminados)
 export function avanzar(data, e) {
   for (let g = 0; g < 200; g++) {
@@ -235,6 +247,7 @@ export function avanzar(data, e) {
       if (falta.every((x) => !e.jugadores[x] || e.jugadores[x].eliminado || e.jugadores[x].npc)) { vencerPend(data, e, Infinity); continue; }
       return;
     }
+    if (ultimoEnPie(e)) return;
     if (e.solitario && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; log(e, 'Has muerto: Yafar NPC gana la partida.'); return; }
     if (!humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; return; }
     const t = e.turno;
@@ -816,7 +829,7 @@ export function vista(data, e, pid) {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: OBJ.dondeVender(data, e, pid, c) })) : [],
     tienda: OBJ.tienda(data, e, pid),
@@ -907,6 +920,7 @@ export function migrar(e) {
   if ((e.v || 1) >= VERSION_ESTADO) return e;
   e.v = VERSION_ESTADO;
   e.colaDados ||= []; e.colaPend ||= []; e.pend ||= null; e.pelea ||= null; e.mods ||= {}; e.opciones ||= { dificultad: 'normal', rapido: false };
+  e.participantes ??= Object.values(e.jugadores).filter((j) => j.pj).length;
   e.asesinos ||= { actuaron: false, contrato: null }; e.firmanes ??= 3; e.kanmakan ||= { dueno: null, usada: false }; e.tesoros ||= {}; e.derrota ||= null;
   if (e.mazos) { e.mazos.botin ||= []; e.mazos.ifrit ||= []; e.mazos.descarte.botin ||= []; e.mazos.descarte.ifrit ||= []; }
   for (const j of Object.values(e.jugadores)) { j.misiones ||= []; j.destreza ??= false; j.turnos ??= 0; j.transito ??= null; j.ventajaCombate ??= 0; j.extra ||= {}; j.retosHechos ||= []; }

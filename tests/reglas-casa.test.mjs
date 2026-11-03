@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
-import { publicarCarta, mostrarDados, dado, pagar } from '../shared/base.js';
+import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC } from '../shared/pelea.js';
@@ -579,6 +579,24 @@ for (let k = 0; k < 6; k++) {
   const ultimo = sorteo.valores.at(-1);
   assert.ok(vivos >= 6 || ultimo <= vivos, 'solo cuentan los números con jugador');
   assert.match(sorteo.resumen.join(' '), /irán a buscar a /);
+}
+
+// Último en pie: quien queda solo gana al instante; si solo queda Yafar NPC, gana Yafar
+{
+  const g = partida(['4', '7'], { sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids;
+  e.ronda = 3; eliminar(data, e, b, { causa: 'prueba' });
+  g.act(a, { t: 'leido', nro: 0 });
+  assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [a]); assert.ok(e.finUltimo);
+  assert.ok(e.log.some((l) => /último en pie y gana/.test(l.texto)));
+}
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids;
+  assert.ok(e.jugadores.npc, 'hay Yafar NPC');
+  e.ronda = 3; eliminar(data, e, a, { causa: 'prueba' }); eliminar(data, e, b, { causa: 'prueba' });
+  g.act(a, { t: 'leido', nro: 0 }); g.tickear(10);
+  assert.equal(e.fase, 'fin'); assert.equal(e.derrota, 'npc'); assert.ok(e.finUltimo, 'gana Yafar NPC, último en pie');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

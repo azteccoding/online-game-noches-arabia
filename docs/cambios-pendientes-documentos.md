@@ -33,6 +33,7 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | 25 | **Cartas de cuentos (CC) sin repetir**: ninguna CC se repite en la partida hasta que salieron todas (antes cada mazo se rebarajaba solo y el de Bagdad, que surte a 7 ciudades, se repetía mucho); si al mazo de la ciudad no le quedan sin salir, se toma de otro; al agotarse todas se rebarajan. El banco puede barajar las CC que quedan sin devolver las ya salidas. | (este commit) | Reglamento R 19 (mazos de CC); guía del banco | — |
 | 26 | **E1 sin dados automáticos**: el sorteo de la víctima probable lo lanza con botón el primer jugador de la ronda (el banco si está desconectado), solo entre los jugadores vivos (los números sin jugador se repiten) y muestra quién salió. Textos: «Dado de la víctima (cuanto más alto, más caro le sale a X mandarte matar)» y «¿Escapas? Con 3 a 6 te salvas herido; con 1 o 2 mueres». | (este commit) | Reglamento R 13.4 (E1) | E1 |
 | 27 | **Barajar (banco)**: en Eventos, Históricos, Botín, Ifrit y Cuentos reordena solo las cartas que quedan; las ya salidas no vuelven hasta que el mazo se agota. Los objetos del Botín usados que se venden vuelven al mercado al empezar la ronda (escasez), como antes. | (este commit) | Guía del banco | — |
+| 28 | **Último en pie**: si solo queda un participante vivo gana al instante (Yafar NPC cuenta: si solo queda él, gana). Ya no entra Yafar NPC cuando queda un solo jugador. | (este commit) | Reglamento R 22.4 y R 2 | — |
 
 ## Pendientes en cola
 - Ninguno por ahora.

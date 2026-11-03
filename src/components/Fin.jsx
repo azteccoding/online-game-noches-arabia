@@ -17,7 +17,7 @@ export default function Fin({ s, onCerrar }) {
       <div className="panel fin">
         <h1>Mil y una noches</h1>
         <p className="ar" style={{ fontSize: 26, margin: 0, color: 'var(--oro-claro)' }}>ألف ليلة وليلة</p>
-        {gan.length ? <p className="it gran">{gan.length > 1 ? 'Han llegado a las 1,001 noches: ' : 'Ha llegado a las 1,001 noches: '}<b>{gan.join(' y ')}</b></p> : <p className="it gran">{MOTIVO[s.derrota] || 'La partida terminó.'}</p>}
+        {gan.length ? <p className="it gran">{s.finUltimo ? 'Último en pie, gana: ' : gan.length > 1 ? 'Han llegado a las 1,001 noches: ' : 'Ha llegado a las 1,001 noches: '}<b>{gan.join(' y ')}</b></p> : <p className="it gran">{s.finUltimo && s.derrota === 'npc' ? 'Yafar NPC es el último en pie: gana la partida.' : MOTIVO[s.derrota] || 'La partida terminó.'}</p>}
         <ul>{filas.map((j) => (
           <li key={j.id} className={s.ganadores?.includes(j.id) ? 'gana' : j.eliminado ? 'muerto' : ''}>
             <Sprite pj={j.pj} alto={44} /><b>{j.nombre}{j.npc ? '' : j.id === s.yo ? ' (tú)' : ''}</b>
