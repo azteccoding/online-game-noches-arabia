@@ -311,6 +311,7 @@ export function disponibles(data, e, pid) {
     if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && t.tramos < (t.maxTramos || data.config.maxTramosPorTurno)) {
       const dest = destinosTransporte(data, c.ref, j.ciudad);
       if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : ''), destinos: dest });
+      else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
     if (c.tipo === 'ifrit') r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: data.objetos.ifrit.cartas.find((q) => q.id === c.ref).deseos });
   }
@@ -323,6 +324,7 @@ const ANIMALES = ['caballo', 'camello', 'burro'];
 export function destinosTransporte(data, ref, desde) {
   const r = data.objetos.transportes?.[ref], todas = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== desde);
   if (!r) return todas;
+  if ((r.noSaleDe || []).includes(desde)) return [];                                             // caballo y camello no salen de India
   if (r.cercanas) {
     const extra = (r.rutas || []).filter((p) => p.includes(desde)).map((p) => p.find((q) => q !== desde));
     return [...new Set([...(desde === 'Bagdad' ? r.cercanas : r.cercanas.includes(desde) ? ['Bagdad'] : []), ...extra])];
@@ -330,7 +332,7 @@ export function destinosTransporte(data, ref, desde) {
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas, y entre El Cairo y Damasco.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas, y entre El Cairo y Damasco.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 function usarVeneno(data, e, pid, c, a) {

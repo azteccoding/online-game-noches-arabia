@@ -23,7 +23,7 @@ export function disponibles(data, e, pid) {
     const ciu = ciudadMapa(e, c);
     if (ciu && ciu === j.ciudad && !(c.extra.tesoro in e.tesoros && e.tesoros[c.extra.tesoro].encontrado)) r.push({ k: 'tesoro', sub: 'buscar', uid: c.uid, titulo: 'Buscar el tesoro' + (TESOROS[c.extra.tesoro] ? ' de ' + TESOROS[c.extra.tesoro].nombre : ' escondido') });
   }
-  const transp = ['caballo', 'camello', 'burro'].find((x) => tieneItem(j, x));
+  const transp = ['caballo', 'camello', 'burro'].find((x) => tieneItem(j, x) && !(j.ciudad === 'India' && x !== 'burro'));   // caballo y camello no salen de India
   if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: 'Viajar al Jorasán con ' + ITEMS[transp].nombre });
   if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: 'Pagar a los piratas de Yemen para ir al Jorasán' });
   return r;
@@ -39,6 +39,7 @@ export function accion(data, e, pid, a) {
   if (a.sub === 'jorasan') {
     if (a.via === 'transporte') {
       if (!['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x))) return err('Necesitas un caballo, camello o burro.');
+      if (j.ciudad === 'India' && !tieneItem(j, 'burro')) return err('Ni el caballo ni el camello salen de India: viaja en caravana o en alfombra.');
       t.principal = true;
       return HOOK.viajarTransporte(data, e, pid, { destino: 'Jorasán', motivo: 'rumbo al Jorasán', turnos: 2, jorasan: true });
     }

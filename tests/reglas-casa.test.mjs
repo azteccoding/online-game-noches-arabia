@@ -837,6 +837,8 @@ for (let k = 0; k < 6; k++) {
   for (const desde of ['Aleppo', 'Basra']) assert.deepEqual(destinosTransporte(data, 'burro', desde), ['Bagdad'], `burro directo a Bagdad desde ${desde}`);
   assert.deepEqual(destinosTransporte(data, 'burro', 'Damasco'), ['Bagdad', 'El Cairo'], 'desde Damasco el burro va a Bagdad o a El Cairo (al-Quds)');
   assert.deepEqual(destinosTransporte(data, 'burro', 'El Cairo'), ['Damasco'], 'desde El Cairo el burro solo va a Damasco');
+  for (const ref of ['caballo', 'camello']) { assert.deepEqual(destinosTransporte(data, ref, 'India'), [], `${ref}: no sale de India`); for (const d of ['Basra', 'Isfahán', 'Samarcanda', 'Yemen']) assert.ok(!destinosTransporte(data, ref, d).includes('India'), `${ref}: no va a India desde ${d}`); }
+  assert.ok(destinosTransporte(data, 'alfombra', 'India').length > 0 && destinosTransporte(data, 'alfombra', 'Basra').includes('India'), 'la alfombra sí va y vuelve de India');
 }
 
 // Solitario: si el humano derrota a Yafar NPC, gana pero la partida sigue

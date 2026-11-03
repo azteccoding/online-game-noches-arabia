@@ -36,13 +36,14 @@ export function UsarCarta({ s, a, etiqueta }) {
     <div className="accion-fila">
       <div className="accion-txt"><b>{etiqueta || a.titulo}</b>
         {a.ifrit && <small>{DATA.objetos.ifrit.deseos[deseo]}</small>}
+        {a.bloqueado && <small className="error">{a.bloqueado}</small>}
       </div>
       <div className="accion-ctl">
         {a.objetivos && <Objetivo s={s} ids={a.objetivos} valor={obj} onChange={setObj} />}
         {a.destinos && <select value={dest} onChange={(e) => setDest(e.target.value)} aria-label="Destino">{a.destinos.map((d) => <option key={d}>{d}</option>)}</select>}
         {a.ifrit && <select value={deseo} onChange={(e) => setDeseo(e.target.value)} aria-label="Deseo">{a.ifrit.map((d) => <option key={d} value={d}>Deseo {d}</option>)}</select>}
         {plazos && <select value={mision} onChange={(e) => setMision(e.target.value)} aria-label="Plazo a ampliar">{plazos.map((m) => <option key={m.v} value={m.v}>{m.t}</option>)}</select>}
-        <button className="btn mini" disabled={(plazos && !plazos.length) || !!s.pend || !!s.dados} onClick={enviarUso}>Usar</button>
+        <button className="btn mini" disabled={(plazos && !plazos.length) || !!a.bloqueado || !!s.pend || !!s.dados} onClick={enviarUso}>Usar</button>
       </div>
     </div>
   );

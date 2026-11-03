@@ -228,7 +228,7 @@ registrar('npc.firma', (data, e, args, resp) => {
 });
 // Regla de la casa: al firmar, los Asesinos no matan al instante sino al final del siguiente turno de la víctima. Quien
 // sobornó a Masrur recibe un aviso privado y puede huir al Jorasán, donde no la encuentran. Todo se hace público cuando actúan.
-export const AVISO_HUIDA = 'Huye al Jorasán antes de que termine tu próximo turno: con caballo, camello o burro (acción principal, desde cualquier ciudad) o pagando a los piratas en Yemen. Allí los Asesinos no te encontrarán.';
+export const AVISO_HUIDA = 'Huye al Jorasán antes de que termine tu próximo turno: con caballo, camello o burro (acción principal, desde cualquier ciudad; desde India, solo en burro) o pagando a los piratas en Yemen. Allí los Asesinos no te encontrarán.';
 function firmar(data, e, pid, v, precio, args = {}) {
   if (e.asesinos.actuaron || e.jugadores[v]?.eliminado) return;
   const j = e.jugadores[pid], vic = e.jugadores[v];

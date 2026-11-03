@@ -1097,7 +1097,7 @@
   "reposicionPorRonda": 2
  },
  "transportes": {
-  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro: viajes cortos entre Bagdad y las ciudades cercanas y entre El Cairo y Damasco, no termina el turno; 1 dinar por turno y muere a los 4 turnos. Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad; termina el turno; 3 dinares por turno y muere a los 5 turnos. Ningún transporte te lleva a Bagdad salvo el burro desde las ciudades cercanas. Camello: solo al Magreb, a Samarcanda y a Yemen; termina el turno; 3 dinares por turno y muere a los 5 turnos. Alfombra mágica (no se gasta): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
+  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro: viajes cortos entre Bagdad y las ciudades cercanas y entre El Cairo y Damasco, no termina el turno; 1 dinar por turno y muere a los 4 turnos. Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad (ni de regreso desde India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Ningún transporte te lleva a Bagdad salvo el burro desde las ciudades cercanas. Camello: solo al Magreb, a Samarcanda y a Yemen (no sale de India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Alfombra mágica (no se gasta): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
   "burro": {
    "cercanas": [
     "Damasco",
@@ -1118,6 +1118,9 @@
     "Magreb",
     "India", "Bagdad"
    ],
+   "noSaleDe": [
+    "India"
+   ],
    "terminaTurno": true
   },
   "camello": {
@@ -1125,6 +1128,9 @@
     "Magreb",
     "Samarcanda",
     "Yemen"
+   ],
+   "noSaleDe": [
+    "India"
    ],
    "terminaTurno": true
   },
