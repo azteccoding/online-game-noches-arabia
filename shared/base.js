@@ -55,10 +55,10 @@ export function cartaDatos(data, tipo, id) {
 
 // Objetos de la tabla original (R 15.1): se dibujan con el marco de «objeto».
 export const ITEMS = {
-  arco: { nombre: 'Arco', arma: 1, precio: 15, texto: '+1 a tu puntaje final en cualquier pelea o duelo. Además, cuando te asaltan o te atacan a muerte (jugadores, Yafar, bandoleros o los ladrones de Alí Babá) disparas primero, gastando 1 flecha: con 5 o 6 el atacante queda herido y huye. Necesita flechas. En Bagdad solo con Firmán.' },
-  alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, texto: '+1 a tu puntaje final en cualquier pelea o duelo. No se usa en Bagdad.' },
-  cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, texto: '+2 a tu puntaje final en cualquier pelea o duelo, y +2 más cuando eres tú quien ataca. No se usa en Bagdad.' },
-  jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, texto: '+3 si el dado de sorpresa (lo tira quien la lleva) cae par; si no, nada. En Bagdad solo con Firmán.' },
+  arco: { nombre: 'Arco', arma: 1, precio: 15, ventaja: 'una flecha antes de pelear', texto: 'Antes de un robo o un ataque a muerte disparas una flecha: con 5 o 6 el rival pelea con −1 y sin su destreza; con 3 o 4, con −1; contra un escudo no sirve. En duelo, +1. Gasta 1 flecha por disparo. En Bagdad solo con Firmán.' },
+  alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, ventaja: '+1 al pelear', texto: '+1 en robos, ataques a muerte y duelos. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
+  cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos, y en duelo +2 más cuando eres tú quien ataca. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
+  jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear (duelo: +3 con par)', texto: '+1 en robos y ataques a muerte (se suma a las demás armas). En duelo, +3 si el dado de sorpresa (lo tira quien la lleva) sale par. En Bagdad solo con Firmán.' },
   flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco. Cada disparo de defensa gasta 1 flecha.' },
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde las ciudades cercanas); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },

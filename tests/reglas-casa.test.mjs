@@ -492,6 +492,29 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.match(e.pend.texto, /y 12 noches de su haber/, 'con 12 noches, la propuesta dice 12');
 }
 
+// La cacería del Califa (E7) se ve como «Buscado» para todos
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids; e.evento.buscadoE7 = a;
+  assert.equal(vistaDe(e, b).jugadores[a].buscadoE7, true, 'los demás ven que está buscado');
+  assert.equal(vistaDe(e, a).jugadores[b].buscadoE7, false);
+}
+
+// Armas: la cimitarra suma más que el alfanje en robos y ataques a muerte, y la tienda dice la ventaja
+{
+  const { bonosCombate } = await import('../shared/pelea.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, j = e.jugadores[a]; j.ciudad = 'Damasco'; j.destreza = false; j.herido = false; j.mano = [];
+  darItem(e, j, 'alfanje'); const conAlf = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  j.mano = []; darItem(e, j, 'cimitarra'); const conCim = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  assert.equal(conAlf, 1); assert.equal(conCim, 2, 'cimitarra +2');
+  darItem(e, j, 'alfanje'); darItem(e, j, 'jambiya'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, 4, 'tope de +4');
+  assert.match(bonosCombate(data, e, a, 'atk', 'Damasco').partes.join(' '), /cimitarra \+2/, 'el desglose lo muestra');
+  j.ciudad = 'Estambul'; j.dinares = 100; turnoDe(e, g.ids[1], 'Estambul');
+  const t = tienda(data, e, a); const cim = t.find((x) => x.ref === 'cimitarra');
+  assert.ok(cim && /\+2 al pelear/.test(cim.nombre), 'la tienda dice «Cimitarra · +2 al pelear»');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

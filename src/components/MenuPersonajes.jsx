@@ -21,7 +21,7 @@ export default function MenuPersonajes({ s, onCerrar }) {
               <Sprite pj={j.pj} alto={36} />
               <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}</span>
               <Dinares valor={j.dinares} /><span className="chip">{j.noches} noches</span>
-              {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{j.buscado > 0 && <span className="chip mal">B</span>}
+              {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{(j.buscado > 0 || j.buscadoE7) && <span className="chip mal" title="Buscado">B</span>}
             </button>
             {abierto === j.id && <HojaPersonaje pj={j.pj} jugador={j} esYo={j.id === s.yo} />}
             {abierto === j.id && j.id === s.yo && s.miGuia && <GuiaPersonaje g={s.miGuia} />}
