@@ -252,9 +252,10 @@ export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
     const din = Math.max(0, Math.min(monto, j.dinares)); j.dinares -= din; e.jugadores[aJugador].dinares += din;
     return { dinares: din, noches: 0, pagado: din, debe: monto - din };
   }
-  const antes = j.dinares, tope = -(data.config.deudaMaxima ?? 50);   // el banco no fía más allá del tope: así nadie queda atrapado para siempre
+  // El banco fía una sola vez: quien ya está en deuda no suma más (así la deuda siempre baja con lo que entra y nadie queda atrapado), y nunca más del tope.
+  const antes = j.dinares, tope = antes < 0 ? antes : -(data.config.deudaMaxima ?? 50);
   const cobrado = Math.max(0, Math.min(monto, j.dinares - tope));
-  if (cobrado < monto) log(e, `El banco ya no fía más a ${j.nombre} (deuda máxima ${-tope} dinares): se le perdonan ${monto - cobrado}.`, { pid });
+  if (cobrado < monto) log(e, `El banco ya no fía más a ${j.nombre} mientras no salde su deuda: se le perdonan ${monto - cobrado} dinares.`, { pid });
   monto = cobrado;
   j.dinares -= monto;
   const debe = Math.max(0, -j.dinares) - Math.max(0, -antes);

@@ -413,7 +413,8 @@ function forzar(e, ...valores) {
   assert.ok(!g.act(a, { t: 'comprar', id: 'OB34' }).ok, 'con deuda no se compra nada');
   const r = g.act(a, { t: 'reto', id: 'R17' }); assert.ok(!r.ok, 'R17 sin 40 dinares se rechaza');
   assert.ok(!e.turno.principal, 'y no gasta la acción principal');
-  pagar(data, e, a, 100); assert.equal(A.dinares, -50, 'el banco no fía más de 50');
+  pagar(data, e, a, 100); assert.equal(A.dinares, -12, 'quien ya está en deuda no suma más deuda');
+  A.dinares = 0; pagar(data, e, a, 100); assert.equal(A.dinares, -50, 'el banco no fía más de 50');
   A.dinares = -20; e.jugadores[b].ciudad = 'Isfahán'; e.jugadores[b].mano.push({ uid: 9400, tipo: 'item', ref: 'cimitarra' });
   const db = e.jugadores[b].dinares; turnoDe(e, b, 'Isfahán'); e.ronda = 5; forzar(e, 3, 3, 3, 3);
   g.act(b, { t: 'atacar', tipo: 'robo', objetivo: a });
