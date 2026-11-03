@@ -122,7 +122,7 @@ export function accion(data, e, pid, a) {
       if (!valido()) return err('Cliente no válido (misma ciudad).');
       const precio = Math.max(0, Math.min(200, Math.floor(a.precio || 0)));
       t.principal = true;
-      pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Propuesta de compañía', texto: `${j.nombre} te ofrece su compañía por ${precio} dinares${j.pj === '6' ? ' y 50 noches de su haber' : ''}.`,
+      pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Propuesta de compañía', texto: `${j.nombre} te ofrece su compañía. Recibes: una noche de compañía${j.pj === '6' ? ' y 50 noches de su haber' : ''}. Entregas: ${precio} dinares.`,
         opciones: [{ id: 'si', texto: `Pagar ${precio} dinares`, desactivada: k.dinares < precio }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.prost', args: { vend: pid, precio } } });
       return ok();
     }

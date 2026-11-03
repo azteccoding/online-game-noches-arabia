@@ -29,6 +29,7 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | 21 | **Alertas de tratos**: quien recibe una propuesta o contraoferta ve una tarjeta con «Recibes» y «Entregas» y los botones Aceptar, Rechazar, Contraofertar, Ver y Luego; espera detrás de dados, decisiones y cartas; el botón Mercado palpita con 🤝. Quien propuso recibe aviso de aceptado, rechazado o contraoferta, y queda en el registro. | (este commit) | Guía en línea | — |
 | 22 | **Propuestas no aceptadas no gastan la acción principal**: duelo rechazado, compañía (Zein, Zubayda, Adí) o cuentos de Adí rechazados; el rechazo se anuncia a ambos y queda en el registro. Los tratos nunca gastaron acción. El texto de R1 dice «15 dinares» de deuda (antes «alojamiento 15»; el alojamiento de Bagdad ahora es 10). | (este commit) | Reglamento R 11.6 (duelo), R 10 (personajes), R1 | R1 si dice «alojamiento 15» |
 | 23 | **E7 Cacería del Califa**: quien mate al jugador con más noches esa ronda gana 200 noches y 40 dinares (antes 50 noches), sin multiplicar por ronda. | (este commit) | Reglamento R 17.1 (E7) | E7 |
+| 24 | **Propuestas claras**: quien recibe un duelo ve qué gana y qué pierde (mitad de dinares y 30 noches, costo de rechazar); en un asalto, qué arriesga; en un ataque a muerte, el golpe de gracia; en la compañía, «Recibes / Entregas». | (este commit) | Guía en línea | — |
 
 ## Pendientes en cola
 - Ninguno por ahora.

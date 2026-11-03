@@ -297,8 +297,18 @@ function seguirAtaque(data, e) {
     op.push({ id: 'rechazar', texto: `Rechazar el duelo pagando ${costo}` });
   }
   pedir(e, { tipo: 'defensa', para: [a.objetivo], titulo: a.tipo === 'robo' ? '¡Te asaltan!' : a.tipo === 'matar' ? '¡Intentan matarte!' : '¡Te desafían a duelo!',
-    texto: `${j.nombre} ${AVISO_ATAQUE[a.tipo]} en ${j.ciudad}. ¿Qué haces?`, opciones: op, porDefecto: 'luchar', cont: { fn: 'pelea.defensa', args: {} } });
+    texto: `${j.nombre} ${AVISO_ATAQUE[a.tipo]} en ${j.ciudad}. ${enJuego(data, e, a.tipo, j, d, pedirNur)}¿Qué haces?`, opciones: op, porDefecto: 'luchar', cont: { fn: 'pelea.defensa', args: {} } });
   return ok();
+}
+// Qué se gana y qué se pierde en cada pelea, para que quien la recibe lo vea claro antes de decidir.
+function enJuego(data, e, tipo, A, D, pedirNur) {
+  const mitad = (x) => Math.max(0, Math.floor(x.dinares / 2)), n = data.config.duelo.nochesPerdedor;
+  if (tipo === 'duelo') {
+    const rechazo = pedirNur ? `${pedirNur.dinares} dinares y ${pedirNur.noches} noches` : `${data.config.duelo.rechazo} dinares`;
+    return `Si ganas recibes ${mitad(A)} dinares y ${Math.min(n, A.noches)} noches de ${A.nombre}; si pierdes entregas ${mitad(D)} dinares y ${Math.min(n, D.noches)} noches y quedas herido. Rechazar cuesta ${rechazo}. `;
+  }
+  if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas; si fracasa no pierdes nada. `;
+  return `Golpe de gracia: si gana por 3 o más mueres; por 1 o 2 quedas herido; empate, heridos los dos. Si ganas tú por 3 o más, muere ${A.nombre} y recibes su botín. `;
 }
 registrar('pelea.defensa', (data, e, args, resp) => elegirDefensa(data, e, resp));
 
