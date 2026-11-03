@@ -84,6 +84,7 @@ export default function Dados({ s }) {
           {(() => {                                                       // contexto: la carta que provoca esta tirada
             const cerca = s.historial.filter((h) => h.nro < d.id && d.id - h.nro < 12 && h.deck !== 'cuento' && h.deck !== 'trivia');
             const c = (d.contexto && cerca.filter((h) => h.titulo === d.contexto).pop()) || cerca.pop();
+            if (d.titulo) return <p className="dados-contexto">{d.titulo}</p>;      // peleas: no las explica ninguna carta
             return c ? <p className="dados-contexto">Por la carta «{c.titulo}»: {c.texto}</p> : d.contexto ? <p className="dados-contexto">Por «{d.contexto}».</p> : null;
           })()}
           {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Lanzar {d.n > 1 ? 'los dados' : 'el dado'}</button>
@@ -116,11 +117,13 @@ export default function Dados({ s }) {
               <div key={gi} className="dados-grupo">
                 {g.etq && <p className="etq">{g.etq}</p>}
                 <div className="dados-caras">{g.valores.map((v, i) => <div key={i} className="cara-fija"><Cara v={v} color={colorGrupo(s, d, g)} /></div>)}</div>
-                {g.valores.length > 1 && <p className="suma">Suma {g.valores.reduce((a2, b) => a2 + b, 0)}</p>}
+                {g.valores.length > 1 && d.motivo !== 'pelea' && <p className="suma">Suma {g.valores.reduce((a2, b) => a2 + b, 0)}</p>}
               </div>
             ))}
             {d.sheij && <p className={`aviso-sheij ${d.sheij.ok ? 'si' : 'no'}`} role="status">{d.sheij.texto}</p>}
-            {d.resumen?.length > 0 && <ul className="dados-resumen" role="status">{d.resumen.map((r, i) => <li key={i}>{r}</li>)}</ul>}
+            {d.resumen?.length > 0 && (                                     // en las peleas el desglose aparece línea por línea
+              <ul className={`dados-resumen${d.motivo === 'pelea' ? ' paso-a-paso' : ''}`} role="status">{d.resumen.map((r, i) => <li key={d.id + '-' + i} style={{ '--i': i }} className={/^Gana |vence a|muere|roba|se salva|no se lleva|pierde el duelo/.test(r) ? 'final' : undefined}>{r}</li>)}</ul>
+            )}
             {!d.resumen?.length && grupos.length === 1 && <p className="total" role="status">{d.valores.length > 1 ? `Suma: ${total}` : `Salió ${total}`}</p>}
             <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar para todos</button>
           </div>

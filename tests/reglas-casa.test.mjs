@@ -458,6 +458,26 @@ for (let k = 0; k < 6; k++) {
   A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(A.destreza);
 }
 
+// Peleas: ninguna tirada es automática; cada bando lanza sus propios dados y el desglose sale al final
+{
+  const g = partida(['4', '1']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const j of [A, B]) { j.extra.clienteWeb = true; j.ciudad = 'Damasco'; j.destreza = true; j.mano = j.mano.filter((c) => c.ref !== 'arco'); }
+  if (!B.mano.some((c) => c.ref === 'alfanje')) darItem(e, B, 'alfanje');
+  if (!A.mano.some((c) => c.ref === 'cimitarra')) darItem(e, A, 'cimitarra');
+  e.ronda = 4; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  const ra = g.act(a, { t: 'atacar', tipo: 'matar', objetivo: b }); assert.ok(ra.ok, ra.error);
+  if (e.pend) assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }).ok);
+  const cola = [e.dados, ...e.colaDados].filter((d) => d && d.motivo === 'pelea');
+  assert.ok(cola.length >= 2, 'al menos una tirada de cada bando');
+  assert.ok(cola.every((d) => !d.lanzado), 'nadie lanza solo');
+  assert.ok(cola.some((d) => d.por === a) && cola.some((d) => d.por === b), 'atacante y defensor lanzan cada uno');
+  for (const d of cola) assert.ok(d.grupos.every((gr) => gr.etq.startsWith(e.jugadores[d.por].nombre)), 'cada quien lanza solo sus dados');
+  const fin = cola.at(-1).resumen.join(' ');
+  assert.match(fin, /cimitarra \+2/); assert.match(fin, /alfanje \+1/); assert.match(fin, /total \d+/); assert.match(fin, /Gana /);
+  assert.equal(g.act(b, { t: 'lanzarDados' }).ok, false, 'el defensor no puede lanzar los dados del atacante');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

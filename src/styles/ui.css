@@ -296,3 +296,7 @@ fieldset:disabled { opacity: .5; }
 .burbuja-reaccion .emoji { font-size: 1.5em; line-height: 1; }
 @keyframes burbuja-entra { from { opacity: 0; transform: translateY(-8px) scale(.95); } to { opacity: 1; transform: none; } }
 @keyframes burbuja-sale { to { opacity: 0; transform: translateY(-6px); } }
+/* Peleas: el desglose aparece línea por línea y el desenlace resalta */
+.dados-resumen.paso-a-paso li { opacity: 0; animation: linea-pelea .35s ease-out forwards; animation-delay: calc(var(--i) * .75s); }
+.dados-resumen li.final { font-weight: 700; color: var(--oro-claro); }
+@keyframes linea-pelea { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }

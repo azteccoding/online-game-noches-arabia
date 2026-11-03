@@ -120,12 +120,12 @@ export function robar(e, mazo) {
 
 // ---------------------------------------------------------------- dados sobre la mesa (cola)
 // Los resultados se calculan y APLICAN al instante en el servidor; los dados son la vista pública del resultado (modal sincronizado).
-export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false }) {
+export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null }) {
   const valores = grupos.flatMap((g) => g.valores);
   // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
   // Si se desconecta, el banco puede lanzarlos por él. (Bots y pruebas, sin cliente web, siguen como antes.)
   const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
-  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null };
+  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo };
   for (const r of resumen) if (r) log(e, r, { pid: por });
   if (e.opciones?.rapido) return d;
   if (!e.dados) e.dados = d; else (e.colaDados ||= []).push(d);

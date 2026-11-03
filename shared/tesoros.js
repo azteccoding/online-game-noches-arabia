@@ -187,7 +187,8 @@ function ghul(data, e, pid) {
   const act = activos(e);
   const v = act.map(() => dado(e));
   const prom = Math.round(suma(v) / act.length);
-  mostrarDados(e, { por: pid, motivo: 'ghul', grupos: [{ etq: 'Los ghul buscan al viajero (tira cada jugador)', valores: v }], resumen: [`Promedio ${prom}: ${prom >= 3 ? 'los ghul no te encuentran' : 'los ghul te encuentran'}.`] });
+  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${j.nombre}`, valores: [v[i]] }],   // cada jugador lanza el suyo
+    resumen: i < act.length - 1 ? [] : [`Dados: ${v.join(', ')}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${j.nombre}` : `los ghul encuentran a ${j.nombre}`}.`] }));
   if (prom < 3) { log(e, `Los ghul encuentran a ${j.nombre} en el Jorasán.`, { pid }); eliminar(data, e, pid, { causa: 'devorado por los ghul' }); return ok(); }
   const dest = j.extra.destinoA || 'Bagdad';
   j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
