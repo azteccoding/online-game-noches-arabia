@@ -45,7 +45,7 @@ function aplicarEvento0(data, e, id) {
       const cand = act.slice().sort((a, b) => jug(e, b).noches - jug(e, a).noches);
       for (const c of cand) {
         if (tieneObj(jug(e, c), 'OB42')) { consumirObj(data, e, c, 'OB42'); log(e, `${jug(e, c).nombre} se libra de la cacería con su Disfraz de mendigo.`); continue; }
-        e.evento.buscadoE7 = c; log(e, `El Califa declara «buscado» a ${jug(e, c).nombre}: quien lo mate esta ronda gana 50 noches extra.`, { pid: c }); break;
+        e.evento.buscadoE7 = c; log(e, `El Califa declara «buscado» a ${jug(e, c).nombre}: quien lo mate esta ronda gana 200 noches y 40 dinares.`, { pid: c }); break;
       }
       break;
     }

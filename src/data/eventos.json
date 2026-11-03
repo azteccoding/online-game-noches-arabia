@@ -59,7 +59,7 @@
    "tipo": "evento",
    "nombre": "Cacería de recompensas del Califa",
    "detalle": "Cacería de recompensas del Califa",
-   "efecto": "El jugador con más noches es \"buscado\": quien lo mate esta ronda gana 50 noches extra además del botín",
+   "efecto": "El jugador con más noches es \"buscado\": quien lo mate esta ronda gana 200 noches y 40 dinares además del botín",
    "arte": "ev",
    "refReglamento": "17.1"
   },
