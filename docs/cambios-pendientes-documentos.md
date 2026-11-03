@@ -14,10 +14,17 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | 6 | **Entrenar** (R18 Isfahán, R19 Yemen, R25 Estambul): solo si aún no tienes destreza; la destreza es sí o no. | e0da780 | Reglamento R 11.1 y retos R18/R19/R25 | R18, R19, R25 (requisito) |
 | 7 | **Reacciones rápidas** entre jugadores (solo en línea; no es regla de mesa). | 3bd9755 | Guía de juego en línea (opcional) | — |
 | 8 | **Peleas**: ninguna tirada es automática; cada bando lanza sus propios dados (atacante, defensor, arco, escudo); los NPC lanzan solos a la vista; el banco lanza por un jugador desconectado. El desglose (dados, armas, ventaja, total) se muestra paso a paso. Los ghul: cada jugador lanza su dado. | c2ff4f8 | Guía (cómo se ven las peleas); reglamento R 11 si describe quién tira | — |
+| 9 | **Carta sin responder**: botón «¡Responde!» con pulso dorado; Terminar turno o Viajar bloqueados avisan «Primero responde: …» y abren la carta. | 0199195 | Guía de juego en línea | — |
+| 10 | **Noches al llegar**: Andalucía 40 la primera vez y 8 después (antes 30/5); Samarcanda 27 (antes 20). Siguen multiplicándose por la ronda. | 05b72b1 | Reglamento (tabla de ciudades); tablero si trae los números; hoja resumen | Fichas de ciudad si traen las noches |
+| 11 | **Tarifas**: Bagdad→Magreb 25 (20), El Cairo→Magreb 19 (15), Bagdad→Samarcanda 62 (50), Isfahán→Samarcanda 44 (35), India→Samarcanda 25 (20), Bagdad→India 62 (50), Isfahán→India 25 (20), Samarcanda→India 12 (10). | 05b72b1 | Reglamento (tarifas); tablero (números de las rutas) | Tablero |
+| 12 | **India más fácil y mejor pagada**: R11 sale bien con 6+ (antes 7+) y paga 50+50 (50+30); R12 piratas sin ventaja (antes +1), premio 60+60 (60+40); R13 gigante +1 (antes +2), premio 80+70 (80+50); R35 rajá 70 dinares y 20 noches (55 y 15). | 05b72b1 | Reglamento R 14 (retos de India) | R11, R12, R13, R35 |
+| 13 | **Alojamiento**: Andalucía 5 (3), Estambul 5 (3), Yemen 5 (3), Bagdad 10 (15), Basra 3 (5), Aleppo 2 (3). | 05b72b1 | Reglamento (tabla de ciudades); hoja resumen | Fichas de ciudad |
+| 14 | **Tratos**: cada lado combina dinares + noches + cartas; se ven y se piden las cartas intercambiables del otro; contraoferta; se proponen y responden en cualquier momento (no en medio de una pelea ni de una decisión propia); misma ciudad; saldo completo de ambas partes; el libro de Ibn Hazm no se intercambia. | 05b72b1, 3a981c2 | Reglamento R 8.6 y 15.2 | — |
+| 15 | **Reacciones**: dos más, 😠 «¡Por las barbas del Califa!» y 🎉 «¡Que viva la fiesta!». | 05b72b1 | Guía en línea | — |
+| 16 | **Reto más fácil de cada ciudad, más difícil**: R5 Alquimia 3 intentos (4); R37 boda: 1–2 se sube el vino (1); R21 casa embrujada: 1–3 fantasmas (1–2); R34 cueva: 1–2 maldición, 3–4 cofre, 5–6 botella (1 / 2–3 / 4–6); R24 cesta 10 dinares (5); R18 y R19 entrenar 25 (20); R25 entrenar 35 (30); R39 posta 10 dinares (5); R30 pergamino: peaje con 1–3 y de 15 dinares (1–2 y 10). | 550ca39 | Reglamento R 14 | R5, R18, R19, R21, R24, R25, R30, R34, R37, R39 |
+| 17 | **Mercado fuera de turno**: comprar objetos, mercancías y armas en la ciudad solo mientras juegan los demás; Yafar NPC compra en su turno. El Firmán, el bazar del genio, vender, retos, transportes, Asesinos y tratos no cambian. Los descuentos de entrenar valen hasta tu siguiente turno (antes «ese turno»). | 7829f16 | Reglamento R 8.5 y R 15; R18/R19/R25 («ese turno compras…») | R18, R19, R25 |
+| 18 | **Golpe de gracia (solo ataques a muerte)**: matas solo si ganas por 3 o más; por 1–2 el perdedor queda herido (también si gana el defensor); el empate deja heridos a los dos y no se repite. Sin armas: si el defensor falla su número, el atacante lanza: 4–6 mata, 1–3 solo hiere. Duelos y robos sin cambios. | aae4535 | Reglamento R 11.4 y 11.5; hoja resumen (combate) | — |
+| 19 | **Lámpara mágica**: una vez por partida, desde la ronda 4, quien llega de viaje puede encontrarla (sale en ~82 % de las partidas). El genio concede 1 deseo a elegir entre los 4 de una carta de Ifrit; aviso a toda la mesa. | 204730a | Reglamento (nueva sección junto a R 15.4 Ifrit); guía | Posible carta nueva «Lámpara mágica» |
 
-## Pendientes en cola (se anotarán al hacerse)
-- Noches al llegar a Andalucía y Samarcanda (más altas).
-- Tratos que combinan dinares + noches + objetos.
-- Tarifas de viaje a Magreb, Samarcanda e India; retos y premios de India.
-- Alojamiento: más caro en Andalucía, Estambul y Yemen; más barato en Bagdad, Basra y Aleppo.
-- Asesinato más difícil (esperando la decisión de Jorge).
+## Pendientes en cola
+- Ninguno por ahora.
