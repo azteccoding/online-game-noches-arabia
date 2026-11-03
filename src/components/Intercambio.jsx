@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 
@@ -21,11 +20,6 @@ function Producto({ it, puedeActuar, s }) {
   );
 }
 
-// Lo que se puede pedir en un trato (la mano ajena es secreta: se pide por tipo de carta).
-const CATALOGO = [...DATA.objetos.mazo.map((o) => [o.id, o.nombre]), ['arco', 'Arco'], ['flechas', 'Flechas'], ['alfanje', 'Alfanje'], ['cimitarra', 'Cimitarra'], ['jambiya', 'Jambiya'],
-  ['caballo', 'Caballo'], ['camello', 'Camello'], ['burro', 'Burro'], ['alfombra', 'Alfombra mágica'], ['vino', 'Botella de vino'], ['mapa', 'Mapa de tesoro'], ['alfombraIsfahan', 'Alfombra de Isfahán'], ['especias', 'Especias']]
-  .filter((x, i, a) => a.findIndex((y) => y[0] === x[0]) === i).sort((a, b) => a[1].localeCompare(b[1], 'es'));
-
 export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
   const [tab, setTab] = useState(inicial);
   const yo = s.jugadores[s.yo];
@@ -40,8 +34,14 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
   const [objs, setObjs] = useState([]);
   const [nchOfrece, setNchOfrece] = useState(0);
   const [nchPide, setNchPide] = useState(0);
-  const [pideRefs, setPideRefs] = useState([]);
-  const [refSel, setRefSel] = useState('');
+  const [pideObjs, setPideObjs] = useState([]);
+  const suyas = (con && s.comerciables?.[con]) || [];
+  // Contraoferta: rechaza la propuesta y abre el formulario con los lados invertidos para ajustarlo
+  const contraofertar = (t) => {
+    enviar(ACCIONES.responderTrato(t.id, false));
+    setCon(t.de); setDinOfrece(t.pide.dinares); setNchOfrece(t.pide.noches || 0); setObjs(t.pide.objetos || []);
+    setDinPide(t.ofrece.dinares); setNchPide(t.ofrece.noches || 0); setPideObjs(t.ofrece.idx || []);
+  };
   const lado = (x) => [x.dinares ? `${x.dinares} dinares` : '', x.noches ? `${x.noches} noches` : '', ...(x.nombres || [])].filter(Boolean).join(', ') || 'nada';
   const entrantes = s.tratos.filter((t) => t.con === s.yo);
   return (
@@ -81,7 +81,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
             {entrantes.map((t) => (
               <div key={t.id} className="trato entrante">
                 <p><b>{s.jugadores[t.de].nombre}</b> te ofrece <b>{lado(t.ofrece)}</b> a cambio de <b>{lado(t.pide)}</b>.</p>
-                <div className="fila-btn"><button className="btn mini" onClick={() => enviar(ACCIONES.responderTrato(t.id, true))}>Aceptar</button><button className="btn mini sec" onClick={() => enviar(ACCIONES.responderTrato(t.id, false))}>Rechazar</button></div>
+                <div className="fila-btn"><button className="btn mini" onClick={() => enviar(ACCIONES.responderTrato(t.id, true))}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => enviar(ACCIONES.responderTrato(t.id, false))}>Rechazar</button></div>
               </div>
             ))}
             {s.tratos.filter((t) => t.de === s.yo).map((t) => (
@@ -89,8 +89,8 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
             ))}
             <h3 className="sub-h">Proponer un trato (misma ciudad)</h3>
             {!companeros.length ? <p className="it">Nadie más está en {yo.ciudad}.</p> : (
-              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), refs: pideRefs })); setObjs([]); setPideRefs([]); } }}>
-                <label>Con <select value={con} onChange={(e) => setCon(e.target.value)}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
+              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs })); setObjs([]); setPideObjs([]); } }}>
+                <label>Con <select value={con} onChange={(e) => { setCon(e.target.value); setPideObjs([]); }}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
                 <fieldset className="lado-trato"><legend>Yo doy</legend>
                   <label>Dinares <input type="number" min="0" max={yo.dinares} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>
                   <label>Noches <input type="number" min="0" max={yo.noches} value={nchOfrece} onChange={(e) => setNchOfrece(e.target.value)} /></label>
@@ -99,10 +99,9 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
                 <fieldset className="lado-trato"><legend>Pido a cambio</legend>
                   <label>Dinares <input type="number" min="0" value={dinPide} onChange={(e) => setDinPide(e.target.value)} /></label>
                   <label>Noches <input type="number" min="0" value={nchPide} onChange={(e) => setNchPide(e.target.value)} /></label>
-                  <label>Una carta <select value={refSel} onChange={(e) => setRefSel(e.target.value)}><option value="">— elige qué pides —</option>{CATALOGO.map(([id, n]) => <option key={id} value={id}>{n}</option>)}</select>
-                    <button type="button" className="btn mini sec" disabled={!refSel || pideRefs.length >= 6} onClick={() => { setPideRefs((r) => [...r, refSel]); setRefSel(''); }}>Añadir</button></label>
-                  {pideRefs.length > 0 && <p className="it">Pides: {pideRefs.map((r, i) => <button key={i} type="button" className="chip" title="Quitar" onClick={() => setPideRefs((x) => x.filter((_, k) => k !== i))}>{(CATALOGO.find(([id]) => id === r) || [r, r])[1]} ✕</button>)}</p>}
-                  <p className="it nota">Si no tiene la carta que pides, no podrá aceptar.</p>
+                  {!con && <p className="it">Elige con quién para ver sus cartas.</p>}
+                  {con && !suyas.length && <p className="it">{s.jugadores[con]?.nombre} no tiene cartas que se puedan intercambiar.</p>}
+                  {suyas.map((c) => <label key={c.i} className="chk"><input type="checkbox" checked={pideObjs.includes(c.i)} onChange={(e) => setPideObjs((o) => (e.target.checked ? [...o, c.i] : o.filter((x) => x !== c.i)))} /> {c.titulo}</label>)}
                 </fieldset>
                 <button className="btn" type="submit" disabled={!con || Number(dinOfrece) > yo.dinares || Number(nchOfrece) > yo.noches}>Enviar propuesta</button>
               </form>

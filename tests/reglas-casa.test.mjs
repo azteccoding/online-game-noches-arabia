@@ -486,9 +486,11 @@ for (let k = 0; k < 6; k++) {
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
   turnoDe(e, a, 'Bagdad'); e.mods = {}; A.ciudad = B.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
   A.dinares = 30; A.noches = 50; B.dinares = 10; B.noches = 40; B.mano = [];
-  const seda = darItem(e, A, 'vino'); darItem(e, B, 'caballo');
+  const seda = darItem(e, A, 'vino'); const cab = darItem(e, B, 'caballo');
+  assert.deepEqual(vistaDe(e, a).comerciables[b].map((c) => c.titulo), ['Caballo'], 'ves las cartas que el otro puede intercambiar (sin su uid)');
+  turnoDe(e, g.ids.find((x) => x !== a && x !== b) || 'npc', 'Bagdad');      // los tratos van aunque no sea el turno de ninguno de los dos
   assert.ok(!g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 31 }, pide: {} }).ok, 'no puedes ofrecer lo que no tienes');
-  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 20, noches: 30, objetos: [seda.uid] }, pide: { dinares: 5, noches: 10, refs: ['caballo'] } }).ok);
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 20, noches: 30, objetos: [seda.uid] }, pide: { dinares: 5, noches: 10, idx: [0] } }).ok);
   const tr = Object.values(e.tratos)[0];
   assert.deepEqual(tr.ofrece.nombres.length, 1); assert.match(tr.pide.nombres[0], /Caballo/);
   assert.ok(g.act(b, { t: 'responderTrato', id: tr.id, ok: true }).ok);

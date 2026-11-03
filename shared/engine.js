@@ -252,7 +252,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -600,17 +600,46 @@ function terminarTurno(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- tratos entre jugadores (R 8.6, 15.2)
+// Cartas que cada jugador de tu ciudad puede intercambiar (para pedírselas en un trato). El libro de Ibn Hazm no se intercambia.
+function comerciables(data, e, pid) {
+  const j = e.jugadores[pid], r = {};
+  if (!j || j.transito) return r;
+  for (const k of Object.values(e.jugadores)) {
+    if (k.id === pid || k.npc || k.eliminado || !k.pj || k.transito || k.ciudad !== j.ciudad) continue;
+    r[k.id] = listaComerciable(k).map((c, i) => ({ i, titulo: datosMano(data, e, c)?.titulo || 'carta' }));   // por posición: los uid ajenos no viajan
+  }
+  return r;
+}
+const listaComerciable = (k) => k.mano.filter((c) => (c.tipo !== 'especial' || c.ref === 'F1') && c.ref !== 'libroIbnHazm');
+// Un lado del trato tal como lo ve pid: sus propias cartas por uid; las ajenas, por posición en la lista de comerciables.
+function ladoVisto(e, pid, duenoId, x) {
+  if (duenoId === pid) return x;
+  const lista = listaComerciable(e.jugadores[duenoId]);
+  const { objetos, ...resto } = x;
+  return { ...resto, objetos: [], idx: (objetos || []).map((u) => lista.findIndex((c) => c.uid === u)).filter((i) => i >= 0) };
+}
 const nombreRef = (data, ref) => objDe(data, ref)?.nombre || itemDatos(data, ref)?.titulo || ref;
+// Regla de la casa: los tratos se proponen y responden en cualquier momento (sea o no tu turno), salvo en medio de una pelea
+// o de una decisión propia; solo entre jugadores de la misma ciudad.
+function tratoOcupado(e, ids) {
+  const P = e.pelea; if (P && ids.some((x) => [P.atk, P.def, P.ayudante].includes(x))) return 'Esperen a que termine la pelea.';
+  if (e.pend && ids.some((x) => e.pend.para.includes(x) && !e.pend.resp[x])) return 'Primero hay que responder la decisión pendiente.';
+  return null;
+}
 function proponerTrato(data, e, pid, a) {
   const j = e.jugadores[pid], k = e.jugadores[a.con];
   if (!k || k.id === pid || k.eliminado || k.npc) return err('Destinatario inválido.');
+  if (e.fase !== 'juego') return err('La partida no está en juego.');
+  { const o = tratoOcupado(e, [pid, a.con]); if (o) return err(o); }
   if (j.ciudad !== k.ciudad || j.transito || k.transito) return err('Deben estar en la misma ciudad (R 8.6).');
   if (e.mods.sinComercio?.[pid] || e.mods.sinComercio?.[a.con] || j.extra.sinComercioHasta >= e.ronda || k.extra.sinComercioHasta >= e.ronda) return err('Nadie quiere comerciar con esa persona (difamación).');
   const esHazm = (de, us) => (us || []).some((u) => de.mano.some((c) => c.uid === u && c.ref === 'libroIbnHazm'));
   if (esHazm(j, a.ofrece?.objetos) || esHazm(k, a.pide?.objetos)) return err('El libro de Ibn Hazm solo se vende en la biblioteca de Bagdad: no se puede regalar ni vender a otro jugador.');
   // Cada lado puede combinar dinares, noches y cartas. Lo que se pide se nombra por tipo (la mano ajena es secreta).
   const val = (x, de) => {
-    const objetos = (x?.objetos || []).filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1'));
+    const lista = listaComerciable(de);
+    const porIdx = (x?.idx || []).map((i) => lista[Math.floor(i)]?.uid).filter(Boolean);
+    const objetos = [...new Set([...(x?.objetos || []), ...porIdx])].filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1'));
     const refs = (x?.refs || []).filter((r) => typeof r === 'string' && r !== 'libroIbnHazm').slice(0, 6);
     const nombres = [...objetos.map((u) => datosMano(data, e, de.mano.find((c) => c.uid === u))?.titulo || 'carta'), ...refs.map((r) => nombreRef(data, r))];
     return { dinares: Math.max(0, Math.floor(x?.dinares || 0)), noches: Math.max(0, Math.floor(x?.noches || 0)), objetos, refs, nombres };
@@ -629,6 +658,7 @@ function responderTrato(data, e, pid, a) {
   if (!a.ok) { log(e, `${e.jugadores[pid].nombre} rechaza un trato.`); return ok(); }
   const A = e.jugadores[tr.de], B = e.jugadores[tr.con];
   if (A.eliminado || B.eliminado) return err('El trato ya no es posible.');
+  { const o = tratoOcupado(e, [A.id, B.id]); if (o) { e.tratos[a.id] = tr; return err(o); } }
   if (A.ciudad !== B.ciudad) return err('Ya no están en la misma ciudad.');
   tr.ofrece.noches ||= 0; tr.pide.noches ||= 0; tr.ofrece.refs ||= []; tr.pide.refs ||= [];
   if (A.dinares < tr.ofrece.dinares || B.dinares < tr.pide.dinares) return err('Faltan dinares para el trato.');
@@ -777,7 +807,8 @@ export function vista(data, e, pid) {
     tienda: OBJ.tienda(data, e, pid),
     misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [],
     mensaje: yo?.mensaje || null,
-    tratos: Object.values(e.tratos).filter((x) => x.de === pid || x.con === pid),
+    tratos: Object.values(e.tratos).filter((x) => x.de === pid || x.con === pid).map((x) => ({ ...x, ofrece: ladoVisto(e, pid, x.de, x.ofrece), pide: ladoVisto(e, pid, x.con, x.pide) })),
+    comerciables: yo ? comerciables(data, e, pid) : {},
     asesinos: { actuaron: e.asesinos.actuaron }, kanmakan: { dueno: e.kanmakan.dueno, usada: e.kanmakan.usada }, firmanesLibres: e.firmanes,
     host_info: esAnf ? { pinHost: e.pinHost, stock: e.stock, mazos: { eventos: e.mazos?.eventos.length, historicos: e.mazos?.historicos.length, mensajes: e.mazos?.mensajes.length, botin: e.mazos?.botin.length, ifrit: e.mazos?.ifrit.length } } : undefined,
     stockPublico: e.stock,
