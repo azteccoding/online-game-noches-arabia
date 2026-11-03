@@ -11,11 +11,13 @@ import trivias from '../../data/trivias.json';
 import cuentos from '../../data/cuentos.json';
 import retos from '../../data/retos.json';
 import { nuevoJuego, unir, reducir, vista, tick } from '../../../shared/engine.js';
+import { armarReaccion } from '../../../shared/reacciones.js';
 
 const DATA = { config, ciudades, rutas, personajes, objetos, eventos, mensajes, trivias, cuentos, retos };
 
 export function crearLocal() {
-  const cb = { estado: () => {}, conexion: () => {}, error: () => {} };
+  const cb = { estado: () => {}, conexion: () => {}, error: () => {}, reaccion: () => {} };
+  const ultimas = {};
   const q = new URLSearchParams(location.search);
   const e = nuevoJuego(DATA, { semilla: Number(q.get('semilla')) || 20261101, codigo: 'DEMO' });
   let yo = null, mirando = null, timer = null;
@@ -66,7 +68,8 @@ export function crearLocal() {
     },
     enviar(a) { act(mirando || yo, a); },
     verComo(pid) { mirando = pid === yo ? null : pid; emitir(); },
+    reaccionar(id) { const p = mirando || yo, x = armarReaccion(e, p, id, Date.now(), ultimas[p]); if (x.error) return cb.error(x.error); ultimas[p] = Date.now(); cb.reaccion(x.r); },
     cerrar() { clearInterval(timer); },
-    onEstado: (f) => { cb.estado = f; }, onConexion: (f) => { cb.conexion = f; }, onError: (f) => { cb.error = f; },
+    onEstado: (f) => { cb.estado = f; }, onConexion: (f) => { cb.conexion = f; }, onError: (f) => { cb.error = f; }, onReaccion: (f) => { cb.reaccion = f; },
   };
 }

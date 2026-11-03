@@ -3,7 +3,7 @@
 // - Estado AUTORITATIVO en memoria + guardado automático en disco (JSON atómico, copias rotativas).
 // - Sin dependencias nativas (solo `ws` y `qrcode-terminal`, JavaScript puro): corre en Raspberry Pi OS ARM 32/64 con Node >= 18.
 // - Sin pantalla ni navegador en el servidor: imprime IP(s) + QR en la consola.
-// Opciones:  --puerto 8080  --datos ./datos  --nuevo  --restaurar <archivo.json>  --cliente ./dist  --sin-qr  --rapido (sin esperas de dados: para pruebas)
+// Opciones:  --puerto 8080  --datos ./datos  --nuevo  --restaurar <archivo.json>  --cliente ./dist  --sin-qr  --rapido (sin esperas de dados: para pruebas)  --solo-local (escucha solo en 127.0.0.1)
 // Variables:  PORT, MUN_DATOS, MUN_CLAVE (clave de entrada para partidas en internet; sin ella no se pide clave)
 import http from 'node:http';
 import fs from 'node:fs';
@@ -12,6 +12,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
+import { armarReaccion } from '../shared/reacciones.js';
 import { WebSocketServer } from 'ws';
 import { nuevoJuego, unir, reducir, vista, conexion, tick, serializar, restaurar } from '../shared/engine.js';
 import { cargarDatos } from './datos.js';
@@ -19,6 +20,7 @@ import { cargarDatos } from './datos.js';
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const arg = (n, def) => { const i = process.argv.indexOf('--' + n); return i < 0 ? def : (process.argv[i + 1] && !process.argv[i + 1].startsWith('--') ? process.argv[i + 1] : true); };
 const PUERTO = Number(arg('puerto', process.env.PORT || 8080));
+const HOST = arg('solo-local', false) ? '127.0.0.1' : '0.0.0.0';
 const DIR_DATOS = path.resolve(String(arg('datos', process.env.MUN_DATOS || path.join(RAIZ, 'datos'))));
 const DIR_CLIENTE = path.resolve(String(arg('cliente', path.join(RAIZ, 'dist'))));
 const ARCHIVO = path.join(DIR_DATOS, 'partida.json');
@@ -108,6 +110,7 @@ cargar();
 const servidor = http.createServer(servir);
 const wss = new WebSocketServer({ server: servidor, path: '/ws', maxPayload: 64 * 1024 });
 const clientes = new Map();            // ws -> pid
+const ultimaReaccion = new Map();      // pid -> ms de su última reacción (1 cada 10 s)
 let difusionPendiente = false;
 
 function enviar(ws, obj) { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); }
@@ -193,6 +196,13 @@ wss.on('connection', (ws, req) => {
     }
     const pid = clientes.get(ws);
     if (!pid) return;
+    if (m.t === 'reaccion') {                                                        // burbujas entre jugadores: no tocan el estado ni el registro
+      const x = armarReaccion(estado, pid, String(m.id || ''), ahora, ultimaReaccion.get(pid));
+      if (x.error) return enviar(ws, { t: 'error', msg: x.error });
+      ultimaReaccion.set(pid, ahora);
+      for (const c of clientes.keys()) enviar(c, { t: 'reaccion', r: x.r });
+      return;
+    }
     if (m.t === 'accion' && m.a && typeof m.a.t === 'string') {
       if (m.a.t === 'reclamarAnfitrion') {                                           // el PIN lo valida el servidor (tiempo constante, máx. 10 fallos/min por IP)
         if (bloqueada(ws.ip)) return enviar(ws, { t: 'error', msg: 'Demasiados intentos. Espera un minuto.', n: m.n });
@@ -228,7 +238,7 @@ function ips() {
   return r;
 }
 servidor.on('error', (e) => { console.error(e.code === 'EADDRINUSE' ? `El puerto ${PUERTO} ya está en uso (¿otra instancia?). Usa --puerto OTRO.` : e.message); process.exit(1); });
-servidor.listen(PUERTO, '0.0.0.0', () => {
+servidor.listen(PUERTO, HOST, () => {
   const lista = ips();
   console.log('\n  MIL Y UNA NOCHES · servidor listo');
   console.log(`  Sala: ${estado.codigo}   Datos: ${ARCHIVO}`);

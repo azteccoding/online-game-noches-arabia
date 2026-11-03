@@ -51,6 +51,24 @@ for (const x of [A, B, C]) await x.a({ t: 'listo', v: true });
 await A.a({ t: 'iniciar' });
 assert.equal(A.s.fase, 'juego');
 
+// reacciones rápidas: llegan a todos, no quedan en el registro y hay 1 cada 10 s por jugador
+{
+  const quien = [A, B, C].find((x) => x.pid !== A.s.turno.pid);
+  const antesLog = A.s.log.length, n = (x) => x.crudos.filter((r) => r.includes('"t":"reaccion"')).length;
+  const [na, nb, nc] = [n(A), n(B), n(C)];
+  quien.ws.send(JSON.stringify({ t: 'reaccion', id: 'te' })); await dormir(150);
+  assert.ok(n(A) === na + 1 && n(B) === nb + 1 && n(C) === nc + 1, 'la reacción llega a todos');
+  const r = JSON.parse(A.crudos.filter((x) => x.includes('"t":"reaccion"')).at(-1)).r;
+  assert.equal(r.a, A.s.turno.pid, 'va dirigida a quien está jugando'); assert.equal(r.emoji, '🫖');
+  quien.ws.send(JSON.stringify({ t: 'reaccion', id: 'pelea' })); await dormir(150);
+  assert.ok(quien.errores.some((m) => /Espera \d+ s/.test(m)), 'anti-spam: 1 cada 10 s');
+  assert.equal(n(A), na + 1, 'la segunda no se difunde');
+  const enTurno = [A, B, C].find((x) => x.pid === A.s.turno.pid);
+  enTurno.ws.send(JSON.stringify({ t: 'reaccion', id: 'dormir' })); await dormir(150);
+  assert.ok(enTurno.errores.some((m) => /tu turno/.test(m)), 'no te puedes apurar a ti mismo');
+  assert.ok(!A.s.log.slice(antesLog).some((l) => /enfría el té/.test(l.texto)), 'no queda en el registro');
+}
+
 // guía privada: cada jugador recibe solo la de su personaje
 const guias = JSON.parse(fs.readFileSync(path.join(RAIZ, 'server', 'guias.json'), 'utf8')).guias;
 assert.equal(A.s.miGuia?.resumen, guias['1'].resumen, 'Ana recibe la guía de Nur al Din');

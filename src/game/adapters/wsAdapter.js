@@ -1,7 +1,7 @@
 // Adaptador WebSocket: habla con server/index.js. Reconexión automática con el token guardado en localStorage.
 export function crearWs() {
   let ws = null, cerrado = false, intento = 0, ping = null, nombre = '';
-  const cb = { estado: () => {}, conexion: () => {}, error: () => {}, rechazo: () => {}, hecho: () => {} };
+  const cb = { estado: () => {}, conexion: () => {}, error: () => {}, rechazo: () => {}, hecho: () => {}, reaccion: () => {} };
   const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
   const abrir = () => {
     cb.conexion(intento ? 'reconectando' : 'conectando');
@@ -16,6 +16,7 @@ export function crearWs() {
       if (m.t === 'estado') cb.estado(m.s);
       else if (m.t === 'bienvenida') localStorage.setItem('mun.token', m.token);
       else if (m.t === 'error') cb.error(m.msg);
+      else if (m.t === 'reaccion') cb.reaccion(m.r);
       else if (m.t === 'hecho' || m.t === 'aviso') cb.hecho(m.msg);   // aviso: para todos (p. ej. la caja del banco)
       else if (m.t === 'rechazo') { cerrado = true; if (m.clave) localStorage.removeItem('mun.clave'); cb.rechazo(m.msg, !!m.clave); ws.close(); }
     };
@@ -26,7 +27,8 @@ export function crearWs() {
     modo: 'ws',
     conectar(p) { nombre = p.nombre || ''; if (nombre) localStorage.setItem('mun.nombre', nombre); abrir(); },
     enviar(a) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'accion', a, n: ++n })); else cb.error('Sin conexión con el servidor.'); },
+    reaccionar(id) { if (ws && ws.readyState === 1) ws.send(JSON.stringify({ t: 'reaccion', id })); },
     cerrar() { cerrado = true; ws?.close(); },
-    onEstado: (f) => { cb.estado = f; }, onConexion: (f) => { cb.conexion = f; }, onError: (f) => { cb.error = f; }, onRechazo: (f) => { cb.rechazo = f; }, onHecho: (f) => { cb.hecho = f; },
+    onEstado: (f) => { cb.estado = f; }, onConexion: (f) => { cb.conexion = f; }, onError: (f) => { cb.error = f; }, onRechazo: (f) => { cb.rechazo = f; }, onHecho: (f) => { cb.hecho = f; }, onReaccion: (f) => { cb.reaccion = f; },
   };
 }

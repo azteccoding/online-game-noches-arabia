@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 
 // Almacén mínimo: el estado del juego llega ya filtrado desde el adaptador. Los componentes se suscriben con useJuego(selector).
-let S = { estado: null, conexion: 'inicio', error: null, aviso: null, rechazo: null, demo: false, pids: null };
+let S = { estado: null, conexion: 'inicio', error: null, aviso: null, rechazo: null, demo: false, pids: null, reacciones: [] };
 const oyentes = new Set();
 let adaptador = null;
 const emitir = () => oyentes.forEach((f) => f());
@@ -26,10 +26,15 @@ export async function iniciarJuego(params) {
   adaptador.onConexion((conexion) => poner({ conexion }));
   adaptador.onError((error) => { poner({ error }); setTimeout(() => { if (S.error === error) poner({ error: null }); }, 4000); });
   adaptador.onHecho?.((aviso) => { poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, 3500); });   // confirmación de entregas y tesoro
+  adaptador.onReaccion?.((r) => {                                       // burbujas de reacción: como mucho 3 a la vez, 4.5 s cada una
+    const k = `${r.de}-${r.ts}`; poner({ reacciones: [...S.reacciones, { ...r, k }].slice(-3) });
+    setTimeout(() => poner({ reacciones: S.reacciones.filter((x) => x.k !== k) }), 4500);
+  });
   adaptador.onRechazo?.((rechazo, pideClave) => poner({ rechazo, pideClave: !!pideClave, conexion: 'inicio' }));   // de vuelta a la pantalla de entrada con el motivo
   poner({ demo: adaptador.modo === 'demo', pids: adaptador.pids?.() || null });
   adaptador.conectar(params);
 }
 export const enviar = (a) => adaptador?.enviar(a);
+export const reaccionar = (id) => adaptador?.reaccionar?.(id);
 export const verComo = (pid) => adaptador?.verComo?.(pid);
 export const adaptadorActual = () => adaptador;
