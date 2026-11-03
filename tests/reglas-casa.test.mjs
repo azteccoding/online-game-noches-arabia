@@ -449,6 +449,15 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'vender', uid: esp.uid }).ok); assert.equal(A.dinares, antes + 30, 'especias: 30 en Bagdad');
 }
 
+// Entrenar: la destreza es sí o no; quien ya la tiene no puede entrenar otra vez
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; e.turno.fase = 'acciones'; A.dinares = 100; A.destreza = true;
+  const r = g.act(a, { t: 'reto', id: 'R25' }); assert.ok(!r.ok && /destreza/.test(r.error), 'ya tiene destreza');
+  A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(A.destreza);
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

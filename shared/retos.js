@@ -429,14 +429,16 @@ function r16Tira(data, e, pid) {
   if (muere) eliminar(data, e, pid, { causa: 'muerte súbita de Shariyar' });
 }
 // ---------------------------------------------------------------- R18, R19, R25: entrenamientos
+// La destreza es sí o no (no tiene niveles): quien ya la tiene no puede volver a entrenar.
+const reqEntrenar = (e, pid, costo) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= costo ? null : `Cuesta ${costo} dinares.`);
 function entrenar(e, pid, costo, descuentos) {
   const j = e.jugadores[pid]; if (j.dinares < costo) return false;
   j.dinares -= costo; j.destreza = true; j.noches += 10; e.turno.descuentos = { ...(e.turno.descuentos || {}), ...descuentos };
   log(e, `${j.nombre} entrena: obtiene destreza con armas y +10 noches.`, { pid }); return true;
 }
-T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 20 ? null : 'Cuesta 20 dinares.'), run(data, e, pid) { entrenar(e, pid, 20, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
-T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 20 ? null : 'Cuesta 20 dinares.'), run(data, e, pid) { entrenar(e, pid, 20, { alfanje: 15 }); hacer(e, pid, 'R19'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { entrenar(e, pid, 30, { cimitarra: 25, alfanje: 15 }); hacer(e, pid, 'R25'); } };
+T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 20), run(data, e, pid) { entrenar(e, pid, 20, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
+T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => reqEntrenar(e, pid, 20), run(data, e, pid) { entrenar(e, pid, 20, { alfanje: 15 }); hacer(e, pid, 'R19'); } };
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => reqEntrenar(e, pid, 30), run(data, e, pid) { entrenar(e, pid, 30, { cimitarra: 25, alfanje: 15 }); hacer(e, pid, 'R25'); } };
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
