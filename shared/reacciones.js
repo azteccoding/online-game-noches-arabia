@@ -11,7 +11,7 @@ export const REACCIONES = [
   { id: 'enojo', para: 'todos', emoji: '😠', texto: '¡Por las barbas del Califa!' },
   { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
 ];
-export const ESPERA_REACCION_MS = 10000;
+export const ESPERA_REACCION_MS = 1000;   // antirrebote de 1 s
 
 // Valida y arma la reacción; devuelve { error } o { r }. `ultima` = ms de la última reacción de ese jugador.
 export function armarReaccion(e, pid, id, ahora, ultima = 0) {

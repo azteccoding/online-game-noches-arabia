@@ -51,7 +51,7 @@ for (const x of [A, B, C]) await x.a({ t: 'listo', v: true });
 await A.a({ t: 'iniciar' });
 assert.equal(A.s.fase, 'juego');
 
-// reacciones rápidas: llegan a todos, no quedan en el registro y hay 1 cada 10 s por jugador
+// reacciones rápidas: llegan a todos, no quedan en el registro y hay un antirrebote de 1 s por jugador
 {
   const quien = [A, B, C].find((x) => x.pid !== A.s.turno.pid);
   const antesLog = A.s.log.length, n = (x) => x.crudos.filter((r) => r.includes('"t":"reaccion"')).length;
@@ -61,7 +61,7 @@ assert.equal(A.s.fase, 'juego');
   const r = JSON.parse(A.crudos.filter((x) => x.includes('"t":"reaccion"')).at(-1)).r;
   assert.equal(r.a, A.s.turno.pid, 'va dirigida a quien está jugando'); assert.equal(r.emoji, '🫖');
   quien.ws.send(JSON.stringify({ t: 'reaccion', id: 'pelea' })); await dormir(150);
-  assert.ok(quien.errores.some((m) => /Espera \d+ s/.test(m)), 'anti-spam: 1 cada 10 s');
+  assert.ok(quien.errores.some((m) => /Espera \d+ s/.test(m)), 'antirrebote de 1 s');
   assert.equal(n(A), na + 1, 'la segunda no se difunde');
   const enTurno = [A, B, C].find((x) => x.pid === A.s.turno.pid);
   enTurno.ws.send(JSON.stringify({ t: 'reaccion', id: 'dormir' })); await dormir(150);
