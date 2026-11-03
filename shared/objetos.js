@@ -105,6 +105,7 @@ export function impuesto(data, e, ciudad, monto) {
   return Math.floor(monto * pct / 100);
 }
 
+export const LIBROS_SUBASTA = ['OB46', 'OB47'];
 export function vender(data, e, pid, a) {
   const j = e.jugadores[pid];
   if (!puedeTienda(e, pid)) return err('Solo puedes vender en tu turno.');
@@ -112,6 +113,15 @@ export function vender(data, e, pid, a) {
   if (!c) return err('No tienes esa carta.');
   const ciudad = j.ciudad;
   let precio = 0, sinImp = false, texto = 'objeto';
+  if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') {      // regla de la casa: subasta en la biblioteca
+    const todas = j.mano.filter((x) => x.tipo === 'objeto' && x.ref === c.ref), x = dado(e), p = x % 2 === 0 ? 150 : 90;
+    for (const k of todas) { quitarCarta(j, k.uid); devolverObjeto(data, e, c.ref); }
+    j.dinares += p * todas.length;
+    mostrarDados(e, { por: pid, motivo: 'subasta', titulo: 'Subasta en la biblioteca de Bagdad: par 150 c/u, impar 90 c/u', grupos: [{ etq: `${j.nombre}: subasta de ${todas.length} × ${objDe(data, c.ref).nombre}`, valores: [x] }],
+      resumen: [`${x % 2 === 0 ? 'Par' : 'Impar'}: se venden a ${p} cada uno, ${p * todas.length} dinares.`] });
+    log(e, `${j.nombre} vende ${todas.length} × «${objDe(data, c.ref).nombre}» en la subasta de la biblioteca de Bagdad por ${p * todas.length} dinares.`, { pid });
+    return ok();
+  }
   if (c.tipo === 'objeto') {
     const o = objDe(data, c.ref);
     texto = o.nombre;
@@ -195,6 +205,7 @@ export function estimarVenta(data, e, pid, c) {
   const j = e.jugadores[pid], ciudad = j?.ciudad;
   if (!j) return null;
   try {
+    if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') return 90;   // subasta: 90 o 150
     if (c.tipo === 'objeto') {
       const o = objDe(data, c.ref); let p = o.valor, sin = false;
       if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
@@ -231,6 +242,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.tipo === 'objeto') {
     const o = objDe(data, c.ref);
     if (c.ref === 'OB41') return 'El banco la compra por 20 dinares en cualquier ciudad.';
+    if (LIBROS_SUBASTA.includes(c.ref)) return `Mejor venta: Bagdad, en subasta (dado par 150, impar 90 cada uno; una sola tirada para todas tus copias). También: ${Object.entries(o.reventa).filter(([k]) => k !== 'Bagdad').map(([k, v]) => `${k} ${v}`).join(', ')}.`;
     if (c.ref === 'OB24') return 'El banco la compra por 40 dinares en cualquier ciudad.';
     if (!o?.valor) return 'Nadie la compra: solo sirve para usarla.';
     if (o.reventa) { const [mc, mp] = Object.entries(o.reventa).sort((x, y) => y[1] - x[1])[0]; return `Mejor venta: ${mc} (${mp} dinares, sin impuesto). También: ${lista(o.reventa)}; en las demás ciudades, ${o.valor} menos el impuesto.`; }

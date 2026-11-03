@@ -704,6 +704,16 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 150); assert.ok(!e.turno.principal, 'acción libre');
 }
 
+// Libros de la India y de Córdoba: en Bagdad se subastan (par 150, impar 90 cada uno; una tirada para todas las copias)
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; e.mods = {}; A.mano = []; A.dinares = 0;
+  A.mano.push({ uid: 'l1', tipo: 'objeto', ref: 'OB46' }, { uid: 'l2', tipo: 'objeto', ref: 'OB46' });
+  assert.ok(g.act(a, { t: 'vender', uid: 'l1' }).ok);
+  assert.ok(A.dinares === 300 || A.dinares === 180, 'dos copias a 150 o a 90: ' + A.dinares); assert.equal(A.mano.length, 0);
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
