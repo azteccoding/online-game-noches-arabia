@@ -2,11 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { REACCIONES, ESPERA_REACCION_MS } from '../../shared/reacciones.js';
 import { reaccionar, useJuego } from '../game/store.js';
 
-// Botón 💬 de la barra: abre las reacciones rápidas. Las de «turno» van a quien está jugando; no se las manda uno mismo.
+// Botón 💬 flotante, siempre visible (también sobre dados, cartas, tratos y peleas): abre las reacciones rápidas. Las de «turno» van a quien está jugando; no se las manda uno mismo.
 export function BotonReacciones({ s }) {
   const [abierto, setAbierto] = useState(false);
   const [hasta, setHasta] = useState(0);
   const [, refrescar] = useState(0);
+  const [alto, setAlto] = useState(null);                 // alto real de la barra superior (en teléfono ocupa dos filas)
+  useEffect(() => {
+    const b = document.querySelector('.barra'); if (!b) return undefined;
+    const medir = () => { const y = b.getBoundingClientRect().bottom; setAlto(y); document.documentElement.style.setProperty('--tope', y + 'px'); };
+    medir(); const ro = new ResizeObserver(medir); ro.observe(b); window.addEventListener('resize', medir);
+    return () => { ro.disconnect(); window.removeEventListener('resize', medir); };
+  }, []);
   useEffect(() => { if (Date.now() >= hasta) return; const t = setInterval(() => refrescar((n) => n + 1), 1000); return () => clearInterval(t); }, [hasta]);
   const yo = s.jugadores[s.yo];
   if (s.fase !== 'juego' || !yo?.pj || yo.eliminado) return null;
@@ -15,10 +22,10 @@ export function BotonReacciones({ s }) {
   const falta = Math.max(0, Math.ceil((hasta - Date.now()) / 1000));
   const mandar = (id) => { reaccionar(id); setHasta(Date.now() + ESPERA_REACCION_MS); setAbierto(false); };
   return (
-    <div className="menu-mas reacciones">
-      <button className="btn mini" aria-expanded={abierto} aria-label="Reacciones rápidas" title="Reacciones rápidas" onClick={() => setAbierto((v) => !v)}>💬</button>
+    <div className="reacciones-flotante" style={alto != null ? { '--tope': alto + 'px' } : undefined}>
+      <button className="btn reacciones-btn" aria-expanded={abierto} aria-label="Reacciones rápidas" title="Reacciones rápidas" onClick={() => setAbierto((v) => !v)}>💬</button>
       {abierto && (
-        <ul className="menu-lista panel reacciones-lista" role="menu">
+        <ul className="panel reacciones-lista" role="menu">
           {falta > 0 && <li className="sep">Espera {falta} s</li>}
           <li className="sep">{puedeTurno ? `Para ${turno.nombre}` : turno?.id === s.yo ? 'Para quien juega (es tu turno)' : 'Para quien juega (ahora no hay a quién)'}</li>
           {REACCIONES.filter((r) => r.para === 'turno').map((r) => <li key={r.id}><button role="menuitem" disabled={!puedeTurno || falta > 0} onClick={() => mandar(r.id)}>{r.emoji} {r.texto}</button></li>)}

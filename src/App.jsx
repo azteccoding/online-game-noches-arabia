@@ -6,7 +6,7 @@ import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
 import Lobby from './components/Lobby.jsx';
 import Tablero from './components/Tablero.jsx';
-import { BurbujasReacciones } from './components/Reacciones.jsx';
+import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
 import BarraEstado from './components/BarraEstado.jsx';
 import PanelAcciones from './components/PanelAcciones.jsx';
 import AccionesTurno from './components/AccionesTurno.jsx';
@@ -138,6 +138,7 @@ function Juego({ lienzo }) {
         );
       })()}
       <BurbujasReacciones yo={s.yo} />
+      <BotonReacciones s={s} />
       {error && <div className="toast" role="alert">{error}</div>}
       {aviso && !error && <div className="toast ok" role="status">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
     </div>
