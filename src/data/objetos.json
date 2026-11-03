@@ -721,6 +721,46 @@
    "humor": "Un buen anónimo viaja ligero.",
    "arte": "ob-disfraz",
    "sinVenta": false
+  },
+  {
+   "id": "OB46",
+   "nombre": "Manuscritos de la India",
+   "tipo": "Lujo/Comercio",
+   "copias": 4,
+   "valor": 20,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Tratados de astronomía y matemáticas, como el Sindhind que se tradujo en la Casa de la Sabiduría. Solo se compran en India por 20. Mejor venta: Bagdad (55), sin impuesto; también Damasco 40 e Isfahán 35; en otras ciudades valen 20 menos el impuesto. Cuentan como libro para los Mensajes del jurista.",
+   "sirvePara": "R22, R35, Mensajes (libro), comercio",
+   "seConsigueEn": "India",
+   "humor": "Los números viajan mejor que los mercaderes.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false,
+   "reventa": {
+    "Bagdad": 55,
+    "Damasco": 40,
+    "Isfahán": 35
+   }
+  },
+  {
+   "id": "OB47",
+   "nombre": "Libros de Córdoba",
+   "tipo": "Lujo/Comercio",
+   "copias": 4,
+   "valor": 15,
+   "duracion": "1 vez",
+   "momento": "Venta",
+   "efecto": "Copias de la gran biblioteca de al-Hakam II. Solo se compran en Andalucía por 15. Mejor venta: Bagdad (45), sin impuesto; también El Cairo 30 y Magreb 25; en otras ciudades valen 15 menos el impuesto. Cuentan como libro para los Mensajes del jurista.",
+   "sirvePara": "R22, R35, Mensajes (libro), comercio",
+   "seConsigueEn": "Andalucía",
+   "humor": "En Córdoba hay más libros que lectores; en Bagdad, al revés.",
+   "arte": "ob-lujo-comercio",
+   "sinVenta": false,
+   "reventa": {
+    "Bagdad": 45,
+    "El Cairo": 30,
+    "Magreb": 25
+   }
   }
  ],
  "originales": [

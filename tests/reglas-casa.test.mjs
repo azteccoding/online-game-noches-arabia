@@ -188,7 +188,7 @@ function forzar(e, ...valores) {
     assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
     assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
   }
-  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 53 + 2, 'empieza con 53 y en la ronda 1 ya vuelven 2');
+  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 57 + 2, 'empieza con 57 (con los libros de la India y de Córdoba) y en la ronda 1 ya vuelven 2');
   const seda = data.objetos.mazo.find((o) => o.id === 'OB34');
   assert.ok(seda.reventa.Bagdad && seda.reventa['Andalucía'] > seda.reventa.Bagdad, 'la seda se vende más cara lejos');
   turnoDe(e, pid, 'Andalucía'); j.ciudad = 'Andalucía'; e.turno.fase = 'acciones';

@@ -642,7 +642,7 @@ T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo y
 const OBRAS_IBN_HAZM = ['El collar de la paloma', 'Al-Muhalla', 'Los caracteres y las conductas', 'Al-Fisal', 'Al-Ihkam fi usul al-ahkam'];
 const LIBROS_IBN_HAZM_MAX = 2;
 const LIBRO_IBN_HAZM_MSG = 'M6';   // solo el Mensaje de entregar un libro, papiro o mapa: el jurista te repone un libro
-const IDS_LIBRO = (c) => esLibro(c) || (c.tipo === 'objeto' && c.ref === 'OB38');
+const IDS_LIBRO = (c) => esLibro(c) || (c.tipo === 'objeto' && ['OB38', 'OB46', 'OB47'].includes(c.ref));   // papel de Samarcanda, manuscritos de la India y libros de Córdoba cuentan como libro
 export function mensajes(data, e, pid, ev, inf) {
   const j = e.jugadores[pid];
   if (!j?.mensaje || j.eliminado) return;
