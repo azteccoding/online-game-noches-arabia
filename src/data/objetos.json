@@ -243,7 +243,7 @@
    "valor": 6,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "El criado Masrur te dice gratis si Los Asesinos ya actuaron y, de haberlo hecho, para quién trabajaron.",
+   "efecto": "Úsalo en Bagdad: si alguien contrata a los Asesinos contra ti, Masrur te avisa en secreto y puedes huir al Jorasán (con caballo, camello o burro, o con los piratas de Yemen) antes de que actúen.",
    "sirvePara": "4.4, 10.4",
    "seConsigueEn": "Bagdad",
    "humor": "Masrur calla casi todo, menos cuando huele a pasteles.",

@@ -390,10 +390,12 @@ function forzar(e, ...valores) {
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
   if (e.dados) e.dados = null;
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
-  assert.ok(e.jugadores[b].eliminado, 'la víctima muere');
-  assert.equal(A.buscado, data.config.buscadoRondas, 'el contratante queda Buscado');
-  assert.ok(e.log.some((l) => l.aviso && /contrató a los Asesinos contra/.test(l.texto)), 'todos se enteran de quién y contra quién');
   assert.ok(e.turno.pid !== a || e.turno.fin, 'su turno termina');
+  const B = e.jugadores[b]; B.extra.masrur = false;
+  // Masrur avisa en secreto; si la víctima está en el Jorasán cuando actúan, no la encuentran
+  B.perdido = true; B.ciudad = 'Jorasán'; B.turnos++; e.pend = null; e.colaPend = []; NPC.actuanAsesinos(data, e);
+  assert.ok(!B.eliminado, 'escondida en el Jorasán se salva'); assert.equal(A.buscado, data.config.buscadoRondas, 'el contratante queda Buscado igual');
+  assert.ok(e.log.some((l) => l.aviso && /no la encuentran: se escondió en el Jorasán/.test(l.texto)), 'todos se enteran');
 }
 
 // Deudas: un pago obligatorio sin dinares deja el saldo en negativo (sin tocar las noches), bloquea compras y se cobra solo
@@ -613,6 +615,21 @@ for (let k = 0; k < 6; k++) {
   eliminar(data, e, b, { por: a, causa: 'prueba' });
   assert.equal(A.dinares, 100); assert.equal(A.noches, 200);
   assert.ok(e.log.some((l) => l.aviso && /estaba Buscado: 100 dinares y 200 noches/.test(l.texto)));
+}
+
+// Asesinos: la víctima se defiende (bonos a la mitad contra +4) y Masrur avisa en privado
+{
+  let muertos = 0, vivos = 0;
+  for (let k = 1; k <= 60; k++) {
+    const g = partida(['4', '7', '5'], {}, k); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, B = e.jugadores[b];
+    B.extra.masrur = true; B.dinares = 30; B.noches = 40; B.ciudad = 'Damasco';
+    e.asesinos.actuaron = true; e.asesinos.pendiente = { por: a, victima: b, precio: 100, turnoVictima: B.turnos };
+    NPC.avisoMasrur(e, b); assert.ok([e.pend, ...e.colaPend].some((p) => p && p.para.includes(b) && /Huye al Jorasán/.test(p.texto)), 'aviso privado de Masrur');
+    e.pend = null; e.colaPend = []; B.turnos++; NPC.actuanAsesinos(data, e);
+    if (B.eliminado) muertos++; else { vivos++; assert.ok(B.herido && B.perdido && B.dinares === 0 && B.noches === 0 && B.ciudad === 'Jorasán'); }
+  }
+  assert.ok(muertos > vivos && vivos > 0, `casi siempre mueren (${muertos} muertos, ${vivos} vivos)`);
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

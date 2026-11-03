@@ -389,7 +389,9 @@ export function usar(data, e, pid, a) {
     case 'OB16': {
       if (j.ciudad !== 'Bagdad') return err('Masrur está en Bagdad.');
       consumirObj(data, e, pid, 'OB16');
-      info(e, pid, 'Masrur susurra', e.asesinos.actuaron ? (e.asesinos.contrato ? `Los Asesinos trabajaron para ${nombre(e, e.asesinos.contrato.por)}.` : 'Los Asesinos actuaron por el azar de un evento.') : 'Los Asesinos todavía no han actuado.');
+      j.extra.masrur = true;                                                  // regla de la casa: Masrur te avisará en secreto si contratan a los Asesinos contra ti
+      if (e.asesinos.pendiente?.victima === pid) HOOK.avisoMasrur(e, pid);
+      else info(e, pid, 'Masrur te protege', 'Masrur acepta tu regalo: si alguien contrata a los Asesinos contra ti, te avisará en secreto para que puedas huir al Jorasán.');
       return ok();
     }
     case 'OB19': consumirObj(data, e, pid, 'OB19'); j.herido = false; t.bloqueoPrincipal = t.bloqueoPrincipal && !t.heridoAhora ? t.bloqueoPrincipal : false; t.heridoAhora = false; log(e, `${j.nombre} come dátiles y se recupera.`, { pid }); return ok();

@@ -1,9 +1,9 @@
 // Yafar el Bermekí NPC (R 20.4, 21), entrada del NPC al quedar un solo jugador (R 22.4) y Los Asesinos (R 13).
 import {
-  ok, err, rnd, dado, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
-  puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio,
+  ok, err, rnd, dado, dados, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
+  puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio, info, quitarPrimero,
 } from './base.js';
-import { atacar, validarAtaque } from './pelea.js';
+import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
 
@@ -197,6 +197,7 @@ function iniciarContrato(data, e, pid, args) {
   return ok();
 }
 HOOK.contratarAsesinos = (data, e, pid, args) => { iniciarContrato(data, e, pid, args || {}); };
+HOOK.avisoMasrur = (e, pid) => avisoMasrur(e, pid);
 
 const precioContrato = (e, d) => 20 * vivos(e) + 30 * d;
 registrar('npc.victima', (data, e, args, resp) => {
@@ -216,21 +217,63 @@ registrar('npc.firma', (data, e, args, resp) => {
   if (resp.opcion !== 'si' || e.jugadores[resp.pid].dinares < args.precio) return;
   firmar(data, e, resp.pid, args.victima, args.precio, args);
 });
+// Regla de la casa: al firmar, los Asesinos no matan al instante sino al final del siguiente turno de la víctima. Quien
+// sobornó a Masrur recibe un aviso privado y puede huir al Jorasán, donde no la encuentran. Todo se hace público cuando actúan.
+export const AVISO_HUIDA = 'Huye al Jorasán antes de que termine tu próximo turno: con caballo, camello o burro (acción principal, desde cualquier ciudad) o pagando a los piratas en Yemen. Allí los Asesinos no te encontrarán.';
 function firmar(data, e, pid, v, precio, args = {}) {
   if (e.asesinos.actuaron || e.jugadores[v]?.eliminado) return;
-  const j = e.jugadores[pid];
+  const j = e.jugadores[pid], vic = e.jugadores[v];
   j.dinares -= precio;                                                   // siempre en dinares (se comprobó antes de firmar)
   e.asesinos.actuaron = true; e.asesinos.contrato = { por: pid, victima: v, ronda: e.ronda };
-  j.noches += 200;
-  // Regla de la casa: el contrato es público, deja Buscado al contratante y termina su turno.
-  j.buscado = data.config.buscadoRondas;
-  if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
-  const vic = e.jugadores[v];
-  log(e, `${j.nombre} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
-  log(e, 'Los Asesinos (Hashashín) actúan y se retiran para siempre.');
-  log(e, `${vic.nombre} muere a manos de los Asesinos.`, { pid: v });
-  eliminar(data, e, v, { por: pid, soloNoches: true, causa: 'Asesinos' });
+  e.asesinos.pendiente = { por: pid, victima: v, precio, turnoVictima: vic.turnos };
+  if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }   // contratar termina el turno
+  log(e, 'Alguien ha firmado un contrato con los Asesinos (Hashashín). Actuarán pronto.', { aviso: true });
+  info(e, pid, 'Contrato firmado', `Los Asesinos irán por ${vic.nombre} al final de su próximo turno. Cuando actúen, toda la mesa sabrá que los contrataste y quedarás Buscado.`);
+  if (vic.extra?.masrur) avisoMasrur(e, v);
 }
+export function avisoMasrur(e, v) {
+  info(e, v, 'Masrur te avisa en secreto', `Alguien contrató a los Asesinos contra ti. Actuarán al final de tu próximo turno. ${AVISO_HUIDA}`);
+}
+// Al cerrar el turno siguiente de la víctima: la matan, salvo que esté en el Jorasán (o de camino), y todo se anuncia.
+export function actuanAsesinos(data, e) {
+  const p = e.asesinos?.pendiente; if (!p) return;
+  const vic = e.jugadores[p.victima], j = e.jugadores[p.por];
+  if (!vic || vic.eliminado || vic.turnos <= p.turnoVictima) { if (vic?.eliminado) { e.asesinos.pendiente = null; log(e, 'Los Asesinos llegan tarde: su víctima ya no está. Se retiran para siempre.'); } return; }
+  e.asesinos.pendiente = null;
+  if (j && !j.eliminado) { j.buscado = data.config.buscadoRondas; j.noches += 200; }
+  const quien = j ? j.nombre : 'Alguien';
+  if (vic.perdido || vic.transito?.jorasan) {
+    log(e, `${quien} contrató a los Asesinos contra ${vic.nombre}, pero no la encuentran: se escondió en el Jorasán. ${quien} pierde lo pagado y queda Buscado ${data.config.buscadoRondas} rondas.`, { pid: p.por, aviso: true });
+    return;
+  }
+  log(e, `${quien} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid: p.por, aviso: true });
+  // La víctima se defiende con el sistema de 2 dados, pero sus bonos cuentan a la mitad y los Asesinos suman +4 (empate: ganan ellos).
+  // Sin nada se salva ~10 %; con +6 (armas +4, destreza y escudo) ~34 %. Si gana, queda herida y despierta en el Jorasán sin dinares ni noches.
+  const titulo = `Los Asesinos atacan a ${vic.nombre}`, v = p.victima;
+  let K = ASESINOS_BONO; const extra = [];
+  if (conArco(data, e, v, vic.ciudad)) {
+    quitarPrimero(vic, 'item', 'flechas'); const x = dado(e);
+    const efecto = x >= 3 ? 1 : 0; K -= efecto;
+    mostrarDados(e, { por: v, npc: !!vic.npc, motivo: 'pelea', titulo, grupos: [{ etq: `${vic.nombre} dispara una flecha a los Asesinos (3 a 6 los frena)`, valores: [x] }], resumen: [efecto ? 'La flecha frena a los Asesinos: −1.' : 'La flecha falla.'] });
+    if (efecto) extra.push('flecha −1');
+  }
+  const b = bonosCombate(data, e, v, 'def', vic.ciudad), mitad = Math.floor(Math.max(0, b.total) / 2) + Math.min(0, b.total);
+  const rv = dados(e, 2), ra = dados(e, 2), tv = suma(rv) + mitad, ta = suma(ra) + K;
+  mostrarDados(e, { por: v, npc: !!vic.npc, motivo: 'pelea', titulo, grupos: [{ etq: `${vic.nombre} se defiende de los Asesinos`, valores: rv }], resumen: [`${vic.nombre} saca ${rv.join(' + ')}.`] });
+  const salva = tv > ta;
+  mostrarDados(e, { por: v, npc: true, motivo: 'pelea', titulo, grupos: [{ etq: 'Los Asesinos', valores: ra }], resumen: [
+    `${vic.nombre}: dados ${rv.join(' + ')} = ${suma(rv)} · bonos ${b.partes.join(' · ') || 'ninguno'} (cuentan a la mitad: ${mitad >= 0 ? '+' : ''}${mitad}) → total ${tv}.`,
+    `Los Asesinos: dados ${ra.join(' + ')} = ${suma(ra)} · maestría +${ASESINOS_BONO}${extra.length ? ' · ' + extra.join(' · ') : ''} → total ${ta}.`,
+    salva ? `${vic.nombre} sobrevive: queda herido y despierta en el Jorasán sin dinares ni noches.` : `${vic.nombre} muere a manos de los Asesinos, que se retiran para siempre.`] });
+  if (salva) {
+    vic.herido = true; vic.dinares = 0; vic.noches = 0; vic.transito = null; vic.perdido = true; vic.ciudad = 'Jorasán'; vic.extra.enRumbo = false;
+    log(e, `${vic.nombre} sobrevive a los Asesinos: queda herido y despierta en el Jorasán sin dinares ni noches (conserva sus cartas).`, { pid: v, aviso: true });
+    return;
+  }
+  log(e, `${vic.nombre} muere a manos de los Asesinos, que se retiran para siempre.`, { pid: v, aviso: true });
+  eliminar(data, e, v, { por: j && !j.eliminado ? p.por : null, soloNoches: true, causa: 'Asesinos' });
+}
+export const ASESINOS_BONO = 4;
 
 // ---------------------------------------------------------------- carta E1: los Asesinos aparecen (R 13.4)
 export function eventoAsesinos(data, e) {
