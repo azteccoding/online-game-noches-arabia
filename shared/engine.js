@@ -258,6 +258,7 @@ function anotarSaldos(e, antes) {
     if (!dd && !dn) continue;
     const partes = [dd && `${dd > 0 ? '+' : '−'}${fmt(Math.abs(dd))} dinares`, dn && `${dn > 0 ? '+' : '−'}${fmt(Math.abs(dn))} noches`].filter(Boolean).join(' y ');
     log(e, `Saldo de ${j.nombre}: ${partes} (ahora ${fmt(j.dinares)} dinares y ${fmt(j.noches)} noches).`, { pid: j.id, saldo: { dd, dn } });
+    if (a[0] < 0 && j.dinares >= 0) log(e, `${j.nombre} salda su deuda con el banco.`, { pid: j.id });
   }
 }
 export function reducir(data, e, pid, a, ahora = Date.now()) {

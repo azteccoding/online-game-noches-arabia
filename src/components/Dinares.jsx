@@ -13,7 +13,7 @@ export default function Dinares({ valor, sufijo = ' din.' }) {
     return () => clearTimeout(t);
   }, [valor]);
   return (
-    <span className="chip chip-din" title="Dinares">
+    <span className={`chip chip-din${valor < 0 ? ' negativo' : ''}`} title={valor < 0 ? 'Deuda con el banco: se cobra de lo próximo que recibas' : 'Dinares'}>
       {valor.toLocaleString('es-MX')}{sufijo}
       {deltas.map((x, i) => (
         <span key={x.id} className={`delta-din ${x.d > 0 ? 'gana' : 'pierde'}`} style={{ '--i': i }} aria-hidden="true">

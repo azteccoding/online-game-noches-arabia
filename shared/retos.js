@@ -295,7 +295,7 @@ T.R7 = { ciudad: 'Bagdad', req: (data, e, pid) => { const j = e.jugadores[pid]; 
     for (let i = 0; i < n; i++) quitarPrimero(j, 'item', 'alfombraIsfahan');
     j.extra.viajeCalifa = true; hacer(e, pid, 'R7'); premio(data, e, pid, { dinares: 90 * n, noches: 10 }, `${j.nombre} entrega ${n} alfombra(s) al Califa (R7):`);
   } };
-T.R17 = { ciudad: 'Isfahán', run(data, e, pid) {
+T.R17 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 40 ? null : 'Cada alfombra cuesta 40 dinares: no te alcanza.'), run(data, e, pid) {
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R17 · Alfombras de Isfahán', texto: 'Cuestan 40 dinares cada una. ¿Cuántas compras (1 o 2)?', modo: 'numero', min: 1, max: 2, porDefecto: 1, cont: { fn: 'r17.n', args: {} } });
 } };
 registrar('r17.n', (data, e, args, resp) => {

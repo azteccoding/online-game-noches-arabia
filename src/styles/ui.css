@@ -284,3 +284,4 @@ fieldset:disabled { opacity: .5; }
 @keyframes din-sube { 0% { opacity: 0; transform: translate(-50%, 0); } 15%, 60% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, calc(-30px - var(--i) * 14px)); } }
 @media (prefers-reduced-motion: reduce) { .delta-din { animation: din-quieto 1.3s forwards; } @keyframes din-quieto { 0%, 70% { opacity: 1; transform: translate(-50%, -22px); } 100% { opacity: 0; transform: translate(-50%, -22px); } } }
 .dados-contexto { margin: 0; max-width: 460px; text-align: center; font-size: 15px; color: var(--pergamino, #f1e3b8); opacity: .92; }
+.chip-din.negativo { color: #fff; background: #9b1c1c; border-color: #ffb3b3; }

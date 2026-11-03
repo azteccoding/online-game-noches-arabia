@@ -124,7 +124,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
 
 function verificar(e) {
   for (const j of Object.values(e.jugadores)) {
-    for (const k of ['dinares', 'noches']) if (!Number.isFinite(j[k]) || j[k] < 0) throw new Error(`${j.nombre}.${k} = ${j[k]}`);
+    for (const k of ['dinares', 'noches']) if (!Number.isFinite(j[k]) || (k === 'noches' && j[k] < 0)) throw new Error(`${j.nombre}.${k} = ${j[k]}`);   // los dinares pueden quedar en negativo (deuda con el banco)
     if (j.mano.some((c) => !c.uid || !c.tipo || !c.ref)) throw new Error('carta malformada en ' + j.nombre);
   }
 }

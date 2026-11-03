@@ -243,16 +243,23 @@ export function robarBotin(data, e, pid) {
 
 // ---------------------------------------------------------------- dinero
 export const patrimonio = (j) => j.noches + j.dinares + (j.escondido || 0);
-// R 8.3: sin dinares, se paga con noches a 5 por dinar; si no alcanza, se paga lo que haya y se cancela (regla de la casa).
-export function pagar(data, e, pid, monto, { aBanco = true, aJugador = null } = {}) {
+// Pagos obligatorios al banco o a una ciudad (alojamiento, multas, castigos…). Regla de la casa: si no alcanzan los dinares,
+// quedan en negativo (deuda con el banco) y se cobran solos en cuanto entren dinares; ya no se paga con noches ni se perdona.
+export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
   const j = e.jugadores[pid];
   monto = Math.max(0, Math.ceil(monto));
-  const din = Math.min(monto, j.dinares); j.dinares -= din;
-  let resto = monto - din, nch = 0;
-  if (resto > 0) { nch = Math.min(resto * data.config.cinco_noches_por_dinar, j.noches); j.noches -= nch; resto -= Math.floor(nch / data.config.cinco_noches_por_dinar); }
-  const pagado = din + Math.floor(nch / data.config.cinco_noches_por_dinar);
-  if (aJugador && e.jugadores[aJugador]) { e.jugadores[aJugador].dinares += din; e.jugadores[aJugador].noches += nch; }
-  return { dinares: din, noches: nch, pagado, debe: Math.max(0, monto - pagado) };
+  if (aJugador && e.jugadores[aJugador]) {                                 // a otro jugador solo se le da lo que hay
+    const din = Math.max(0, Math.min(monto, j.dinares)); j.dinares -= din; e.jugadores[aJugador].dinares += din;
+    return { dinares: din, noches: 0, pagado: din, debe: monto - din };
+  }
+  const antes = j.dinares, tope = -(data.config.deudaMaxima ?? 50);   // el banco no fía más allá del tope: así nadie queda atrapado para siempre
+  const cobrado = Math.max(0, Math.min(monto, j.dinares - tope));
+  if (cobrado < monto) log(e, `El banco ya no fía más a ${j.nombre} (deuda máxima ${-tope} dinares): se le perdonan ${monto - cobrado}.`, { pid });
+  monto = cobrado;
+  j.dinares -= monto;
+  const debe = Math.max(0, -j.dinares) - Math.max(0, -antes);
+  if (debe > 0) log(e, `${j.nombre} no tiene dinares suficientes y queda en deuda con el banco: ${j.dinares} dinares. Se cobrará de lo próximo que reciba.`, { pid });
+  return { dinares: monto, noches: 0, pagado: monto, debe };
 }
 export const puedePagar = (data, j, monto) => j.dinares + Math.floor(j.noches / data.config.cinco_noches_por_dinar) >= monto;
 export const puedePagarDinares = (j, monto) => j.dinares >= monto;
@@ -267,7 +274,7 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   if (j.mensaje) { e.mazos.descarte.mensajes.push(j.mensaje.id); j.mensaje = null; }
   const cartas = j.mano.splice(0);
   if (k) {
-    k.noches += j.noches; if (!soloNoches) k.dinares += j.dinares;
+    k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan
     if (j.buscado > 0) { k.noches += data.config.recompensaBuscado; log(e, `${k.nombre} cobra 20 noches por matar a un Buscado.`, { pid: por }); }
     if (e.evento?.buscadoE7 === pid) { k.noches += 50; log(e, `${k.nombre} cobra 50 noches de la cacería del Califa.`, { pid: por }); }
     if (j.pj === 'B') { k.noches += 30; log(e, `${k.nombre} cobra 30 noches por matar a Yafar.`, { pid: por }); }

@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, tick, llegada, vista } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
-import { publicarCarta, mostrarDados, dado } from '../shared/base.js';
+import { publicarCarta, mostrarDados, dado, pagar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC } from '../shared/pelea.js';
@@ -400,6 +400,24 @@ function forzar(e, ...valores) {
   assert.equal(A.buscado, data.config.buscadoRondas, 'el contratante queda Buscado');
   assert.ok(e.log.some((l) => l.aviso && /contrató a los Asesinos contra/.test(l.texto)), 'todos se enteran de quién y contra quién');
   assert.ok(e.turno.pid !== a || e.turno.fin, 'su turno termina');
+}
+
+// Deudas: un pago obligatorio sin dinares deja el saldo en negativo (sin tocar las noches), bloquea compras y se cobra solo
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.dinares = 3; A.noches = 100;
+  pagar(data, e, a, 15);
+  assert.equal(A.dinares, -12, 'queda en deuda'); assert.equal(A.noches, 100, 'las noches no se tocan');
+  turnoDe(e, a, 'Isfahán'); A.ciudad = 'Isfahán'; e.turno.fase = 'acciones';
+  assert.ok(!g.act(a, { t: 'comprar', id: 'OB34' }).ok, 'con deuda no se compra nada');
+  const r = g.act(a, { t: 'reto', id: 'R17' }); assert.ok(!r.ok, 'R17 sin 40 dinares se rechaza');
+  assert.ok(!e.turno.principal, 'y no gasta la acción principal');
+  pagar(data, e, a, 100); assert.equal(A.dinares, -50, 'el banco no fía más de 50');
+  A.dinares = -20; e.jugadores[b].ciudad = 'Isfahán'; e.jugadores[b].mano.push({ uid: 9400, tipo: 'item', ref: 'cimitarra' });
+  const db = e.jugadores[b].dinares; turnoDe(e, b, 'Isfahán'); e.ronda = 5; forzar(e, 3, 3, 3, 3);
+  g.act(b, { t: 'atacar', tipo: 'robo', objetivo: a });
+  assert.ok(e.jugadores[b].dinares >= db, 'robar a quien tiene deuda no resta dinares al ladrón');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

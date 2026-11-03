@@ -118,5 +118,6 @@
   "nota": "Reto del Éufrates (regla de la casa): cada ayudante añade un dado de búsqueda y suma deuda con la ciudad.",
   "costoAyudante": 4,
   "maxAyudantes": 2
- }
+ },
+ "deudaMaxima": 50
 }

@@ -71,7 +71,7 @@ export function finTurno(data, e, pid) {
     const arco = tiroDeArco(data, e, pid), esc = arco?.acierta ? null : golpeAlEscudo(data, e, pid);   // regla de la casa: arco y escudo
     if (arco || esc) mostrarDados(e, { por: pid, motivo: 'defensa', grupos: [arco && { etq: `${j.nombre} dispara su arco a los ladrones (5 o 6)`, valores: [arco.x] }, esc && { etq: `${j.nombre} levanta su escudo (5 o 6 para; 1 lo rompe)`, valores: [esc.x] }].filter(Boolean), resumen: [] });
     if (arco?.acierta || esc?.para) { log(e, `${j.nombre} ahuyenta a los ladrones de Alí Babá ${arco?.acierta ? 'con su arco' : 'con su escudo'}.`, { pid }); return; }
-    const p = Math.min(10, j.dinares); j.dinares -= p; log(e, `Los ladrones de Alí Babá asaltan a ${j.nombre}: pierde ${p} dinares.`, { pid });
+    const p = Math.max(0, Math.min(10, j.dinares)); j.dinares -= p; log(e, `Los ladrones de Alí Babá asaltan a ${j.nombre}: pierde ${p} dinares.`, { pid });
   }
 }
 

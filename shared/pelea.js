@@ -280,7 +280,7 @@ function elegirDefensa(data, e, resp) {
   }
   if (o === 'rechazar') {
     if (P.pedirNur) { const p = pagarNur(data, e, P.def, P.atk, P.pedirNur); log(e, `${d.nombre} rechaza el duelo y paga ${p}.`, { pid: P.def }); }
-    else { const r = Math.min(data.config.duelo.rechazo, d.dinares); d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def }); }
+    else { const r = Math.max(0, Math.min(data.config.duelo.rechazo, d.dinares)); d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def }); }
     return terminarPelea(data, e, { cancelada: true });
   }
   if (o === 'polvo') d.extra.usaPolvo = false;
@@ -289,7 +289,7 @@ function elegirDefensa(data, e, resp) {
 }
 function pagarNur(data, e, de, a, pide) {
   const J = e.jugadores[de], N = e.jugadores[a];
-  const din = Math.min(pide.dinares, J.dinares), noc = Math.min(pide.noches, J.noches);
+  const din = Math.max(0, Math.min(pide.dinares, J.dinares)), noc = Math.min(pide.noches, J.noches);
   J.dinares -= din; J.noches -= noc; N.dinares += din; N.noches += noc;
   return `${din} dinares y ${noc} noches`;
 }
@@ -400,7 +400,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       eliminar(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre });
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
       else { A.buscado = data.config.buscadoRondas; log(e, `${A.nombre} queda Buscado durante 2 rondas.`, { pid: P.atk }); }
-      if (A.pj === '3' && D.pj === '4') for (const id of activos(e)) if (id !== P.atk) { const p = Math.min(5, e.jugadores[id].dinares); e.jugadores[id].dinares -= p; A.dinares += p; }   // Anís: 5 dinares de cada uno si mata a Jamil
+      if (A.pj === '3' && D.pj === '4') for (const id of activos(e)) if (id !== P.atk) { const p = Math.max(0, Math.min(5, e.jugadores[id].dinares)); e.jugadores[id].dinares -= p; A.dinares += p; }   // Anís: 5 dinares de cada uno si mata a Jamil
     } else if (numeroOk) {
       A.herido = true; log(e, `${D.nombre} se salva a pedradas; ${A.nombre} queda herido.`, { pid: P.def });
     } else {
@@ -418,9 +418,9 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
   const G = e.jugadores[ganador], L = e.jugadores[perdedor];
   const nur = P.nur || (['1'].includes(G.pj) || L.pj === '1') && ['El Cairo', 'Damasco', 'Aleppo'].includes(G.ciudad);
   let din, noc;
-  if (nur && G.pj === '1') { din = Math.floor(L.dinares / 2); noc = L.noches; }
+  if (nur && G.pj === '1') { din = Math.max(0, Math.floor(L.dinares / 2)); noc = L.noches; }
   else if (nur && L.pj === '1') { din = L.dinares; noc = 0; }
-  else { din = Math.floor(L.dinares / 2); noc = Math.min(data.config.duelo.nochesPerdedor, L.noches); }
+  else { din = Math.max(0, Math.floor(L.dinares / 2)); noc = Math.min(data.config.duelo.nochesPerdedor, L.noches); }
   L.dinares -= din; L.noches -= noc; G.dinares += din; G.noches += noc;
   L.herido = true;
   if (e.mods?.premioDuelo && ['Andalucía', 'Magreb'].includes(G.ciudad)) { G.dinares += e.mods.premioDuelo; log(e, `${G.nombre} cobra ${e.mods.premioDuelo} dinares del banco (Mercenarios de la frontera).`, { pid: ganador }); }
@@ -430,7 +430,7 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
 // R 12.1: el ladrón toma dinares, objetos, mapas y cartas poseídas (no noches, ni Mensajes, ni dinares escondidos).
 function robar(data, e, atk, def) {
   const A = e.jugadores[atk], D = e.jugadores[def];
-  const din = D.dinares; D.dinares = 0; A.dinares += din;
+  const din = Math.max(0, D.dinares); D.dinares -= din; A.dinares += din;   // a quien tiene deudas no se le roban dinares
   const cartas = D.mano.splice(0);
   for (const c of cartas) A.mano.push(c);
   recortarMano(data, e, atk);
