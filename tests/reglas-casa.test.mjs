@@ -722,6 +722,13 @@ for (let k = 0; k < 6; k++) {
   const r = g.act(a, { t: 'comprar', ref: 'burro' }); assert.ok(r.ok, 'en solitario compra en su turno: ' + r.error);
 }
 
+// Ningún transporte lleva a Bagdad desde lejos; el burro sí, directo, desde las ciudades cercanas
+{
+  const { destinosTransporte } = await import('../shared/objetos.js');
+  for (const ref of ['caballo', 'camello', 'alfombra']) for (const desde of ['Estambul', 'El Cairo', 'Damasco', 'Andalucía']) assert.ok(!destinosTransporte(data, ref, desde).includes('Bagdad'), `${ref} no va a Bagdad desde ${desde}`);
+  for (const desde of ['Damasco', 'Aleppo', 'Basra']) assert.deepEqual(destinosTransporte(data, 'burro', desde), ['Bagdad'], `burro directo a Bagdad desde ${desde}`);
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
