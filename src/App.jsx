@@ -19,6 +19,7 @@ import Misiones from './components/Misiones.jsx';
 import HojaCiudad from './components/HojaCiudad.jsx';
 import Intercambio from './components/Intercambio.jsx';
 import AlertaTrato, { AvisosTrato } from './components/AlertaTrato.jsx';
+import VictoriaYafar from './components/VictoriaYafar.jsx';
 import PanelAnfitrion from './components/PanelAnfitrion.jsx';
 import { Historial, Registro } from './components/Registro.jsx';
 import AcercaDe from './components/AcercaDe.jsx';
@@ -112,6 +113,7 @@ function Juego({ lienzo }) {
         {panel?.startsWith('mercado-') && <Intercambio key={panel} s={s} onCerrar={cerrar} inicial="tratos" contraDe={panel.startsWith('mercado-contra:') ? panel.slice(15) : null} />}
         {s.fase === 'juego' && !panel?.startsWith('mercado') && <AlertaTrato s={s} abrir={abrir} />}
         {s.fase === 'juego' && <AvisosTrato s={s} />}
+        {s.fase === 'juego' && <VictoriaYafar s={s} />}
         {panel === 'acciones' && <AccionesTurno s={s} onCerrar={cerrar} />}
         {panel === 'misiones' && <Misiones s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}
         {panel === 'historial' && <Historial s={s} onCerrar={cerrar} onAbrir={(n) => { setConsulta(n); }} />}

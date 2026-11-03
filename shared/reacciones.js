@@ -10,6 +10,8 @@ export const REACCIONES = [
   { id: 'bien', para: 'todos', emoji: '👏', texto: '¡Bien jugado!' },
   { id: 'enojo', para: 'todos', emoji: '😠', texto: '¡Por las barbas del Califa!' },
   { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
+  { id: 'furia', para: 'todos', emoji: '😡', texto: '¡#@$%&!*¿?#@!!' },
+  { id: 'extranar', para: 'todos', emoji: '😢', texto: '¡Te extrañaremos!' },
 ];
 export const ESPERA_REACCION_MS = 1000;   // antirrebote de 1 s
 

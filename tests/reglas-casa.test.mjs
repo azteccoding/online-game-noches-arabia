@@ -729,6 +729,16 @@ for (let k = 0; k < 6; k++) {
   for (const desde of ['Damasco', 'Aleppo', 'Basra']) assert.deepEqual(destinosTransporte(data, 'burro', desde), ['Bagdad'], `burro directo a Bagdad desde ${desde}`);
 }
 
+// Solitario: si el humano derrota a Yafar NPC, gana pero la partida sigue
+{
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids;
+  e.ronda = 3; e.dados = null; e.colaDados = []; eliminar(data, e, 'npc', { por: a, causa: 'prueba' });
+  g.act(a, { t: 'leido', nro: 0 });
+  assert.equal(e.fase, 'juego', 'la partida sigue'); assert.ok(e.victoriaYafar && e.victoriaYafar.pid === a, 'la victoria queda registrada');
+  assert.ok(e.log.some((l) => /derrotó a Yafar/.test(l.texto)));
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

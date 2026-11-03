@@ -261,9 +261,16 @@ export function carreraFinTurno(data, e) {
 // Regla de la casa: si solo queda un participante vivo (Yafar NPC cuenta), gana al instante, sin esperar al cierre de ronda.
 function ultimoEnPie(e) {
   if (e.fase !== 'juego' || !e.ronda || (e.participantes || 0) < 2) return false;
+  if (e.dados || (e.colaDados || []).length) return false;                 // primero se ven los dados y el desglose; el final, después
   const viv = activos(e);
   if (viv.length !== 1) return false;
   const j = e.jugadores[viv[0]];
+  // Excepción (solitario): si el único humano derrota a Yafar NPC, gana, pero puede seguir jugando hasta las 1,001 noches.
+  const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc).length;
+  if (!j.npc && humanos === 1 && e.jugadores.npc?.eliminado) {
+    if (!e.victoriaYafar) { e.victoriaYafar = { pid: j.id, ronda: e.ronda }; log(e, `¡${j.nombre} gana: derrotó a Yafar! Puede seguir jugando hasta las 1,001 noches.`, { pid: j.id, aviso: true }); }
+    return false;
+  }
   e.fase = 'fin'; e.turno = null; e.pend = null; e.colaPend = []; e.pelea = null; e.finUltimo = true;
   if (j.npc) { e.ganadores = []; e.derrota = 'npc'; log(e, 'Yafar NPC es el último en pie: gana la partida.', { aviso: true }); }
   else { e.ganadores = [j.id]; log(e, `${j.nombre} es el último en pie y gana la partida.`, { pid: j.id, aviso: true }); }
@@ -281,8 +288,9 @@ export function avanzar(data, e) {
       return;
     }
     if (ultimoEnPie(e)) return;
-    if (e.solitario && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; log(e, 'Has muerto: Yafar NPC gana la partida.'); return; }
-    if (!humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; return; }
+    const conDados = !!e.dados || (e.colaDados || []).length > 0;        // el final de la partida espera a que se cierren los dados
+    if (!conDados && e.solitario && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; log(e, 'Has muerto: Yafar NPC gana la partida.'); return; }
+    if (!conDados && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; return; }
     const t = e.turno;
     if (e.pelea) return;
     if (!t) { if (e.paso === 'eventos') { e.paso = null; siguienteTurno(data, e, -1); continue; } return; }
@@ -865,7 +873,7 @@ export function vista(data, e, pid) {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),
@@ -942,9 +950,9 @@ function tick0(data, e, ahora) {
   if (e.fase === 'juego') {
     if (e.pend && e.dados) e.pend.t0 = ahora;                     // el plazo de una decisión empieza cuando se cierran los dados
     else if (e.pend && vencerPend(data, e, ahora)) cambio = true;
-    const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '');
+    const antes = e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '') + ':' + e.fase;
     avanzar(data, e);
-    if (antes !== e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '')) cambio = true;
+    if (antes !== e.turno?.pid + ':' + e.ronda + ':' + (e.pend?.id || '') + ':' + e.fase) cambio = true;
   }
   return cambio;
 }
