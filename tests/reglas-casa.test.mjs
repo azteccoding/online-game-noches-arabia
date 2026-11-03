@@ -148,30 +148,24 @@ function forzar(e, ...valores) {
     e.jugadores[jamil].mano.push({ uid: 9001, tipo: 'item', ref: 'cimitarra' });
     return { g, e, jamil, adi, A: e.jugadores[adi] };
   };
+  // Regla nueva: el arco dispara una flecha dentro de la pelea (2 dados por lado); contra un escudo se clava y no hace nada
+  const resolverAsalto = (g, e, atk, def) => { assert.ok(g.act(atk, { t: 'atacar', tipo: 'robo', objetivo: def }).ok); if (e.pend?.tipo === 'defensa') g.act(def, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones[0] || {}).id }); return [e.dados, ...e.colaDados].filter(Boolean); };
   let { g, e, jamil, adi, A } = prep();
   A.mano.push({ uid: 9002, tipo: 'item', ref: 'arco' }, { uid: 9003, tipo: 'item', ref: 'flechas' }, { uid: 9004, tipo: 'item', ref: 'flechas' });
-  forzar(e, 6);
-  assert.ok(g.act(jamil, { t: 'atacar', tipo: 'robo', objetivo: adi }).ok);
-  assert.equal(e.pelea, null, 'la flecha frustra el asalto');
-  assert.ok(e.jugadores[jamil].herido, 'el atacante queda herido');
-  assert.equal(A.mano.filter((c) => c.ref === 'flechas').length, 1, 'gasta una flecha');
+  let ds = resolverAsalto(g, e, jamil, adi);
+  assert.ok(ds.some((d) => /dispara una flecha/.test(d.grupos[0].etq) && d.por === adi), 'el defensor dispara su flecha con su botón');
+  assert.equal(A.mano.filter((c) => c.ref === 'flechas').length, 1, 'gasta una sola flecha');
+  assert.ok(ds.some((d) => d.por === jamil && /lanza/.test(d.grupos[0].etq)) && ds.some((d) => d.por === adi && /lanza/.test(d.grupos[0].etq)), 'cada uno lanza sus 2 dados');
   ({ g, e, jamil, adi, A } = prep());
-  A.mano.push({ uid: 9005, tipo: 'objeto', ref: 'OB04' });
-  forzar(e, 5);
-  const din = A.dinares;
-  assert.ok(g.act(jamil, { t: 'atacar', tipo: 'robo', objetivo: adi }).ok);
-  assert.equal(e.pelea, null, 'el escudo para el golpe'); assert.equal(A.dinares, din);
+  A.mano.push({ uid: 9005, tipo: 'item', ref: 'arco' }, { uid: 9006, tipo: 'item', ref: 'flechas' });
+  e.jugadores[jamil].mano.push({ uid: 9007, tipo: 'objeto', ref: 'OB04' });
+  ds = resolverAsalto(g, e, jamil, adi);
+  assert.ok(ds.some((d) => d.resumen.some((r) => /se clava en el escudo/.test(r))), 'contra un escudo la flecha no hace nada');
   ({ g, e, jamil, adi, A } = prep());
-  A.mano.push({ uid: 9006, tipo: 'objeto', ref: 'OB04' });
-  forzar(e, 1);
-  assert.ok(g.act(jamil, { t: 'atacar', tipo: 'robo', objetivo: adi }).ok);
-  assert.ok(!A.mano.some((c) => c.ref === 'OB04'), 'con un 1 el escudo se rompe');
-  assert.ok(e.pelea, 'y la pelea sigue');
-  ({ g, e, jamil, adi, A } = prep());
-  A.mano.push({ uid: 9007, tipo: 'objeto', ref: 'OB04' });
-  forzar(e, 6);
-  assert.ok(g.act(jamil, { t: 'atacar', tipo: 'duelo', objetivo: adi }).ok);
-  assert.ok(e.pelea, 'en los duelos no hay escudo previo');
+  A.mano.push({ uid: 9008, tipo: 'objeto', ref: 'OB04' });
+  ds = resolverAsalto(g, e, jamil, adi);
+  assert.ok(ds.at(-1).resumen.join(' ').includes('escudo +1'), 'el escudo suma +1 al defender');
+  assert.ok(ds.at(-1).resumen.join(' ').match(/cimitarra \+2/), 'las armas se suman');
   // contra NPC (bandoleros) el arco también dispara primero
   ({ g, e, jamil, adi, A } = prep());
   A.ciudad = 'Basra'; A.mano.push({ uid: 9008, tipo: 'item', ref: 'arco' }, { uid: 9009, tipo: 'item', ref: 'flechas' });
@@ -609,6 +603,16 @@ for (let k = 0; k < 6; k++) {
   e.pelea = null; e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
   duelo(data, e, a, b); assert.ok(B.eliminado, 'el herido que pierde el duelo muere');
   const C = e.jugadores[g.ids[2]]; C.herido = false; duelo(data, e, a, g.ids[2]); assert.ok(!C.eliminado && C.herido, 'sano: solo queda herido');
+}
+
+// Matar a un Buscado: 100 dinares y 200 noches de recompensa (sin multiplicar por ronda)
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  B.buscado = 2; B.noches = 0; B.dinares = 0; A.noches = 0; A.dinares = 0; e.ronda = 8;
+  eliminar(data, e, b, { por: a, causa: 'prueba' });
+  assert.equal(A.dinares, 100); assert.equal(A.noches, 200);
+  assert.ok(e.log.some((l) => l.aviso && /estaba Buscado: 100 dinares y 200 noches/.test(l.texto)));
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

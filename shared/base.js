@@ -283,7 +283,7 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   const cartas = j.mano.splice(0);
   if (k) {
     k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan
-    if (j.buscado > 0) { k.noches += data.config.recompensaBuscado; log(e, `${k.nombre} cobra 20 noches por matar a un Buscado.`, { pid: por }); }
+    if (j.buscado > 0) { const n = data.config.recompensaBuscado ?? 200, d = data.config.recompensaBuscadoDinares ?? 100; k.noches += n; k.dinares += d; log(e, `${k.nombre} cobra la recompensa por ${j.nombre}, que estaba Buscado: ${d} dinares y ${n} noches.`, { pid: por, aviso: true }); }   // regla de la casa: no se multiplica por ronda
     if (e.evento?.buscadoE7 === pid) { k.noches += 200; k.dinares += 40; log(e, `${k.nombre} cobra la recompensa de la cacería del Califa: 200 noches y 40 dinares.`, { pid: por, aviso: true }); }   // regla de la casa (antes 50 noches); no se multiplica por ronda
     if (j.pj === 'B') { k.noches += 30; log(e, `${k.nombre} cobra 30 noches por matar a Yafar.`, { pid: por }); }
     for (const c of cartas) k.mano.push(c);

@@ -226,7 +226,7 @@ function firmar(data, e, pid, v, precio, args = {}) {
   j.buscado = data.config.buscadoRondas;
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
   const vic = e.jugadores[v];
-  log(e, `${j.nombre} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
+  log(e, `${j.nombre} contrató a los Asesinos contra ${vic.nombre} y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
   log(e, 'Los Asesinos (Hashashín) actúan y se retiran para siempre.');
   log(e, `${vic.nombre} muere a manos de los Asesinos.`, { pid: v });
   eliminar(data, e, v, { por: pid, soloNoches: true, causa: 'Asesinos' });

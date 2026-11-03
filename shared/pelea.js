@@ -261,7 +261,7 @@ export function golpeAlEscudo(data, e, pid) {
 }
 function defensaPrevia(data, e) {
   const P = e.pelea, A = e.jugadores[P.atk], D = e.jugadores[P.def];
-  if (P.tipo === 'duelo') return false;
+  if (P) return false;                                                       // regla de la casa: el arco ahora dispara dentro de la pelea y el escudo suma +1
   const grupos = [], resumen = [];
   const arco = tiroDeArco(data, e, P.def, P.ciudad);
   if (arco) {
@@ -373,6 +373,7 @@ registrar('pelea.ayuda', (data, e, args, resp) => {
 // Categoría efectiva del defensor y números que debe decir (A y B en robos y A en el resto)
 function pasoCategoria(data, e) {
   const P = e.pelea;
+  if (P.tipo !== 'duelo') return resolverNuevo(data, e);                     // robo y ataque a muerte: sistema de 2 dados (los duelos siguen igual)
   const quien = P.ayudante || P.def;
   let pd = perfil(data, e, quien);
   const lineas = [];
@@ -400,6 +401,65 @@ function pasoCategoria(data, e) {
   return resolver(data, e, { numeros: [] });
 }
 registrar('pelea.numeros', (data, e, args, resp) => resolver(data, e, { numeros: (resp.valores || []).map(Number) }));
+
+// ---------------------------------------------------------------- robo y ataque a muerte (regla de la casa, sistema de 2 dados)
+// Cada bando lanza 2 dados con su botón y suma: armas de cuerpo a cuerpo sumadas (alfanje +1, cimitarra +2, jambiya +1; tope +4),
+// destreza +1, escudo +1 (solo al defender), herido −1 y los objetos de combate. El arco no suma en el choque: antes se dispara
+// una flecha (5–6 el rival queda tocado: −1 y pierde su destreza; 3–4 se cubre: −1; 1–2 falla; contra un escudo no hace nada).
+// Robo: el empate lo gana el defensor. A muerte: golpe de gracia (3 o más mata; 1–2 hiere; empate hiere a los dos).
+export const BONO_MELEE = { alfanje: 1, cimitarra: 2, jambiya: 1 }, TOPE_ARMAS = 4;
+export const conArco = (data, e, pid, ciudad) => armasUsables(data, e, e.jugadores[pid], ciudad).includes('arco');
+export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
+  const j = e.jugadores[pid], armas = armasUsables(data, e, j, ciudad).filter((r) => BONO_MELEE[r]);
+  const partes = []; let total = 0, resta = 0;
+  const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r], 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
+  if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r]}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
+  if (j.destreza && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
+  if (j.destreza && mods.sinDestreza) partes.push('destreza perdida por la flecha');
+  if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
+  if (j.herido) { partes.push('herido −1'); total -= 1; }
+  if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
+  if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; }
+  if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
+  if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1'); total += 1; }
+  return { total, resta, partes };
+}
+// Disparo a distancia (antes del choque): devuelve los efectos sobre el blanco; se muestra con su dado y botón.
+function disparo(data, e, tirador, blanco, titulo) {
+  const T = e.jugadores[tirador], B = e.jugadores[blanco];
+  quitarPrimero(T, 'item', 'flechas');
+  const x = dado(e), escudo = !!tieneObj(B, 'OB04');
+  const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : x >= 3 ? { flecha: 1 } : {};
+  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.` : x >= 5 ? `¡Le da! ${B.nombre} pelea tocado: −1 y pierde su destreza en esta pelea.` : x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
+  mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre} (5–6 le da, 3–4 lo obliga a cubrirse)`, valores: [x] }], resumen: [texto] });
+  return efecto;
+}
+function resolverNuevo(data, e) {
+  const P = e.pelea; if (!P) return;
+  const atk = P.atk, def = P.ayudante || P.def, nA = nombre(e, atk), nD = nombre(e, def);
+  const titulo = `${P.tipo === 'robo' ? 'Asalto' : 'Ataque a muerte'}: ${nA} contra ${nombre(e, P.def)}`;
+  const modA = {}, modD = {};
+  if (conArco(data, e, atk, P.ciudad)) Object.assign(modD, disparo(data, e, atk, def, titulo));
+  if (conArco(data, e, def, P.ciudad)) Object.assign(modA, disparo(data, e, def, atk, titulo));
+  const bA = bonosCombate(data, e, atk, 'atk', P.ciudad, modA), bD = bonosCombate(data, e, def, 'def', P.ciudad, modD);
+  const inicio = [`Cada uno lanza 2 dados y suma sus bonos.${P.tipo === 'robo' ? ' Si empatan, gana el defensor.' : ' Golpe de gracia: 3 o más mata, 1 o 2 hiere, empate hiere a los dos.'}`];
+  if (P.ayudante) inicio.push(`${nD} pelea en nombre de ${nombre(e, P.def)}.`);
+  if (P.polvo && !P.ayudante) { bD.resta = 2; const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nombre(e, P.def)} usa Polvo de pimienta: el atacante resta 2.`); }
+  const tirar = () => { const rA = dados(e, 2), rB = dados(e, 2); const tA = suma(rA) + bA.total - bD.resta, tB = suma(rB) + bD.total - bA.resta; return { intentos: [{ rA, rB, ventA: 0, ventB: 0, tA, tB }], ganaA: tA > tB, empate: tA === tB, margen: Math.abs(tA - tB) }; };
+  let r = tirar();
+  const rondas = [{ intentos: r.intentos }];
+  const pierde = r.ganaA ? def : atk;
+  if (!r.empate || P.tipo === 'robo') {
+    if (zeinRepite(e, pierde)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, pierde)} usa «Dados del Cairo» y repite la jugada.` }); }
+    else if (dadoIbnArabi(e, pierde)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, pierde)} usa el Dado de Ibn Arabi y repite la jugada.` }); }
+  }
+  const ganaAtk = r.ganaA;                                                     // en el robo, el empate es del defensor
+  let cierre;
+  if (P.tipo === 'matar') { P.golpe = golpe(r.ganaA, r.margen, r.empate); cierre = [textoGolpe(e, P, P.golpe)]; }
+  else cierre = [r.empate ? `Empate: gana ${nombre(e, P.def)}, que se defiende.` : `Gana ${ganaAtk ? nA : nD}.`, ganaAtk ? `${nA} le roba a ${nombre(e, P.def)} sus dinares y sus cartas.` : `${nA} no se lleva nada.`];
+  mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio, titulo, cierre });
+  aplicar(data, e, { ganaAtk, numeroOk: false, cat: 'D' });
+}
 
 // ---------------------------------------------------------------- resolución
 // Regla de la casa «Golpe de gracia» (ataques a muerte): matas solo si ganas por 3 o más; por 1 o 2 el perdedor queda herido;
@@ -487,7 +547,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       const enmascarado = tieneObj(A, 'OB45');
       eliminar(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre });
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
-      else { A.buscado = data.config.buscadoRondas; log(e, `${A.nombre} queda Buscado durante 2 rondas.`, { pid: P.atk }); }
+      else { A.buscado = data.config.buscadoRondas; log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
       if (A.pj === '3' && D.pj === '4') for (const id of activos(e)) if (id !== P.atk) { const p = Math.max(0, Math.min(5, e.jugadores[id].dinares)); e.jugadores[id].dinares -= p; A.dinares += p; }   // Anís: 5 dinares de cada uno si mata a Jamil
     } else if (numeroOk) {
       A.herido = true; log(e, `${D.nombre} se salva a pedradas; ${A.nombre} queda herido.`, { pid: P.def });

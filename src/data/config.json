@@ -69,7 +69,8 @@
   "nochesPerdedor": 30
  },
  "buscadoRondas": 2,
- "recompensaBuscado": 20,
+ "recompensaBuscado": 200,
+ "recompensaBuscadoDinares": 100,
  "minimoMensajeDado": 6,
  "refReglamento": {
   "turno": "6",
