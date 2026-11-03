@@ -242,7 +242,7 @@ function iniciarTurno(data, e, id, idx) {
 }
 
 // Carreras de «dos noches»: cuenta los turnos seguidos que cada jugador cierra hospedado (sin moverse) en la ciudad de la carrera.
-function carreraFinTurno(data, e) {
+export function carreraFinTurno(data, e) {
   const t = e.turno, j = e.jugadores[t.pid];
   if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
   t.carreraContada = true;

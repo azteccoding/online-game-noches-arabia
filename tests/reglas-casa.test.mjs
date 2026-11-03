@@ -1,6 +1,6 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
@@ -651,6 +651,20 @@ for (let k = 0; k < 6; k++) {
   assert.equal(A.noches, n0, 'todavía no cobra'); assert.equal(vistaDe(e, a).encargo.ciudad, ciudad, 'el encargo se ve en pantalla');
   A.ciudad = ciudad; NPC.revisarEncargo(data, e, a);
   assert.equal(A.noches, n0 + 200, 'cumplido: 200 noches'); assert.ok(!A.extra.encargoAsesinos);
+}
+
+// Carreras de «dos noches»: salen una vez cada una entre las rondas 3 y 12 y gana quien cierra dos turnos seguidos sin moverse
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const rs = Object.values(e.carreras); assert.equal(rs.length, 3); assert.equal(new Set(rs).size, 3);
+  assert.ok(rs.every((r) => r >= 3 && r <= 12)); assert.ok(!e.mazos.eventos.some((x) => ['E13', 'E14', 'E15'].includes(x)), 'no están en el mazo');
+  e.carrerasActivas = [{ id: 'E13', ciudad: 'El Cairo', prog: {} }];
+  A.ciudad = 'El Cairo'; const d0 = A.dinares, n0 = A.noches;
+  turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], 1);
+  turnoDe(e, a, 'El Cairo'); e.turno.movio = true; carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], undefined, 'moverse reinicia');
+  turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e); turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e);
+  assert.equal(A.dinares, d0 + 60); assert.equal(A.noches, n0 + 50); assert.equal(e.carrerasActivas.length, 0, 'la carrera se retira');
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
