@@ -197,6 +197,7 @@ function cierreRonda(data, e) {
 
 function iniciarTurno(data, e, id, idx) {
   const j = e.jugadores[id], p = pjDe(data, j.pj);
+  j.extra.descuentos = null;                                                // los descuentos de entrenar duran hasta tu siguiente turno
   const t = e.turno = { pid: id, idx, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   j.extra.jugoTurno = true; j.turnos++;
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;

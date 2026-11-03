@@ -13,6 +13,14 @@ const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
 export const BAZAR_IFRIT = { ciudades: ['Samarcanda', 'India'], precio: 60 };
 const ifritEnVenta = (e) => e.ifritVendida !== e.ronda && ((e.mazos?.ifrit?.length || 0) + (e.mazos?.descarte?.ifrit?.length || 0)) > 0;
+// Regla de la casa: el mercado de la ciudad (objetos, mercancías y armas) solo vende FUERA de tu turno, mientras juegan los demás.
+// Excepción: Yafar NPC compra en su turno. El Firmán y el bazar de Ifrit siguen comprándose en tu turno.
+export function puedeMercado(e, pid) {
+  const j = e.jugadores[pid];
+  if (!j || e.fase !== 'juego' || !e.turno || j.eliminado || !j.pj || j.transito || j.perdido) return 'Ahora no puedes comprar.';
+  if (j.npc) return e.turno.pid === pid ? null : 'Yafar NPC compra en su turno.';
+  return e.turno.pid === pid ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende.' : null;
+}
 const puedeTienda = (e, pid) => e.fase === 'juego' && e.turno && e.turno.pid === pid && !e.jugadores[pid].transito && !e.jugadores[pid].perdido && !e.turno.fin;
 
 function ciudadesDe(o) {
@@ -23,8 +31,8 @@ function ciudadesDe(o) {
 }
 export function precioArma(data, e, ref, j) {
   let p = ref === 'cimitarra' ? (data.config.armas?.cimitarra?.precio ?? ITEMS.cimitarra.precio) : ITEMS[ref].precio;
-  const d = e.turno?.descuentos?.[ref];
-  if (d != null && e.turno.pid === j.id) p = Math.min(p, d);
+  const d = j.extra?.descuentos?.[ref];
+  if (d != null) p = Math.min(p, d);
   if (e.mods.mercaderArmas && (ARMAS_ORIG.includes(ref) || ref === 'flechas')) p = Math.ceil(p / 2);       // E10
   return p;
 }
@@ -32,8 +40,9 @@ const dobleCairo = (e, ciudad) => (e.mods.oroMali && ciudad === 'El Cairo' ? 2 :
 
 export function comprar(data, e, pid, a) {
   const j = e.jugadores[pid];
-  if (!puedeTienda(e, pid)) return err('Solo puedes comprar en tu turno.');
-  if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
+  const enTurno = a.ref === 'firman' || a.ref === 'ifrit';
+  if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán y el bazar del genio se compran en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
+  else { const no = puedeMercado(e, pid); if (no) return err(no); }
   if (a.ref === 'firman') {                                                                              // R 15.3
     if (j.ciudad !== 'Bagdad') return err('El visir vende el Firmán en Bagdad.');
     if (e.firmanes <= 0) return err('No quedan Firmanes.');

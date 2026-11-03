@@ -31,6 +31,8 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
   const yo = s.jugadores[s.yo];
   const miTurno = s.turno?.pid === s.yo && s.fase === 'juego' && s.turno.fase !== 'ingreso' && !yo.transito && !yo.perdido && !s.turno.fin && !s.pend;
   const vendibles = s.mano.filter((c) => c.tipo !== 'especial');
+  const esMiTurno = s.turno?.pid === s.yo;
+  const puedeComprar = s.fase === 'juego' && !!s.turno && !esMiTurno && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
   const [dinOfrece, setDinOfrece] = useState(0);
@@ -54,10 +56,10 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar' }) {
         <button className="btn mini" onClick={onCerrar}>Cerrar</button>
       </div>
       <div className="desp-cuerpo">
-        <p className="it">Tienes {yo.dinares} dinares. {miTurno ? 'Compras y ventas solo en tu turno.' : 'Podrás comprar y vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
+        <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El mercado te vende mientras juegan los demás.' : esMiTurno ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán y el bazar del genio, sí).' : 'Ahora no puedes comprar.') : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
         {tab === 'comprar' && (
           <ul className="lista-merc">
-            {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={miTurno} s={s} />)}
+            {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={it.ref === 'firman' || it.ref === 'ifrit' ? miTurno : puedeComprar} s={s} />)}
             {!s.tienda.length && <li>Aquí no se vende nada.</li>}
           </ul>
         )}

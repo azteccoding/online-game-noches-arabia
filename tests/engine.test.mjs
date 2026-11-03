@@ -105,13 +105,16 @@ const sinMensaje = (j) => { j.mensaje = null; };
 {
   const g = partida(['1', '2', '3']); const { e, act } = g; g.listos();
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]);
-  const j = e.jugadores[p]; j.dinares = 200; j.mano = [];
+  const q = g.ids.find((x) => x !== p);                                       // regla de la casa: el mercado vende fuera de tu turno
+  e.jugadores[p].dinares = 200; e.jugadores[q].ciudad = e.jugadores[p].ciudad;
+  const rp = act(p, { t: 'comprar', ref: 'alfanje' }); assert.ok(!rp.ok && /juegan los demás/.test(rp.error), 'en tu turno el mercado no te vende');
+  const j = e.jugadores[q]; j.dinares = 200; j.mano = [];
   const antes = j.dinares;
-  assert.ok(act(p, { t: 'comprar', ref: 'alfanje' }).ok);
+  assert.ok(act(q, { t: 'comprar', ref: 'alfanje' }).ok);
   assert.ok(j.mano.some((c) => c.ref === 'alfanje'));
   assert.ok(j.dinares < antes);
-  assert.ok(!act(p, { t: 'comprar', ref: 'alfanje' }).ok, 'ya la tienes');
-  assert.ok(act(p, { t: 'comprar', id: 'OB01' }).ok || true);
+  assert.ok(!act(q, { t: 'comprar', ref: 'alfanje' }).ok, 'ya la tienes');
+  assert.ok(act(q, { t: 'comprar', id: 'OB01' }).ok || true);
 }
 
 // ---------------------------------------------------------------- combate: los dinares se conservan y el muerto hereda

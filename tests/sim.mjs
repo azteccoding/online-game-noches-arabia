@@ -100,8 +100,11 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (R() < 0.12 && !t.ccActual && t.fase !== 'ingreso') {                                  // compras y ventas al azar
         const j = e.jugadores[pid];
         const q = R();
-        if (q < 0.4) { const o = pick(data.objetos.mazo); const r0 = act(pid, { t: 'comprar', id: o.id }); cuenta(stats.acciones, 'comprar:' + (r0.ok ? 'ok' : 'x')); }
-        else if (q < 0.6) { const r0 = act(pid, { t: 'comprar', ref: pick(['arco', 'flechas', 'alfanje', 'cimitarra', 'vino', 'buza', 'caballo', 'camello', 'burro', 'cesta', 'ifrit']) }); cuenta(stats.acciones, 'comprarRef:' + (r0.ok ? 'ok' : 'x')); }
+        // el mercado vende fuera de tu turno: compra otro jugador (Yafar NPC, en el suyo); el bazar del genio, quien juega
+        const fuera = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc);
+        const comprador = e.jugadores[pid].npc ? pid : fuera.length ? pick(fuera) : pid;
+        if (q < 0.4) { const o = pick(data.objetos.mazo); const r0 = act(comprador, { t: 'comprar', id: o.id }); cuenta(stats.acciones, 'comprar:' + (r0.ok ? 'ok' : 'x')); }
+        else if (q < 0.6) { const ref = pick(['arco', 'flechas', 'alfanje', 'cimitarra', 'vino', 'buza', 'caballo', 'camello', 'burro', 'cesta', 'ifrit']); const r0 = act(ref === 'ifrit' ? pid : comprador, { t: 'comprar', ref }); cuenta(stats.acciones, 'comprarRef:' + (r0.ok ? 'ok' : 'x')); }
         else if (q < 0.8 && j.mano.length) { const c = pick(j.mano); const r0 = act(pid, { t: 'vender', uid: c.uid }); cuenta(stats.acciones, 'vender:' + (r0.ok ? 'ok' : 'x')); }
         else if (q < 0.9) { const o = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && e.jugadores[x].ciudad === j.ciudad); if (o.length) { const r0 = act(pid, { t: 'proponerTrato', con: pick(o), ofrece: { dinares: 3, objetos: j.mano.slice(0, 1).map((c) => c.uid) }, pide: { dinares: 1, objetos: [] } }); cuenta(stats.acciones, 'trato:' + (r0.ok ? 'ok' : 'x')); } }
         else { const r0 = act(pid, { t: 'comprar', ref: 'firman' }); cuenta(stats.acciones, 'firman:' + (r0.ok ? 'ok' : 'x')); }

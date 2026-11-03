@@ -433,7 +433,7 @@ function r16Tira(data, e, pid) {
 const reqEntrenar = (e, pid, costo) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= costo ? null : `Cuesta ${costo} dinares.`);
 function entrenar(e, pid, costo, descuentos) {
   const j = e.jugadores[pid]; if (j.dinares < costo) return false;
-  j.dinares -= costo; j.destreza = true; j.noches += 10; e.turno.descuentos = { ...(e.turno.descuentos || {}), ...descuentos };
+  j.dinares -= costo; j.destreza = true; j.noches += 10; j.extra.descuentos = { ...(j.extra.descuentos || {}), ...descuentos };   // se usan comprando fuera de tu turno, hasta tu siguiente turno
   log(e, `${j.nombre} entrena: obtiene destreza con armas y +10 noches.`, { pid }); return true;
 }
 T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
