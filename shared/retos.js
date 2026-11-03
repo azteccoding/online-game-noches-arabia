@@ -339,19 +339,19 @@ T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
 function sindbadFin(data, e, pid) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; HOOK.llegada(data, e, pid, 'India'); }
 T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
-  if (suma(v) >= 7) { premio(data, e, pid, { dinares: 80 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos.'); }
+  if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos.'); }
   else { premio(data, e, pid, { dinares: 50 }, 'Naufragio:'); j.noches = Math.max(0, j.noches - 20); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: pierdes 20 noches y 1 turno.'); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
 T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ? null : 'Debes haber completado R11.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R12');
-  if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 100 }, 'Vences a los piratas:');
+  if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 0 })) premio(data, e, pid, { dinares: 120 }, 'Vences a los piratas:');
   else { pagar(data, e, pid, 60); j.herido = true; log(e, `${j.nombre} pierde ante los piratas.`, { pid }); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
 T.R13 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R12') ? null : 'Debes haber completado R12.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R13');
-  if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 2 })) premio(data, e, pid, { dinares: 130 }, 'Vences al gigante:');
+  if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150 }, 'Vences al gigante:');
   else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'arco', 'jambiya'].find((r) => tieneItem(j, r)); if (arma) quitarPrimero(j, 'item', arma); log(e, `${j.nombre} pierde ante el gigante y su arma.`, { pid }); }
   sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
 } };
@@ -563,7 +563,7 @@ T.R35 = { ciudad: 'India', req: (data, e, pid) => { const j = e.jugadores[pid]; 
     const [x] = ctx.t(`${j.nombre}: el rajá`, 1);
     if (x === 1 && !aplic(data, e, pid, us, 'OB30')) { ctx.say('El rajá no está de humor: recuperas tus regalos y pierdes tu acción.'); return; }
     for (const c of dar) { quitarCarta(j, c.uid); devolverObjeto(data, e, c.ref); }
-    premio(data, e, pid, { dinares: 55, noches: 15 }, `${j.nombre} agasaja al rajá:`);
+    premio(data, e, pid, { dinares: 70, noches: 20 }, `${j.nombre} agasaja al rajá:`);
   } };
 T.R36 = { ciudad: 'Basra', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!tieneArma(data, e, j)) return 'Necesitas un arma.'; return j.dinares >= 5 ? null : 'Cuesta 5 dinares.'; }, run(data, e, pid) {
   const j = e.jugadores[pid]; j.dinares -= 5; hacer(e, pid, 'R36');

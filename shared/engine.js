@@ -598,6 +598,7 @@ function terminarTurno(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- tratos entre jugadores (R 8.6, 15.2)
+const nombreRef = (data, ref) => objDe(data, ref)?.nombre || itemDatos(data, ref)?.titulo || ref;
 function proponerTrato(data, e, pid, a) {
   const j = e.jugadores[pid], k = e.jugadores[a.con];
   if (!k || k.id === pid || k.eliminado || k.npc) return err('Destinatario inválido.');
@@ -605,9 +606,18 @@ function proponerTrato(data, e, pid, a) {
   if (e.mods.sinComercio?.[pid] || e.mods.sinComercio?.[a.con] || j.extra.sinComercioHasta >= e.ronda || k.extra.sinComercioHasta >= e.ronda) return err('Nadie quiere comerciar con esa persona (difamación).');
   const esHazm = (de, us) => (us || []).some((u) => de.mano.some((c) => c.uid === u && c.ref === 'libroIbnHazm'));
   if (esHazm(j, a.ofrece?.objetos) || esHazm(k, a.pide?.objetos)) return err('El libro de Ibn Hazm solo se vende en la biblioteca de Bagdad: no se puede regalar ni vender a otro jugador.');
-  const val = (x, de) => ({ dinares: Math.max(0, Math.floor(x?.dinares || 0)), objetos: (x?.objetos || []).filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1')) });
+  // Cada lado puede combinar dinares, noches y cartas. Lo que se pide se nombra por tipo (la mano ajena es secreta).
+  const val = (x, de) => {
+    const objetos = (x?.objetos || []).filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1'));
+    const refs = (x?.refs || []).filter((r) => typeof r === 'string' && r !== 'libroIbnHazm').slice(0, 6);
+    const nombres = [...objetos.map((u) => datosMano(data, e, de.mano.find((c) => c.uid === u))?.titulo || 'carta'), ...refs.map((r) => nombreRef(data, r))];
+    return { dinares: Math.max(0, Math.floor(x?.dinares || 0)), noches: Math.max(0, Math.floor(x?.noches || 0)), objetos, refs, nombres };
+  };
+  const ofrece = val(a.ofrece, j), pide = val(a.pide, k);
+  if (ofrece.dinares > j.dinares || ofrece.noches > j.noches) return err('No tienes todo lo que ofreces.');
+  if (!ofrece.dinares && !ofrece.noches && !ofrece.nombres.length && !pide.dinares && !pide.noches && !pide.nombres.length) return err('El trato está vacío.');
   const id = 'tr' + (++e.seq);
-  e.tratos[id] = { id, de: pid, con: a.con, ofrece: val(a.ofrece, j), pide: val(a.pide, k), t: e.ahora };
+  e.tratos[id] = { id, de: pid, con: a.con, ofrece, pide, t: e.ahora };
   return ok();
 }
 function responderTrato(data, e, pid, a) {
@@ -618,8 +628,17 @@ function responderTrato(data, e, pid, a) {
   const A = e.jugadores[tr.de], B = e.jugadores[tr.con];
   if (A.eliminado || B.eliminado) return err('El trato ya no es posible.');
   if (A.ciudad !== B.ciudad) return err('Ya no están en la misma ciudad.');
+  tr.ofrece.noches ||= 0; tr.pide.noches ||= 0; tr.ofrece.refs ||= []; tr.pide.refs ||= [];
   if (A.dinares < tr.ofrece.dinares || B.dinares < tr.pide.dinares) return err('Faltan dinares para el trato.');
+  if (A.noches < tr.ofrece.noches || B.noches < tr.pide.noches) return err('Faltan noches para el trato.');
+  // lo pedido por tipo: la primera carta de ese tipo de cada mano
+  const elegir = (de, refs, ya) => { const r = []; for (const ref of refs) { const c = de.mano.find((x) => x.ref === ref && x.tipo !== 'especial' && !ya.includes(x.uid) && !r.includes(x.uid)); if (!c) return { falta: ref }; r.push(c.uid); } return { uids: r }; };
+  const eA = elegir(A, tr.ofrece.refs, tr.ofrece.objetos), eB = elegir(B, tr.pide.refs, tr.pide.objetos);
+  if (eA.falta) return err(`${A.nombre} no tiene «${nombreRef(data, eA.falta)}».`);
+  if (eB.falta) return err(`${B.nombre} no tiene «${nombreRef(data, eB.falta)}»: no puede aceptar este trato.`);
+  tr.ofrece.objetos = [...tr.ofrece.objetos, ...eA.uids]; tr.pide.objetos = [...tr.pide.objetos, ...eB.uids];
   if (!tr.ofrece.objetos.every((u) => A.mano.some((c) => c.uid === u)) || !tr.pide.objetos.every((u) => B.mano.some((c) => c.uid === u))) return err('Faltan objetos.');
+  A.noches += tr.pide.noches - tr.ofrece.noches; B.noches += tr.ofrece.noches - tr.pide.noches;
   const sinImp = e.mods.feria || A.ciudad === 'Bagdad';
   const tasa = A.ciudad === 'Samarcanda' ? 50 : data.config.impuestoVentaPct;
   // casa (R 8.4): quien vende paga al banco el impuesto sobre el precio en dinares que cobra

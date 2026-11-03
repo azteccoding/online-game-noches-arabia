@@ -478,6 +478,24 @@ for (let k = 0; k < 6; k++) {
   assert.equal(g.act(b, { t: 'lanzarDados' }).ok, false, 'el defensor no puede lanzar los dados del atacante');
 }
 
+// Tratos: cada lado combina dinares, noches y cartas (lo pedido se nombra por tipo); se valida el saldo completo de ambos
+{
+  const g = partida(['4', '1']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  turnoDe(e, a, 'Bagdad'); e.mods = {}; A.ciudad = B.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
+  A.dinares = 30; A.noches = 50; B.dinares = 10; B.noches = 40; B.mano = [];
+  const seda = darItem(e, A, 'vino'); darItem(e, B, 'caballo');
+  assert.ok(!g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 31 }, pide: {} }).ok, 'no puedes ofrecer lo que no tienes');
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 20, noches: 30, objetos: [seda.uid] }, pide: { dinares: 5, noches: 10, refs: ['caballo'] } }).ok);
+  const tr = Object.values(e.tratos)[0];
+  assert.deepEqual(tr.ofrece.nombres.length, 1); assert.match(tr.pide.nombres[0], /Caballo/);
+  assert.ok(g.act(b, { t: 'responderTrato', id: tr.id, ok: true }).ok);
+  assert.equal(A.dinares, 15); assert.equal(B.dinares, 25); assert.equal(A.noches, 30); assert.equal(B.noches, 60);
+  assert.ok(A.mano.some((c) => c.ref === 'caballo') && B.mano.some((c) => c.ref === 'vino'), 'se intercambian las cartas');
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 1 }, pide: { refs: ['OB34'] } }).ok);
+  const r = g.act(b, { t: 'responderTrato', id: Object.values(e.tratos)[0].id, ok: true }); assert.ok(!r.ok && /no tiene/.test(r.error), 'sin la carta pedida no se acepta');
+}
+
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);

@@ -8,6 +8,8 @@ export const REACCIONES = [
   { id: 'pelea', para: 'todos', emoji: '⚔️', texto: '¡Pelea!' },
   { id: 'comercio', para: 'todos', emoji: '🤝', texto: '¡Comerciemos!' },
   { id: 'bien', para: 'todos', emoji: '👏', texto: '¡Bien jugado!' },
+  { id: 'enojo', para: 'todos', emoji: '😠', texto: '¡Por las barbas del Califa!' },
+  { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
 ];
 export const ESPERA_REACCION_MS = 10000;
 

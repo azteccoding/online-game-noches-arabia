@@ -309,3 +309,5 @@ fieldset:disabled { opacity: .5; }
 .acc-responde { display: flex; justify-content: center; align-items: center; }
 .lienzo[data-forma='alta'] .acc-responde { width: 100%; }
 .lienzo[data-forma='alta'] .acc-responde .btn.responde { flex: 1; max-width: none; min-height: 38px; }
+.lado-trato { border: 1px solid rgba(239, 208, 143, .4); border-radius: 10px; padding: 6px 10px 8px; margin: 6px 0; display: flex; flex-direction: column; gap: 6px; }
+.lado-trato legend { color: var(--oro-claro); padding: 0 4px; }
