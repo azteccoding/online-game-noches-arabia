@@ -46,6 +46,17 @@ const OBJS = {
   R34: ['OB09', 'OB06', 'OB26'], R35: ['OB30'], R37: ['OB21', 'OB30'], R38: ['OB13'],
 };
 const hecho = (j, id) => j.retosHechos.includes(id);
+// «Sirve para»: retos (y mensajes) donde se usa o se entrega cada carta, para mostrarlo en la mano y en el mercado.
+const ITEM_RETO = { alfombraIsfahan: ['R7'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
+  alfanje: ['R8', 'R32', 'R36'], cimitarra: ['R8', 'R32', 'R36'], jambiya: ['R8', 'R32', 'R36'], arco: ['R8', 'R32', 'R36'] };
+export function sirvePara(data, c) {
+  let ids = c.tipo === 'item' ? (ITEM_RETO[c.ref] || []) : Object.entries(OBJS).filter(([, l]) => l.includes(c.ref)).map(([r]) => r);
+  if (c.tipo === 'objeto' && objDe(data, c.ref)?.tipo === 'Lujo/Comercio') ids = [...ids, 'R22', 'R35'];
+  const txt = [...new Set(ids)].map((r) => { const d = m1(data, r); return d ? `${r} (${d.ciudad})` : r; });
+  if (c.tipo === 'item' && ['libro', 'papiro', 'mapa'].includes(c.ref)) txt.push('el Mensaje del jurista que pide un libro, papiro o mapa');
+  if (c.tipo === 'item' && c.ref === 'especias') txt.push('el evento H17 (se venden en Bagdad)');
+  return txt.length ? `Sirve para: ${txt.join(', ')}.` : '';
+}
 
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
@@ -615,8 +626,12 @@ T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo y
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid];
     const [x] = ctx.t(`${j.nombre}: cruzar de noche hasta la iglesia de Toledo`, 1);
-    const r = x + (j.destreza ? 1 : 0);
-    if (j.destreza) ctx.say(`Destreza +1 → ${r}.`);
+    // +1 «duas del sheij» (una sola vez) si tienes algo de Abu Madyan, Ibn Arabi o Ibn Hazm: su Mensaje en curso o cumplido, la Bendición, el Dado o un libro de Ibn Hazm.
+    const SHEIJS = ['Abu Madyan', 'Ibn Arabi', 'Ibn Hazm'], msg = j.mensaje && data.mensajes.mensajes.find((q) => q.id === j.mensaje.id);
+    const duas = [msg && SHEIJS.includes(msg.de) && `mensaje de ${msg.de}`, ...(j.extra.sheijsCumplidos || []).filter((d) => SHEIJS.includes(d)).map((d) => `mensaje cumplido de ${d}`),
+      tieneItem(j, 'bendicionAbuMadyan') && 'Bendición de Abu Madyan', tieneItem(j, 'dadoIbnArabi') && 'Dado de Ibn Arabi', tieneItem(j, 'libroIbnHazm') && 'libro de Ibn Hazm'].filter(Boolean);
+    const r = x + (j.destreza ? 1 : 0) + (duas.length ? 1 : 0);
+    if (j.destreza || duas.length) ctx.say(`${[j.destreza && 'destreza +1', duas.length && `duas del sheij +1 (${duas[0]})`].filter(Boolean).join(', ')} → ${r}.`);
     if (r >= 5) { e.idolo = 'robado'; hacer(e, pid, 'R41'); darItem(e, j, 'idolo'); ctx.say('Te llevas el ídolo: ganas la carta «Ídolo de Toledo».'); log(e, `${j.nombre} roba el Ídolo de Toledo.`, { pid, aviso: true }); }
     else if (r >= 3) ctx.say('Los guardias te ven y huyes con las manos vacías.');
     else { j.herido = true; pagar(data, e, pid, 20); ctx.say('Te atrapan: quedas herido y pagas 20 dinares de rescate.'); log(e, `${j.nombre} intenta robar el ídolo de Toledo y lo atrapan: queda herido y paga 20 dinares de rescate.`, { pid, aviso: true }); }
@@ -652,6 +667,7 @@ export function mensajes(data, e, pid, ev, inf) {
   const m = data.mensajes.mensajes.find((x) => x.id === id);
   j.dinares += m.dinares; j.noches += m.noches; e.mazos.descarte.mensajes.push(id); j.mensaje = null;
   log(e, `${j.nombre} cumple un mensaje de ${m.de} y cobra ${m.dinares} dinares${m.noches ? ' y ' + m.noches + ' noches' : ''}.`, { pid });
+  (j.extra.sheijsCumplidos ||= []).push(m.de);
   if (m.de === 'Ibn Arabi' && !tieneItem(j, 'dadoIbnArabi')) {                          // regla de la casa: el Dado de Ibn Arabi
     darItem(e, j, 'dadoIbnArabi'); log(e, `Ibn Arabi regala a ${j.nombre} un dado para cambiar su suerte: repetirá la próxima pelea que vaya a perder.`, { pid });
   }

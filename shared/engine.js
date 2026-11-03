@@ -867,7 +867,7 @@ export function vista(data, e, pid) {
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
-    mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: OBJ.dondeVender(data, e, pid, c) })) : [],
+    mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),
     misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [], encargo: yo?.extra?.encargoAsesinos ? { tipo: yo.extra.encargoAsesinos.tipo, ciudad: yo.extra.encargoAsesinos.ciudad, hasta: yo.extra.encargoAsesinos.hasta } : null,
     mensaje: yo?.mensaje || null,

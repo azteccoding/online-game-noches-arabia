@@ -233,7 +233,8 @@ export function dondeVender(data, e, pid, c) {
     if (c.ref === 'OB41') return 'El banco la compra por 20 dinares en cualquier ciudad.';
     if (c.ref === 'OB24') return 'El banco la compra por 40 dinares en cualquier ciudad.';
     if (!o?.valor) return 'Nadie la compra: solo sirve para usarla.';
-    return o.reventa ? `Mejor precio, sin impuesto: ${lista(o.reventa)}. En las demás ciudades, ${o.valor} menos el impuesto.` : `En cualquier ciudad por ${o.valor} dinares, menos el impuesto (Bagdad sin impuesto).`;
+    if (o.reventa) { const [mc, mp] = Object.entries(o.reventa).sort((x, y) => y[1] - x[1])[0]; return `Mejor venta: ${mc} (${mp} dinares, sin impuesto). También: ${lista(o.reventa)}; en las demás ciudades, ${o.valor} menos el impuesto.`; }
+    return `En cualquier ciudad por ${o.valor} dinares, menos el impuesto (mejor en Bagdad, sin impuesto).`;
   }
   if (c.tipo === 'ifrit') return 'El banco paga 40 dinares en cualquier ciudad.';
   if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
@@ -244,7 +245,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
-  if (c.ref === 'alfombraIsfahan') return `En cualquier ciudad por ${MITAD.alfombraIsfahan}. Mucho mejor: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches.`;
+  if (c.ref === 'alfombraIsfahan') return `Mejor venta: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches. En el mercado de cualquier ciudad, ${MITAD.alfombraIsfahan}.`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
   if (USO[c.ref]) return `No se vende. ${USO[c.ref]}`;
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
