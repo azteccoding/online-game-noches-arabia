@@ -253,11 +253,8 @@ export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
     const din = Math.max(0, Math.min(monto, j.dinares)); j.dinares -= din; e.jugadores[aJugador].dinares += din;
     return { dinares: din, noches: 0, pagado: din, debe: monto - din };
   }
-  // El banco fía una sola vez: quien ya está en deuda no suma más (así la deuda siempre baja con lo que entra y nadie queda atrapado), y nunca más del tope.
-  const antes = j.dinares, tope = antes < 0 ? antes : -(data.config.deudaMaxima ?? 50);
-  const cobrado = Math.max(0, Math.min(monto, j.dinares - tope));
-  if (cobrado < monto) log(e, `El banco ya no fía más a ${j.nombre} mientras no salde su deuda: se le perdonan ${monto - cobrado} dinares.`, { pid });
-  monto = cobrado;
+  // Regla de la casa: la deuda no tiene tope; se cobra sola con lo próximo que entre.
+  const antes = j.dinares;
   j.dinares -= monto;
   const debe = Math.max(0, -j.dinares) - Math.max(0, -antes);
   if (debe > 0) log(e, `${j.nombre} no tiene dinares suficientes y queda en deuda con el banco: ${j.dinares} dinares. Se cobrará de lo próximo que reciba.`, { pid });
