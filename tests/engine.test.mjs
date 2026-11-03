@@ -171,7 +171,7 @@ const sinMensaje = (j) => { j.mensaje = null; };
   assert.ok(npc.noches > 0 || npc.ciudad !== 'Bagdad', 'el NPC se mueve');
   // derrota inmediata al morir
   e.jugadores[p].eliminado = true; g.tickear();
-  assert.equal(e.fase, 'fin'); assert.equal(e.derrota, 'muerte');
+  assert.equal(e.fase, 'fin'); assert.equal(e.derrota, 'npc'); assert.ok(e.finUltimo, 'Yafar NPC queda último en pie');
 }
 {
   const g = partida(['4'], { opciones: { dificultad: 'facil' } }); const { e } = g; g.listos();
