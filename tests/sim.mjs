@@ -74,6 +74,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       accionesTurno++;
       if (ac.find((x) => x.k === 'cc')) elegida = ac.find((x) => x.k === 'cc');
       else if (e.asesinos?.pendiente?.victima === pid && e.jugadores[pid].extra.masrur && ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan')) elegida = ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan');   // avisado por Masrur: huye al Jorasán
+      else if (fin && (e.carrerasActivas || []).some((c) => c.ciudad === e.jugadores[pid].ciudad) && !t.movio && R() < 0.6) elegida = fin;   // carrera de «dos noches»: se queda
       else if (accionesTurno > 14 && fin) elegida = fin;
       else {
         const peso = { tirarDados: 100, cc: 100, viajar: 0.5, atacar: 0.2, reto: 0.35, tesoro: 0.3, esconder: 0.1, recuperar: 0.4, usar: 0.3, asesinos: 0.3, pj: 0.4, terminarTurno: 0.15 };

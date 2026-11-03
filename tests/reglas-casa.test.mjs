@@ -154,7 +154,7 @@ function forzar(e, ...valores) {
   A.mano.push({ uid: 9002, tipo: 'item', ref: 'arco' }, { uid: 9003, tipo: 'item', ref: 'flechas' }, { uid: 9004, tipo: 'item', ref: 'flechas' });
   let ds = resolverAsalto(g, e, jamil, adi);
   assert.ok(ds.some((d) => /dispara una flecha/.test(d.grupos[0].etq) && d.por === adi), 'el defensor dispara su flecha con su botón');
-  assert.equal(A.mano.filter((c) => c.ref === 'flechas').length, 1, 'gasta una sola flecha');
+  assert.equal([...A.mano, ...e.jugadores[jamil].mano].filter((c) => c.ref === 'flechas').length, 1, 'gasta una sola flecha (si el robo sale, el ladrón se lleva la otra)');
   assert.ok(ds.some((d) => d.por === jamil && /lanza/.test(d.grupos[0].etq)) && ds.some((d) => d.por === adi && /lanza/.test(d.grupos[0].etq)), 'cada uno lanza sus 2 dados');
   ({ g, e, jamil, adi, A } = prep());
   A.mano.push({ uid: 9005, tipo: 'item', ref: 'arco' }, { uid: 9006, tipo: 'item', ref: 'flechas' });
@@ -574,10 +574,10 @@ for (let k = 0; k < 6; k++) {
   }
   for (const j of Object.values(e.jugadores)) j.extra.clienteWeb = !j.npc;
   e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.asesinos.actuaron = false;
+  const vivos = e.orden.filter((x) => !e.jugadores[x].eliminado).length;   // antes del sorteo (si nadie puja, la víctima puede morir)
   NPC.eventoAsesinos(data, e);
   const sorteo = [e.dados, ...e.colaDados].find((d) => d && /sorteo de a quién/.test(d.grupos[0].etq));
   assert.ok(sorteo && !sorteo.npc && !sorteo.lanzado, 'el sorteo lo lanza un jugador con su botón');
-  const vivos = Object.values(e.jugadores).filter((j) => j.pj && !j.eliminado).length;
   const ultimo = sorteo.valores.at(-1);
   assert.ok(vivos >= 6 || ultimo <= vivos, 'solo cuentan los números con jugador');
   assert.match(sorteo.resumen.join(' '), /irán a buscar a /);

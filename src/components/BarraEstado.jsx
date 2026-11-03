@@ -11,6 +11,7 @@ export default function BarraEstado({ s, demo, pids, panel, abrir }) {
         <span className="sala">Sala {s.codigo}</span>
         <span className="chip" title="Multiplicador de noches de esta ronda">Ronda {s.ronda} · ×{s.mult}</span>
         {ev && <button className="chip chip-ev" onClick={() => abrir('evento')} title="Evento de la ronda">{ev.titulo}</button>}
+        {(s.carreras || []).map((c) => <button key={c.id} className="chip chip-ev" onClick={() => abrir('misiones')} title={`Carrera: dos noches seguidas en ${c.ciudad} (60 dinares y 50 noches). ` + (Object.entries(c.prog).map(([id, n]) => `${s.jugadores[id]?.nombre} ${n}/2`).join(', ') || 'Nadie ha empezado.')}>🏁 {c.ciudad}</button>)}
         {!s.hostConectado && <span className="chip mal" title="El banco está desconectado; la partida sigue.">banco ausente</span>}
       </div>
       <nav className="barra-der" aria-label="Menú">

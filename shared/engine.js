@@ -72,7 +72,7 @@ function prepararMazos(data, e) {
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
   e.reposicion = barajar(e, guardadas);
   e.mazos = {
-    eventos: barajar(e, data.eventos.eventos.map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.map((x) => x.id)),
+    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.map((x) => x.id)),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
     descarte: { eventos: [], historicos: [], mensajes: [] /* Mensajes fuera de juego: registro, nunca se barajan de nuevo */, botin: [], ifrit: [], cc: {} },
   };
@@ -111,7 +111,10 @@ function iniciar(data, e) {
   }
   orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
-  e.participantes = ids.length + (conNPC ? 1 : 0);                                                     // para la regla del último en pie
+  e.participantes = ids.length + (conNPC ? 1 : 0);
+  // Regla de la casa: cada carrera de «dos noches» sale una sola vez, en una ronda al azar entre la 3 y la 12 (sin coincidir).
+  const rondas = barajar(e, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  e.carreras = Object.fromEntries(data.eventos.eventos.filter((x) => x.carrera).map((x, k) => [x.id, rondas[k]])); e.carrerasActivas = [];                                                     // para la regla del último en pie
   e.orden = orden.concat(Object.keys(e.jugadores).filter((i) => !orden.includes(i)));
   for (const id of orden) {
     const j = e.jugadores[id], p = pjDe(data, j.pj);
@@ -147,6 +150,12 @@ function empezarRonda(data, e) {
     e.mazos.eventos.push(evId); barajar(e, e.mazos.eventos); evId = robar(e, 'eventos'); if (evId === 'E1') { e.mazos.eventos.push(evId); evId = robar(e, 'eventos'); if (evId === 'E1') evId = null; }
   }
   e.paso = 'eventos';
+  for (const [id, r] of Object.entries(e.carreras || {})) if (r === e.ronda) {                           // carrera de «dos noches» de esta ronda
+    const def = data.eventos.eventos.find((x) => x.id === id);
+    (e.carrerasActivas ||= []).push({ id, ciudad: def.carrera, prog: {} });
+    publicarCarta(e, cartaDatos(data, 'evento', id), null);
+    log(e, `Carrera en la mesa: el primero que pase dos noches seguidas en ${def.carrera} gana 60 dinares y 50 noches.`, { aviso: true });
+  }
   if (evId) {
     if (evId !== 'E1') e.mazos.descarte.eventos.push(evId);
     e.evento.actual = evId;
@@ -166,7 +175,7 @@ function empezarRonda(data, e) {
 }
 
 function siguienteTurno(data, e, desde) {
-  if (e.turno) NPC.revisarEncargo(data, e, e.turno.pid);
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -230,6 +239,22 @@ function iniciarTurno(data, e, id, idx) {
     else llegada(data, e, id, tr.desde);
   }
   if (j.npc) t.fase = 'mov';
+}
+
+// Carreras de «dos noches»: cuenta los turnos seguidos que cada jugador cierra hospedado (sin moverse) en la ciudad de la carrera.
+function carreraFinTurno(data, e) {
+  const t = e.turno, j = e.jugadores[t.pid];
+  if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
+  t.carreraContada = true;
+  const hospedado = !t.movio && !j.perdido && !t.omitido && !j.transito;
+  for (const c of e.carrerasActivas.slice()) {
+    if (hospedado && j.ciudad === c.ciudad) c.prog[j.id] = (c.prog[j.id] || 0) + 1; else delete c.prog[j.id];
+    if ((c.prog[j.id] || 0) >= 2) {
+      j.dinares += 60; j.noches += 50;
+      e.carrerasActivas.splice(e.carrerasActivas.indexOf(c), 1);
+      log(e, `${j.nombre} es el primero en pasar dos noches seguidas en ${c.ciudad}: gana 60 dinares y 50 noches.`, { pid: j.id, aviso: true });
+    } else if (c.prog[j.id] === 1) log(e, `${j.nombre} lleva una noche en ${c.ciudad} (carrera: 1 de 2).`, { pid: j.id });
+  }
 }
 
 // Regla de la casa: si solo queda un participante vivo (Yafar NPC cuenta), gana al instante, sin esperar al cierre de ronda.
@@ -838,7 +863,7 @@ export function vista(data, e, pid) {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: OBJ.dondeVender(data, e, pid, c) })) : [],
     tienda: OBJ.tienda(data, e, pid),
@@ -929,7 +954,7 @@ export function migrar(e) {
   if ((e.v || 1) >= VERSION_ESTADO) return e;
   e.v = VERSION_ESTADO;
   e.colaDados ||= []; e.colaPend ||= []; e.pend ||= null; e.pelea ||= null; e.mods ||= {}; e.opciones ||= { dificultad: 'normal', rapido: false };
-  e.participantes ??= Object.values(e.jugadores).filter((j) => j.pj).length;
+  e.participantes ??= Object.values(e.jugadores).filter((j) => j.pj).length; e.carreras ||= {}; e.carrerasActivas ||= [];
   e.asesinos ||= { actuaron: false, contrato: null }; e.firmanes ??= 3; e.kanmakan ||= { dueno: null, usada: false }; e.tesoros ||= {}; e.derrota ||= null;
   if (e.mazos) { e.mazos.botin ||= []; e.mazos.ifrit ||= []; e.mazos.descarte.botin ||= []; e.mazos.descarte.ifrit ||= []; }
   for (const j of Object.values(e.jugadores)) { j.misiones ||= []; j.destreza ??= false; j.turnos ??= 0; j.transito ??= null; j.ventajaCombate ??= 0; j.extra ||= {}; j.retosHechos ||= []; }
