@@ -476,7 +476,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(cola.some((d) => d.por === a) && cola.some((d) => d.por === b), 'atacante y defensor lanzan cada uno');
   for (const d of cola) assert.ok(d.grupos.every((gr) => gr.etq.startsWith(e.jugadores[d.por].nombre)), 'cada quien lanza solo sus dados');
   const fin = cola.at(-1).resumen.join(' ');
-  assert.match(fin, /cimitarra \+2/); assert.match(fin, /alfanje \+1/); assert.match(fin, /total \d+/); assert.match(fin, /Gana /);
+  assert.match(fin, /cimitarra \+2/); assert.match(fin, /alfanje \+1/); assert.match(fin, /total \d+/); assert.match(fin, /gana por \d+|ambos heridos/);
   assert.equal(g.act(b, { t: 'lanzarDados' }).ok, false, 'el defensor no puede lanzar los dados del atacante');
 }
 
@@ -496,6 +496,28 @@ for (let k = 0; k < 6; k++) {
   assert.ok(A.mano.some((c) => c.ref === 'caballo') && B.mano.some((c) => c.ref === 'vino'), 'se intercambian las cartas');
   assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 1 }, pide: { refs: ['OB34'] } }).ok);
   const r = g.act(b, { t: 'responderTrato', id: Object.values(e.tratos)[0].id, ok: true }); assert.ok(!r.ok && /no tiene/.test(r.error), 'sin la carta pedida no se acepta');
+}
+
+// Golpe de gracia: a muerte solo se mata ganando por 3 o más; por 1 o 2 el perdedor queda herido; el empate hiere a los dos
+{
+  const vistos = { muere: 0, herido: 0, ambos: 0, atkMuere: 0 };
+  for (let k = 1; k <= 120; k++) {
+    const g = partida(['4', '1'], {}, k); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const j of [A, B]) { j.ciudad = 'Damasco'; j.destreza = true; j.herido = false; j.mano = j.mano.filter((c) => c.ref !== 'arco'); }
+    if (!B.mano.some((c) => c.ref === 'alfanje')) darItem(e, B, 'alfanje');
+    if (!A.mano.some((c) => c.ref === 'alfanje')) darItem(e, A, 'alfanje');
+    e.ronda = 4; e.mods = {}; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'matar', objetivo: b }).ok);
+    if (e.pend) g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' });
+    const txt = [e.dados, ...e.colaDados].filter(Boolean).flatMap((d) => d.resumen).join(' ');
+    if (B.eliminado) { vistos.muere++; assert.match(txt, /golpe de gracia/); }
+    else if (A.eliminado) vistos.atkMuere++;
+    else if (A.herido && B.herido) { vistos.ambos++; assert.match(txt, /ambos heridos/); }
+    else if (A.herido || B.herido) { vistos.herido++; assert.match(txt, /solo herido/); }
+    else assert.fail('nadie quedó ni herido ni muerto');
+  }
+  assert.ok(vistos.muere && vistos.herido && vistos.ambos && vistos.atkMuere, JSON.stringify(vistos));
 }
 
 // 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares

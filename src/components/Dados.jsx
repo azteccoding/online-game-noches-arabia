@@ -122,7 +122,7 @@ export default function Dados({ s }) {
             ))}
             {d.sheij && <p className={`aviso-sheij ${d.sheij.ok ? 'si' : 'no'}`} role="status">{d.sheij.texto}</p>}
             {d.resumen?.length > 0 && (                                     // en las peleas el desglose aparece línea por línea
-              <ul className={`dados-resumen${d.motivo === 'pelea' ? ' paso-a-paso' : ''}`} role="status">{d.resumen.map((r, i) => <li key={d.id + '-' + i} style={{ '--i': i }} className={/^Gana |vence a|muere|roba|se salva|no se lleva|pierde el duelo/.test(r) ? 'final' : undefined}>{r}</li>)}</ul>
+              <ul className={`dados-resumen${d.motivo === 'pelea' ? ' paso-a-paso' : ''}`} role="status">{d.resumen.map((r, i) => <li key={d.id + '-' + i} style={{ '--i': i }} className={/^Gana |vence a|muere|roba|se salva|no se lleva|pierde el duelo|gana por|ambos heridos/.test(r) ? 'final' : undefined}>{r}</li>)}</ul>
             )}
             {!d.resumen?.length && grupos.length === 1 && <p className="total" role="status">{d.valores.length > 1 ? `Suma: ${total}` : `Salió ${total}`}</p>}
             <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar para todos</button>

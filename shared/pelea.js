@@ -80,7 +80,7 @@ const ITEM_NOMBRE = { arco: 'arco', alfanje: 'alfanje', cimitarra: 'cimitarra', 
 // ---------------------------------------------------------------- tiradas
 // Categoría D (R 11.2): dado de ventaja (uno cada bando), luego 2 dados cada uno + bonos + ventaja; empate = se repite.
 // Solo genera los intentos; mostrarPelea los presenta paso a paso (cada bando lanza sus propios dados).
-function luchaD(data, e, A, B, bA, bB, extra = { A: 0, B: 0 }) {
+function luchaD(data, e, A, B, bA, bB, extra = { A: 0, B: 0 }, { empateTermina = false } = {}) {
   const intentos = [];
   for (let guard = 0; guard < 50; guard++) {
     const v = [dado(e), dado(e)];
@@ -89,18 +89,18 @@ function luchaD(data, e, A, B, bA, bB, extra = { A: 0, B: 0 }) {
     const rA = dados(e, 2), rB = dados(e, 2);
     const tA = suma(rA) + bA.total + ventA + extra.A - bB.resta, tB = suma(rB) + bB.total + ventB + extra.B - bA.resta;
     intentos.push({ vA: v[0], vB: v[1], rA, rB, ventA, ventB, extraA: extra.A, extraB: extra.B, tA, tB });
-    if (tA !== tB) return { ganaA: tA > tB, intentos };
+    if (tA !== tB || empateTermina) return { ganaA: tA > tB, empate: tA === tB, margen: Math.abs(tA - tB), intentos };
   }
   return { ganaA: true, intentos };
 }
 // Un dado cada uno + ventaja del agresor (categoría B, R 11.2).
-function luchaB(data, e, A, B, bA, bB, ventajaAgresor) {
+function luchaB(data, e, A, B, bA, bB, ventajaAgresor, { empateTermina = false } = {}) {
   const intentos = [];
   for (let guard = 0; guard < 50; guard++) {
     const dA = dado(e), dB = dado(e);
     const tA = dA + ventajaAgresor + bA.total - bB.resta, tB = dB + bB.total - bA.resta;
     intentos.push({ rA: [dA], rB: [dB], ventA: ventajaAgresor, ventB: 0, tA, tB, agresor: true });
-    if (tA !== tB) return { ganaA: tA > tB, intentos };
+    if (tA !== tB || empateTermina) return { ganaA: tA > tB, empate: tA === tB, margen: Math.abs(tA - tB), intentos };
   }
   return { ganaA: true, intentos };
 }
@@ -133,7 +133,7 @@ function mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio = [], cierre =
     if (conVent) res.push(`Ventaja: ${nA} ${x.vA} contra ${nD} ${x.vB} → +1 para ${x.ventA ? nA : nD}.`);
     res.push(`${nA}: ${partesBando(x.rA, bA, bD, x.ventA, x.extraA, x.agresor).join(' · ')} → total ${x.tA}.`);
     res.push(`${nD}: ${partesBando(x.rB, bD, bA, x.ventB, x.extraB, false).join(' · ')} → total ${x.tB}.`);
-    if (x.tA === x.tB) res.push(`Empate a ${x.tA}: se repite la jugada.`);
+    if (x.tA === x.tB && !ultimo) res.push(`Empate a ${x.tA}: se repite la jugada.`);
     else if (!ultimo) res.push(`${x.tA > x.tB ? nA : nD} iba ganando ${Math.max(x.tA, x.tB)} a ${Math.min(x.tA, x.tB)}…`);
     if (ultimo) res.push(...cierre);
     mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'pelea', titulo, grupos: [{ etq: conVent ? `${nD}: dado de ventaja y 2 dados` : `${nD} lanza`, valores: [...(conVent ? [x.vB] : []), ...x.rB] }], resumen: res });
@@ -389,6 +389,21 @@ function pasoCategoria(data, e) {
 registrar('pelea.numeros', (data, e, args, resp) => resolver(data, e, { numeros: (resp.valores || []).map(Number) }));
 
 // ---------------------------------------------------------------- resolución
+// Regla de la casa «Golpe de gracia» (ataques a muerte): matas solo si ganas por 3 o más; por 1 o 2 el perdedor queda herido;
+// el empate deja heridos a los dos. Sin armas, si el defensor falla su número, el atacante lanza: 4 a 6 mata, 1 a 3 solo hiere.
+export const GOLPE_DE_GRACIA = 3;
+function textoGolpe(e, P, g) {
+  const nA = nombre(e, P.atk), nD = nombre(e, P.def);
+  if (g.r === 'ambos') return `Empate: ambos heridos. ${nA} y ${nD} quedan heridos.`;
+  const gan = g.r === 'mata' || g.r === 'hiereDef' ? nA : nD, per = gan === nA ? nD : nA;
+  const por = g.margen != null ? `${gan} gana por ${g.margen}: ` : '';
+  return g.r === 'mata' || g.r === 'muereAtk' ? `${por}golpe de gracia. ${per} muere${g.r === 'muereAtk' ? ' en el intento' : ` a manos de ${nA}`}.` : `${por}solo herido. ${per} queda herido.`;
+}
+function golpe(ganaAtk, margen, empate) {
+  if (empate) return { r: 'ambos', margen: 0 };
+  const mata = margen >= GOLPE_DE_GRACIA;
+  return { r: ganaAtk ? (mata ? 'mata' : 'hiereDef') : (mata ? 'muereAtk' : 'hiereAtk'), margen };
+}
 function consecuencia(e, P, ganaAtk, numeroOk, cat) {
   const nA = nombre(e, P.atk), nD = nombre(e, P.def), sinArmas = cat === 'A' || cat === 'B';
   if (P.tipo === 'robo') return ganaAtk ? `${nA} le roba a ${nD} sus dinares y sus cartas.` : `${nA} no se lleva nada${sinArmas && numeroOk ? ' y queda herido' : ''}.`;
@@ -418,19 +433,28 @@ function resolver(data, e, { numeros }) {
       numeroOk = x === dicho; ganaAtk = !numeroOk;
       const regla = `Sin armas, ${nD} solo se salva si saca el número que dijo.`;
       const tirada = `${nD} dijo ${dicho} y saca ${x}: ${numeroOk ? 'se salva' : 'no cae su número'}.`;
-      mostrarDados(e, { por: P.def, npc: esNPC(e, P.def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD} lanza (dijo ${dicho})`, valores: [x] }], resumen: [...inicio, regla, tirada, consecuencia(e, P, ganaAtk, numeroOk, cat)] });
+      if (P.tipo === 'matar' && !numeroOk) {                                   // golpe de gracia: ahora lanza el atacante (4 a 6 mata, 1 a 3 solo hiere)
+        mostrarDados(e, { por: P.def, npc: esNPC(e, P.def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD} lanza (dijo ${dicho})`, valores: [x] }], resumen: [...inicio, regla, tirada, `Ahora ${nA} lanza el golpe: con 4 a 6 lo mata; con 1 a 3 solo lo hiere.`] });
+        const y = dado(e); P.golpe = { r: y >= 4 ? 'mata' : 'hiereDef' };
+        mostrarDados(e, { por: atk, npc: esNPC(e, atk), motivo: 'pelea', titulo, grupos: [{ etq: `${nA}: golpe de gracia (4 a 6)`, valores: [y] }], resumen: [`${nA} saca ${y}: ${y >= 4 ? 'golpe de gracia' : 'solo herido'}.`, textoGolpe(e, P, P.golpe)] });
+      } else mostrarDados(e, { por: P.def, npc: esNPC(e, P.def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD} lanza (dijo ${dicho})`, valores: [x] }], resumen: [...inicio, regla, tirada, consecuencia(e, P, ganaAtk, numeroOk, cat)] });
     }
   } else {
     const bA = bonos(data, e, atk, pA, 'atk', null), bD = bonos(data, e, def, pD, 'def', null);
     if (P.polvo && !P.ayudante) { bD.resta = Math.max(bD.resta, 2); const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nD} usa Polvo de pimienta: el atacante resta 2.`); }
-    const tirar = () => (cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1) : luchaD(data, e, atk, def, bA, bD));
+    const matar = P.tipo === 'matar', op = { empateTermina: matar };     // a muerte, el empate no se repite: deja heridos a los dos
+    const tirar = () => (cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, op) : luchaD(data, e, atk, def, bA, bD, undefined, op));
     let r = tirar();
     const rondas = [{ intentos: r.intentos }];
     const perdedor = r.ganaA ? def : atk;                                    // quien iba a perder puede repetir (Zein o Dado de Ibn Arabi)
-    if (zeinRepite(e, perdedor)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, perdedor)} usa «Dados del Cairo» y repite la jugada.` }); }
-    else if (dadoIbnArabi(e, perdedor)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, perdedor)} usa el Dado de Ibn Arabi y repite la jugada.` }); }
+    if (!r.empate) {
+      if (zeinRepite(e, perdedor)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, perdedor)} usa «Dados del Cairo» y repite la jugada.` }); }
+      else if (dadoIbnArabi(e, perdedor)) { r = tirar(); rondas.push({ intentos: r.intentos, previa: `${nombre(e, perdedor)} usa el Dado de Ibn Arabi y repite la jugada.` }); }
+    }
     ganaAtk = r.ganaA;
-    mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio, titulo, cierre: [`Gana ${ganaAtk ? nA : nombre(e, def)}.`, consecuencia(e, P, ganaAtk, numeroOk, cat)] });
+    if (matar) P.golpe = golpe(r.ganaA, r.margen, r.empate);
+    const cierre = matar ? [textoGolpe(e, P, P.golpe)] : [`Gana ${ganaAtk ? nA : nombre(e, def)}.`, consecuencia(e, P, ganaAtk, numeroOk, cat)];
+    mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio, titulo, cierre });
   }
   aplicar(data, e, { ganaAtk, numeroOk, cat });
 }
@@ -441,6 +465,9 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
   if (P.tipo === 'robo') {
     if (ganaAtk) robar(data, e, P.atk, P.def);
     else { log(e, `${A.nombre} no se lleva nada de ${D.nombre}.`, { pid: P.atk }); if (sinArmasDef && numeroOk) { A.herido = true; log(e, `${A.nombre} queda herido.`, { pid: P.atk }); } }
+  } else if (P.tipo === 'matar' && P.golpe && P.golpe.r !== 'mata' && P.golpe.r !== 'muereAtk') {   // golpe de gracia: solo heridas
+    if (P.golpe.r !== 'hiereAtk') { D.herido = true; log(e, `${D.nombre} queda herido.`, { pid: P.def }); }
+    if (P.golpe.r !== 'hiereDef') { A.herido = true; log(e, `${A.nombre} queda herido.`, { pid: P.atk }); }
   } else if (P.tipo === 'matar') {
     if (ganaAtk) {
       const enmascarado = tieneObj(A, 'OB45');
