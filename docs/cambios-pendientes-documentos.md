@@ -64,8 +64,9 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | ✔ 56 | **Sala en línea**: el banco es el primero con personaje, conectado y listo (si alguien cede o reclama el banco, se respeta); con todos conectados y listos, cuenta regresiva de 10 s (el banco puede iniciar antes); se puede entrar tarde mientras no termine la primera ronda; al entrar siempre se piden nombre y clave (el nombre queda precargado; la clave no se guarda). | b8219d3 | Reglamento 1.2; guía; diseño; hoja resumen | — |
 | ✔ 57 | **60 segundos sin tirar**: nadie lanza por otro jugador (ni el banco por un desconectado). A los 60 s el banco decide sacarlo o esperarlo; si lo saca pierde ese turno y, al volver, juega al final del orden. Dados de una pelea ya en juego: se destapan para que termine. | f6d9a49 | Reglamento 1.2; guía; diseño; hoja resumen | — |
 | ✔ 58 | **Mensajes de viaje**: M7, M9, M11, M12, M13, M14 y M15 pagan 20 dinares (antes 10 o 15). | 10572f6 | Reglamento 18.2 y 18.3; diseño; hoja resumen | M7, M9, M11 a M15 |
-| ✔ 59 | **Trivias nuevas** CC-111 (el voto en El Vaticano, mazo de Basra) y CC-112 (Al-Qarawiyyin, mazo de El Cairo): solo en el juego en línea, como las demás trivias después de la CC-80. | 66df819 | — | — |
+| ✔ 59 | **Trivias nuevas** CC-111 (el voto en El Vaticano, mazo de Basra) y CC-112 (Al-Qarawiyyin, mazo de El Cairo): en el juego en línea y con carta impresa (CC y CRP), a diferencia de las demás trivias después de la CC-80. | 66df819 | Diseño 24 | CC-111, CC-112, CRP-111, CRP-112 |
 | ✔ 60 | **Interfaz**: alerta de desconexión minimizable (a000f4d); el peón camina por la ruta como en el demo (e341804); al moverse alguien se cierran las ventanas salvo dados y decisiones, y se cancelan los tratos que ya no son posibles (b8219d3, c27583b). | varios | — | — |
+| ✔ 61 | **Cartas de armas al día**: O6, O8, O9 y O10 dicen su ventaja actual (arco con flecha previa; alfanje +1; cimitarra +2; jambiya +1; hasta +4). | f9992b9 | Reglamento 11.1 | O6, O8, O9, O10 |
 
 ## Estado
 Aplicado el 3 de noviembre de 2026 (respaldo previo en `respaldo-antes-de-cambios-2026-11-03/`):
