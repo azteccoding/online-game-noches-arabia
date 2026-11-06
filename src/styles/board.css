@@ -31,12 +31,10 @@
 @keyframes latido { 50% { fill: #fff; } }
 
 /* Peones pseudo-3D */
-.peon { transition: transform .95s cubic-bezier(.45, .05, .25, 1); pointer-events: none; }
+.peon { pointer-events: none; }
 .sombra-peon { fill: rgba(0, 0, 0, .38); }
 .aro-turno { fill: none; stroke: #efd08f; stroke-width: 3; animation: aro 1.3s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
-.camina { animation: paso .95s ease-in-out 1; transform-box: fill-box; transform-origin: 50% 100%; }
 .peon.yo .aro-turno { stroke: #8be3d8; }
-@keyframes paso { 0%, 100% { transform: translateY(0) scale(1, 1); } 12% { transform: translateY(-9px) scale(.96, 1.05); } 25% { transform: translateY(0) scale(1.05, .94); } 40% { transform: translateY(-9px) scale(.96, 1.05); } 55% { transform: translateY(0) scale(1.05, .94); } 70% { transform: translateY(-9px) scale(.96, 1.05); } 85% { transform: translateY(0) scale(1.04, .95); } }
 @keyframes aro { 50% { opacity: .35; } }
 
 .tablero-controles { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; gap: 8px; z-index: 5; }

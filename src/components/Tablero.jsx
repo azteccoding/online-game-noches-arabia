@@ -105,6 +105,7 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
 
   useEffect(() => { pz.current?.setRot(rot, uiRot); }, [rot, uiRot]);
   const centrar = useCallback(() => { const c = tablero.cities[ciudadMia] || tablero.cities.Bagdad; pz.current?.irA(c.x, c.y, Math.max(pz.current.limites.zmin * 2.4, 0.5)); }, [ciudadMia]);
+  const alViajar = useCallback((c, ms) => { pz.current?.irA(c.x, c.y, pz.current.vista.z, ms); }, []);   // la cámara acompaña a tu personaje, como en el demo
   const irMini = (e) => {
     const r = e.currentTarget.getBoundingClientRect();
     pz.current?.irA(((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * H, pz.current.vista.z);
@@ -125,7 +126,7 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
           {Object.entries(tablero.cities).map(([id, c]) => <Pin key={id} id={id} c={c} resaltada={ciudadesAlcance?.has(id)} activa={id === ciudadActiva} />)}
           <g className="ciudad jorasan" transform={`translate(${tablero.jorasan.x},${tablero.jorasan.y})`}><g className="escala-pin"><polygon points="0,-30 9,-12 29,-9 14,5 18,26 0,16 -18,26 -14,5 -29,-9 -9,-12" /><circle r="6" /></g></g>
         </g>
-        <g className="peones">{peones.map((p) => <Peon key={p.j.id} {...p} tablero={tablero} yo={p.j.id === miId} />)}</g>
+        <g className="peones">{peones.map((p) => <Peon key={p.j.id} {...p} tablero={tablero} yo={p.j.id === miId} onViaje={alViajar} />)}</g>
       </svg>
 
       <div className="tablero-controles">
