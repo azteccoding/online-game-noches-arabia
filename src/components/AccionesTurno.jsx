@@ -21,7 +21,7 @@ export function UsarCarta({ s, a, etiqueta }) {
   const [obj, setObj] = useState(a.objetivos?.[0] || '');
   const [dest, setDest] = useState(a.destinos?.[0] || '');
   const [deseo, setDeseo] = useState(a.ifrit?.[0] || '');
-  const plazos = carta?.ref === 'OB31' ? [...(s.mensaje ? [{ v: 'mensaje', t: 'Mensaje del sheij' }] : []), ...s.misiones.map((m, i) => (m.turnosRestantes != null ? { v: i, t: `${m.id} · ${m.nombre}` } : null)).filter(Boolean)] : null;
+  const plazos = carta?.ref === 'OB31' ? [...(s.mensajes || []).map((m) => ({ v: 'mensaje:' + m.id, t: `Mensaje de ${m.carta.titulo}` })), ...s.misiones.map((m, i) => (m.turnosRestantes != null ? { v: i, t: `${m.id} · ${m.nombre}` } : null)).filter(Boolean)] : null;
   const [mision, setMision] = useState(plazos?.[0]?.v ?? '');
   const enviarUso = () => {
     const x = {};

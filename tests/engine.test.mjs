@@ -21,7 +21,7 @@ function partida(pjs, { semilla = 42, opciones = {} } = {}) {
   g.cerrar = (pid) => { g.asentar(); const r = act(pid, { t: 'terminarTurno' }); assert.ok(r.ok, r.error); g.asentar(); };
   return g;
 }
-const sinMensaje = (j) => { j.mensaje = null; };
+const sinMensaje = (j) => { j.mensajes = []; };
 
 // ---------------------------------------------------------------- lobby y reglas de mesa
 {

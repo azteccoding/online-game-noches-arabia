@@ -16,7 +16,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const sinCC = !t?.ccActual;
   const nAcc = s.acciones.filter((a) => !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)).length;
   const puedeViajar = s.acciones.some((a) => a.k === 'viajar');
-  const mano = s.mano.length + (s.mensaje ? 1 : 0);
+  const mano = s.mano.length + (s.mensajes?.length || 0);
   const marca = (p) => (panel === p ? ' on' : '');
   // Qué impide seguir: una decisión, los dados o una CC sin responder. En vez de un botón muerto, se avisa y se lleva a esa carta.
   const enPantalla = useJuego((x) => x.cartaEnPantalla);

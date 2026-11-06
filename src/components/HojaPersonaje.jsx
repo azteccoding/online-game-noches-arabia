@@ -27,7 +27,7 @@ export default function HojaPersonaje({ pj, jugador, esYo }) {
           {jugador.perdido && <span className="chip mal">Perdido</span>}
           {(jugador.buscado > 0 || jugador.buscadoE7) && <span className="chip mal" title={jugador.buscadoE7 ? 'Cacería del Califa (E7): quien lo mate esta ronda gana 200 noches y 40 dinares.' : 'Quien lo mate cobra la recompensa.'}>Buscado{jugador.buscado > 0 ? ` (${jugador.buscado})` : ''}</span>}
           {Object.entries(nm).map(([t, n]) => <span className="chip" key={t}>{n} {NOMBRE_TIPO[t] || t}</span>)}
-          {jugador.tieneMensaje && <span className="chip">Mensaje en curso</span>}
+          {jugador.tieneMensaje && <span className="chip">{jugador.nMensajes > 1 ? `${jugador.nMensajes} Mensajes en curso` : 'Mensaje en curso'}</span>}
         </div>
       )}
       <ul className="stats-hoja">{p.stats.map((v, i) => <li key={i}><span>{p.statsEtiquetas[i]}</span><i>{Array.from({ length: 5 }, (_, k) => <b key={k} className={k < v ? 'on' : ''} />)}</i></li>)}</ul>

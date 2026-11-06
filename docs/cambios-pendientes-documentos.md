@@ -60,6 +60,7 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | ✔ 52 | **Tope de 1,001 noches**: nadie puede tener más de 1,001 noches; lo que pase de ahí se pierde (se avisa en el registro). Consecuencia: si Yafar NPC y un jugador llegan en la misma ronda, quedan empatados en 1,001 y el empate es de los jugadores (R 2.4), así que Yafar NPC solo gana si llega él solo primero. | (este commit) | Reglamento 2.3 y 2.4; hoja resumen | — |
 | ✔ 53 | **Fin de partida**: con el tablero a la vista, un botón fijo «Volver al resultado · Nueva partida» (arriba al centro) regresa a la pantalla final. | (este commit) | — | — |
 | ✔ 54 | **R12 y R13 con noches** (sin multiplicar por ronda; dinares igual): R12 piratas, +60 noches si ganas y +20 si pierdes; R13 gigante, +80 si ganas y +20 si pierdes. | (este commit) | Reglamento 14.4 (tabla) | R12, R13 |
+| ✔ 55 | **Varios Mensajes a la vez**: un jugador puede tener varios Mensajes de sheij activos, cada uno con su plazo; un 6 en el ingreso trae otro aunque ya tenga uno (sigue saliendo un solo Mensaje por ronda). Sustituye a la decisión anterior de un solo Mensaje activo. Las duas del sheij de R41 miran todos los Mensajes activos y el Cuaderno de ruta elige a cuál da plazo. | (este commit) | Reglamento 18.2 y preguntas frecuentes; guía; diseño; hoja resumen | — |
 
 ## Estado
 Aplicado el 3 de noviembre de 2026 (respaldo previo en `respaldo-antes-de-cambios-2026-11-03/`):

@@ -629,8 +629,8 @@ T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo y
     const j = e.jugadores[pid];
     const [x] = ctx.t(`${j.nombre}: cruzar de noche hasta la iglesia de Toledo`, 1);
     // +1 «duas del sheij» (una sola vez) si tienes algo de Abu Madyan, Ibn Arabi o Ibn Hazm: su Mensaje en curso o cumplido, la Bendición, el Dado o un libro de Ibn Hazm.
-    const SHEIJS = ['Abu Madyan', 'Ibn Arabi', 'Ibn Hazm'], msg = j.mensaje && data.mensajes.mensajes.find((q) => q.id === j.mensaje.id);
-    const duas = [msg && SHEIJS.includes(msg.de) && `mensaje de ${msg.de}`, ...(j.extra.sheijsCumplidos || []).filter((d) => SHEIJS.includes(d)).map((d) => `mensaje cumplido de ${d}`),
+    const SHEIJS = ['Abu Madyan', 'Ibn Arabi', 'Ibn Hazm'], deActivos = j.mensajes.map((m) => data.mensajes.mensajes.find((q) => q.id === m.id)?.de);
+    const duas = [...deActivos.filter((d) => SHEIJS.includes(d)).map((d) => `mensaje de ${d}`), ...(j.extra.sheijsCumplidos || []).filter((d) => SHEIJS.includes(d)).map((d) => `mensaje cumplido de ${d}`),
       tieneItem(j, 'bendicionAbuMadyan') && 'Bendición de Abu Madyan', tieneItem(j, 'dadoIbnArabi') && 'Dado de Ibn Arabi', tieneItem(j, 'libroIbnHazm') && 'libro de Ibn Hazm'].filter(Boolean);
     const r = x + (j.destreza ? 1 : 0) + (duas.length ? 1 : 0);
     if (j.destreza || duas.length) ctx.say(`${[j.destreza && 'destreza +1', duas.length && `duas del sheij +1 (${duas[0]})`].filter(Boolean).join(', ')} → ${r}.`);
@@ -647,8 +647,11 @@ const LIBRO_IBN_HAZM_MSG = 'M6';   // solo el Mensaje de entregar un libro, papi
 const IDS_LIBRO = (c) => esLibro(c) || (c.tipo === 'objeto' && ['OB38', 'OB46', 'OB47'].includes(c.ref));   // papel de Samarcanda, manuscritos de la India y libros de Córdoba cuentan como libro
 export function mensajes(data, e, pid, ev, inf) {
   const j = e.jugadores[pid];
-  if (!j?.mensaje || j.eliminado) return;
-  const id = j.mensaje.id, t = e.turno;
+  if (!j || j.eliminado) return;
+  for (const m of j.mensajes.slice()) revisarMensaje(data, e, pid, m.id, ev, inf);
+}
+function revisarMensaje(data, e, pid, id, ev, inf) {
+  const j = e.jugadores[pid], t = e.turno;
   let cumple = false;
   switch (id) {
     case 'M1': case 'M9': cumple = ev === 'llegada' && inf.primera; break;
@@ -667,7 +670,7 @@ export function mensajes(data, e, pid, ev, inf) {
   }
   if (!cumple) return;
   const m = data.mensajes.mensajes.find((x) => x.id === id);
-  j.dinares += m.dinares; j.noches += m.noches; e.mazos.descarte.mensajes.push(id); j.mensaje = null;
+  j.dinares += m.dinares; j.noches += m.noches; e.mazos.descarte.mensajes.push(id); j.mensajes = j.mensajes.filter((x) => x.id !== id);
   log(e, `${j.nombre} cumple un mensaje de ${m.de} y cobra ${m.dinares} dinares${m.noches ? ' y ' + m.noches + ' noches' : ''}.`, { pid });
   (j.extra.sheijsCumplidos ||= []).push(m.de);
   if (m.de === 'Ibn Arabi' && !tieneItem(j, 'dadoIbnArabi')) {                          // regla de la casa: el Dado de Ibn Arabi

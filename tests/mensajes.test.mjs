@@ -1,6 +1,7 @@
-// Mensajes de sheijs (reglamento 18.2): un solo Mensaje activo por jugador, sin repetirse y sin fallar al agotarse. node tests/mensajes.test.mjs
+// Mensajes de sheijs (reglamento 18.2): varios Mensajes activos por jugador, sin repetirse y sin fallar al agotarse. node tests/mensajes.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, vista, tick } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar } from '../shared/engine.js';
+import { mensajes } from '../shared/retos.js';
 import { dado } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
 
@@ -21,46 +22,51 @@ function partida(pjs, semilla = 11) {
   return { e, act, ids, asentar };
 }
 
-// Tira el dado de ingreso del jugador en turno forzando `valor`; devuelve el Mensaje activo antes y después.
+// Tira el dado de ingreso del jugador en turno forzando `valor`; devuelve los Mensajes activos antes y después.
+const ids = (j) => j.mensajes.map((m) => m.id);
 function ingreso(g, valor) {
   const { e, act } = g;
   const pid = e.turno.pid;
-  const antes = e.jugadores[pid].mensaje?.id || null;
+  const antes = ids(e.jugadores[pid]);
   for (let sem = 1; ; sem++) { const p = { semilla: sem }; if (dado(p) === valor) { e.semilla = sem; break; } }
   const r = act(pid, { t: 'tirarDados' });
   assert.ok(r.ok, r.error);
   assert.equal(e.log.filter((l) => l.pid === pid && /dado de ingreso/.test(l.texto)).pop().texto.slice(-2, -1), String(valor));
   if (e.dados) act(pid, { t: 'cerrarDados' });
-  return { pid, antes, despues: e.jugadores[pid].mensaje?.id || null };
+  return { pid, antes, despues: ids(e.jugadores[pid]) };
 }
 const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 'terminarTurno' }); assert.ok(r.ok, r.error); g.asentar(); };
 
 {
-  // Un solo Mensaje activo por jugador: un segundo 6 no cambia el que ya tiene ni consume una carta del mazo.
+  // Se pueden tener varios Mensajes activos: un segundo 6 trae otro y no quita el que ya tiene.
   const g = partida(['4', '7', '5']); const { e } = g;
   const a = ingreso(g, 6);
-  assert.equal(a.antes, null);
-  assert.ok(a.despues, 'con un 6 roba su Mensaje');
+  assert.deepEqual(a.antes, []);
+  assert.equal(a.despues.length, 1, 'con un 6 roba su Mensaje');
   const resto = e.mazos.mensajes.length;
   assert.equal(resto, TOTAL - 1);
   cierraTurno(g);
   for (let k = 0; k < 2; k++) { ingreso(g, 1); cierraTurno(g); }
   assert.equal(e.turno.pid, a.pid, 'vuelve a tocarle');
   const b = ingreso(g, 6);
-  assert.equal(b.antes, a.despues);
-  assert.equal(b.despues, a.despues, 'su Mensaje activo no cambia');
-  assert.equal(e.mazos.mensajes.length, resto, 'el 6 no saca otra carta del mazo');
+  assert.equal(b.despues.length, 2, 'recibe otro Mensaje');
+  assert.equal(b.despues[0], a.despues[0], 'conserva el primero');
+  assert.equal(e.mazos.mensajes.length, resto - 1, 'el 6 saca otra carta del mazo');
+  assert.equal(vista(data, e, a.pid).mensajes.length, 2, 'su vista trae los dos, con su carta');
+  assert.ok(vista(data, e, a.pid).mensajes.every((m) => m.carta?.texto));
+  const otro = e.orden.find((i) => i !== a.pid);
+  assert.equal(vista(data, e, otro).mensajes.length, 0, 'los demás no ven sus Mensajes');
+  assert.equal(vista(data, e, otro).jugadores[a.pid].nMensajes, 2);
 }
 
 {
-  // El anfitrión tampoco puede dar un segundo Mensaje activo.
+  // El anfitrión también puede dar un segundo Mensaje.
   const g = partida(['4', '7']); const { e, act } = g;
   const host = e.host, otro = e.orden.find((i) => i !== host);
   assert.ok(act(host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' }).ok);
-  assert.ok(e.jugadores[otro].mensaje);
-  const r = act(host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' });
-  assert.ok(!r.ok, 'segundo Mensaje activo rechazado');
-  assert.equal(e.mazos.mensajes.length, TOTAL - 1);
+  assert.ok(act(host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' }).ok, 'segundo Mensaje activo');
+  assert.equal(e.jugadores[otro].mensajes.length, 2);
+  assert.equal(e.mazos.mensajes.length, TOTAL - 2);
 }
 
 {
@@ -70,19 +76,17 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
   let vueltas = 0, agotado = false;
   while (vueltas++ < 400) {
     const pid = e.turno.pid;
-    const antes = e.jugadores[pid].mensaje?.id || null;
     const r = ingreso(g, 6);
-    if (r.despues && r.despues !== antes) vistos.push(r.despues);
-    for (const j of Object.values(e.jugadores)) assert.ok(!j.eliminado || !j.mensaje);
-    for (const id of e.orden) { const m = e.jugadores[id].mensaje; assert.ok(m === null || typeof m.id === 'string'); }
+    vistos.push(...r.despues.filter((x) => !r.antes.includes(x)));
+    for (const j of Object.values(e.jugadores)) assert.ok(!j.eliminado || !j.mensajes.length);
+    for (const id of e.orden) for (const m of e.jugadores[id].mensajes) assert.equal(typeof m.id, 'string');
     assert.equal(new Set(vistos).size, vistos.length, 'ningún Mensaje se repite: ' + vistos.join(','));
     if (!e.mazos.mensajes.length) agotado = true;
     cierraTurno(g);
     if (agotado && vistos.length === TOTAL) {
       for (let k = 0; k < 12; k++) {             // el mazo está agotado: un 6 ya no hace nada y el motor sigue sin fallar
-        const antes2 = e.jugadores[e.turno.pid].mensaje?.id || null;
         const q = ingreso(g, 6);
-        assert.equal(q.despues, antes2, 'sin Mensajes nuevos');
+        assert.deepEqual(q.despues, q.antes, 'sin Mensajes nuevos');
         assert.equal(e.mazos.mensajes.length, 0);
         cierraTurno(g);
       }
@@ -104,17 +108,33 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
   // Un Mensaje vencido o de un jugador eliminado sale del juego y no vuelve al mazo.
   const g = partida(['4', '7', '5']); const { e, act } = g;
   const a = ingreso(g, 6);
-  const id = a.despues; assert.ok(id);
-  e.jugadores[a.pid].mensaje.turnoLimite = e.ronda - 1;
+  const id = a.despues[0]; assert.ok(id);
+  e.jugadores[a.pid].mensajes[0].turnoLimite = e.ronda - 1;
   cierraTurno(g);
-  assert.equal(e.jugadores[a.pid].mensaje, null, 'vence');
+  assert.equal(e.jugadores[a.pid].mensajes.length, 0, 'vence');
   assert.ok(!e.mazos.mensajes.includes(id), 'no vuelve al mazo');
   assert.ok(e.mazos.descarte.mensajes.includes(id));
   const otro = e.orden.find((i) => i !== a.pid);
   assert.ok(act(e.host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' }).ok);
-  const mid = e.jugadores[otro].mensaje.id;
+  const mid = e.jugadores[otro].mensajes[0].id;
   assert.ok(act(e.host, { t: 'host.eliminar', pid: otro }).ok);
-  assert.equal(e.jugadores[otro].mensaje, null);
+  assert.equal(e.jugadores[otro].mensajes.length, 0);
   assert.ok(!e.mazos.mensajes.includes(mid), 'el Mensaje de un eliminado sale del juego');
+}
+{
+  // Con dos Mensajes, cumplir uno deja el otro; una partida guardada con el campo viejo se migra.
+  const g = partida(['4', '7']); const { e } = g;
+  const pid = e.turno.pid, j = e.jugadores[pid];
+  j.mensajes = [{ id: 'M12', turnoLimite: 99 }, { id: 'M7', turnoLimite: 99 }]; j.ciudad = 'Bagdad';
+  mensajes(data, e, pid, 'llegada', { primera: false });
+  assert.deepEqual(ids(j), ['M12'], 'solo se cumple M7');
+  j.ciudad = 'Yemen'; mensajes(data, e, pid, 'llegada', { primera: false });
+  assert.deepEqual(ids(j), [], 'luego se cumple el otro');
+  const viejo = JSON.parse(serializar(e)); viejo.v = 2;
+  for (const x of Object.values(viejo.jugadores)) { delete x.mensajes; x.mensaje = null; }
+  viejo.jugadores[pid].mensaje = { id: 'M3', turnoLimite: 9 };
+  const m = restaurar(JSON.stringify(viejo));
+  assert.deepEqual(m.jugadores[pid].mensajes, [{ id: 'M3', turnoLimite: 9 }], 'partida guardada: el Mensaje pasa a la lista');
+  assert.equal(m.jugadores[pid].mensaje, undefined);
 }
 console.log('mensajes OK');

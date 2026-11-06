@@ -27,7 +27,7 @@ function aViajar(g, pid, destino = 'Damasco') {
   assert.equal(e.turno.pid, pid);
   assert.ok(act(pid, { t: 'tirarDados' }).ok);
   assert.ok(act(pid, { t: 'cerrarDados' }).ok);
-  const j = e.jugadores[pid]; j.dinares = 100; j.mensaje = null;
+  const j = e.jugadores[pid]; j.dinares = 100; j.mensajes = [];
   e.sinCaravanasBagdad = false; e.mods = {}; e.evento.actual = null;   // el evento de ronda sale al azar: la prueba necesita poder viajar
   const antes = j.dinares;
   const r = act(pid, { t: 'viajar', destino });

@@ -14,7 +14,7 @@
  * @property {number|null} ultimaCarta       nro de la última carta pública
  * @property {Array<{uid:string,tipo:string,ref:string,datos:Object}>} mano   SOLO tus cartas
  *
- * @typedef {Object} Jugador  campos públicos: id,nombre,pj,listo,conectado,dinares,noches,ciudad,herido,perdido,buscado,eliminado,nMano{tipo:n},tieneMensaje
+ * @typedef {Object} Jugador  campos públicos: id,nombre,pj,listo,conectado,dinares,noches,ciudad,herido,perdido,buscado,eliminado,nMano{tipo:n},tieneMensaje,nMensajes
  * @typedef {Object} CartaHist  {nro,id,deck('cuento' = cuento de ambiente, 19.7),titulo,sub?,texto,efecto?,quien,t,ronda,arte,para?,resuelto?}
  */
 export const esMiTurno = (s) => !!s && s.turno?.pid === s.yo && s.fase === 'juego';

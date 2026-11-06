@@ -1,7 +1,7 @@
 // Utilidades comunes del motor de «Mil y una Noches»: azar reproducible, registro, cartas, decisiones pendientes (pend),
 // cola de dados, objetos en mano, pagos y eliminación. Código puro (sin DOM ni APIs de Node). Referencias: «R 11.4» = sección 11.4 del reglamento.
 
-export const VERSION_ESTADO = 2;
+export const VERSION_ESTADO = 3;
 export const MIN_LECTURA_MS = 5000;
 export const MIN_DADOS_MS = 1900;
 export const LIMITE_PEND_MS = 90000;           // una decisión sin respuesta se resuelve sola con su opción por defecto
@@ -277,7 +277,8 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   if (!j || j.eliminado) return;
   j.eliminado = true;
   const k = por && e.jugadores[por] && !e.jugadores[por].eliminado ? e.jugadores[por] : null;
-  if (j.mensaje) { e.mazos.descarte.mensajes.push(j.mensaje.id); j.mensaje = null; }
+  for (const m of j.mensajes || []) e.mazos.descarte.mensajes.push(m.id);
+  j.mensajes = [];
   const cartas = j.mano.splice(0);
   if (k) {
     k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan

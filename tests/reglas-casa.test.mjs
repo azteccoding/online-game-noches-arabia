@@ -98,7 +98,7 @@ function partida(pjs, opciones = {}, semilla = 5) {
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
-  j.mensaje = { id: 'M13' }; j.ciudad = 'Damasco';
+  j.mensajes = [{ id: 'M13' }]; j.ciudad = 'Damasco';
   mensajes(data, e, pid, 'llegada', { primera: false });
   assert.ok(tieneItem(j, 'dadoIbnArabi'), 'Ibn Arabi regala el dado al cumplir su mensaje');
   const gana = peleaNPC(data, e, pid, { etq: 'Gigante invencible', dados: 2, bono: 100 });
@@ -239,17 +239,17 @@ function forzar(e, ...valores) {
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
-  j.mensaje = { id: 'M7' }; j.ciudad = 'Bagdad';
+  j.mensajes = [{ id: 'M7' }]; j.ciudad = 'Bagdad';
   mensajes(data, e, pid, 'llegada', { primera: false });
-  assert.equal(j.mensaje, null, 'M7 se cumple'); assert.ok(!j.mano.some((c) => c.ref === 'libroIbnHazm'), 'los otros Mensajes de Ibn Hazm no dan libro');
+  assert.equal(j.mensajes.length, 0, 'M7 se cumple'); assert.ok(!j.mano.some((c) => c.ref === 'libroIbnHazm'), 'los otros Mensajes de Ibn Hazm no dan libro');
   const papiro = { uid: 9200, tipo: 'item', ref: 'papiro', extra: { valor: 4, ronda: 1 } };
-  j.mensaje = { id: 'M6' }; mensajes(data, e, pid, 'trato', { dio: [papiro] });
+  j.mensajes = [{ id: 'M6' }]; mensajes(data, e, pid, 'trato', { dio: [papiro] });
   const libro = j.mano.find((c) => c.ref === 'libroIbnHazm');
   assert.ok(libro && libro.extra.titulo === 'El collar de la paloma', 'M6 regala un libro con título real');
   turnoDe(e, pid, 'Bagdad'); e.turno.fase = 'acciones'; e.ronda += 3;
   const antes = j.dinares; assert.ok(vender(data, e, pid, { uid: libro.uid }).ok);
   assert.equal(j.dinares, antes + Math.floor((50 + 6) / 2), 'la biblioteca paga la mitad del valor (50 + 2 por ronda)');
-  for (let k = 0; k < 3; k++) { j.mensaje = { id: 'M6' }; mensajes(data, e, pid, 'trato', { dio: [papiro] }); }
+  for (let k = 0; k < 3; k++) { j.mensajes = [{ id: 'M6' }]; mensajes(data, e, pid, 'trato', { dio: [papiro] }); }
   assert.equal(j.mano.filter((c) => c.ref === 'libroIbnHazm').length, 2, 'máximo 2 en la mano');
   const otro = g.ids[1], uLibro = j.mano.find((c) => c.ref === 'libroIbnHazm').uid; e.jugadores[otro].ciudad = j.ciudad;
   const r = g.act(pid, { t: 'proponerTrato', con: otro, ofrece: { dinares: 0, objetos: [uLibro] }, pide: { dinares: 5, objetos: [] } });
@@ -260,13 +260,13 @@ function forzar(e, ...valores) {
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
-  A.mensaje = { id: 'M7' }; A.ciudad = 'Bagdad'; mensajes(data, e, a, 'llegada', { primera: false });   // Ibn Hazm: no da receta
+  A.mensajes = [{ id: 'M7' }]; A.ciudad = 'Bagdad'; mensajes(data, e, a, 'llegada', { primera: false });   // Ibn Hazm: no da receta
   assert.ok(!tieneItem(A, 'recetaAverroes'));
-  A.mensaje = { id: 'M1' }; mensajes(data, e, a, 'llegada', { primera: true });
+  A.mensajes = [{ id: 'M1' }]; mensajes(data, e, a, 'llegada', { primera: true });
   assert.ok(tieneItem(A, 'recetaAverroes'), 'el primero que cumple un Mensaje de Averroes recibe la receta');
   assert.ok(e.log.some((l) => l.aviso && /receta de médico/.test(l.texto)), 'aviso para todos');
-  B.mensaje = { id: 'M1' }; mensajes(data, e, b, 'llegada', { primera: true });
-  A.mensaje = { id: 'M1' }; mensajes(data, e, a, 'llegada', { primera: true });
+  B.mensajes = [{ id: 'M1' }]; mensajes(data, e, b, 'llegada', { primera: true });
+  A.mensajes = [{ id: 'M1' }]; mensajes(data, e, a, 'llegada', { primera: true });
   assert.ok(!tieneItem(B, 'recetaAverroes'), 'solo hay una por partida');
   assert.equal(A.mano.filter((c) => c.ref === 'recetaAverroes').length, 1, 'no se duplica');
   turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; e.turno.heridoAhora = true; e.turno.principal = true;
@@ -280,10 +280,10 @@ function forzar(e, ...valores) {
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
-  A.mensaje = { id: 'M12' }; A.ciudad = 'Yemen'; mensajes(data, e, a, 'llegada', { primera: false });
+  A.mensajes = [{ id: 'M12' }]; A.ciudad = 'Yemen'; mensajes(data, e, a, 'llegada', { primera: false });
   assert.ok(tieneItem(A, 'bendicionAbuMadyan'), 'el primero que cumple un Mensaje de Abu Madyan recibe la bendición');
   assert.ok(e.log.some((l) => l.aviso && /Abu Madyan bendice/.test(l.texto)), 'aviso para todos');
-  B.mensaje = { id: 'M12' }; B.ciudad = 'Yemen'; mensajes(data, e, b, 'llegada', { primera: false });
+  B.mensajes = [{ id: 'M12' }]; B.ciudad = 'Yemen'; mensajes(data, e, b, 'llegada', { primera: false });
   assert.ok(!tieneItem(B, 'bendicionAbuMadyan'), 'solo hay una por partida');
   // R23: con un 1 o 2 asoman bandoleros, pero con la bendición pasan de largo
   turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones'; A.ciudad = 'Magreb'; A.dinares = 50;
@@ -311,7 +311,7 @@ function forzar(e, ...valores) {
   const e = g.e;
   for (let k = 0; k < 40 && (e.pend || e.dados || !e.turno || e.turno.fase !== 'ingreso' || e.turno.pid === 'npc'); k++) { g.tickear(100000); if (e.dados) e.dados = null; }
   const pid = e.turno.pid;
-  e.jugadores[pid].mensaje = null; e.log = e.log.filter((l) => !l.msgRonda);
+  e.jugadores[pid].mensajes = []; e.log = e.log.filter((l) => !l.msgRonda);
   forzar(e, 3); assert.ok(g.act(pid, { t: 'tirarDados' }).ok);
   assert.ok(e.dados.sheij && !e.dados.sheij.ok && /No hay carta de sheij/.test(e.dados.sheij.texto), 'aviso rojo sin el 6');
 }
@@ -513,6 +513,16 @@ function avanzarHasta(g, cond, pasos = 400) {
   j.ciudad = 'Estambul'; j.dinares = 100; turnoDe(e, g.ids[1], 'Estambul');
   const t = tienda(data, e, a); const cim = t.find((x) => x.ref === 'cimitarra');
   assert.ok(cim && /\+2 al pelear/.test(cim.nombre), 'la tienda dice «Cimitarra · +2 al pelear»');
+}
+
+// R41: las duas del sheij cuentan aunque el Mensaje del sheij no sea el primero de la lista
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, j = e.jugadores[a];
+  const av = data.mensajes.mensajes.find((m) => m.de === 'Averroes').id, ih = data.mensajes.mensajes.find((m) => m.de === 'Ibn Hazm').id;
+  turnoDe(e, a, 'Andalucía'); j.ciudad = 'Andalucía'; j.destreza = false; j.mensajes = [{ id: av, turnoLimite: 99 }, { id: ih, turnoLimite: 99 }];
+  assert.ok(g.act(a, { t: 'reto', id: 'R41' }).ok);
+  assert.match(JSON.stringify([e.dados, e.colaDados]), /duas del sheij \+1 \(mensaje de Ibn Hazm\)/);
 }
 
 // Meta: solo cuentan las noches (los dinares ya no se suman)

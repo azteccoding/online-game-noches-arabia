@@ -293,7 +293,7 @@ export function disponibles(data, e, pid) {
       if (c.ref === 'OB42' && !(j.buscado > 0)) continue;
       if (c.ref === 'OB27' && t.maxTramos >= 3) continue;
       if (c.ref === 'OB33' && !(t.ccActual && t.ccActual.tipo === 'trivia' && t.ccActual.descartada == null)) continue;
-      if (c.ref === 'OB31' && !(j.misiones.length || j.mensaje)) continue;
+      if (c.ref === 'OB31' && !(j.misiones.length || j.mensajes.length)) continue;
       const x = { k: 'usar', uid: c.uid, titulo: 'Usar ' + u.titulo };
       if (u.obj) { const ob = enCiudad(e, j.ciudad, pid).filter((q) => !e.jugadores[q].npc); if (!ob.length) continue; x.objetivos = ob; }
       r.push(x);
@@ -439,7 +439,8 @@ export function usar(data, e, pid, a) {
     case 'OB27': if (t.maxTramos >= 3) return err('Ya la usaste.'); consumirObj(data, e, pid, 'OB27'); t.maxTramos = 3; log(e, `${j.nombre} usa una Pluma de roc: un tramo extra este turno.`, { pid }); return ok();
     case 'OB31': {
       if (j.extra.cuadernoRuta) return err('Solo una vez por partida.');
-      if (a.mision === 'mensaje' && j.mensaje) j.mensaje.turnoLimite++;
+      const msg = typeof a.mision === 'string' && j.mensajes.find((m) => a.mision === 'mensaje:' + m.id);
+      if (msg) msg.turnoLimite++;
       else if (j.misiones[a.mision] && j.misiones[a.mision].limite != null) j.misiones[a.mision].limite++;
       else return err('Elige un mensaje o una misión con plazo.');
       j.extra.cuadernoRuta = true; log(e, `${j.nombre} gana un turno de plazo con su Cuaderno de ruta.`, { pid }); return ok();

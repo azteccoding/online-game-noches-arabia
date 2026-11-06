@@ -38,7 +38,7 @@ export function nuevoJuego(data, { codigo = 'MIL1', semilla = Date.now() & 0x7ff
 
 function nuevoJugador(e, id, nombreJ, token) {
   return { id, nombre: String(nombreJ || 'Jugador').slice(0, 24), token, pj: null, listo: false, conectado: true, dinares: 0, noches: 0, ciudad: 'Bagdad', ciudadPrevia: null,
-    visitadas: [], mano: [], herido: false, perdido: false, buscado: 0, eliminado: false, escondido: 0, mensaje: null, retosHechos: [], misiones: [], destreza: false, turnos: 0,
+    visitadas: [], mano: [], herido: false, perdido: false, buscado: 0, eliminado: false, escondido: 0, mensajes: [], retosHechos: [], misiones: [], destreza: false, turnos: 0,
     transito: null, ventajaCombate: 0, extra: {} };
 }
 export function unir(e, { nombre: nom, token }) {
@@ -486,13 +486,13 @@ function tirarDados(data, e, pid, a) {
   const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
   t.fase = 'mov';
-  const tenia = j.mensaje;
+  const tenia = j.mensajes.length;
   if (v === data.config.minimoMensajeDado) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
   // Aviso en el resultado del dado: verde si llega una carta de sheij, rojo si no (y por qué, cuando salió el 6).
-  const recibe = !!j.mensaje && j.mensaje !== tenia;
+  const recibe = j.mensajes.length > tenia;
   d.sheij = { ok: recibe, texto: recibe ? '¡Hay carta de sheij! Recibes un Mensaje.'
     : v !== data.config.minimoMensajeDado ? `No hay carta de sheij (hace falta un ${data.config.minimoMensajeDado}).`
-      : tenia ? 'No hay carta de sheij: ya tienes un Mensaje activo.' : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' };
+      : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' };
   return ok();
 }
 function tirarDadosLibres(e, pid, a) {
@@ -505,10 +505,10 @@ function darMensaje(data, e, pid) {
   const j = e.jugadores[pid];
   if (j.npc) return;
   const yaEstaRonda = e.log.some((l) => l.msgRonda === e.ronda);                                                      // máx. 1 jugador por ronda
-  if (yaEstaRonda || j.mensaje) return;
+  if (yaEstaRonda) return;
   const id = robar(e, 'mensajes');
   if (!id) return;
-  j.mensaje = { id, turnoLimite: e.ronda + data.mensajes.mensajes.find((m) => m.id === id).plazoTurnos };
+  j.mensajes.push({ id, turnoLimite: e.ronda + data.mensajes.mensajes.find((m) => m.id === id).plazoTurnos });   // regla de la casa: se pueden tener varios a la vez
   publicarCarta(e, cartaDatos(data, 'mensaje', id), pid, [pid]);
   log(e, `${j.nombre} recibe un mensaje de un sheij.`, { msgRonda: e.ronda });
 }
@@ -712,7 +712,7 @@ function terminarTurno(data, e, pid) {
       log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad} (no se movió este turno).`, { pid });
     }
   }
-  if (j.mensaje && e.ronda > j.mensaje.turnoLimite) { e.mazos.descarte.mensajes.push(j.mensaje.id); j.mensaje = null; log(e, `${j.nombre} deja caducar su mensaje.`); }
+  for (const m of j.mensajes.filter((x) => e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   RET.finTurno(data, e, pid);
   t.fin = true;
@@ -832,9 +832,8 @@ function hostRepartir(data, e, a) {
   } else if (a.mazo === 'botin') {
     const c = OBJ.robarBotinPublico(data, e, a.pid); if (!c) return err('El Botín está vacío.');
   } else if (a.mazo === 'mensaje') {
-    if (j.mensaje) return err('Ese jugador ya tiene un mensaje activo (solo uno a la vez).');
     const id = robar(e, 'mensajes'); if (!id) return err('No quedan mensajes: cada uno sale una sola vez por partida.');
-    j.mensaje = { id, turnoLimite: e.ronda + 3 }; publicarCarta(e, cartaDatos(data, 'mensaje', id), a.pid, [a.pid]);
+    j.mensajes.push({ id, turnoLimite: e.ronda + 3 }); publicarCarta(e, cartaDatos(data, 'mensaje', id), a.pid, [a.pid]);
   } else return err('Mazo no repartible.');
   log(e, `El banco reparte una carta a ${j.nombre}.`); return ok();
 }
@@ -907,7 +906,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: !!j.mensaje, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id };
   }
   const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
@@ -931,7 +930,7 @@ export function vista(data, e, pid) {
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),
     misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [], encargo: yo?.extra?.encargoAsesinos ? { tipo: yo.extra.encargoAsesinos.tipo, ciudad: yo.extra.encargoAsesinos.ciudad, hasta: yo.extra.encargoAsesinos.hasta } : null,
-    mensaje: yo?.mensaje || null,
+    mensajes: yo ? yo.mensajes.map((m) => ({ ...m, carta: cartaDatos(data, 'mensaje', m.id) })) : [],
     tratos: Object.values(e.tratos).filter((x) => x.de === pid || x.con === pid).map((x) => ({ ...x, ofrece: ladoVisto(e, pid, x.de, x.ofrece), pide: ladoVisto(e, pid, x.con, x.pide) })),
     comerciables: yo ? comerciables(data, e, pid) : {},
     asesinos: { actuaron: e.asesinos.actuaron }, kanmakan: { dueno: e.kanmakan.dueno, usada: e.kanmakan.usada }, firmanesLibres: e.firmanes,
@@ -1020,7 +1019,7 @@ export function migrar(e) {
   e.participantes ??= Object.values(e.jugadores).filter((j) => j.pj).length; e.carreras ||= {}; e.carrerasActivas ||= [];
   e.asesinos ||= { actuaron: false, contrato: null }; e.firmanes ??= 3; e.kanmakan ||= { dueno: null, usada: false }; e.tesoros ||= {}; e.derrota ||= null;
   if (e.mazos) { e.mazos.botin ||= []; e.mazos.ifrit ||= []; e.mazos.descarte.botin ||= []; e.mazos.descarte.ifrit ||= []; }
-  for (const j of Object.values(e.jugadores)) { j.misiones ||= []; j.destreza ??= false; j.turnos ??= 0; j.transito ??= null; j.ventajaCombate ??= 0; j.extra ||= {}; j.retosHechos ||= []; }
+  for (const j of Object.values(e.jugadores)) { j.misiones ||= []; j.destreza ??= false; j.turnos ??= 0; j.transito ??= null; j.ventajaCombate ??= 0; j.extra ||= {}; j.retosHechos ||= []; j.mensajes ||= j.mensaje ? [j.mensaje] : []; delete j.mensaje; }
   return e;
 }
 
