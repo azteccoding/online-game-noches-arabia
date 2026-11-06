@@ -24,6 +24,7 @@ import PanelAnfitrion from './components/PanelAnfitrion.jsx';
 import { Historial, Registro } from './components/Registro.jsx';
 import AcercaDe from './components/AcercaDe.jsx';
 import Fin from './components/Fin.jsx';
+import AlarmaDesconexion from './components/AlarmaDesconexion.jsx';
 import VotoReinicio from './components/VotoReinicio.jsx';
 import './styles/ui.css';
 
@@ -128,17 +129,7 @@ function Juego({ lienzo }) {
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
       {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
-      {s.fase === 'juego' && (() => {
-        const fuera = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.npc && !j.eliminado && j.conectado === false && j.id !== s.yo);
-        return fuera.length > 0 && (
-          <div className="alarma-desconexion" role="alert">
-            {fuera.map((j) => (
-              <p key={j.id}>⚠ {j.nombre} se desconectó{s.turno?.pid === j.id ? ': es su turno y la partida lo está esperando' : ''}.
-                {s.soyHost && <button className="btn mini sec" onClick={() => window.confirm(`¿Sacar a ${j.nombre} de la partida?`) && enviar(ACCIONES.host.eliminar(j.id))}>Sacar de la partida</button>}</p>
-            ))}
-          </div>
-        );
-      })()}
+      {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
       {error && <div className="toast" role="alert">{error}</div>}

@@ -266,7 +266,9 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .caja-banco small { font-family: inherit; opacity: .75; }
 fieldset:disabled { opacity: .5; }
 .alarma-desconexion { position: absolute; top: calc(var(--barra-alto, 56px) + 6px); left: 50%; transform: translateX(-50%); z-index: 85; max-width: 92%; background: #7a1d1d; color: #fff; border: 1px solid var(--oro-claro); border-radius: 12px; padding: 6px 12px; box-shadow: var(--sombra); }
-.alarma-desconexion p { margin: 4px 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.alarma-min { position: absolute; top: 2px; right: 4px; background: none; border: 0; color: #fff; font-size: 16px; line-height: 1; padding: 6px 8px; min-height: 0; }
+.alarma-mini { position: absolute; top: calc(var(--barra-alto, 56px) + 6px); left: 50%; transform: translateX(-50%); z-index: 85; background: #7a1d1d; color: #fff; border: 1px solid #efd08f; border-radius: 999px; padding: 4px 12px; font-size: 13px; min-height: 0; }
+.alarma-desconexion p { margin: 4px 0; padding-right: 22px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* En pantallas verticales la ficha de ciudad baja y deja ver la ruta animada en el mapa */
 .lienzo[data-forma='alta'] .hoja-modal.hoja-ciudad { top: auto; bottom: calc(var(--acciones-alto, 110px) + 8px); max-height: 36%; }
 /* Aviso del dado de ingreso: ¿llega carta de sheij? */
