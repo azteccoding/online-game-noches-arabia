@@ -25,6 +25,7 @@ import { Historial, Registro } from './components/Registro.jsx';
 import AcercaDe from './components/AcercaDe.jsx';
 import Fin from './components/Fin.jsx';
 import AlarmaDesconexion from './components/AlarmaDesconexion.jsx';
+import AvisoEspera from './components/AvisoEspera.jsx';
 import VotoReinicio from './components/VotoReinicio.jsx';
 import './styles/ui.css';
 
@@ -130,6 +131,7 @@ function Juego({ lienzo }) {
       {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
+      {s.fase === 'juego' && <AvisoEspera s={s} />}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
       {error && <div className="toast" role="alert">{error}</div>}

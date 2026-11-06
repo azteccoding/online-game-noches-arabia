@@ -55,6 +55,7 @@ export function conexion(e, pid, conectado) {
     log(e, conectado ? `${j.nombre} volvió a la partida.` : `⚠ ${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
   }
   if (j) j.conectado = conectado;
+  if (j && conectado) volver(e, pid);
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
 }
 
@@ -175,6 +176,43 @@ function empezarRonda(data, e) {
   return ok();
 }
 
+// Regla de la casa: si un jugador no tira su dado en 60 segundos, el banco decide sacarlo o esperarlo; nunca se tira por él.
+// Sacado, pierde ese turno y no juega hasta que vuelva; entonces su turno pasa al final del orden.
+const ESPERA_SACAR_MS = 60000;
+export function esperaDado(e) {
+  if (e.fase !== 'juego' || e.pend) return null;
+  const d = e.dados, t = e.turno;
+  if (d) return !d.lanzado && !d.npc && e.jugadores[d.por] && !e.jugadores[d.por].npc ? { pid: d.por, desde: d.t0 } : null;
+  return t && t.fase === 'ingreso' && !e.jugadores[t.pid]?.npc ? { pid: t.pid, desde: t.t0 ?? e.ahora } : null;
+}
+const sacable = (e, x = esperaDado(e)) => !!x && e.ahora - x.desde >= ESPERA_SACAR_MS;
+const pierdeSuTurno = (e, id) => {
+  const j = e.jugadores[id];
+  if (j.npc || !(j.sacado || j.extra.turnoPerdido === e.ronda)) return false;
+  return humanosVivos(e).some((x) => !e.jugadores[x].sacado);                    // si no queda nadie más, la partida no da vueltas sola
+};
+function alFinalDelOrden(e, pid) {
+  const t = e.turno, i = e.orden.indexOf(pid);
+  e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
+  if (t) t.idx = t.pid === pid ? i - 1 : e.orden.indexOf(t.pid);                 // quien sigue es quien venía después de él
+}
+function sacarDelTurno(e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  j.sacado = true; j.extra.turnoPerdido = e.ronda;
+  log(e, `El banco saca a ${j.nombre} por no tirar su dado: pierde este turno y, cuando vuelva, jugará al final del orden.`, { pid, aviso: true });
+  if (t?.pid === pid) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; }
+  else for (const d of [e.dados, ...(e.colaDados || [])]) if (d?.por === pid && !d.lanzado) { d.lanzado = true; d.t0 = e.ahora; }   // estos dados ya estaban decididos: solo se destapan para que la pelea termine
+  alFinalDelOrden(e, pid);
+  return ok();
+}
+function volver(e, pid) {
+  const j = e.jugadores[pid];
+  if (!j?.sacado) return ok();
+  j.sacado = false; alFinalDelOrden(e, pid);
+  log(e, `${j.nombre} vuelve a la partida: su turno pasa al final del orden.`, { pid, aviso: true });
+  return ok();
+}
+
 function siguienteTurno(data, e, desde) {
   if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
@@ -183,7 +221,7 @@ function siguienteTurno(data, e, desde) {
     idx++;
     if (idx >= e.orden.length) { e.turno = null; return cierreRonda(data, e); }
     const id = e.orden[idx];
-    if (!e.jugadores[id].eliminado) { iniciarTurno(data, e, id, idx); return ok(); }
+    if (!e.jugadores[id].eliminado && !pierdeSuTurno(e, id)) { iniciarTurno(data, e, id, idx); return ok(); }
   }
 }
 
@@ -215,7 +253,7 @@ function cierreRonda(data, e) {
 function iniciarTurno(data, e, id, idx) {
   const j = e.jugadores[id], p = pjDe(data, j.pj);
   j.extra.descuentos = null;                                                // los descuentos de entrenar duran hasta tu siguiente turno
-  const t = e.turno = { pid: id, idx, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
+  const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   j.extra.jugoTurno = true; j.turnos++;
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; }
@@ -349,7 +387,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -418,7 +456,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'tirarDados': return tirarDados(data, e, pid, a);
     case 'lanzarDados': {
       if (!e.dados || e.dados.lanzado) return ok();
-      if (pid !== e.dados.por && !(esHost(e, pid) && e.jugadores[e.dados.por]?.conectado === false)) return err('Solo quien tira puede lanzar estos dados (el banco, si se desconectó).');
+      if (pid !== e.dados.por) return err('Solo quien tira puede lanzar estos dados.');
       e.dados.lanzado = true; e.dados.t0 = ahora; return ok();
     }
     case 'cerrarDados': {
@@ -461,6 +499,14 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'host.barajar': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostBarajar(e, a);
     case 'host.tirarNPC': if (!puedeNPC(e, pid)) return err('Solo el anfitrión (o cualquiera si el banco está desconectado).'); return tirarDadosLibres(e, pid, a);
     case 'host.pasarTurno': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!t) return err('No hay turno.'); e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; return ok();
+    case 'host.sacarEspera': {
+      if (!puedeNPC(e, pid)) return err('Solo el banco.');
+      const x = esperaDado(e);
+      if (!x || x.pid !== a.pid || x.pid === pid) return err('Ese jugador ya no está esperando dados.');
+      if (!sacable(e, x)) return err('Todavía no pasan 60 segundos.');
+      return sacarDelTurno(e, x.pid);
+    }
+    case 'volver': return volver(e, pid);
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
@@ -907,7 +953,7 @@ export function vista(data, e, pid) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
       buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
-      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id };
+      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado };
   }
   const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
     ccActual: e.turno.ccActual ? { tipo: e.turno.ccActual.tipo, nro: e.turno.ccActual.nro, descartada: e.turno.ccActual.descartada ?? null } : null };
@@ -925,6 +971,7 @@ export function vista(data, e, pid) {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
+    espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
@@ -997,6 +1044,8 @@ export function tick(data, e, ahora = Date.now()) {
 function tick0(data, e, ahora) {
   e.ahora = ahora;
   let cambio = false;
+  if (e.turno?.fase === 'ingreso' && (e.pend || e.dados)) e.turno.t0 = ahora;   // los 60 segundos cuentan desde que puede tirar
+  const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
   if (e.fase === 'juego') {

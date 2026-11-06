@@ -41,7 +41,9 @@ export const ACCIONES = {
   pj: (sub, extra = {}) => ({ t: 'pj', sub, ...extra }),
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
   votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),
+  volver: () => ({ t: 'volver' }),
   host: {
+    sacarEspera: (pid) => ({ t: 'host.sacarEspera', pid }),
     dar: (pid, dinares, noches) => ({ t: 'host.dar', pid, dinares, noches }),
     corregir: (pid, campo, valor) => ({ t: 'host.corregir', pid, campo, valor }),
     repartir: (pid, mazo, id) => ({ t: 'host.repartir', pid, mazo, id }),

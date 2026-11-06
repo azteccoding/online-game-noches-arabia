@@ -1,6 +1,6 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
@@ -75,7 +75,7 @@ function partida(pjs, opciones = {}, semilla = 5) {
   assert.ok(!g.act(b, { t: 'cerrarDados' }).ok, 'otro jugador no puede cerrarlos');
   assert.ok(!g.act(e.host === a ? b : e.host, { t: 'lanzarDados' }).ok || e.jugadores[a].conectado === false, 'el banco no lanza por alguien conectado');
   e.jugadores[a].conectado = false;
-  if (e.host !== a) { assert.ok(g.act(e.host, { t: 'lanzarDados' }).ok); assert.ok(e.dados.lanzado, 'el banco lanza por un desconectado'); }
+  if (e.host !== a) assert.ok(!g.act(e.host, { t: 'lanzarDados' }).ok && !e.dados.lanzado, 'el banco tampoco lanza por un desconectado');
   e.dados.lanzado = false; e.jugadores[a].conectado = true;
   assert.ok(g.act(a, { t: 'lanzarDados' }).ok); assert.ok(e.dados.lanzado, 'su dueño los lanza');
 }
@@ -523,6 +523,31 @@ function avanzarHasta(g, cond, pasos = 400) {
   turnoDe(e, a, 'Andalucía'); j.ciudad = 'Andalucía'; j.destreza = false; j.mensajes = [{ id: av, turnoLimite: 99 }, { id: ih, turnoLimite: 99 }];
   assert.ok(g.act(a, { t: 'reto', id: 'R41' }).ok);
   assert.match(JSON.stringify([e.dados, e.colaDados]), /duas del sheij \+1 \(mensaje de Ibn Hazm\)/);
+}
+
+// 60 segundos sin tirar: el banco decide; nunca se tira por el jugador; al volver juega al final y ese turno se perdió
+{
+  const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e; for (const id of g.ids) e.jugadores[id].extra.clienteWeb = true;
+  for (let i = 0; i < 40 && (e.dados || e.pend); i++) { if (e.dados) e.dados.lanzado = true; if (e.pend) for (const q of e.pend.para) if (!e.pend.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id }); g.tickear(31000); }
+  const p = e.turno.pid, banco = g.ids.find((x) => x !== p), ronda = e.ronda; e.host = banco;
+  e.turno.t0 = e.ahora;
+  assert.ok(!g.act(banco, { t: 'host.sacarEspera', pid: p }).ok, 'antes de 60 segundos no se puede');
+  assert.ok(!vistaDe(e, banco).espera?.sacable);
+  g.tickear(61000);
+  assert.ok(vistaDe(e, banco).espera.sacable && vistaDe(e, banco).puedoSacar, 'a los 60 segundos el banco ve el botón');
+  assert.equal(e.turno.pid, p, 'esperarlo: nada cambia y nadie tira por él'); assert.equal(e.turno.fase, 'ingreso');
+  const otro = g.ids.find((x) => x !== p && x !== banco);
+  assert.ok(!g.act(otro, { t: 'host.sacarEspera', pid: p }).ok, 'solo el banco');
+  const siguiente = e.orden[e.orden.indexOf(p) + 1];
+  assert.ok(g.act(banco, { t: 'host.sacarEspera', pid: p }).ok);
+  assert.notEqual(e.turno?.pid, p, 'pierde el turno'); assert.ok(e.jugadores[p].sacado);
+  if (siguiente) assert.equal(e.turno?.pid, siguiente, 'sigue quien venía después de él');
+  assert.equal(e.orden[e.orden.length - 1], p, 'pasa al final del orden');
+  conexion(e, p, true);
+  assert.ok(!e.jugadores[p].sacado, 'al volver deja de estar sacado'); assert.equal(e.orden[e.orden.length - 1], p);
+  e.orden.slice(e.orden.indexOf(p)); assert.ok(e.jugadores[p].extra.turnoPerdido === ronda, 'ese turno se perdió aunque volvió en la misma ronda');
+  assert.ok(!g.act(banco, { t: 'lanzarDados' }).ok || !e.dados, 'el banco no lanza por nadie');
 }
 
 // Meta: solo cuentan las noches (los dinares ya no se suman)

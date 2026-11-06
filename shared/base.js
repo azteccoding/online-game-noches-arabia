@@ -124,7 +124,7 @@ export function robar(e, mazo) {
 export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null }) {
   const valores = grupos.flatMap((g) => g.valores);
   // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
-  // Si se desconecta, el banco puede lanzarlos por él. (Bots y pruebas, sin cliente web, siguen como antes.)
+  // Nadie los lanza por él: a los 60 segundos el banco puede sacarlo. (Bots y pruebas, sin cliente web, siguen como antes.)
   const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
   const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo };
   for (const r of resumen) if (r) log(e, r, { pid: por });
