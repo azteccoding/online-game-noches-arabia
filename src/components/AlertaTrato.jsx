@@ -47,7 +47,8 @@ export function AvisosTrato({ s }) {
       const otro = nombre(con), yo = nombre(s.yo);
       const contra = s.tratos.some((t) => t.de === con && t.con === s.yo && t.contra);
       const rechazo = s.log.slice(-15).some((l) => l.texto.startsWith(`${otro} rechaza el trato de ${yo}`));
-      avisar(contra ? `🔄 ${otro} te hace una contraoferta.` : rechazo ? `❌ ${otro} rechazó tu trato.` : `🤝 ${otro} aceptó tu trato.`);
+      const cancelado = s.log.slice(-15).some((l) => l.texto.includes('se cancela: ya no están en la misma ciudad') && l.texto.includes(otro));
+      avisar(cancelado ? `❌ Tu trato con ${otro} se canceló: ya no están en la misma ciudad.` : contra ? `🔄 ${otro} te hace una contraoferta.` : rechazo ? `❌ ${otro} rechazó tu trato.` : `🤝 ${otro} aceptó tu trato.`);
     }
     mias.current = abiertas;
   }, [s.tratos]);   // eslint-disable-line react-hooks/exhaustive-deps

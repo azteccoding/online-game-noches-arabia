@@ -6,7 +6,7 @@ import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
 
 export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new URLSearchParams(location.search).get('minLectura'))) || 5000;
-const PASO_MS = 1000;            // la ficha tarda .95 s en llegar a la ciudad (.peon en board.css): la carta espera a que termine
+const PASO_MS = 1800;            // la ficha camina por la ruta entre 1.3 y 3.6 s (Peon3D.jsx): la carta espera a que casi llegue
 const GIRO_MS = 600;             // el dorso se ve y gira; luego entra el anverso (animaciones .carta-dorso / .modal-carta.gira)
 const DORSOS = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', objeto: 'objetos', item: 'objetos', especial: 'objetos', trivia: 'trivia', mesa: 'cc', cuento: 'crp', personaje: 'personajes', reto: 'retos', ifrit: 'ifrit' };
 const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -17,7 +17,7 @@ const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 //      barra descendente de 5 s; el botón Cerrar espera a que acabe (los cuentos de ambiente se cierran al instante)
 //   3. al cerrar se DESMONTA (se libera el DOM y las imágenes) y solo permanece el dato en el historial
 // «Última carta» e historial vuelven a dibujar la carta desde esos datos (modo consulta, sin temporizador).
-export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
+export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudades }) {
   const vistos = useRef(null);
   const botonCerrar = useRef(null), puedeCerrarRef = useRef(false);
   const [cola, setCola] = useState([]);
@@ -32,6 +32,17 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta }) {
     const nuevos = s.historial.filter((h) => !vistos.current.has(h.nro) && (!h.para || h.para.includes(s.yo)));
     if (nuevos.length) { nuevos.forEach((h) => vistos.current.add(h.nro)); setCola((c) => [...c, ...nuevos.map((h) => h.nro)]); }
   }, [s.historial, s.yo]);
+
+  // Si alguien se movió, las cartas que se estaban leyendo se cierran (siguen en el Historial); las que hay que responder y las de la llegada, no.
+  const ciudades = useRef(huellaCiudades), ultimaNro = useRef(0);
+  useEffect(() => {
+    if (ciudades.current !== huellaCiudades) {
+      ciudades.current = huellaCiudades;
+      const lim = ultimaNro.current, porNro = Object.fromEntries(s.historial.map((h) => [h.nro, h]));
+      setCola((c) => c.filter((n) => n > lim || ['trivia', 'mesa'].includes(porNro[n]?.deck)));
+    }
+    ultimaNro.current = Math.max(0, ...s.historial.map((h) => h.nro));
+  }, [huellaCiudades, s.historial]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // Avisa al servidor hasta qué carta cerró este jugador (Yafar NPC espera a que todos cierren sus cartas).
   const avisado = useRef(0);
