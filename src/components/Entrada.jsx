@@ -3,14 +3,13 @@ import { iniciarJuego, useJuego } from '../game/store.js';
 
 export default function Entrada({ demoDisponible }) {
   const [nombre, setNombre] = useState(localStorage.getItem('mun.nombre') || '');
-  const [clave, setClave] = useState(localStorage.getItem('mun.clave') || '');
+  const [clave, setClave] = useState('');   // la clave nunca se guarda: se pide cada vez que se entra
   const [conClave, setConClave] = useState(false);
   const rechazo = useJuego((s) => s.rechazo);
   const pideClave = useJuego((s) => s.pideClave);
   useEffect(() => { fetch('/api/config').then((r) => r.json()).then((c) => setConClave(!!c.clave)).catch(() => {}); }, []);   // solo el servidor en línea con MUN_CLAVE la pide
   const entrar = () => {
-    if (conClave || pideClave) localStorage.setItem('mun.clave', clave.trim());
-    iniciarJuego({ nombre: nombre.trim() || 'Jugador' });
+    iniciarJuego({ nombre: nombre.trim(), clave: clave.trim() });
   };
   return (
     <main className="pantalla entrada">
@@ -19,7 +18,7 @@ export default function Entrada({ demoDisponible }) {
       <p className="ar" style={{ fontSize: 30, color: 'var(--oro-claro)', margin: 0 }}>ألف ليلة وليلة</p>
       <form className="panel form-entrada" onSubmit={(e) => { e.preventDefault(); entrar(); }}>
         <label htmlFor="nombre">¿Cómo te llamas?</label>
-        <input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={24} placeholder="Tu nombre" autoComplete="nickname" autoFocus />
+        <input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} maxLength={24} placeholder="Tu nombre" autoComplete="nickname" autoFocus required />
         {(conClave || pideClave) && <>
           <label htmlFor="clave">Clave de la partida</label>
           <input id="clave" type="password" value={clave} onChange={(e) => setClave(e.target.value)} maxLength={64} placeholder="La que te dio el banco" autoComplete="current-password" required />

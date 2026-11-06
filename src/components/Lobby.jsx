@@ -8,12 +8,15 @@ export default function Lobby({ s }) {
   const yo = s.jugadores[s.yo];
   const tomados = Object.fromEntries(Object.values(s.jugadores).filter((j) => j.pj).map((j) => [j.pj, j]));
   const todos = Object.values(s.jugadores);
+  const tarde = s.fase === 'juego';                // entra con la partida empezada, durante la primera ronda
   const puedeIniciar = s.soyHost && todos.some((j) => j.pj) && todos.filter((j) => j.pj).every((j) => j.listo);
   return (
     <main className="pantalla lobby">
       <header className="lobby-cab">
         <h1>Sala {s.codigo}</h1>
-        <p>Los demás entran abriendo <b>{s.urls?.[0] || location.host}</b> en su navegador (misma red).</p>
+        {tarde ? <p>{s.puedeUnirse ? 'La partida ya empezó. Elige personaje y entra: jugarás al final de esta ronda.' : 'La primera ronda ya terminó: ya no se puede entrar a esta partida.'}</p>
+          : <p>Los demás entran abriendo <b>{s.urls?.[0] || location.host}</b> en su navegador (misma red).</p>}
+        {s.cuenta != null && <p className="cuenta-inicio" role="status">La partida empieza en <b>{s.cuenta}</b> s</p>}
       </header>
       <section className="panel bloque" aria-label="Elige personaje">
         <h2>Elige tu personaje</h2>
@@ -37,15 +40,17 @@ export default function Lobby({ s }) {
           {todos.map((j) => (
             <li key={j.id}>
               {j.pj ? <Sprite pj={j.pj} alto={34} /> : <span className="sin-pj" />}
-              <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}{j.id === s.host ? ' · banco' : ''}</span>
+              <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}{j.id === s.host && j.listo ? ' · banco' : ''}</span>
               <span className={`chip${j.conectado ? '' : ' mal'}`}>{j.conectado ? 'conectado' : 'desconectado'}</span>
               <span className={`chip${j.listo ? '' : ' mal'}`}>{j.listo ? 'listo' : j.pj ? 'sin confirmar' : 'sin personaje'}</span>
             </li>
           ))}
         </ul>
         <div className="fila-btn">
-          <button className="btn sec" disabled={!yo?.pj} onClick={() => enviar(ACCIONES.listo(!yo.listo))}>{yo?.listo ? 'Ya no estoy listo' : 'Estoy listo'}</button>
-          <button className="btn" disabled={!puedeIniciar} onClick={() => enviar(ACCIONES.iniciar())}>Comenzar partida</button>
+          {tarde ? <button className="btn" disabled={!yo?.pj || !s.puedeUnirse} onClick={() => enviar(ACCIONES.listo(true))}>Entrar a la partida</button> : <>
+            <button className="btn sec" disabled={!yo?.pj} onClick={() => enviar(ACCIONES.listo(!yo.listo))}>{yo?.listo ? 'Ya no estoy listo' : 'Estoy listo'}</button>
+            <button className="btn" disabled={!puedeIniciar} onClick={() => enviar(ACCIONES.iniciar())}>Comenzar partida</button>
+          </>}
         </div>
         {s.soyHost && (
           <label className="dificultad">Dificultad de Yafar NPC y de los Asesinos

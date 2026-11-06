@@ -1,6 +1,6 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion, puedeUnirse, unirTarde } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
@@ -548,6 +548,55 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(!e.jugadores[p].sacado, 'al volver deja de estar sacado'); assert.equal(e.orden[e.orden.length - 1], p);
   e.orden.slice(e.orden.indexOf(p)); assert.ok(e.jugadores[p].extra.turnoPerdido === ronda, 'ese turno se perdió aunque volvió en la misma ronda');
   assert.ok(!g.act(banco, { t: 'lanzarDados' }).ok || !e.dados, 'el banco no lanza por nadie');
+}
+
+// Mensajes de ir a una ciudad: mínimo 20 dinares; trivias nuevas
+{
+  for (const id of ['M1', 'M4', 'M5', 'M7', 'M9', 'M11', 'M12', 'M13', 'M14', 'M15']) assert.ok(data.mensajes.mensajes.find((m) => m.id === id).dinares >= 20, id);
+  for (const m of data.mensajes.mensajes) assert.ok(m.premio.startsWith(m.dinares + ' dinares'), 'el premio dice lo que paga: ' + m.id);
+  const vat = data.trivias.trivias.find((t) => /mujeres no pueden votar/.test(t.pregunta)), uni = data.trivias.trivias.find((t) => /universidad más antigua/.test(t.pregunta));
+  assert.equal(vat.opciones[vat.correcta], 'El Vaticano'); assert.match(uni.opciones[uni.correcta], /Al-Qarawiyyin/); assert.match(uni.nota, /859/);
+}
+
+// El banco es el primero que elige personaje, está conectado y listo; la cuenta regresiva arranca sola
+{
+  const e = nuevoJuego(data, { semilla: 3, ahora: 1000 });
+  let now = 1000; const act = (p, a) => { now += 100; return reducir(data, e, p, a, now); };
+  const a = unir(e, { nombre: 'A', token: 'a' }), b = unir(e, { nombre: 'B', token: 'b' });
+  assert.equal(e.host, a, 'provisional: quien entró primero');
+  act(b, { t: 'elegirPj', pj: '4' }); act(b, { t: 'listo', v: true });
+  assert.equal(e.host, b, 'el primero con personaje y listo es el banco');
+  act(a, { t: 'elegirPj', pj: '7' }); act(a, { t: 'listo', v: true });
+  assert.equal(e.host, b, 'el banco no cambia si otro se pone listo después');
+  conexion(e, b, false); assert.equal(e.host, a, 'si se desconecta, pasa al siguiente'); conexion(e, b, true);
+  now += 1000; tick(data, e, now);
+  assert.ok(vista(data, e, a).cuenta > 0 && e.fase === 'lobby', 'todos listos: arranca la cuenta');
+  act(a, { t: 'listo', v: false }); now += 1000; tick(data, e, now);
+  assert.equal(vista(data, e, a).cuenta, null, 'si alguien deja de estar listo se detiene');
+  act(a, { t: 'listo', v: true }); now += 1000; tick(data, e, now); now += 10500; tick(data, e, now);
+  assert.equal(e.fase, 'juego', 'al llegar a cero empieza sola');
+}
+
+// Entrar tarde: solo durante la primera ronda
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e; assert.ok(puedeUnirse(e));
+  const n0 = e.burros, c = unirTarde(e, { nombre: 'Tarde', token: 'z' });
+  assert.ok(!e.orden.includes(c), 'no entra al orden hasta elegir');
+  assert.ok(g.act(c, { t: 'elegirPj', pj: '5' }).ok); assert.ok(g.act(c, { t: 'listo', v: true }).ok);
+  assert.ok(e.orden.includes(c) && e.jugadores[c].dinares > 0 && e.jugadores[c].ciudad === 'Bagdad'); assert.equal(e.burros, n0 + 1);
+  assert.equal(e.jugadores[e.orden[e.orden.length - 1]].pj, 'B', 'Yafar sigue al final');
+  e.ronda = 2; assert.ok(!puedeUnirse(e));
+  const d = unirTarde(e, { nombre: 'Muy tarde', token: 'y' }); assert.ok(!g.act(d, { t: 'elegirPj', pj: '1' }).ok, 'pasada la primera ronda ya no');
+}
+
+// Un trato se cancela si los dos ya no están en la misma ciudad
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids; e.jugadores[a].ciudad = e.jugadores[b].ciudad = 'Damasco';
+  e.tratos.x = { id: 'x', de: a, con: b, ofrece: { dinares: 1, objetos: [] }, pide: { dinares: 0, objetos: [] } };
+  e.jugadores[b].ciudad = 'Aleppo'; g.tickear(100);
+  assert.equal(e.tratos.x, undefined); assert.ok(e.log.some((l) => /se cancela: ya no están en la misma ciudad/.test(l.texto)));
 }
 
 // Meta: solo cuentan las noches (los dinares ya no se suman)

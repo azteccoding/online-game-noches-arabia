@@ -68,6 +68,13 @@ function Juego({ lienzo }) {
   // Cuando salen dados se cierran los paneles abiertos (Acciones, Mercado, Mano…) para que se vea la tirada.
   const idDados = s?.dados?.id;
   useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
+  // Cuando alguien se mueve de ciudad se cierran las ventanas abiertas en todas las pantallas; los dados y las decisiones siguen.
+  const huellaCiudades = s ? Object.values(s.jugadores).map((j) => j.id + j.ciudad).join() : '';
+  const ciudadesPrev = useRef(huellaCiudades);
+  useEffect(() => {
+    if (ciudadesPrev.current && ciudadesPrev.current !== huellaCiudades && s?.fase === 'juego') { setPanel(null); setConsulta(null); }
+    ciudadesPrev.current = huellaCiudades;
+  }, [huellaCiudades]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (huellaPrev.current !== huellaAcc && panel === 'acciones') setPanel(null);
     huellaPrev.current = huellaAcc;
@@ -75,7 +82,6 @@ function Juego({ lienzo }) {
 
   useEffect(() => {
     if (DEMO && params.get('demo')) iniciarJuego({ demo: true, nombre: params.get('nombre') || 'Ana' });
-    else if (localStorage.getItem('mun.token') && localStorage.getItem('mun.nombre')) iniciarJuego({ nombre: localStorage.getItem('mun.nombre') });
   }, []);
 
   const abrir = useCallback((p) => {
@@ -99,7 +105,7 @@ function Juego({ lienzo }) {
 
   if (DEMO && params.get('galeria')) return <React.Suspense fallback={null}><Galeria mazo={params.get('galeria')} ancho={Number(params.get('ancho')) || 360} /></React.Suspense>;
   if (!s) return conexion === 'inicio' ? <div className="app"><Entrada demoDisponible={DEMO} /></div> : <div className="app"><div className="pantalla"><p className="it">Conectando con el servidor…</p></div></div>;
-  if (s.fase === 'lobby') return <div className="app"><Lobby s={s} />{error && <div className="toast" role="alert">{error}</div>}</div>;
+  if (s.fase === 'lobby' || (s.fase === 'juego' && s.jugadores[s.yo]?.tarde)) return <div className="app"><Lobby s={s} />{error && <div className="toast" role="alert">{error}</div>}</div>;
 
   const ciudadPanel = panel?.startsWith('ciudad:') ? panel.slice(7) : null;
   return (
@@ -126,7 +132,7 @@ function Juego({ lienzo }) {
         {s.fase === 'juego' && <VotoReinicio s={s} />}
       </main>
       <PanelAcciones s={s} abrir={abrir} panel={panel} />
-      <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} />
+      <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} huellaCiudades={huellaCiudades} />
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
       {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}

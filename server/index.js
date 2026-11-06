@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { armarReaccion } from '../shared/reacciones.js';
 import { WebSocketServer } from 'ws';
-import { nuevoJuego, unir, reducir, vista, conexion, tick, serializar, restaurar } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, vista, conexion, tick, serializar, restaurar, puedeUnirse, unirTarde } from '../shared/engine.js';
 import { cargarDatos } from './datos.js';
 
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -175,7 +175,7 @@ wss.on('connection', (ws, req) => {
     if (m.t === 'hola') {
       let pid = Object.values(estado.jugadores).find((j) => m.token && j.token === m.token)?.id;
       let token = m.token;
-      if (!pid && CLAVE) {                                                           // sin token válido hay que dar la clave
+      if (CLAVE && !(pid && m.reconecta)) {                                          // solo una reconexión automática con token válido se ahorra la clave
         if (bloqueada(ws.ip)) return enviar(ws, { t: 'rechazo', clave: true, msg: 'Demasiados intentos con clave incorrecta. Espera un minuto.' });
         if (!claveOk(m.clave)) { if (m.clave) fallo(ws.ip); return enviar(ws, { t: 'rechazo', clave: true, msg: m.clave ? 'Clave incorrecta.' : 'Esta partida pide clave de entrada.' }); }
       }
@@ -185,10 +185,11 @@ wss.on('connection', (ws, req) => {
         if (perdido) { token = crypto.randomBytes(16).toString('hex'); perdido.token = token; pid = perdido.id; }
       }
       if (!pid) {
-        if (estado.fase !== 'lobby') return enviar(ws, { t: 'rechazo', msg: 'La partida ya empezó. Solo puede volver quien ya estaba: mismo navegador, o su mismo nombre si su dispositivo está desconectado.' });
-        if (Object.keys(estado.jugadores).length >= 8) return enviar(ws, { t: 'rechazo', msg: 'Sala llena (8 jugadores).' });
+        const tarde = puedeUnirse(estado);
+        if (estado.fase !== 'lobby' && !tarde) return enviar(ws, { t: 'rechazo', msg: 'La partida ya pasó de la primera ronda. Solo puede volver quien ya estaba: mismo navegador, o su mismo nombre si su dispositivo está desconectado.' });
+        if (Object.values(estado.jugadores).filter((j) => !j.npc).length >= 8) return enviar(ws, { t: 'rechazo', msg: 'Sala llena (8 jugadores).' });
         token = crypto.randomBytes(16).toString('hex');
-        pid = unir(estado, { nombre: m.nombre, token });
+        pid = (tarde ? unirTarde : unir)(estado, { nombre: m.nombre, token });
       } else if (m.nombre) estado.jugadores[pid].nombre = String(m.nombre).slice(0, 24);
       clientes.set(ws, pid); const nAntes = estado.logN || 0; conexion(estado, pid, true); avisarCaja(nAntes); estado.jugadores[pid].extra ||= {}; estado.jugadores[pid].extra.clienteWeb = true; marcar();
       enviar(ws, { t: 'bienvenida', token, pid, codigo: estado.codigo });

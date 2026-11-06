@@ -124,6 +124,7 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
 {
   // Con dos Mensajes, cumplir uno deja el otro; una partida guardada con el campo viejo se migra.
   const g = partida(['4', '7']); const { e } = g;
+  g.asentar();
   const pid = e.turno.pid, j = e.jugadores[pid];
   j.mensajes = [{ id: 'M12', turnoLimite: 99 }, { id: 'M7', turnoLimite: 99 }]; j.ciudad = 'Bagdad';
   mensajes(data, e, pid, 'llegada', { primera: false });

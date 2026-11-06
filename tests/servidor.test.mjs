@@ -121,8 +121,8 @@ srv = await arrancar();
 const B2 = await cliente('Beto', B.token); await dormir(200);
 assert.equal(B2.pid, B.pid, 'el token recupera al mismo jugador');
 assert.equal(JSON.stringify({ r: B2.s.ronda, t: B2.s.turno.pid, din: B2.s.jugadores[B2.pid].dinares, mano: B2.s.mano.length }), antes, 'estado idéntico tras reiniciar');
-const intruso = await new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const m = JSON.parse(r); if (m.t === 'rechazo') ok(m.msg); }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre: 'Intruso' }))); });
-assert.ok(/ya empez/.test(intruso), 'un desconocido no puede entrar a media partida');
+const tarde = await new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const m = JSON.parse(r); if (m.t === 'rechazo' || m.t === 'bienvenida') { ok(m); ws.close(); } }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre: 'Tarde' }))); });
+assert.equal(tarde.t, B2.s.ronda === 1 ? 'bienvenida' : 'rechazo', 'se puede entrar tarde solo mientras no termine la primera ronda');
 const A2 = await cliente('ana'); await dormir(200);
 assert.ok(B2.crudos.some((r) => r.includes('"t":"aviso"') && /ana volvió a la partida/i.test(r)), 'al volver se avisa a todos');
 assert.equal(A2.pid, A.pid, 'quien perdió su token recupera su sitio con su nombre si su dispositivo está desconectado');
@@ -147,7 +147,7 @@ assert.ok(fs.readdirSync(DIR).some((f) => /^partida-terminada-\d+\.json$/.test(f
 B2.ws.close(); C.ws.close();
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
 
-// clave de entrada (MUN_CLAVE, solo en línea): sin clave o con clave mala se rechaza; con la buena se entra; el token basta para volver
+// clave de entrada (MUN_CLAVE, solo en línea): sin clave o con clave mala se rechaza; con la buena se entra; el token solo basta para una reconexión automática
 srv = await arrancar(['--nuevo'], { MUN_CLAVE: 'camello-azul' });
 assert.ok(!srv.salida().includes('camello-azul'), 'la clave nunca se imprime');
 assert.deepEqual(await (await fetch(`http://127.0.0.1:${PUERTO}/api/config`)).json(), { clave: true });
@@ -156,7 +156,8 @@ let r1 = await hola({ nombre: 'Sin clave' }); assert.equal(r1.t, 'rechazo'); ass
 r1 = await hola({ nombre: 'Mala', clave: 'camello-rojo' }); assert.equal(r1.t, 'rechazo'); assert.match(r1.msg, /Clave incorrecta/);
 const D = await cliente('Dina', undefined, 'camello-azul'); assert.ok(D.pid, 'con la clave buena se entra');
 D.ws.close(); await dormir(150);
-r1 = await hola({ nombre: 'Dina', token: D.token }); assert.equal(r1.t, 'bienvenida', 'con su token vuelve sin escribir la clave');
+r1 = await hola({ nombre: 'Dina', token: D.token }); assert.equal(r1.t, 'rechazo', 'al entrar siempre se pide la clave, aunque tenga token');
+r1 = await hola({ nombre: 'Dina', token: D.token, reconecta: true }); assert.equal(r1.t, 'bienvenida', 'una reconexión automática con token no la vuelve a pedir');
 const E = await cliente('Eva', undefined, 'camello-azul'); await dormir(150);
 await E.a({ t: 'reclamarAnfitrion', pin: '1234' }); assert.ok(!E.s.soyHost && E.errores.includes('PIN incorrecto.'), 'en línea 1234 no sirve');
 await E.a({ t: 'reclamarAnfitrion', pin: 'camello-azul' }); assert.ok(E.s.soyHost, 'en línea el PIN del banco es la clave de entrada');

@@ -48,6 +48,43 @@ export function unir(e, { nombre: nom, token }) {
   if (!e.host) e.host = id;
   return id;
 }
+// Regla de la casa: en la sala, el banco es el primero que eligió personaje, está conectado y marcó «listo». Hasta entonces lo es, de manera
+// provisional, quien entró primero. Si alguien cede el banco o lo reclama con el PIN, esa decisión se respeta.
+function bancoDeSala(e) {
+  if (e.fase !== 'lobby' || e.bancoFijo) return;
+  const c = Object.values(e.jugadores).filter((j) => j.pj && j.listo && j.conectado !== false).sort((a, b) => (a.listoEn || 0) - (b.listoEn || 0))[0];
+  if (c) e.host = c.id;
+}
+// Regla de la casa: con todos conectados y listos arranca una cuenta regresiva; el banco también puede iniciar antes, a mano.
+const CUENTA_INICIO_MS = 10000;
+function salaLista(e) {
+  const js = Object.values(e.jugadores).filter((j) => !j.npc && j.conectado !== false);
+  if (!js.length || !js.every((j) => j.pj && j.listo)) return false;
+  const conPj = Object.values(e.jugadores).filter((j) => j.pj);
+  if (!conPj.every((j) => j.listo && j.conectado !== false) || conPj.length > 8) return false;
+  return conPj.length < 4 || conPj.some((j) => j.pj === 'B');
+}
+// Regla de la casa: se puede entrar tarde mientras no termine la primera ronda.
+export const puedeUnirse = (e) => e.fase === 'juego' && e.ronda === 1 && Object.values(e.jugadores).filter((j) => j.pj).length < 8;
+export function unirTarde(e, { nombre: nom, token }) {
+  const id = 'j' + (++e.seq);
+  e.jugadores[id] = { ...nuevoJugador(e, id, nom, token), tarde: true };           // aún no está en el orden: entra cuando elige personaje
+  return id;
+}
+function incorporarTarde(data, e, pid) {
+  const j = e.jugadores[pid], p = pjDe(data, j.pj);
+  if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
+  j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza;
+  for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma });
+  if (p.inicio.firman) { j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); e.firmanes--; }
+  j.tarde = false; j.listo = true;
+  e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
+  if (e.turno) e.turno.idx = e.orden.indexOf(e.turno.pid);
+  e.participantes = (e.participantes || 0) + 1; e.solitario = false;
+  if (j.pj !== 'B') e.burros = (e.burros || 0) + 1;
+  log(e, `${j.nombre} se une a la partida con ${p.nombre}: jugará al final de esta ronda.`, { pid, aviso: true });
+  return ok();
+}
 export function conexion(e, pid, conectado) {
   const j = e.jugadores[pid];
   if (j && e.fase === 'juego' && !j.npc && !j.eliminado && j.conectado !== conectado) {   // aviso a todos: se desconectó / volvió
@@ -56,6 +93,7 @@ export function conexion(e, pid, conectado) {
   }
   if (j) j.conectado = conectado;
   if (j && conectado) volver(e, pid);
+  bancoDeSala(e);
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
 }
 
@@ -398,8 +436,16 @@ const fmt = (n) => n.toLocaleString('es-MX');
 function topeNoches(e, meta) {
   for (const j of Object.values(e.jugadores)) if (j.pj && j.noches > meta) { j.noches = meta; log(e, `${j.nombre} llega al tope de ${fmt(meta)} noches: lo que pase de ahí no cuenta.`, { pid: j.id }); }
 }
+// Un trato pide estar en la misma ciudad: si alguno de los dos se fue, se cancela y se avisa a los dos.
+function tratosSinCiudad(e) {
+  for (const [id, tr] of Object.entries(e.tratos || {})) {
+    const A = e.jugadores[tr.de], B = e.jugadores[tr.con];
+    if (A && B && (A.ciudad !== B.ciudad || A.transito || B.transito)) { delete e.tratos[id]; log(e, `El trato entre ${A.nombre} y ${B.nombre} se cancela: ya no están en la misma ciudad.`, { pid: tr.de }); }
+  }
+}
 function anotarSaldos(e, antes, data) {
   if (!antes || e.fase === 'lobby') return;
+  tratosSinCiudad(e);
   if (data) topeNoches(e, data.config.meta);
   for (const j of Object.values(e.jugadores)) {
     const a = antes[j.id]; if (!a || !j.pj) continue;
@@ -437,20 +483,23 @@ function despachar(data, e, pid, j, a, ahora) {
   switch (a.t) {
     // ---- lobby
     case 'elegirPj': {
-      if (e.fase !== 'lobby') return err('La partida ya empezó.');
+      if (e.fase !== 'lobby' && !(j.tarde && puedeUnirse(e))) return err('La partida ya empezó.');
       if (!pjDe(data, a.pj)) return err('Personaje inexistente.');
       if (Object.values(e.jugadores).some((x) => x.pj === a.pj && x.id !== pid)) return err('Ese personaje ya está tomado.');
-      j.pj = a.pj; j.listo = false; return ok();
+      j.pj = a.pj; j.listo = false; j.listoEn = null; bancoDeSala(e); return ok();
     }
-    case 'listo': if (e.fase !== 'lobby' || !j.pj) return err('Elige personaje primero.'); j.listo = !!a.v; return ok();
+    case 'listo':
+      if (j.tarde && j.pj && a.v) return incorporarTarde(data, e, pid);
+      if (e.fase !== 'lobby' || !j.pj) return err('Elige personaje primero.');
+      j.listo = !!a.v; j.listoEn = a.v ? ++e.seq : null; bancoDeSala(e); return ok();
     case 'opciones': {
       if (e.fase !== 'lobby') return err('La partida ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión.');
       if (['facil', 'normal', 'dificil'].includes(a.dificultad)) e.opciones.dificultad = a.dificultad;
       if (typeof a.sinYafar === 'boolean') e.opciones.sinYafar = a.sinYafar;                       // jugar sin Yafar NPC (1 a 3 jugadores)
       return ok();
     }
-    case 'iniciar': if (e.fase !== 'lobby') return err('Ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión (banco) inicia la partida.'); return iniciar(data, e);
-    case 'reclamarAnfitrion': if (String(a.pin) !== e.pinHost) return err('PIN incorrecto.'); e.host = pid; log(e, `${j.nombre} es ahora el banco/anfitrión.`); return ok();
+    case 'iniciar': if (e.fase !== 'lobby') return err('Ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión (banco) inicia la partida.'); e.cuentaInicio = null; return iniciar(data, e);
+    case 'reclamarAnfitrion': if (String(a.pin) !== e.pinHost) return err('PIN incorrecto.'); e.host = pid; e.bancoFijo = true; log(e, `${j.nombre} es ahora el banco/anfitrión.`); return ok();
     // ---- decisiones y dados
     case 'decidir': return responderPend(data, e, pid, a);
     case 'tirarDados': return tirarDados(data, e, pid, a);
@@ -510,7 +559,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
-    case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
+    case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); e.bancoFijo = true; if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
     case 'host.eliminar': {
       if (!esHost(e, pid)) return err('Solo el anfitrión.');
       if (!e.cajaAbierta && e.jugadores[a.pid]?.conectado !== false) return err(CAJA_CERRADA);   // a un desconectado se le puede sacar sin abrir la caja
@@ -953,7 +1002,7 @@ export function vista(data, e, pid) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
       buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
-      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado };
+      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde };
   }
   const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
     ccActual: e.turno.ccActual ? { tipo: e.turno.ccActual.tipo, nro: e.turno.ccActual.nro, descartada: e.turno.ccActual.descartada ?? null } : null };
@@ -970,7 +1019,7 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
-    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1,
+    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null,
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
@@ -1024,7 +1073,7 @@ function reiniciar(data, e) {
   const archivo = serializar(e);
   const viejo = e.jugadores, humanos = e.orden.filter((id) => viejo[id] && !viejo[id].npc);
   const n = nuevoJuego(data, { codigo: e.codigo, semilla: (e.semilla ^ e.ahora) & 0x7fffffff, ahora: e.ahora, opciones: { ...e.opciones } });
-  Object.assign(n, { seq: e.seq, logN: e.logN, host: e.host, pinHost: e.pinHost, partidaN: (e.partidaN || 1) + 1, archivoPendiente: archivo });
+  Object.assign(n, { seq: e.seq, logN: e.logN, host: e.host, bancoFijo: true, pinHost: e.pinHost, partidaN: (e.partidaN || 1) + 1, archivoPendiente: archivo });
   for (const id of humanos) {
     const o = viejo[id], j = nuevoJugador(n, id, o.nombre, o.token);
     Object.assign(j, { pj: o.pj, listo: !!o.pj, conectado: o.conectado, extra: o.extra?.clienteWeb ? { clienteWeb: true } : {} });
@@ -1046,6 +1095,13 @@ function tick0(data, e, ahora) {
   let cambio = false;
   if (e.turno?.fase === 'ingreso' && (e.pend || e.dados)) e.turno.t0 = ahora;   // los 60 segundos cuentan desde que puede tirar
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
+  if (e.fase === 'lobby') {
+    const antes = e.cuentaInicio ? Math.ceil((e.cuentaInicio - ahora) / 1000) : null;
+    if (!salaLista(e)) { if (e.cuentaInicio) { e.cuentaInicio = null; cambio = true; } }
+    else if (!e.cuentaInicio) { e.cuentaInicio = ahora + CUENTA_INICIO_MS; cambio = true; }
+    else if (ahora >= e.cuentaInicio) { e.cuentaInicio = null; iniciar(data, e); cambio = true; }
+    else if (antes !== e.ultimaCuenta) { e.ultimaCuenta = antes; cambio = true; }
+  }
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
   if (e.fase === 'juego') {
