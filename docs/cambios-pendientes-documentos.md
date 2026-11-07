@@ -67,6 +67,8 @@ Al hacerlo: respaldo primero (carpeta `respaldo-antes-de-…` junto a `documento
 | ✔ 59 | **Trivias nuevas** CC-111 (el voto en El Vaticano, mazo de Basra) y CC-112 (Al-Qarawiyyin, mazo de El Cairo): en el juego en línea y con carta impresa (CC y CRP), a diferencia de las demás trivias después de la CC-80. | 66df819 | Diseño 24 | CC-111, CC-112, CRP-111, CRP-112 |
 | ✔ 60 | **Interfaz**: alerta de desconexión minimizable (a000f4d); el peón camina por la ruta como en el demo (e341804); al moverse alguien se cierran las ventanas salvo dados y decisiones, y se cancelan los tratos que ya no son posibles (b8219d3, c27583b). | varios | — | — |
 | ✔ 61 | **Cartas de armas al día**: O6, O8, O9 y O10 dicen su ventaja actual (arco con flecha previa; alfanje +1; cimitarra +2; jambiya +1; hasta +4). | f9992b9 | Reglamento 11.1 | O6, O8, O9, O10 |
+| ✔ 62 | **Recuperarse de una herida**: quien empieza su turno herido se cura, pero ese turno no tiene acción principal; el juego lo avisa en su turno y cada reto aparece deshabilitado con el motivo. | 816a09b | Reglamento 1.2; guía; diseño; hoja resumen | — |
+| ✔ 63 | **Dificultad**: la de Yafar solo se elige cuando es NPC. Los Asesinos tienen su propia dificultad (selector plegado en la sala, «Normal» por defecto, solo el banco la cambia): +3 fácil, +4 normal, +5 difícil a sus dados (víctima sin bonos se salva 16 %, 10 % o 5 %). Antes, la dificultad no cambiaba nada de los Asesinos. | 86607d6 | Reglamento 13 y 21.5; guía; diseño; hoja resumen | — |
 
 ## Estado
 Aplicado el 3 de noviembre de 2026 (respaldo previo en `respaldo-antes-de-cambios-2026-11-03/`):
