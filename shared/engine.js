@@ -9,6 +9,7 @@ import {
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
 textoBuscado,
+motivoNoSalir,
 } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
@@ -236,7 +237,7 @@ export function esperaDado(e) {
   if (d) return !d.lanzado && !d.npc && e.jugadores[d.por] && !e.jugadores[d.por].npc ? { pid: d.por, desde: d.t0 } : null;
   return t && t.fase === 'ingreso' && !e.jugadores[t.pid]?.npc ? { pid: t.pid, desde: t.t0 ?? e.ahora } : null;
 }
-const sacable = (e, x = esperaDado(e)) => !!x && e.ahora - x.desde >= ESPERA_SACAR_MS;
+const sacable = (e, x = esperaDado(e)) => !!x && (e.jugadores[x.pid]?.conectado === false || e.ahora - x.desde >= ESPERA_SACAR_MS);   // desconectado: de inmediato
 const pierdeSuTurno = (e, id) => {
   const j = e.jugadores[id];
   if (j.npc || !(j.sacado || j.extra.turnoPerdido === e.ronda)) return false;
@@ -438,7 +439,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['jambiya', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -532,7 +533,13 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'viajar': return viajar(data, e, pid, a);
     case 'terminarTurno': return terminarTurno(data, e, pid);
     case 'responderCC': return responderCC(data, e, pid, a);
-    case 'leido': if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
+    case 'jambiya': {
+      if (!tieneItem(j, 'jambiya')) return err('No tienes jambiya.');
+      j.extra.jambiyaOculta = !!a.ocultar;
+      log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} su jambiya.`, { pid });
+      return ok();
+    }
+    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
@@ -566,7 +573,7 @@ function despachar(data, e, pid, j, a, ahora) {
       if (!puedeNPC(e, pid)) return err('Solo el banco.');
       const x = esperaDado(e);
       if (!x || x.pid !== a.pid || x.pid === pid) return err('Ese jugador ya no está esperando dados.');
-      if (!sacable(e, x)) return err('Todavía no pasan 60 segundos.');
+      if (!sacable(e, x)) return err('Todavía no pasan 60 segundos (o el jugador sigue conectado).');
       return sacarDelTurno(e, x.pid);
     }
     case 'volver': return volver(e, pid);
@@ -634,7 +641,8 @@ export function viajar(data, e, pid, a) {
   if (t.tramos >= (t.maxTramos || data.config.maxTramosPorTurno)) return err('Máximo 2 tramos por turno (R 7.3).');
   if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
   if (j.extra.sinViajar === e.ronda) return err('Un lazo te impide viajar esta ronda.');
-  if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return err('Tienes una deuda con Bagdad (reto R1): págala antes de salir de la ciudad.');
+  { const m = motivoNoSalir(e, j); if (m) return err(m); }
+  if (destino === 'Bagdad' && j.extra.noBagdad > j.turnos) return err('Todavía no puedes volver a Bagdad.');
   const origen = j.ciudad;
   if (e.sinCaravanasBagdad && origen === 'Bagdad') return err('Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).');
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
@@ -763,6 +771,10 @@ export function robarCC(data, e, pid, ciudad) {
 }
 
 // R 19.7: cada mazo da su cuento de ambiente una sola vez por partida (si el mazo tiene varios, se elige uno al azar); quien lo saca lo lee y cobra 2 dinares del banco. Ni NPC ni eliminados cobran.
+function cobrarCuento(e, j) {
+  const c = j.extra.cuentoPend; if (!c) return; j.extra.cuentoPend = null;
+  j.dinares += c.monto; log(e, `${j.nombre} recibe ${c.monto} dinares del banco por leer «${c.titulo}».`, { pid: j.id });
+}
 export function sacarCuento(data, e, pid, clave) {
   const j = e.jugadores[pid];
   e.cuentosSacados ||= [];
@@ -771,9 +783,9 @@ export function sacarCuento(data, e, pid, clave) {
   if (!grupo.length) return null;
   const c = grupo.length > 1 ? grupo[Math.floor(rnd(e) * grupo.length)] : grupo[0];
   e.cuentosSacados.push(clave);
-  j.dinares += c.premio;
   const ent = publicarCarta(e, cartaDatos(data, 'cuento', c.id), pid);
-  log(e, `${j.nombre} lee en voz alta «${c.titulo}» y recibe ${c.premio} dinares del banco.`, { pid });
+  j.extra.cuentoPend = { monto: c.premio, nro: ent.nro, t: e.ahora, titulo: c.titulo };   // se cobra al cerrar la carta
+  log(e, `${j.nombre} lee en voz alta «${c.titulo}».`, { pid });
   return ent;
 }
 
@@ -973,8 +985,8 @@ export function acciones(data, e, pid) {
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (j.perdido) { r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán' }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
-    const destinos = Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
-      .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(e.sinCaravanasBagdad && j.ciudad === 'Bagdad'));
+    const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
+      .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));
     for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: tarifa(data, e, j, j.ciudad, d) });
   }
   if (!t.principal && !t.ccActual) {
@@ -1028,7 +1040,7 @@ export function vista(data, e, pid) {
   const esAnf = e.host === pid;
   const p = e.pend;
   const ver = p && (!p.privado || p.para.includes(pid));                     // los avisos privados (Masrur, contratos) no viajan a los demás
-  const pend = p && { id: p.id, tipo: p.tipo, titulo: ver ? p.titulo : 'Decisión privada', texto: ver ? p.texto : '', modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
+  const pend = p && { id: p.id, tipo: p.tipo, titulo: ver ? p.titulo : 'Decisión privada', texto: ver ? p.texto : '', nota: ver ? p.nota : undefined, modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
     opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid),
     subasta: p.tipo === 'subasta' ? { mejor: Math.max(0, ...Object.values(p.resp).map((r) => Number(r.opcion || 0))), pujas: Object.values(p.resp).filter((r) => Number(r.opcion) > 0).length, minimo: p.cont?.args?.min } : undefined };
   return {
@@ -1036,6 +1048,7 @@ export function vista(data, e, pid) {
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
+    noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo?.extra?.jambiyaOculta,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
@@ -1110,6 +1123,7 @@ function tick0(data, e, ahora) {
   let cambio = false;
   if (e.turno?.fase === 'ingreso' && (e.pend || e.dados)) e.turno.t0 = ahora;   // los 60 segundos cuentan desde que puede tirar
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
+  for (const j of Object.values(e.jugadores)) if (j.extra?.cuentoPend && ahora - j.extra.cuentoPend.t > 90000) { cobrarCuento(e, j); cambio = true; }   // si nunca cierra la carta, cobra igual
   if (e.fase === 'lobby') {
     const antes = e.cuentaInicio ? Math.ceil((e.cuentaInicio - ahora) / 1000) : null;
     if (!salaLista(e)) { if (e.cuentaInicio) { e.cuentaInicio = null; cambio = true; } }

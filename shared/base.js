@@ -370,3 +370,12 @@ export function textoBuscado(data, e, j) {
   if (e.evento?.buscadoE7 === j.id) r.push(`Buscado por la cacería del Califa (carta E7): quien lo mate en esta ronda gana 200 noches y 40 dinares, además de su botín. Deja de estarlo al terminar la ronda ${e.ronda}.`);
   return r.join(' ');
 }
+
+// Por qué un jugador no puede salir de su ciudad ahora (o null). Lo usan el viaje, las acciones y los transportes propios.
+export function motivoNoSalir(e, j, enCaravana = true) {
+  if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return 'Tienes una deuda con Bagdad (reto R1, el cofre del Éufrates): págala antes de salir de la ciudad.';
+  if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
+  if (e.mods?.varado?.[j.id]) return 'Estás varado en India por los vientos del monzón: esta ronda no puedes moverte.';
+  if (enCaravana && e.sinCaravanasBagdad && j.ciudad === 'Bagdad') return 'Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).';
+  return null;
+}

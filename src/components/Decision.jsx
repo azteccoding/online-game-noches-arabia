@@ -58,7 +58,7 @@ export default function Decision({ s }) {
               <input type="number" min={nMin} max={nMax} value={num} onChange={(e) => setNum(Math.min(nMax, Math.max(nMin, Math.floor(Number(e.target.value) || 0))))} aria-label="Número" />
               <button className="btn mini sec" onClick={() => setNum((n) => Math.min(nMax, n + 1))} aria-label="Más">+</button>
             </div>
-            <p className="it">Entre {nMin} y {nMax}.</p>
+            <p className="it">{p.nota || `Entre ${nMin} y ${nMax}.`}</p>
             <button className="btn" onClick={() => responder({ numero: num })}>Confirmar</button>
           </>
         ) : (

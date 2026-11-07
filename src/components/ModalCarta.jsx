@@ -89,7 +89,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
       </div>
     );
   }
-  const puedeCerrar = !modoLectura || resta === 0 || carta.deck === 'cuento';
+  const puedeCerrar = !modoLectura || resta === 0 || carta.deck === 'cuento' || (carta.deck === 'trivia' && !!carta.resuelto);   // una trivia ya contestada se cierra sin esperar
   puedeCerrarRef.current = puedeCerrar;
   const cerrar = () => { if (!puedeCerrar) return; if (modoLectura) setCola((c) => c.slice(1)); else onCerrarConsulta(); };
   const quien = carta.quien ? s.jugadores[carta.quien] : null;

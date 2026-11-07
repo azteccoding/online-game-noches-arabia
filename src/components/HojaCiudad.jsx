@@ -21,6 +21,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
     <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}`}>
       <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
+        {s.noSalir && <p className="aviso-mal">⛔ No puedes salir de tu ciudad: {s.noSalir}</p>}
         <p><b>Llegada:</b> {c.nochesLlegada === c.nochesLuego ? `${c.nochesLlegada}` : `${c.nochesLlegada} la primera vez, luego ${c.nochesLuego}`} noches (×{mult} esta ronda) · <b>Alojamiento:</b> {c.alojamiento} dinares · <b>Impuesto de venta:</b> {c.impuestoVenta}%</p>
         {c.notas && <p className="it">{c.notas}</p>}
         {c.retos.length > 0 && <p><b>Retos aquí:</b> {c.retos.join(', ')}</p>}

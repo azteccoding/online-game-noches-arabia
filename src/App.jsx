@@ -140,6 +140,7 @@ function Juego({ lienzo }) {
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
       {s.fase === 'juego' && <AvisoEspera s={s} />}
       {s.fase === 'juego' && <AvisoBuscado s={s} />}
+      {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
       {error && <div className="toast" role="alert">{error}</div>}

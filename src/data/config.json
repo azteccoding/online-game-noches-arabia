@@ -128,8 +128,8 @@
   "camello": { "vida": 5, "costo": 3 }
  },
  "r1": {
-  "nota": "Reto del Éufrates (regla de la casa): cada ayudante añade un dado de búsqueda y suma deuda con la ciudad.",
-  "costoAyudante": 4,
-  "maxAyudantes": 2
+  "nota": "Reto del Éufrates (regla de la casa): cada sirviente añade un dado de búsqueda; se paga al contratarlo y sin dinares no se contrata (se busca solo).",
+  "costoAyudante": 12,
+  "maxAyudantes": 3
  }
 }

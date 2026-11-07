@@ -41,13 +41,12 @@
   "India>Isfahán": 25,
   "India>Samarcanda": 25,
   "Bagdad>Magreb": 25,
-  "Bagdad>Andalucía": 20,
   "El Cairo>Magreb": 19,
   "Magreb>El Cairo": 20,
-  "Magreb>Andalucía": 1,
-  "Andalucía>Magreb": 2,
-  "Andalucía>Bagdad": 25,
-  "Andalucía>El Cairo": 15
+  "Magreb>Andalucía": 5,
+  "Andalucía>Magreb": 6,
+  "Andalucía>El Cairo": 15,
+  "El Cairo>Andalucía": 20
  },
  "rutas": [
   {
@@ -1182,70 +1181,6 @@
     [
      258.3,
      766.1
-    ]
-   ]
-  },
-  {
-   "a": "Bagdad",
-   "b": "Andalucía",
-   "modo": "mar",
-   "d": "M1853,795.2C1795.9,769.9 1840.8,745.8 1662.6,710.8C1484.4,675.8 1515.7,705.1 1259,678.5C1002.4,651.8 1054,625.6 807.1,621.9C560.1,618.3 598.3,669.7 435.8,666.3C273.3,663 316.5,627.3 265.4,610.6",
-   "fares": {
-    "Bagdad>Andalucía": {
-     "fare": 20,
-     "x": 1385.2,
-     "y": 688.6,
-     "g": [
-      [
-       "2",
-       -14.7
-      ],
-      [
-       "0",
-       -3.0
-      ]
-     ]
-    },
-    "Andalucía>Bagdad": {
-     "fare": 25,
-     "x": 740.9,
-     "y": 629.8,
-     "g": [
-      [
-       "2",
-       -11.0
-      ],
-      [
-       "5",
-       0.7
-      ]
-     ]
-    }
-   },
-   "puntos": [
-    [
-     1853.0,
-     795.2
-    ],
-    [
-     1662.6,
-     710.8
-    ],
-    [
-     1259.0,
-     678.5
-    ],
-    [
-     807.1,
-     621.9
-    ],
-    [
-     435.8,
-     666.3
-    ],
-    [
-     265.4,
-     610.6
     ]
    ]
   },

@@ -337,3 +337,11 @@ fieldset:disabled { opacity: .5; }
 @media (prefers-reduced-motion: reduce) { .btn.trato-pendiente { animation: none; outline: 3px solid #ffd36b; } }
 .aviso-mal { color: #ffb3b3; font-weight: 700; }
 .aviso-bien { color: #9fe3b8; font-weight: 700; }
+
+/* En pantallas anchas la ficha de ciudad se arrima a la izquierda y deja ver el mapa a la derecha. */
+@media (min-width: 1100px) { .lienzo:not([data-forma='alta']) .hoja-modal.hoja-ciudad { left: 66px; transform: none; animation-name: despliega; } }
+.alerta-roja { position: fixed; left: 50%; bottom: calc(var(--acciones-alto, 110px) + 10px); transform: translateX(-50%); z-index: 60; width: min(520px, calc(100vw - 24px)); background: #7a1d1d; color: #fff; border: 1px solid #efd08f; border-radius: 10px; padding: 8px 12px; box-shadow: var(--sombra); font-size: 14px; }
+
+.barra .btn.mini.btn-pantalla { background: linear-gradient(180deg, #2f7a52, #1b4a32); border-color: var(--oro-claro); color: #fff3c9; gap: 6px; }
+.btn-pantalla > span[aria-hidden] { font-size: 17px; line-height: 1; }
+@media (max-width: 760px) { .txt-pantalla { display: none; } .barra .btn.mini.btn-pantalla { padding: 4px 9px; } }

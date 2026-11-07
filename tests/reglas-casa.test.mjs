@@ -402,6 +402,7 @@ function forzar(e, ...valores) {
   assert.ok(!e.turno.hazanas?.tariq && e.log.slice(antes).some((l) => /muévete a otra ciudad/.test(l.texto)), 'bloqueada: no cobra y se le avisa');
   // entrenar
   turnoDe(e, pid, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50; n0 = j.noches;
+  if (!tieneItem(j, 'cimitarra')) darItem(e, j, 'cimitarra');
   assert.ok(g.act(pid, { t: 'reto', id: 'R18' }).ok); assert.equal(j.noches - n0, 50, 'entrenar da +50 noches');
   // Jorasán
   const k = g.ids[1], jk = e.jugadores[k]; jk.transito = { destino: 'Jorasán', faltan: 1, desde: 'Yemen', jorasan: true }; n0 = jk.noches;
@@ -458,6 +459,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, j = e.jugadores[a];
   j.noches = 990; turnoDe(e, a, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50;
+  if (!tieneItem(j, 'cimitarra')) darItem(e, j, 'cimitarra');
   assert.ok(g.act(a, { t: 'reto', id: 'R18' }).ok);
   assert.equal(j.noches, 1001, 'entrenar con 990 noches deja 1,001, no 1,040');
   assert.ok(e.log.some((l) => /tope de 1,001 noches/.test(l.texto)), 'se avisa del tope');
@@ -633,6 +635,58 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.equal(vistaDe(e, a).jugadores[b].buscado, 0);
 }
 
+// Lote del 7 de noviembre: R1 con sirvientes pagados, rutas de Andalucía, entrenamientos, jambiya, cuento al cerrar y no poder salir
+{
+  const { disponibles, ENTRENAMIENTOS } = await import('../shared/retos.js');
+  const { destinosTransporte } = await import('../shared/objetos.js');
+  assert.equal(data.rutas.tarifas['Bagdad>Andalucía'], undefined); assert.equal(data.rutas.tarifas['Andalucía>Bagdad'], undefined);
+  assert.equal(data.rutas.tarifas['El Cairo>Andalucía'], 20); assert.equal(data.rutas.tarifas['Magreb>Andalucía'], 5); assert.equal(data.rutas.tarifas['Andalucía>Magreb'], 6);
+  assert.ok(destinosTransporte(data, 'alfombra', 'Bagdad').includes('Andalucía'), 'la alfombra sigue llegando a Andalucía');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, j = e.jugadores[a];
+  // R1: 12 por sirviente, máximo 3, se pagan al contratar; sin dinero se busca solo
+  turnoDe(e, a, 'Bagdad'); j.ciudad = 'Bagdad'; j.dinares = 30;
+  assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
+  assert.equal(e.pend.max, 2, 'con 30 dinares alcanzan 2 sirvientes');
+  g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 });
+  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 24 dinares')), 'paga 24 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
+  // no puede salir: sin destinos y con motivo
+  if (j.misiones.some((m) => m.id === 'R1')) { turnoDe(e, a, 'Bagdad'); e.turno.fase = 'mov'; const v = vistaDe(e, a); assert.ok(!v.acciones.some((x) => x.k === 'viajar') && /deuda con Bagdad/.test(v.noSalir)); }
+  // entrenamientos: hay que tener el arma; entrenado suma +1
+  const { bonosCombate } = await import('../shared/pelea.js');
+  j.misiones = []; turnoDe(e, a, 'Damasco'); j.ciudad = 'Damasco'; j.dinares = 100; j.mano = []; j.destreza = false;
+  assert.ok(disponibles(data, e, a).find((r) => r.id === 'R42').bloqueado, 'sin alfanje no entrena');
+  darItem(e, j, 'alfanje'); const b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
+  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 45);
+  // jambiya escondida: no cuenta ni se la roban
+  darItem(e, j, 'jambiya'); const conJ = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  assert.ok(g.act(a, { t: 'jambiya', ocultar: true }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, conJ - 1);
+  assert.ok(vistaDe(e, a).jambiyaOculta);
+}
+
+// Nadie lanza por otro jugador: ni el banco ni otro jugador, esté conectado o no
+{
+  const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids; e.dados = null; e.colaDados = []; e.host = b;
+  e.jugadores[a].extra.clienteWeb = true; mostrarDados(e, { por: a, motivo: 'reto', grupos: [{ etq: 'prueba', valores: [4] }] });
+  for (const quien of [b, c]) for (const con of [true, false]) {
+    e.jugadores[a].conectado = con;
+    assert.ok(!g.act(quien, { t: 'lanzarDados' }).ok && !e.dados.lanzado, 'nadie lanza por otro');
+    assert.ok(!g.act(quien, { t: 'cerrarDados' }).ok && !e.dados.lanzado, 'ni cierra sus dados sin lanzar');
+  }
+}
+
+// Si quien debe tirar está desconectado, el banco ve «Sacarlo / Esperarlo» de inmediato
+{
+  const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e; for (let i = 0; i < 40 && (e.dados || e.pend); i++) { if (e.dados) e.dados.lanzado = true; if (e.pend) for (const q of e.pend.para) if (!e.pend.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id }); g.tickear(31000); }
+  const p = e.turno.pid, banco = g.ids.find((x) => x !== p); e.host = banco; e.turno.t0 = e.ahora;
+  assert.ok(!vistaDe(e, banco).puedoSacar, 'conectado: hay que esperar 60 segundos');
+  e.jugadores[p].conectado = false;
+  assert.ok(vistaDe(e, banco).espera.sacable && vistaDe(e, banco).puedoSacar, 'desconectado: el banco ve las opciones de inmediato');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
@@ -656,7 +710,8 @@ function avanzarHasta(g, cond, pasos = 400) {
     if (t.fase === 'ingreso') { g.act(pid, { t: 'tirarDados' }); continue; }
     if (t.ccActual) { g.act(pid, t.ccActual.tipo === 'trivia' ? { t: 'responderCC', opcion: azar(3) } : { t: 'omitirCC' }); continue; }
     const v = vistaDe(e, pid), via = v.acciones.filter((x) => x.k === 'viajar');
-    if (via.length && azar(3)) { g.act(pid, { t: 'viajar', destino: via[azar(via.length)].destino }); continue; }
+    const viaOk = via.filter((x) => x.precio <= e.jugadores[pid].dinares);
+    if (viaOk.length && azar(3)) { g.act(pid, { t: 'viajar', destino: viaOk[azar(viaOk.length)].destino }); continue; }
     if (azar(4) === 0) { const o = v.tienda.filter((x) => x.puede); if (o.length) { const x = o[azar(o.length)]; g.act(pid, { t: 'comprar', ...(x.id ? { id: x.id } : { ref: x.ref }) }); continue; } }
     g.act(pid, { t: 'terminarTurno' }); g.tickear(100);
   }

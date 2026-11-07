@@ -18,6 +18,7 @@ export function armasUsables(data, e, j, ciudad = j.ciudad) {
   const r = [];
   for (const ref of ARMAS) {
     if (!tieneItem(j, ref)) continue;
+    if (ref === 'jambiya' && j.extra?.jambiyaOculta) continue;          // escondida no cuenta en las peleas
     if (ciudad === 'Bagdad' && !libre) { if (!(firman && (ref === 'arco' || ref === 'jambiya'))) continue; }
     if (ref === 'arco' && !tieneItem(j, 'flechas')) continue;
     r.push(ref);
@@ -59,8 +60,9 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false } = {
   for (const ref of perf.armas) {
     if (ref === 'jambiya') {
       const d = dado(e);
-      if (par(d)) { total += 3; partes.push(`jambiya +3 (dado de sorpresa ${d})`); } else partes.push(`jambiya +0 (dado de sorpresa ${d})`);
-    } else { const b = bonoArma(data, ref); total += b; partes.push(`${ITEM_NOMBRE[ref]} +${b}`); }
+      const ej = j.extra?.entrenado?.jambiya ? 1 : 0;
+      if (par(d)) { total += 3 + ej; partes.push(`jambiya +${3 + ej} (dado de sorpresa ${d}${ej ? ', entrenado' : ''})`); } else { total += ej; partes.push(`jambiya +${ej} (dado de sorpresa ${d}${ej ? ', entrenado' : ''})`); }
+    } else { const b = bonoArma(data, ref) + (j.extra?.entrenado?.[ref] ? 1 : 0); total += b; partes.push(`${ITEM_NOMBRE[ref]} +${b}${j.extra?.entrenado?.[ref] ? ' (entrenado)' : ''}`); }
     if (ref === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) {
       const x = data.config.armas?.cimitarra?.extraAtacante ?? 2; total += x; partes.push(`cimitarra al atacar +${x}`);
     }
@@ -251,7 +253,7 @@ export function tiroDeArco(data, e, pid, ciudad) {
   if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
   quitarPrimero(j, 'item', 'flechas');
   const x = dado(e);
-  return { x, acierta: x >= ARCO_ACIERTA, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
+  return { x, acierta: x >= ARCO_ACIERTA - (j.extra?.entrenado?.arco ? 1 : 0), quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
 }
 export function golpeAlEscudo(data, e, pid) {
   const j = e.jugadores[pid];
@@ -413,8 +415,9 @@ export const conArco = (data, e, pid, ciudad) => armasUsables(data, e, e.jugador
 export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   const j = e.jugadores[pid], armas = armasUsables(data, e, j, ciudad).filter((r) => BONO_MELEE[r]);
   const partes = []; let total = 0, resta = 0;
-  const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r], 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
-  if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r]}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
+  const ent = (r) => (j.extra?.entrenado?.[r] ? 1 : 0);                       // entrenado con esa arma: +1 (regla de la casa)
+  const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r] + ent(r), 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
+  if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r] + ent(r)}${ent(r) ? ' (entrenado)' : ''}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
   if (j.destreza && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
   if (j.destreza && mods.sinDestreza) partes.push('destreza perdida por la flecha');
   if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
@@ -429,8 +432,8 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
   quitarPrimero(T, 'item', 'flechas');
-  const x = dado(e), escudo = !!tieneObj(B, 'OB04');
-  const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : x >= 3 ? { flecha: 1 } : {};
+  const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = T.extra?.entrenado?.arco ? 1 : 0;   // entrenado con arco: 4–6 le da, 2–3 se cubre
+  const efecto = escudo ? {} : x >= 5 - en ? { flecha: 1, sinDestreza: true } : x >= 3 - en ? { flecha: 1 } : {};
   const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.` : x >= 5 ? `¡Le da! ${B.nombre} pelea tocado: −1 y pierde su destreza en esta pelea.` : x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
   mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre} (5–6 le da, 3–4 lo obliga a cubrirse)`, valores: [x] }], resumen: [texto] });
   return efecto;
@@ -585,7 +588,8 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
 function robar(data, e, atk, def) {
   const A = e.jugadores[atk], D = e.jugadores[def];
   const din = Math.max(0, D.dinares); D.dinares -= din; A.dinares += din;   // a quien tiene deudas no se le roban dinares
-  const cartas = D.mano.splice(0);
+  const oculta = (c) => c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta;   // la jambiya escondida no se la llevan
+  const cartas = D.mano.filter((c) => !oculta(c)); D.mano = D.mano.filter(oculta);
   for (const c of cartas) A.mano.push(c);
   recortarMano(data, e, atk);
   log(e, `${A.nombre} roba ${din} dinares${cartas.length ? ' y ' + cartas.length + ' carta(s)' : ''} a ${D.nombre}.`, { pid: atk });

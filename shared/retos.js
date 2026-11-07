@@ -48,7 +48,7 @@ const OBJS = {
 const hecho = (j, id) => j.retosHechos.includes(id);
 // «Sirve para»: retos (y mensajes) donde se usa o se entrega cada carta, para mostrarlo en la mano y en el mercado.
 const ITEM_RETO = { alfombraIsfahan: ['R7'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
-  alfanje: ['R8', 'R32', 'R36'], cimitarra: ['R8', 'R32', 'R36'], jambiya: ['R8', 'R32', 'R36'], arco: ['R8', 'R32', 'R36'] };
+  alfanje: ['R8', 'R32', 'R36', 'R42'], cimitarra: ['R8', 'R32', 'R36', 'R18'], jambiya: ['R8', 'R32', 'R36', 'R19'], arco: ['R8', 'R32', 'R36', 'R43'] };
 export function sirvePara(data, c) {
   let ids = c.tipo === 'item' ? (ITEM_RETO[c.ref] || []) : Object.entries(OBJS).filter(([, l]) => l.includes(c.ref)).map(([r]) => r);
   if (c.tipo === 'objeto' && objDe(data, c.ref)?.tipo === 'Lujo/Comercio') ids = [...ids, 'R22', 'R35'];
@@ -66,7 +66,7 @@ export function disponibles(data, e, pid) {
   if ((!puedePrincipal(t) && !recupera) || j.transito || j.perdido) return r;
   for (const id of Object.keys(T)) {
     const d = m1(data, id);
-    if (!d || d.ciudad !== j.ciudad) continue;
+    if (!d || !(T[id].ciudades || [d.ciudad]).includes(j.ciudad)) continue;
     if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = T[id].req ? T[id].req(data, e, pid) : null;
@@ -89,7 +89,7 @@ export function iniciarReto(data, e, pid, a) {
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
   const def = T[a.id], d = m1(data, a.id);
   if (!def) return err('Reto inexistente.');
-  if (j.ciudad !== d.ciudad) return err(`Ese reto está en ${d.ciudad}.`);
+  if (!(def.ciudades || [d.ciudad]).includes(j.ciudad)) return err(`Ese reto está en ${(def.ciudades || [d.ciudad]).join(' o ')}.`);
   if (j.transito || j.perdido) return err('No puedes ahora.');
   if (hecho(j, a.id) && !(REPETIBLES.includes(a.id) && !j.extra.rep?.[a.id])) return err('Ya completaste ese reto.');
   if (j.misiones.some((m) => m.id === a.id)) return err('Ya lo tienes en curso.');
@@ -235,7 +235,7 @@ function r1Exito(data, e, pid, m) {
 }
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
-    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda con la ciudad (15 dinares + ${data.config.r1?.costoAyudante ?? 2} por ayudante). Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda de 15 dinares con la ciudad; puedes pagar sirvientes, a ${data.config.r1?.costoAyudante ?? 12} dinares cada uno, para buscar con más dados. Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
       opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r1.acepta', args: {} } });
   } };
 registrar('r1.acepta', (data, e, args, resp) => {
@@ -244,14 +244,18 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  const cA = data.config.r1?.costoAyudante ?? 2, mA = data.config.r1?.maxAyudantes ?? 5;
-  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Ayudantes', texto: `Cada ayudante añade un dado de búsqueda y ${cA} dinares de deuda (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, modo: 'numero', min: 0, max: mA, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
+  // Regla de la casa: cada sirviente cuesta 12 dinares (máximo 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
+  const cA = data.config.r1?.costoAyudante ?? 12, mA = data.config.r1?.maxAyudantes ?? 3, alcanza = Math.min(mA, Math.floor(Math.max(0, j.dinares) / cA));
+  if (!alcanza) { log(e, `${j.nombre} no tiene ${cA} dinares para contratar sirvientes: busca solo.`, { pid }); return CONT['r1.ayudantes'](data, e, {}, { pid, numero: 0 }); }
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Sirvientes', texto: `Cada sirviente añade un dado de búsqueda y cuesta ${cA} dinares, que se pagan ahora (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, nota: `Te alcanza para contratar hasta ${alcanza} ${alcanza === 1 ? 'sirviente' : 'sirvientes'}.`, modo: 'numero', min: 0, max: alcanza, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
 });
 registrar('r1.ayudantes', (data, e, args, resp) => {
-  const pid = resp.pid, j = e.jugadores[pid], n = resp.numero || 0;
-  const m = nuevaMision(e, pid, { id: 'R1', deuda: 15 + (data.config.r1?.costoAyudante ?? 2) * n, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
+  const pid = resp.pid, j = e.jugadores[pid], cA = data.config.r1?.costoAyudante ?? 12;
+  const n = Math.max(0, Math.min(resp.numero || 0, data.config.r1?.maxAyudantes ?? 3, Math.floor(Math.max(0, j.dinares) / cA)));
+  if (n) { j.dinares -= cA * n; log(e, `${j.nombre} contrata ${n} sirviente(s) por ${cA * n} dinares.`, { pid }); }
+  const m = nuevaMision(e, pid, { id: 'R1', deuda: 15, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
   const ctx = nuevoCtx(e, pid, 'R1');
-  const v = ctx.t(`${j.nombre} y ${n} ayudante(s)`, 1 + n);
+  const v = ctx.t(`${j.nombre} y ${n} sirviente(s)`, 1 + n);
   if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; }
   ctx.fin(); e.turno.fin = true; e.turno.movio = true;
 });
@@ -444,17 +448,30 @@ function r16Tira(data, e, pid) {
   ctx.fin();
   if (muere) eliminar(data, e, pid, { causa: 'muerte súbita de Shariyar' });
 }
-// ---------------------------------------------------------------- R18, R19, R25: entrenamientos
-// La destreza es sí o no (no tiene niveles): quien ya la tiene no puede volver a entrenar.
-const reqEntrenar = (e, pid, costo) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= costo ? null : `Cuesta ${costo} dinares.`);
-function entrenar(e, pid, costo, descuentos) {
-  const j = e.jugadores[pid]; if (j.dinares < costo) return false;
-  j.dinares -= costo; j.destreza = true; j.noches += 50; j.extra.descuentos = { ...(j.extra.descuentos || {}), ...descuentos };   // se usan comprando fuera de tu turno, hasta tu siguiente turno
-  log(e, `${j.nombre} entrena: obtiene destreza con armas y +50 noches.`, { pid }); return true;
+// ---------------------------------------------------------------- entrenamientos (regla de la casa, noviembre de 2026)
+// La destreza (+1 en toda pelea) se aprende solo en Estambul. Cada arma tiene su maestro: hay que llevar el arma, y quien entrena suma
+// +1 con ella (dentro del tope de armas); con el arco, la flecha da en el blanco con 4 a 6 en vez de 5 a 6.
+export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
+const entrenado = (j, arma) => !!j.extra.entrenado?.[arma];
+function entrenarArma(e, pid, id) {
+  const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
+  j.dinares -= costo; (j.extra.entrenado ||= {})[arma] = true; j.noches += 50; hacer(e, pid, id);
+  log(e, `${j.nombre} entrena con ${arma}: desde ahora suma +1 con ella${arma === 'arco' ? ' (su flecha da en el blanco con 4 a 6)' : ''} y gana 50 noches.`, { pid });
 }
-T.R18 = { ciudad: 'Isfahán', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { cimitarra: 25 }); hacer(e, pid, 'R18'); } };
-T.R19 = { ciudad: 'Yemen', req: (d, e, pid) => reqEntrenar(e, pid, 25), run(data, e, pid) { entrenar(e, pid, 25, { alfanje: 15 }); hacer(e, pid, 'R19'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => reqEntrenar(e, pid, 35), run(data, e, pid) { entrenar(e, pid, 35, { cimitarra: 25, alfanje: 15 }); hacer(e, pid, 'R25'); } };
+const reqArma = (id) => (d, e, pid) => {
+  const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
+  if (!tieneItem(j, arma)) return `Necesitas tener ${arma === 'arco' ? 'un arco' : arma === 'jambiya' ? 'una jambiya' : 'un ' + arma} para entrenar con ${arma === 'jambiya' ? 'ella' : 'él'}.`;
+  if (entrenado(j, arma)) return `Ya entrenaste con ${arma}.`;
+  return j.dinares >= costo ? null : `Cuesta ${costo} dinares.`;
+};
+T.R18 = { ciudad: 'Isfahán', ciudades: ['Isfahán', 'Samarcanda'], req: reqArma('R18'), run(data, e, pid) { entrenarArma(e, pid, 'R18'); } };
+T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42'), run(data, e, pid) { entrenarArma(e, pid, 'R42'); } };
+T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
+T.R43 = { ciudad: 'Andalucía', req: reqArma('R43'), run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= 45 ? null : 'Cuesta 45 dinares.'), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= 45; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');
+  log(e, `${j.nombre} entrena en Estambul: obtiene destreza con armas (+1 en todas las peleas, robos, ataques y duelos) y gana 50 noches.`, { pid });
+} };
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);

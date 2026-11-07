@@ -49,7 +49,9 @@ function aViajar(g, pid, destino = 'Damasco') {
   assert.equal(cuentos[0].quien, p1, 'lo saca quien tomó la CC');
   assert.equal(cuentos[0].para, null, 'público para toda la mesa');
   assert.equal(cuentos[0].premio, 2);
-  assert.equal(e.jugadores[p1].dinares, antes - precio + 2, 'el lector cobra 2 dinares del banco');
+  assert.equal(e.jugadores[p1].dinares, antes - precio, 'mientras lee la carta todavía no cobra');
+  assert.ok(act(p1, { t: 'leido', nro: e.seq }).ok);
+  assert.equal(e.jugadores[p1].dinares, antes - precio + 2, 'el lector cobra 2 dinares del banco al cerrar la carta');
   const cc = e.historial.find((h) => h.deck === 'trivia');
   assert.ok(cuentos[0].nro < cc.nro, 'el cuento se lee antes que la CC');
   assert.ok(vista(data, e, e.orden.find((i) => i !== p1)).historial.some((h) => h.deck === 'cuento'), 'todos ven el cuento');
@@ -58,6 +60,7 @@ function aViajar(g, pid, destino = 'Damasco') {
   const dinAntes = e.jugadores[p1].dinares;
   const tr = data.trivias.trivias.find((t) => t.id === e.turno.ccActual.id);
   assert.ok(act(p1, { t: 'responderCC', opcion: tr.correcta }).ok);
+  assert.ok(act(p1, { t: 'leido', nro: e.seq }).ok);
   assert.equal(e.jugadores[p1].dinares, dinAntes + data.config.premioTrivia + 2, 'trivia (5) y cuento de Respuestas (2)');
   const resp = e.historial.filter((h) => h.deck === 'cuento');
   assert.deepEqual(resp.map((h) => h.titulo), ['Alí Babá y los cuarenta ladrones', 'Scheherezade y el sultán']);
@@ -92,7 +95,8 @@ function aViajar(g, pid, destino = 'Damasco') {
   e.jugadores[b].npc = false;
   const din2 = e.jugadores[b].dinares;
   assert.ok(sacarCuento(data, e, b, 'Bagdad'));
-  assert.equal(e.jugadores[b].dinares, din2 + 2);
+  assert.equal(e.jugadores[b].dinares, din2, 'cobra al cerrar la carta');
+  assert.equal(e.jugadores[b].extra.cuentoPend.monto, 2);
   assert.equal(sacarCuento(data, e, b, 'Bagdad'), null, 'una sola vez');
 }
 
@@ -102,6 +106,7 @@ function aViajar(g, pid, destino = 'Damasco') {
   const p = e.turno.pid;
   const { antes, precio } = aViajar(g, p, 'Isfahán');
   assert.ok(e.historial.some((h) => h.deck === 'cuento' && h.quien === p));
+  assert.ok(g.act(p, { t: 'leido', nro: e.seq }).ok);
   assert.equal(e.jugadores[p].dinares, antes - precio + 2);
 }
 {
@@ -111,7 +116,7 @@ function aViajar(g, pid, destino = 'Damasco') {
   assert.ok(y && !e.jugadores[y].npc, 'Yafar lo juega una persona');
   const din = e.jugadores[y].dinares;
   assert.ok(sacarCuento(data, e, y, 'Bagdad'), 'Yafar jugador lee el cuento');
-  assert.equal(e.jugadores[y].dinares, din + 2, 'y cobra 2 dinares');
+  assert.ok(g.act(y, { t: 'leido', nro: e.seq }).ok); assert.equal(e.jugadores[y].dinares, din + 2, 'y cobra 2 dinares al cerrar la carta');
   assert.equal(sacarCuento(data, e, y, 'Bagdad'), null, 'una sola vez');
   e.jugadores[y].npc = true;
   const din2 = e.jugadores[y].dinares;
