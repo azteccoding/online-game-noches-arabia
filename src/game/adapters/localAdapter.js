@@ -53,7 +53,7 @@ export function crearLocal() {
     pids: () => ({ yo, bots: botIds }),
     conectar(p) {
       const modo = q.get('demo');
-      yo = unir(e, { nombre: p.nombre || 'Ana', token: 'demo' });
+      yo = unir(e, { nombre: p.nombre || 'Dulce', token: 'demo' });
       const nombres = ['Beto', 'Cleo', 'Dani'], pjs = ['4', '6', 'B'];
       nombres.forEach((n, i) => { const id = unir(e, { nombre: n, token: 'bot' + i }); botIds.push(id); reducir(DATA, e, id, { t: 'elegirPj', pj: pjs[i] }, Date.now()); reducir(DATA, e, id, { t: 'listo', v: true }, Date.now()); });
       cb.conexion('ok');

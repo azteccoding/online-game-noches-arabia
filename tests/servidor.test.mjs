@@ -42,10 +42,10 @@ function cliente(nombre, token, clave) {
 let srv = await arrancar();
 const pin = /PIN de anfitri[oó]n[^:]*:\s*(\S+)/.exec(srv.salida())[1];
 assert.equal(pin, '1234', 'en local el PIN del banco es 1234');
-const A = await cliente('Ana'), B = await cliente('Beto'), C = await cliente('Cleo');
+const A = await cliente('Dulce'), B = await cliente('Beto'), C = await cliente('Cleo');
 await dormir(150);
 await A.a({ t: 'reclamarAnfitrion', pin });
-assert.ok(A.s.soyHost, 'Ana reclama el banco con el PIN de la consola');
+assert.ok(A.s.soyHost, 'Dulce reclama el banco con el PIN de la consola');
 await A.a({ t: 'elegirPj', pj: '1' }); await B.a({ t: 'elegirPj', pj: '2' }); await C.a({ t: 'elegirPj', pj: '3' });
 for (const x of [A, B, C]) await x.a({ t: 'listo', v: true });
 await A.a({ t: 'iniciar' });
@@ -71,7 +71,7 @@ assert.equal(A.s.fase, 'juego');
 
 // guía privada: cada jugador recibe solo la de su personaje
 const guias = JSON.parse(fs.readFileSync(path.join(RAIZ, 'server', 'guias.json'), 'utf8')).guias;
-assert.equal(A.s.miGuia?.resumen, guias['1'].resumen, 'Ana recibe la guía de Nur al Din');
+assert.equal(A.s.miGuia?.resumen, guias['1'].resumen, 'Dulce recibe la guía de Nur al Din');
 assert.equal(B.s.miGuia?.resumen, guias['2'].resumen, 'Beto recibe la guía de Zein');
 for (const [x, propio] of [[A, '1'], [B, '2'], [C, '3']]) {
   for (const [pj, g] of Object.entries(guias)) if (pj !== propio) assert.ok(!x.crudos.some((r) => r.includes(g.resumen)), `la guía de ${pj} no llega a quien lleva ${propio}`);
@@ -82,7 +82,7 @@ for (const [x, propio] of [[A, '1'], [B, '2'], [C, '3']]) {
 await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
 assert.ok(A.errores.some((m) => /caja del banco está cerrada/.test(m)), 'sin abrir la caja, el banco no entrega');
 await A.a({ t: 'host.caja', abrir: true });
-for (const x of [A, B, C]) assert.ok(x.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Ana abrió la caja del banco')), 'todos ven quién abrió la caja');
+for (const x of [A, B, C]) assert.ok(x.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Dulce abrió la caja del banco')), 'todos ven quién abrió la caja');
 await A.a({ t: 'host.repartir', pid: B.pid, mazo: 'objeto', id: 'OB01' });
 await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
 assert.ok(A.crudos.some((r) => r.includes('"t":"hecho"') && r.includes('Entregado a Beto: 5 dinares')), 'el banco recibe confirmación de la entrega');
@@ -102,11 +102,11 @@ for (const x of [A, B, C]) {
 
 // continuidad: el banco se desconecta y la partida sigue
 A.ws.close(); await dormir(300);
-assert.ok(B.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Ana se desconectó')), 'todos ven la alarma de desconexión');
+assert.ok(B.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Dulce se desconectó')), 'todos ven la alarma de desconexión');
 await B.a({ t: 'host.eliminar', pid: A.pid }); // B no es el banco: se rechaza (A sigue siendo el banco)
 assert.ok(B.errores.some((m) => /anfitrión/.test(m)));
 assert.equal(B.s.hostConectado, false, 'se informa «banco ausente»');
-const quien = [B, C].find((x) => x.pid === B.s.turno.pid) || null;     // si el turno era de Ana, no hay quien tire: la prueba sigue con el NPC
+const quien = [B, C].find((x) => x.pid === B.s.turno.pid) || null;     // si el turno era de Dulce, no hay quien tire: la prueba sigue con el NPC
 if (quien) { await quien.a({ t: 'tirarDados' }); assert.ok(quien.s.dados, 'el jugador en turno tira aunque el banco no esté'); }
 await B.a({ t: 'host.tirarNPC', quien: 'Asesinos', n: 1 }).catch(() => {});
 await dormir(2200);
@@ -123,8 +123,8 @@ assert.equal(B2.pid, B.pid, 'el token recupera al mismo jugador');
 assert.equal(JSON.stringify({ r: B2.s.ronda, t: B2.s.turno.pid, din: B2.s.jugadores[B2.pid].dinares, mano: B2.s.mano.length }), antes, 'estado idéntico tras reiniciar');
 const tarde = await new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const m = JSON.parse(r); if (m.t === 'rechazo' || m.t === 'bienvenida') { ok(m); ws.close(); } }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre: 'Tarde' }))); });
 assert.equal(tarde.t, B2.s.ronda === 1 ? 'bienvenida' : 'rechazo', 'se puede entrar tarde solo mientras no termine la primera ronda');
-const A2 = await cliente('ana'); await dormir(200);
-assert.ok(B2.crudos.some((r) => r.includes('"t":"aviso"') && /ana volvió a la partida/i.test(r)), 'al volver se avisa a todos');
+const A2 = await cliente('dulce'); await dormir(200);
+assert.ok(B2.crudos.some((r) => r.includes('"t":"aviso"') && /dulce volvió a la partida/i.test(r)), 'al volver se avisa a todos');
 assert.equal(A2.pid, A.pid, 'quien perdió su token recupera su sitio con su nombre si su dispositivo está desconectado');
 assert.notEqual(A2.token, A.token);
 

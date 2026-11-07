@@ -82,7 +82,7 @@ function Juego({ lienzo }) {
   }, [huellaAcc]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (DEMO && params.get('demo')) iniciarJuego({ demo: true, nombre: params.get('nombre') || 'Ana' });
+    if (DEMO && params.get('demo')) iniciarJuego({ demo: true, nombre: params.get('nombre') || 'Dulce' });
   }, []);
 
   const abrir = useCallback((p) => {

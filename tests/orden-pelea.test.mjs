@@ -15,11 +15,11 @@ const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const data = cargarDatos();
 const dormir = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// Partida guardada: Ana (cimitarra y destreza) en su turno en Damasco, ronda 4, con Beto (alfanje y destreza). sinYafar: si Beto muere, Ana queda sola.
+// Partida guardada: Dulce (cimitarra y destreza) en su turno en Damasco, ronda 4, con Beto (alfanje y destreza). sinYafar: si Beto muere, Dulce queda sola.
 function guardada(dir, tipo) {
   const e = nuevoJuego(data, { semilla: 77, ahora: Date.now(), opciones: { sinYafar: true } });
   const t = Date.now();
-  const a = unir(e, { nombre: 'Ana', token: 'tokA' }), b = unir(e, { nombre: 'Beto', token: 'tokB' });
+  const a = unir(e, { nombre: 'Dulce', token: 'tokA' }), b = unir(e, { nombre: 'Beto', token: 'tokB' });
   reducir(data, e, a, { t: 'elegirPj', pj: '7' }, t); reducir(data, e, b, { t: 'elegirPj', pj: '4' }, t);
   reducir(data, e, a, { t: 'listo', v: true }, t); reducir(data, e, b, { t: 'listo', v: true }, t);
   e.host = a; reducir(data, e, a, { t: 'iniciar' }, t);
