@@ -599,6 +599,17 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.equal(e.tratos.x, undefined); assert.ok(e.log.some((l) => /se cancela: ya no están en la misma ciudad/.test(l.texto)));
 }
 
+// Recuperándose de una herida: los retos se ven deshabilitados y con el motivo
+{
+  const { disponibles, RECUPERANDO } = await import('../shared/retos.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids; turnoDe(e, a, 'Bagdad'); e.jugadores[a].ciudad = 'Bagdad';
+  e.turno.heridoAhora = true; e.turno.principal = true;
+  const rs = disponibles(data, e, a);
+  assert.ok(rs.length && rs.every((r) => r.bloqueado === RECUPERANDO), 'cada reto dice por qué no se puede');
+  e.turno.heridoAhora = false; assert.equal(disponibles(data, e, a).length, 0, 'si ya usó su acción por otra razón, no aparecen');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

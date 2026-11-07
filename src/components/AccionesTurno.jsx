@@ -158,6 +158,7 @@ export default function AccionesTurno({ s, onCerrar }) {
       <div className="desp-cuerpo">
         {!mt && <p className="it">Las acciones se habilitan en tu turno. Mientras tanto puedes mirar el mercado, tu mano y tus misiones.</p>}
         {mt && s.turno.fase === 'ingreso' && <p className="it">Primero tira el dado de ingreso.</p>}
+        {mt && s.turno.heridoAhora && s.turno.principal && <p className="aviso-mal">Ya no estás herido, pero te estás recuperando: este turno no tienes acción principal, así que no puedes iniciar retos, robar, desafiar ni buscar tesoros. En tu próximo turno, sí.</p>}
         {SECCIONES.map(([k, titulo]) => {
           const xs = hay(k);
           if (!xs.length && k !== 'tesoro') return null;

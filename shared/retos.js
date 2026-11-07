@@ -58,16 +58,19 @@ export function sirvePara(data, c) {
   return txt.length ? `Sirve para: ${txt.join(', ')}.` : '';
 }
 
+// Quien empieza su turno herido se cura, pero ese turno no tiene acción principal (R 11): ni retos, ni robos, ni duelos, ni tesoros.
+export const RECUPERANDO = 'Ya no estás herido, pero te estás recuperando: este turno no tienes acción principal, así que no puedes iniciar retos (ni robar, desafiar o buscar tesoros). En tu próximo turno, sí.';
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
-  if (!puedePrincipal(t) || j.transito || j.perdido) return r;
+  const recupera = t?.heridoAhora && t.principal && !j.transito && !j.perdido ? RECUPERANDO : null;   // se ven, pero deshabilitados y con el motivo
+  if ((!puedePrincipal(t) && !recupera) || j.transito || j.perdido) return r;
   for (const id of Object.keys(T)) {
     const d = m1(data, id);
     if (!d || d.ciudad !== j.ciudad) continue;
     if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = T[id].req ? T[id].req(data, e, pid) : null;
-    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: msg || undefined });
+    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || msg || undefined });
   }
   const deuda = j.misiones.find((m) => m.id === 'R1' && m.deuda > 0 && j.ciudad === 'Bagdad');
   if (deuda) r.push({ k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)`, texto: j.dinares >= deuda.deuda ? 'Pagas con dinares y quedas libre para salir de Bagdad.' : 'No te alcanzan los dinares: pagas con TODAS tus noches y quedas libre para salir.' });

@@ -294,7 +294,7 @@ function iniciarTurno(data, e, id, idx) {
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   j.extra.jugoTurno = true; j.turnos++;
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
-  if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; }
+  if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   if (j.pierdeTurno > 0) { j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true; }
   let ing = p.inicio.ingreso + (data.config.equilibrio?.ingresoExtra?.[j.pj] || 0);   // equilibrio: config.json
