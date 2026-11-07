@@ -56,7 +56,7 @@ export default function Lobby({ s }) {
             <button className="btn" disabled={!puedeIniciar} onClick={() => enviar(ACCIONES.iniciar())}>Comenzar partida</button>
           </>}
         </div>
-        {s.soyHost && !yafarHumano && (
+        {s.soyHost && !yafarHumano && !s.opciones?.sinYafar && (   /* sin Yafar NPC no hay dificultad de Yafar que elegir */
           <label className="dificultad">Dificultad de Yafar NPC
             <select value={s.opciones?.dificultad || 'normal'} onChange={(e) => enviar(ACCIONES.opciones(e.target.value))}>
               <option value="facil">Fácil</option><option value="normal">Normal</option><option value="dificil">Difícil</option>
