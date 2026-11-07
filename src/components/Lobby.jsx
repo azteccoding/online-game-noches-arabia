@@ -19,7 +19,8 @@ export default function Lobby({ s }) {
         <h1>Sala {s.codigo}</h1>
         {tarde ? <p>{s.puedeUnirse ? 'La partida ya empezó. Elige personaje y entra: jugarás al final de esta ronda.' : 'La primera ronda ya terminó: ya no se puede entrar a esta partida.'}</p>
           : <p>Los demás entran abriendo <b>{s.urls?.[0] || location.host}</b> en su navegador (misma red).</p>}
-        {s.cuenta != null && <p className="cuenta-inicio" role="status">La partida empieza en <b>{s.cuenta}</b> s</p>}
+        {!tarde && s.cuenta == null && todos.some((j) => j.listo) && s.faltaInicio?.length > 0 && <p className="it">La cuenta regresiva arranca cuando todos estén conectados y listos. Falta: {s.faltaInicio.join(', ')}.</p>}
+        {s.cuenta != null && <p className="cuenta-inicio" role="status">La partida empieza en <b>{s.cuenta}</b>…</p>}
       </header>
       <section className="panel bloque" aria-label="Elige personaje">
         <h2>Elige tu personaje</h2>

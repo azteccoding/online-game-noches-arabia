@@ -269,8 +269,8 @@ fieldset:disabled { opacity: .5; }
 .alarma-min { position: absolute; top: 2px; right: 4px; background: none; border: 0; color: #fff; font-size: 16px; line-height: 1; padding: 6px 8px; min-height: 0; }
 .aviso-espera { position: fixed; left: 50%; top: calc(var(--barra-alto, 56px) + 54px); transform: translateX(-50%); z-index: 96; width: min(430px, calc(100vw - 24px)); padding: 12px 14px; }
 .aviso-espera p { margin: 0 0 8px; }
-.cuenta-inicio { margin: 6px 0 0; font-size: 20px; color: var(--oro-claro); }
-.cuenta-inicio b { font-size: 28px; }
+.cuenta-inicio { position: fixed; right: 12px; bottom: 12px; z-index: 90; margin: 0; padding: 8px 14px; border: 2px solid var(--oro); border-radius: 999px; background: rgba(29, 7, 9, .92); color: var(--oro-claro); font-size: 16px; box-shadow: var(--sombra); pointer-events: none; }
+.cuenta-inicio b { font-size: 22px; }
 .alarma-mini { position: absolute; top: calc(var(--barra-alto, 56px) + 6px); left: 50%; transform: translateX(-50%); z-index: 85; background: #7a1d1d; color: #fff; border: 1px solid #efd08f; border-radius: 999px; padding: 4px 12px; font-size: 13px; min-height: 0; }
 .alarma-desconexion p { margin: 4px 0; padding-right: 22px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 /* En pantallas verticales la ficha de ciudad baja y deja ver la ruta animada en el mapa */

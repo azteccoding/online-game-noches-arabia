@@ -65,6 +65,18 @@ function salaLista(e) {
   if (!conPj.every((j) => j.listo && j.conectado !== false) || conPj.length > 8) return false;
   return conPj.length < 4 || conPj.some((j) => j.pj === 'B');
 }
+// Qué falta para que arranque la cuenta regresiva (se muestra en la sala).
+function faltaParaIniciar(e) {
+  const r = [];
+  for (const j of Object.values(e.jugadores)) {
+    if (j.npc) continue;
+    if (j.conectado === false) { if (j.pj) r.push(`${j.nombre} (desconectado)`); continue; }
+    if (!j.pj) r.push(`${j.nombre} (sin personaje)`); else if (!j.listo) r.push(`${j.nombre} (no está listo)`);
+  }
+  const conPj = Object.values(e.jugadores).filter((j) => j.pj);
+  if (conPj.length >= 4 && !conPj.some((j) => j.pj === 'B')) r.push('alguien que juegue con Yafar el Bermekí (con 4 o más jugadores)');
+  return r;
+}
 // Regla de la casa: se puede entrar tarde mientras no termine la primera ronda.
 export const puedeUnirse = (e) => e.fase === 'juego' && e.ronda === 1 && Object.values(e.jugadores).filter((j) => j.pj).length < 8;
 export function unirTarde(e, { nombre: nom, token }) {
@@ -1022,7 +1034,7 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
-    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null,
+    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'normal', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
