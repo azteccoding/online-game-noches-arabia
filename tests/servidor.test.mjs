@@ -42,7 +42,7 @@ function cliente(nombre, token, clave) {
 let srv = await arrancar();
 const pin = /PIN de anfitri[oó]n[^:]*:\s*(\S+)/.exec(srv.salida())[1];
 assert.equal(pin, '1234', 'en local el PIN del banco es 1234');
-const A = await cliente('Dulce'), B = await cliente('Beto'), C = await cliente('Cleo');
+const A = await cliente('Dulce'), B = await cliente('Carolina'), C = await cliente('Papá Jorge');
 await dormir(150);
 await A.a({ t: 'reclamarAnfitrion', pin });
 assert.ok(A.s.soyHost, 'Dulce reclama el banco con el PIN de la consola');
@@ -72,7 +72,7 @@ assert.equal(A.s.fase, 'juego');
 // guía privada: cada jugador recibe solo la de su personaje
 const guias = JSON.parse(fs.readFileSync(path.join(RAIZ, 'server', 'guias.json'), 'utf8')).guias;
 assert.equal(A.s.miGuia?.resumen, guias['1'].resumen, 'Dulce recibe la guía de Nur al Din');
-assert.equal(B.s.miGuia?.resumen, guias['2'].resumen, 'Beto recibe la guía de Zein');
+assert.equal(B.s.miGuia?.resumen, guias['2'].resumen, 'Carolina recibe la guía de Zein');
 for (const [x, propio] of [[A, '1'], [B, '2'], [C, '3']]) {
   for (const [pj, g] of Object.entries(guias)) if (pj !== propio) assert.ok(!x.crudos.some((r) => r.includes(g.resumen)), `la guía de ${pj} no llega a quien lleva ${propio}`);
 }
@@ -85,7 +85,7 @@ await A.a({ t: 'host.caja', abrir: true });
 for (const x of [A, B, C]) assert.ok(x.crudos.some((r) => r.includes('"t":"aviso"') && r.includes('Dulce abrió la caja del banco')), 'todos ven quién abrió la caja');
 await A.a({ t: 'host.repartir', pid: B.pid, mazo: 'objeto', id: 'OB01' });
 await A.a({ t: 'host.dar', pid: B.pid, dinares: 5, noches: 0 });
-assert.ok(A.crudos.some((r) => r.includes('"t":"hecho"') && r.includes('Entregado a Beto: 5 dinares')), 'el banco recibe confirmación de la entrega');
+assert.ok(A.crudos.some((r) => r.includes('"t":"hecho"') && r.includes('Entregado a Carolina: 5 dinares')), 'el banco recibe confirmación de la entrega');
 assert.ok(!B.crudos.some((r) => r.includes('"t":"hecho"')), 'la confirmación solo llega a quien hizo la acción');
 const objetoId = (B.s.mano.find((c) => c.tipo === 'objeto') || {}).uid;
 if (!objetoId) console.log('  (aviso) el id de objeto de prueba no existe en el mazo; se omite la comprobación de mano de B:', B.errores.slice(-1));
@@ -118,7 +118,7 @@ await dormir(700);
 srv.p.kill('SIGTERM'); await dormir(500);
 assert.ok(fs.existsSync(path.join(DIR, 'partida.json')), 'partida.json guardada');
 srv = await arrancar();
-const B2 = await cliente('Beto', B.token); await dormir(200);
+const B2 = await cliente('Carolina', B.token); await dormir(200);
 assert.equal(B2.pid, B.pid, 'el token recupera al mismo jugador');
 assert.equal(JSON.stringify({ r: B2.s.ronda, t: B2.s.turno.pid, din: B2.s.jugadores[B2.pid].dinares, mano: B2.s.mano.length }), antes, 'estado idéntico tras reiniciar');
 const tarde = await new Promise((ok) => { const ws = new WebSocket(`ws://127.0.0.1:${PUERTO}/ws`); ws.on('message', (r) => { const m = JSON.parse(r); if (m.t === 'rechazo' || m.t === 'bienvenida') { ok(m); ws.close(); } }); ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre: 'Tarde' }))); });
