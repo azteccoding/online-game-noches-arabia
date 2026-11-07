@@ -1,0 +1,23 @@
+{
+ "name": "Mil y una Noches",
+ "short_name": "Mil y una Noches",
+ "lang": "es-MX",
+ "start_url": "/",
+ "scope": "/",
+ "display": "fullscreen",
+ "display_override": [
+  "fullscreen",
+  "standalone"
+ ],
+ "orientation": "any",
+ "background_color": "#1d0709",
+ "theme_color": "#1d0709",
+ "icons": [
+  {
+   "src": "/svg/iconos/noche.svg",
+   "sizes": "any",
+   "type": "image/svg+xml",
+   "purpose": "any"
+  }
+ ]
+}

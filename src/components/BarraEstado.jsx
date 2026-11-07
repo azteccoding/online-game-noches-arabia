@@ -1,8 +1,19 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { verComo } from '../game/store.js';
+
+// Pantalla completa (Fullscreen API). En iPhone no existe: se explica cómo agregar el juego a la pantalla de inicio.
+const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
+const fsPuede = () => !!(document.fullscreenEnabled || document.webkitFullscreenEnabled);
+function alternarPantalla() {
+  const r = document.documentElement;
+  if (fsEl()) (document.exitFullscreen || document.webkitExitFullscreen)?.call(document);
+  else (r.requestFullscreen || r.webkitRequestFullscreen)?.call(r)?.catch?.(() => {});
+}
 
 export default function BarraEstado({ s, demo, pids, panel, abrir }) {
   const [mas, setMas] = useState(false);
+  const [completa, setCompleta] = useState(() => !!fsEl());
+  useEffect(() => { const f = () => setCompleta(!!fsEl()); document.addEventListener('fullscreenchange', f); document.addEventListener('webkitfullscreenchange', f); return () => { document.removeEventListener('fullscreenchange', f); document.removeEventListener('webkitfullscreenchange', f); }; }, []);
   const act = (p) => { setMas(false); abrir(p); };
   const ev = s.evento?.actual && s.historial.slice().reverse().find((h) => h.deck === 'evento');
   return (
@@ -16,6 +27,7 @@ export default function BarraEstado({ s, demo, pids, panel, abrir }) {
         {!s.hostConectado && <span className="chip mal" title="El banco está desconectado; la partida sigue.">banco ausente</span>}
       </div>
       <nav className="barra-der" aria-label="Menú">
+        <button className="btn mini btn-pantalla" onClick={() => (fsPuede() ? alternarPantalla() : window.alert('En iPhone y iPad: toca Compartir y luego «Agregar a inicio». Al abrir el juego desde ese ícono se ve en pantalla completa.'))} title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'} aria-label={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}><span aria-hidden="true">⛶</span><span className="txt-pantalla">{completa ? 'Salir de pantalla completa' : 'Pantalla completa'}</span></button>
         <button className={`btn mini${panel === 'personajes' ? ' on' : ''}`} aria-expanded={panel === 'personajes'} onClick={() => abrir('personajes')}>Personajes ▾</button>
         <button className="btn mini" disabled={s.ultimaCarta == null} onClick={() => abrir('ultima')}>Última carta</button>
         <div className="menu-mas">
