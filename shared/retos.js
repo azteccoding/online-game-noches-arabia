@@ -450,13 +450,13 @@ function r16Tira(data, e, pid) {
 }
 // ---------------------------------------------------------------- entrenamientos (regla de la casa, noviembre de 2026)
 // La destreza (+1 en toda pelea) se aprende solo en Estambul. Cada arma tiene su maestro: hay que llevar el arma, y quien entrena suma
-// +1 con ella (dentro del tope de armas); con el arco, la flecha da en el blanco con 4 a 6 en vez de 5 a 6.
+// +1 con ella (dentro del tope de armas); con el arco, también un 3 o 4 en la flecha deja al rival con −1.
 export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
 const entrenado = (j, arma) => !!j.extra.entrenado?.[arma];
 function entrenarArma(e, pid, id) {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
   j.dinares -= costo; (j.extra.entrenado ||= {})[arma] = true; j.noches += 50; hacer(e, pid, id);
-  log(e, `${j.nombre} entrena con ${arma}: desde ahora suma +1 con ella${arma === 'arco' ? ' (su flecha da en el blanco con 4 a 6)' : ''} y gana 50 noches.`, { pid });
+  log(e, `${j.nombre} entrena con ${arma}: desde ahora suma +1 con ella${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : ''} y gana 50 noches.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];

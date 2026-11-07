@@ -87,7 +87,7 @@ export default function Dados({ s }) {
             if (d.titulo) return <p className="dados-contexto">{d.titulo}</p>;      // peleas: no las explica ninguna carta
             return c ? <p className="dados-contexto">Por la carta «{c.titulo}»: {c.texto}</p> : d.contexto ? <p className="dados-contexto">Por «{d.contexto}».</p> : null;
           })()}
-          {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Lanzar {d.n > 1 ? 'los dados' : 'el dado'}</button>
+          {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>{d.boton || `Lanzar ${d.n > 1 ? 'los dados' : 'el dado'}`}</button>
             : <><p className="it">Esperando a {por?.nombre || 'alguien'} para lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>{por && !por.conectado && <small className="it"> {por.nombre} está desconectado: nadie lanza por él; a los 60 segundos el banco puede sacarlo.</small>}</>}
         </div>
       </div>

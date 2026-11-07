@@ -1129,4 +1129,40 @@ for (let k = 0; k < 6; k++) {
   const h = partida(['4', '7']); assert.ok(h.iniciar().ok); h.e.fase = 'fin';
   assert.ok(h.act(h.ids[0], { t: 'host.reiniciar' }).ok); assert.equal(h.e.fase, 'lobby');
 }
+// Arco (regla de Jorge, 7 de noviembre): en robo, ataque a muerte y duelo el dueño del arco dispara una flecha con su botón
+// «Disparar flecha», antes de los dados de la pelea. 5–6: el rival pelea con −1 y sin destreza; 3–4 solo cuenta con el arco
+// entrenado (R43): −1. En duelo el arco ya no suma +1 fijo. Cada disparo gasta una flecha.
+{
+  const prep = (tipo, x, entrenado = false) => {
+    const g = partida(['4', '2']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const j of [A, B]) { j.extra.clienteWeb = true; j.ciudad = 'Damasco'; j.destreza = true; j.mano = j.mano.filter((c) => !['arco', 'flechas'].includes(c.ref)); }
+    if (!A.mano.some((c) => c.ref === 'cimitarra')) darItem(e, A, 'cimitarra');
+    if (!B.mano.some((c) => c.ref === 'alfanje')) darItem(e, B, 'alfanje');
+    darItem(e, A, 'arco'); darItem(e, A, 'flechas'); darItem(e, A, 'flechas');
+    if (entrenado) A.extra.entrenado = { arco: true };
+    B.dinares = 40; e.mods = {}; e.ronda = 4; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    forzar(e, x);
+    assert.ok(g.act(a, { t: 'atacar', tipo, objetivo: b }).ok);
+    while (e.pend) assert.ok(g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => o.id === 'luchar') || e.pend.opciones[0]).id }).ok);
+    const cola = [e.dados, ...e.colaDados].filter(Boolean);
+    return { g, e, a, b, A, cola, flecha: cola.find((d) => /dispara una flecha/.test(d.grupos[0].etq)), fin: cola.at(-1).resumen.join(' ') };
+  };
+  for (const tipo of ['robo', 'matar', 'duelo']) {
+    const { e, a, b, A, cola, flecha, fin } = prep(tipo, 6);
+    assert.ok(flecha, `${tipo}: hay disparo de flecha`);
+    assert.equal(flecha.por, a, `${tipo}: dispara el dueño del arco`);
+    assert.equal(flecha.lanzado, false, `${tipo}: la flecha espera el botón del jugador`);
+    assert.equal(flecha.boton, 'Disparar flecha', `${tipo}: el botón dice «Disparar flecha»`);
+    assert.ok(cola.indexOf(flecha) === 0 || cola.slice(0, cola.indexOf(flecha)).every((d) => !/lanza 2 dados|2 dados/.test(d.grupos[0].etq)), `${tipo}: la flecha va antes de los dados de la pelea`);
+    assert.match(flecha.resumen.join(' '), /−1 y sin su destreza/, `${tipo}: con 6 le da`);
+    assert.equal(A.mano.filter((c) => c.ref === 'flechas').length, 1, `${tipo}: gasta una flecha`);
+    assert.ok(!/arco \+/.test(fin), `${tipo}: el arco no suma fijo`);
+    assert.match(fin, /flecha −1/, `${tipo}: el rival pelea con −1`);
+    const r = reducir(data, e, b, { t: 'lanzarDados' }, e.ahora + 1); assert.equal(r.ok, false, 'el rival no puede disparar por él');
+  }
+  { const { flecha, fin } = prep('robo', 3); assert.match(flecha.resumen.join(' '), /falla/, 'sin entrenar, un 3 falla'); assert.ok(!/flecha −1/.test(fin)); }
+  { const { flecha, fin } = prep('robo', 4, true); assert.match(flecha.resumen.join(' '), /cubrirse: −1/, 'entrenado, un 4 obliga a cubrirse'); assert.match(fin, /flecha −1/); assert.ok(!/destreza perdida/.test(fin)); }
+}
+
 console.log('reglas de la casa OK');

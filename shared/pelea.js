@@ -58,6 +58,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false } = {
   const j = e.jugadores[pid];
   let total = 0; const partes = [];
   for (const ref of perf.armas) {
+    if (ref === 'arco') continue;                                            // el arco no suma fijo: dispara una flecha antes de la pelea
     if (ref === 'jambiya') {
       const d = dado(e);
       const ej = j.extra?.entrenado?.jambiya ? 1 : 0;
@@ -253,7 +254,7 @@ export function tiroDeArco(data, e, pid, ciudad) {
   if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
   quitarPrimero(j, 'item', 'flechas');
   const x = dado(e);
-  return { x, acierta: x >= ARCO_ACIERTA - (j.extra?.entrenado?.arco ? 1 : 0), quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
+  return { x, acierta: x >= ARCO_ACIERTA, cubre: !!j.extra?.entrenado?.arco && x >= 3 && x < ARCO_ACIERTA, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
 }
 export function golpeAlEscudo(data, e, pid) {
   const j = e.jugadores[pid];
@@ -378,7 +379,15 @@ function pasoCategoria(data, e) {
   const P = e.pelea;
   if (P.tipo !== 'duelo') return resolverNuevo(data, e);                     // robo y ataque a muerte: sistema de 2 dados (los duelos siguen igual)
   const quien = P.ayudante || P.def;
+  // Duelo: quien tenga arco y flechas dispara antes (con su botón), igual que en robos y ataques a muerte.
+  if (!P.mods) {
+    const tit = `Duelo: ${nombre(e, P.atk)} contra ${nombre(e, P.def)}`;
+    P.mods = { atk: {}, def: {} };
+    if (conArco(data, e, P.atk, P.ciudad)) P.mods.def = disparo(data, e, P.atk, quien, tit);
+    if (conArco(data, e, quien, P.ciudad)) P.mods.atk = disparo(data, e, quien, P.atk, tit);
+  }
   let pd = perfil(data, e, quien);
+  if (P.mods.def.sinDestreza && pd.destreza) { pd = { ...pd, destreza: false, cat: pd.armas.length ? 'C' : 'A' }; }
   const lineas = [];
   let cat = pd.cat;
   if (cat === 'C') {                                                          // con armas sin destreza: dado, par = como D, impar = como A
@@ -428,14 +437,15 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1'); total += 1; }
   return { total, resta, partes };
 }
+export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en ? '; con 3 o 4 (arco entrenado), con −1' : ''}; si lleva escudo, no le hace nada`;
 // Disparo a distancia (antes del choque): devuelve los efectos sobre el blanco; se muestra con su dado y botón.
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
   quitarPrimero(T, 'item', 'flechas');
-  const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = T.extra?.entrenado?.arco ? 1 : 0;   // entrenado con arco: 4–6 le da, 2–3 se cubre
-  const efecto = escudo ? {} : x >= 5 - en ? { flecha: 1, sinDestreza: true } : x >= 3 - en ? { flecha: 1 } : {};
-  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.` : x >= 5 ? `¡Le da! ${B.nombre} pelea tocado: −1 y pierde su destreza en esta pelea.` : x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
-  mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre} (5–6 le da, 3–4 lo obliga a cubrirse)`, valores: [x] }], resumen: [texto] });
+  const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = !!T.extra?.entrenado?.arco;   // regla de Jorge: 5–6 le da; entrenado (R43), además 3–4 lo obliga a cubrirse
+  const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : en && x >= 3 ? { flecha: 1 } : {};
+  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.` : x >= 5 ? `¡Le da! ${B.nombre} pelea con −1 y sin su destreza en esta pelea.` : en && x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
+  mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre}: ${textoFlecha(en)}`, valores: [x] }], resumen: [texto] });
   return efecto;
 }
 function resolverNuevo(data, e) {
@@ -519,6 +529,7 @@ function resolver(data, e, { numeros }) {
     }
   } else {
     const bA = bonos(data, e, atk, pA, 'atk', null), bD = bonos(data, e, def, pD, 'def', null);
+    for (const [b, m] of [[bA, P.mods?.atk], [bD, P.mods?.def]]) if (m?.flecha) { b.total -= m.flecha; b.partes.push(`flecha −${m.flecha}`); }
     if (P.polvo && !P.ayudante) { bD.resta = Math.max(bD.resta, 2); const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nD} usa Polvo de pimienta: el atacante resta 2.`); }
     const matar = P.tipo === 'matar', op = { empateTermina: matar };     // a muerte, el empate no se repite: deja heridos a los dos
     const tirar = () => (cat === 'B' ? luchaB(data, e, atk, def, bA, bD, P.ventajaB || 1, op) : luchaD(data, e, atk, def, bA, bD, undefined, op));
@@ -619,20 +630,20 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
   const n0 = nombre(e, pid);
   const arco = tiroDeArco(data, e, pid);                                       // regla de la casa: el arco dispara antes de la pelea
-  if (arco) mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} dispara su arco (5 o 6 acierta)`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su arco (${arco.x}) y pone en fuga a ${npc.etq}.` : `${n0} dispara su arco (${arco.x}) y falla.`].filter(Boolean) });
+  if (arco) mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) });
   if (arco?.acierta) return true;
   // El jugador lanza sus 2 dados con su botón; el NPC lanza solo, a la vista, y entonces sale el desglose.
   let gana = false, usoDado = false, primero = !arco;
   for (let g = 0; g < 50; g++) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
-    let bn = npc.bono || 0, jd = null;
+    let bn = (npc.bono || 0) - (arco?.cubre ? 1 : 0), jd = null;
     if (npc.jambiya) { jd = dado(e); if (par(jd)) bn += 3; }
     const dest = p.destreza ? 1 : 0;
     const tj = suma(r) + b.total + dest, tn = suma(n) + bn - b.resta;
     mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] });
     primero = false;
     const pj = [`dados ${r.join(' + ')} = ${suma(r)}`, ...b.partes.filter((x) => !/^Polvo/.test(x)), ...(dest ? ['destreza +1'] : [])];
-    const pn = [`dados ${n.join(' + ')} = ${suma(n)}`, ...(npc.bono ? [`bono +${npc.bono}`] : []), ...(jd ? [`jambiya ${par(jd) ? '+3' : '+0'} (dado ${jd})`] : []), ...(b.resta ? [`polvo de pimienta −${b.resta}`] : [])];
+    const pn = [`dados ${n.join(' + ')} = ${suma(n)}`, ...(npc.bono ? [`bono +${npc.bono}`] : []), ...(arco?.cubre ? ['flecha −1'] : []), ...(jd ? [`jambiya ${par(jd) ? '+3' : '+0'} (dado ${jd})`] : []), ...(b.resta ? [`polvo de pimienta −${b.resta}`] : [])];
     const res = [`${n0}: ${pj.join(' · ')} → total ${tj}.`, `${npc.etq}: ${pn.join(' · ')} → total ${tn}.`];
     let sigue = false;
     if (tj === tn) { res.push('Empate: se repite.'); sigue = true; }

@@ -581,7 +581,7 @@
    "tipo": "C",
    "requisito": "Tener un arco y pagar 20 dinares",
    "resolucion": "Entrena con los arqueros de Andalucía",
-   "premio": "Tu flecha da en el blanco con 4 a 6 (antes 5 a 6) y se cubren con 2 o 3; +50 noches",
+   "premio": "Con 3 o 4 en tu flecha el rival también pelea con −1 (con 5 o 6, −1 y sin destreza, como siempre); +50 noches",
    "riesgo": "",
    "objetos": "",
    "refReglamento": "14.4",

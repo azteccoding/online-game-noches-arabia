@@ -295,7 +295,7 @@ export function actuanAsesinos(data, e) {
   if (conArco(data, e, v, vic.ciudad)) {
     quitarPrimero(vic, 'item', 'flechas'); const x = dado(e);
     const efecto = x >= 3 ? 1 : 0; K -= efecto;
-    mostrarDados(e, { por: v, npc: !!vic.npc, motivo: 'pelea', titulo, grupos: [{ etq: `${vic.nombre} dispara una flecha a los Asesinos (3 a 6 los frena)`, valores: [x] }], resumen: [efecto ? 'La flecha frena a los Asesinos: −1.' : 'La flecha falla.'] });
+    mostrarDados(e, { por: v, npc: !!vic.npc, motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${vic.nombre} dispara una flecha a los Asesinos (3 a 6 los frena)`, valores: [x] }], resumen: [efecto ? 'La flecha frena a los Asesinos: −1.' : 'La flecha falla.'] });
     if (efecto) extra.push('flecha −1');
   }
   const b = bonosCombate(data, e, v, 'def', vic.ciudad), mitad = Math.floor(Math.max(0, b.total) / 2) + Math.min(0, b.total);

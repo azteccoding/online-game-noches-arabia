@@ -796,7 +796,7 @@
   },
   {
    "nombre": "Arco",
-   "efecto": "+1 punto en cualquier pelea o duelo, al atacar o al defenderte. Necesita flechas. En Bagdad solo con Firmán",
+   "efecto": "Antes de cualquier pelea disparas una flecha: con 5 o 6 el rival pelea con −1 y sin destreza (entrenado en R43, también con 3 o 4 pelea con −1). Gasta 1 flecha por disparo. En Bagdad solo con Firmán",
    "precio": "15 dinares"
   },
   {
@@ -891,7 +891,7 @@
   },
   {
    "nombre": "Arco",
-   "efecto": "Arma: +1 punto a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; necesita flechas; en Bagdad solo con Firmán del Califa. Cuesta 15 dinares.",
+   "efecto": "Arma: antes de cualquier pelea (robo, ataque a muerte o duelo), al atacar o defenderte, disparas una flecha: con 5 o 6 el rival pelea con −1 y sin destreza; con el arco entrenado (R43), con 3 o 4 pelea con −1; contra un escudo no hace nada. Gasta 1 flecha por disparo; en Bagdad solo con Firmán del Califa. Cuesta 15 dinares.",
    "precio": "11.1, 15.1, 27.1"
   },
   {
