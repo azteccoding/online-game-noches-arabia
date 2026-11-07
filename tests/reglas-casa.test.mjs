@@ -1165,4 +1165,20 @@ for (let k = 0; k < 6; k++) {
   { const { flecha, fin } = prep('robo', 4, true); assert.match(flecha.resumen.join(' '), /cubrirse: −1/, 'entrenado, un 4 obliga a cubrirse'); assert.match(fin, /flecha −1/); assert.ok(!/destreza perdida/.test(fin)); }
 }
 
+// Nur al Din (regla de Jorge, 7 de noviembre): empieza entrenado solo con la cimitarra (como si ya hubiera hecho R18), sin destreza general;
+// la destreza de Estambul (R25) y las demás armas las entrena como cualquiera
+{
+  const g = partida(['1', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [n] = g.ids, N = e.jugadores[n];
+  assert.equal(N.destreza, false, 'Nur al Din no empieza con destreza general');
+  assert.equal(N.extra.entrenado?.cimitarra, true, 'empieza con la cimitarra entrenada');
+  assert.ok(tieneItem(N, 'cimitarra'));
+  turnoDe(e, n, 'Isfahán'); N.ciudad = 'Isfahán'; e.turno.fase = 'acciones'; N.dinares = 200;
+  const r = g.act(n, { t: 'reto', id: 'R18' }); assert.ok(!r.ok && /Ya entrenaste/.test(r.error), 'no puede volver a entrenar la cimitarra');
+  turnoDe(e, n, 'Estambul'); N.ciudad = 'Estambul'; e.turno.fase = 'acciones';
+  assert.ok(g.act(n, { t: 'reto', id: 'R25' }).ok, 'la destreza la aprende en Estambul'); assert.ok(N.destreza);
+  darItem(e, N, 'alfanje'); turnoDe(e, n, 'Aleppo'); N.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
+  assert.ok(g.act(n, { t: 'reto', id: 'R42' }).ok, 'el alfanje lo entrena normal'); assert.ok(N.extra.entrenado.alfanje);
+}
+
 console.log('reglas de la casa OK');
