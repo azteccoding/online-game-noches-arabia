@@ -90,7 +90,8 @@ function incorporarTarde(data, e, pid) {
   if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
   j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
   for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma });
-  if (p.inicio.firman) { j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); e.firmanes--; }
+  if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });
+  { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
   j.tarde = false; j.listo = true;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
   if (e.turno) e.turno.idx = e.orden.indexOf(e.turno.pid);
@@ -141,6 +142,8 @@ function reponerMercado(data, e) {
 }
 
 // ---------------------------------------------------------------- partida
+// Regla de la casa (Jorge, 7 de noviembre): a la venta hay 1 Firmán por cada 3 jugadores, redondeando hacia arriba; el que trae Yafar va aparte.
+export const firmanesEnVenta = (n) => Math.ceil(Math.max(0, n) / 3);
 function iniciar(data, e) {
   const ids = e.orden.filter((id) => e.jugadores[id].pj);
   if (ids.length < 1) return err('Nadie ha elegido personaje.');
@@ -165,7 +168,8 @@ function iniciar(data, e) {
   orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
   e.participantes = ids.length + (conNPC ? 1 : 0);
-  e.burros = Math.max(0, ids.filter((id) => e.jugadores[id].pj !== 'B').length - 1);          // regla de la casa: N − 1 burros (Yafar no cuenta)
+  e.burros = Math.max(0, ids.filter((id) => e.jugadores[id].pj !== 'B').length - 1);
+  e.firmanes = firmanesEnVenta(ids.length);                                                  // regla de la casa: 1 Firmán a la venta por cada 3 jugadores (el de Yafar aparte)          // regla de la casa: N − 1 burros (Yafar no cuenta)
   // Regla de la casa: cada carrera de «dos noches» sale una sola vez, en una ronda al azar entre la 3 y la 12 (sin coincidir).
   const rondas = barajar(e, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
   e.carreras = Object.fromEntries(data.eventos.eventos.filter((x) => x.carrera).map((x, k) => [x.id, rondas[k]])); e.carrerasActivas = [];                                                     // para la regla del último en pie
@@ -175,7 +179,7 @@ function iniciar(data, e) {
     j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
     if (e.solitario && !j.npc && e.opciones.dificultad === 'facil') j.dinares = 30;                                   // R 21.5
     for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma }); }
-    if (p.inicio.firman) { j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); e.firmanes--; }
+    if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });          // el de Yafar no sale de los que están a la venta
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;

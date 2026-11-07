@@ -9,7 +9,7 @@ import { peleaNPC, duelo } from '../shared/pelea.js';
 import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
 import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
-import { tieneItem, darItem } from '../shared/base.js';
+import { tieneItem, darItem, tieneEsp } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
 import { simular } from './sim.mjs';
 
@@ -1191,6 +1191,26 @@ for (let k = 0; k < 6; k++) {
   darItem(f2, f2.jugadores[a2], 'cimitarra'); f2.jugadores[a2].destreza = false;
   f2.ronda = 4; f2.mods = {}; turnoDe(f2, a2, 'Damasco'); f2.turno.fase = 'acciones';
   const r2 = g2.act(a2, { t: 'atacar', tipo: 'matar', objetivo: b2 }); assert.ok(!r2.ok && /destreza/.test(r2.error), 'los demás necesitan destreza');
+}
+
+// Firmán (Jorge, 7 de noviembre): 1 a la venta por cada 3 jugadores (hacia arriba), aparte del de Yafar; cuesta 55 (45 con la joya del visir);
+// Yafar no compra; si alguien mata al dueño, se queda con el Firmán; si muere sin que nadie lo mate, vuelve al visir
+{
+  for (const [pjs, venta] of [[['4', '7'], 1], [['4', '7', '2'], 1], [['4', '7', '2', 'B'], 2], [['4', '7', '2', '3', '5', 'B', '1'], 3]]) {
+    const g = partida(pjs); assert.ok(g.iniciar().ok);
+    assert.equal(g.e.firmanes, venta, `${pjs.length} jugadores: ${venta} a la venta`);
+    for (const id of Object.keys(g.e.jugadores)) if (g.e.jugadores[id].pj === 'B') assert.ok(tieneEsp(g.e.jugadores[id], 'F1'), 'Yafar trae el suyo');
+  }
+  const g = partida(['4', '7', '2', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, , , y] = g.ids, A = e.jugadores[a], Y = e.jugadores[y];
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; A.dinares = 54;
+  assert.ok(!g.act(a, { t: 'comprar', ref: 'firman' }).ok, 'con 54 no alcanza');
+  A.dinares = 55; assert.ok(g.act(a, { t: 'comprar', ref: 'firman' }).ok); assert.equal(A.dinares, 0); assert.equal(e.firmanes, 1);
+  turnoDe(e, y, 'Bagdad'); e.turno.fase = 'acciones'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.ref !== 'F1');
+  const r = g.act(y, { t: 'comprar', ref: 'firman' }); assert.ok(!r.ok && /Yafar no puede comprar/.test(r.error));
+  const B = e.jugadores[g.ids[1]]; B.extra.joyaVisir = true; turnoDe(e, g.ids[1], 'Bagdad'); e.turno.fase = 'acciones'; B.dinares = 45;
+  assert.ok(g.act(g.ids[1], { t: 'comprar', ref: 'firman' }).ok, 'con la joya del visir cuesta 45'); assert.equal(e.firmanes, 0);
+  eliminar(data, e, a, { causa: 'prueba' }); assert.equal(e.firmanes, 1, 'muerte sin asesino: el Firmán vuelve al visir');
 }
 
 console.log('reglas de la casa OK');

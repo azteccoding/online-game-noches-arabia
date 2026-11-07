@@ -40,6 +40,8 @@ export function precioArma(data, e, ref, j) {
 }
 const dobleCairo = (e, ciudad) => (e.mods.oroMali && ciudad === 'El Cairo' ? 2 : 1);                    // H9
 
+// Regla de la casa (7 de noviembre): el Firmán cuesta 55 dinares (45 con la joya del visir); Yafar no lo compra.
+export const precioFirman = (j) => (j.extra.joyaVisir ? 45 : 55);
 export function comprar(data, e, pid, a) {
   const j = e.jugadores[pid];
   const enTurno = a.ref === 'firman' || a.ref === 'ifrit';
@@ -48,8 +50,9 @@ export function comprar(data, e, pid, a) {
   if (a.ref === 'firman') {                                                                              // R 15.3
     if (j.ciudad !== 'Bagdad') return err('El visir vende el Firmán en Bagdad.');
     if (e.firmanes <= 0) return err('No quedan Firmanes.');
+    if (j.pj === 'B') return err('Yafar no puede comprar Firmanes: solo tiene el suyo.');
     if (tieneEsp(j, 'F1')) return err('Ya tienes un Firmán.');
-    let p = j.extra.joyaVisir ? 30 : 40; if (j.pj === 'B') p = Math.ceil(p / 2);
+    const p = precioFirman(j);
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
@@ -192,8 +195,8 @@ export function tienda(data, e, pid) {
     r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });
   }
   if (j.ciudad === 'Bagdad') {
-    let p = j.extra.joyaVisir ? 30 : 40; if (j.pj === 'B') p = Math.ceil(p / 2);
-    r.push({ ref: 'firman', nombre: 'Firmán del Califa', tipo: 'Especial', texto: 'Permite portar arco y jambiya en Bagdad, desafiar y robar allí.', precio: p, stock: e.firmanes, puede: e.firmanes > 0 && !tieneEsp(j, 'F1') && j.dinares >= p });
+    const p = precioFirman(j);
+    if (j.pj !== 'B') r.push({ ref: 'firman', nombre: 'Firmán del Califa', tipo: 'Especial', texto: 'Permite portar arco y jambiya en Bagdad, desafiar y robar allí.', precio: p, stock: e.firmanes, puede: e.firmanes > 0 && !tieneEsp(j, 'F1') && j.dinares >= p });
   }
   for (const o of data.objetos.mazo) {
     const cs = ciudadesDe(o);
@@ -426,7 +429,7 @@ export function usar(data, e, pid, a) {
       if (x >= 4 && !inmune) o.extra.lazoTurno = (o.turnos || 0) + 1;
       return ok();
     }
-    case 'OB15': consumirObj(data, e, pid, 'OB15'); j.extra.joyaVisir = true; info(e, pid, 'El visir te recibe', 'Yafar te presta una consulta gratuita: los Asesinos ' + (e.asesinos.actuaron ? 'ya actuaron.' : 'todavía no han actuado.') + ' Además, el Firmán te sale a 30 dinares si lo compras en Bagdad mientras queden.'); return ok();
+    case 'OB15': consumirObj(data, e, pid, 'OB15'); j.extra.joyaVisir = true; info(e, pid, 'El visir te recibe', 'Yafar te presta una consulta gratuita: los Asesinos ' + (e.asesinos.actuaron ? 'ya actuaron.' : 'todavía no han actuado.') + ' Además, el Firmán te sale a 45 dinares (en vez de 55) si lo compras en Bagdad mientras queden.'); return ok();
     case 'OB16': {
       if (j.ciudad !== 'Bagdad') return err('Masrur está en Bagdad.');
       consumirObj(data, e, pid, 'OB16');

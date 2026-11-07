@@ -229,7 +229,7 @@ function deseo(data, e, pid, letra, { alTerminar = null }) {
   switch (letra) {
     case 'C': j.dinares += 60; break;
     case 'D': j.noches += 60; break;
-    case 'F': if (e.firmanes > 0) { e.firmanes--; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); } else j.dinares += 30; break;
+    case 'F': if (e.firmanes > 0 && j.pj !== 'B' && !tieneEsp(j, 'F1')) { e.firmanes--; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); } else j.dinares += 30; break;
     case 'G': j.ventajaCombate = (j.ventajaCombate || 0) + 2; break;
     case 'H': darItem(e, j, 'alfombra'); break;
     case 'A': {
