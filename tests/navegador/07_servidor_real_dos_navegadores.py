@@ -47,7 +47,7 @@ def modo(pg):
 with sync_playwright() as p:
     b = p.chromium.launch(channel='chrome')
     A = entrar(b, {'width': 1280, 'height': 800}, 1, False, 'Dulce')
-    M = entrar(b, {'width': 390, 'height': 844}, 2, True, 'Beto')
+    M = entrar(b, {'width': 390, 'height': 844}, 2, True, 'Carolina')
     ok(modo(A) == 'horizontal' and modo(M) == 'horizontal', 'vista horizontal predeterminada en PC y en teléfono vertical')
     A.screenshot(path=f'{OUT}/e2e-lobby-pc.png')
     A.locator('.pj-opcion').nth(0).click(); M.locator('.pj-opcion').nth(1).click(); A.wait_for_timeout(400)
