@@ -610,6 +610,17 @@ function avanzarHasta(g, cond, pasos = 400) {
   e.turno.heridoAhora = false; assert.equal(disponibles(data, e, a).length, 0, 'si ya usó su acción por otra razón, no aparecen');
 }
 
+// Dificultad de los Asesinos, aparte de la de Yafar NPC; solo el banco la cambia
+{
+  const e = nuevoJuego(data, { semilla: 3, ahora: 1000 });
+  const a = unir(e, { nombre: 'A', token: 'a' }), b = unir(e, { nombre: 'B', token: 'b' });
+  assert.equal(NPC.bonoAsesinos(e), 4, 'normal por defecto');
+  assert.ok(reducir(data, e, a, { t: 'opciones', dificultadAsesinos: 'dificil' }, 2000).ok);
+  assert.equal(NPC.bonoAsesinos(e), 5); assert.equal(e.opciones.dificultad, 'normal', 'no toca la de Yafar');
+  assert.ok(!reducir(data, e, b, { t: 'opciones', dificultadAsesinos: 'facil' }, 2100).ok, 'solo el banco');
+  assert.equal(vista(data, e, b).opciones.dificultadAsesinos, 'dificil');
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

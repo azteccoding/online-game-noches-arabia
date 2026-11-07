@@ -4,10 +4,13 @@ import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 
+const NIVEL = { facil: 'Fácil', normal: 'Normal', dificil: 'Difícil' };
+
 export default function Lobby({ s }) {
   const yo = s.jugadores[s.yo];
   const tomados = Object.fromEntries(Object.values(s.jugadores).filter((j) => j.pj).map((j) => [j.pj, j]));
   const todos = Object.values(s.jugadores);
+  const yafarHumano = Object.values(s.jugadores).some((j) => j.pj === 'B' && !j.npc);   // si alguien juega con Yafar, no hay Yafar NPC que ajustar
   const tarde = s.fase === 'juego';                // entra con la partida empezada, durante la primera ronda
   const puedeIniciar = s.soyHost && todos.some((j) => j.pj) && todos.filter((j) => j.pj).every((j) => j.listo);
   return (
@@ -52,13 +55,22 @@ export default function Lobby({ s }) {
             <button className="btn" disabled={!puedeIniciar} onClick={() => enviar(ACCIONES.iniciar())}>Comenzar partida</button>
           </>}
         </div>
-        {s.soyHost && (
-          <label className="dificultad">Dificultad de Yafar NPC y de los Asesinos
+        {s.soyHost && !yafarHumano && (
+          <label className="dificultad">Dificultad de Yafar NPC
             <select value={s.opciones?.dificultad || 'normal'} onChange={(e) => enviar(ACCIONES.opciones(e.target.value))}>
               <option value="facil">Fácil</option><option value="normal">Normal</option><option value="dificil">Difícil</option>
             </select>
           </label>
         )}
+        <details className="dificultad">
+          <summary>Dificultad de los Asesinos: {NIVEL[s.opciones?.dificultadAsesinos || 'normal']}</summary>
+          {s.soyHost ? (
+            <select value={s.opciones?.dificultadAsesinos || 'normal'} onChange={(e) => enviar(ACCIONES.dificultadAsesinos(e.target.value))} aria-label="Dificultad de los Asesinos">
+              <option value="facil">Fácil</option><option value="normal">Normal</option><option value="dificil">Difícil</option>
+            </select>
+          ) : <small> Solo el banco la cambia.</small>}
+          <small className="it"> Cuánto cuesta salvarse: los Asesinos suman +3 (fácil), +4 (normal) o +5 (difícil) a sus dados.</small>
+        </details>
         {s.soyHost && todos.filter((j) => j.pj).length < 4 && !todos.some((j) => j.pj === 'B') && (
           <label className="dificultad"><input type="checkbox" checked={!!s.opciones?.sinYafar} onChange={(e) => enviar(ACCIONES.sinYafar(e.target.checked))} /> Jugar sin Yafar NPC</label>
         )}

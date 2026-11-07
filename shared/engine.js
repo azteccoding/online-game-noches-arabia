@@ -495,6 +495,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'opciones': {
       if (e.fase !== 'lobby') return err('La partida ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión.');
       if (['facil', 'normal', 'dificil'].includes(a.dificultad)) e.opciones.dificultad = a.dificultad;
+      if (['facil', 'normal', 'dificil'].includes(a.dificultadAsesinos)) e.opciones.dificultadAsesinos = a.dificultadAsesinos;   // aparte de la de Yafar NPC
       if (typeof a.sinYafar === 'boolean') e.opciones.sinYafar = a.sinYafar;                       // jugar sin Yafar NPC (1 a 3 jugadores)
       return ok();
     }
@@ -1021,7 +1022,7 @@ export function vista(data, e, pid) {
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null,
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'normal', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),

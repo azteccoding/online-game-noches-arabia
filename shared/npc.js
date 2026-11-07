@@ -287,10 +287,10 @@ export function actuanAsesinos(data, e) {
     log(e, `Los Asesinos buscan a ${vic.nombre}, pero no la encuentran: se escondió en el Jorasán. Se retiran para siempre.`, { pid: p.victima, aviso: true });
     return;
   }
-  // La víctima se defiende con el sistema de 2 dados, pero sus bonos cuentan a la mitad y los Asesinos suman +4 (empate: ganan ellos).
+  // La víctima se defiende con el sistema de 2 dados, pero sus bonos cuentan a la mitad y los Asesinos suman +4 en «normal» (empate: ganan ellos).
   // Sin nada se salva ~10 %; con +6 (armas +4, destreza y escudo) ~34 %. Si gana, queda herida y despierta en el Jorasán sin dinares ni noches.
   const titulo = `Los Asesinos atacan a ${vic.nombre}`, v = p.victima;
-  let K = ASESINOS_BONO; const extra = [];
+  let K = bonoAsesinos(e); const extra = [];
   if (conArco(data, e, v, vic.ciudad)) {
     quitarPrimero(vic, 'item', 'flechas'); const x = dado(e);
     const efecto = x >= 3 ? 1 : 0; K -= efecto;
@@ -303,7 +303,7 @@ export function actuanAsesinos(data, e) {
   const salva = tv > ta;
   mostrarDados(e, { por: v, npc: true, motivo: 'pelea', titulo, grupos: [{ etq: 'Los Asesinos', valores: ra }], resumen: [
     `${vic.nombre}: dados ${rv.join(' + ')} = ${suma(rv)} · bonos ${b.partes.join(' · ') || 'ninguno'} (cuentan a la mitad: ${mitad >= 0 ? '+' : ''}${mitad}) → total ${tv}.`,
-    `Los Asesinos: dados ${ra.join(' + ')} = ${suma(ra)} · maestría +${ASESINOS_BONO}${extra.length ? ' · ' + extra.join(' · ') : ''} → total ${ta}.`,
+    `Los Asesinos: dados ${ra.join(' + ')} = ${suma(ra)} · maestría +${bonoAsesinos(e)}${extra.length ? ' · ' + extra.join(' · ') : ''} → total ${ta}.`,
     salva ? `${vic.nombre} sobrevive: queda herido y despierta en el Jorasán sin dinares ni noches.` : `${vic.nombre} muere a manos de los Asesinos, que se retiran para siempre.`] });
   if (salva) {
     vic.herido = true; vic.dinares = 0; vic.noches = 0; vic.transito = null; vic.perdido = true; vic.ciudad = 'Jorasán'; vic.extra.enRumbo = false;
@@ -314,6 +314,9 @@ export function actuanAsesinos(data, e) {
   eliminar(data, e, v, { por: j && !j.eliminado ? p.por : null, soloNoches: true, causa: 'Asesinos' });
 }
 export const ASESINOS_BONO = 4;
+// Dificultad de los Asesinos (aparte de la de Yafar NPC): fácil +3, normal +4, difícil +5. Una víctima sin bonos se salva
+// en el 16 %, el 10 % o el 5 % de los casos; con +2 a la mitad (armas, destreza o escudo), en el 34 %, el 24 % o el 16 %.
+export const bonoAsesinos = (e) => ({ facil: 3, normal: ASESINOS_BONO, dificil: 5 })[e.opciones?.dificultadAsesinos || 'normal'] ?? ASESINOS_BONO;
 
 // ---------------------------------------------------------------- carta E1: los Asesinos aparecen (R 13.4)
 export function eventoAsesinos(data, e) {
