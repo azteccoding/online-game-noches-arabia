@@ -64,9 +64,9 @@ export default function Lobby({ s }) {
           </label>
         )}
         <details className="dificultad">
-          <summary>Dificultad de los Asesinos: {NIVEL[s.opciones?.dificultadAsesinos || 'normal']}</summary>
+          <summary>Dificultad de los Asesinos: {NIVEL[s.opciones?.dificultadAsesinos || 'facil']}</summary>
           {s.soyHost ? (
-            <select value={s.opciones?.dificultadAsesinos || 'normal'} onChange={(e) => enviar(ACCIONES.dificultadAsesinos(e.target.value))} aria-label="Dificultad de los Asesinos">
+            <select value={s.opciones?.dificultadAsesinos || 'facil'} onChange={(e) => enviar(ACCIONES.dificultadAsesinos(e.target.value))} aria-label="Dificultad de los Asesinos">
               <option value="facil">Fácil</option><option value="normal">Normal</option><option value="dificil">Difícil</option>
             </select>
           ) : <small> Solo el banco la cambia.</small>}

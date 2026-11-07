@@ -614,7 +614,7 @@ function avanzarHasta(g, cond, pasos = 400) {
 {
   const e = nuevoJuego(data, { semilla: 3, ahora: 1000 });
   const a = unir(e, { nombre: 'A', token: 'a' }), b = unir(e, { nombre: 'B', token: 'b' });
-  assert.equal(NPC.bonoAsesinos(e), 4, 'normal por defecto');
+  assert.equal(NPC.bonoAsesinos(e), 3, 'en línea, fácil por defecto');
   assert.ok(reducir(data, e, a, { t: 'opciones', dificultadAsesinos: 'dificil' }, 2000).ok);
   assert.equal(NPC.bonoAsesinos(e), 5); assert.equal(e.opciones.dificultad, 'normal', 'no toca la de Yafar');
   assert.ok(!reducir(data, e, b, { t: 'opciones', dificultadAsesinos: 'facil' }, 2100).ok, 'solo el banco');

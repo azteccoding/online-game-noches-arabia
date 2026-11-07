@@ -315,9 +315,9 @@ export function actuanAsesinos(data, e) {
   eliminar(data, e, v, { por: j && !j.eliminado ? p.por : null, soloNoches: true, causa: 'Asesinos' });
 }
 export const ASESINOS_BONO = 4;
-// Dificultad de los Asesinos (aparte de la de Yafar NPC): fácil +3, normal +4, difícil +5. Una víctima sin bonos se salva
+// Dificultad de los Asesinos (aparte de la de Yafar NPC; en línea empieza en fácil): fácil +3, normal +4, difícil +5. Una víctima sin bonos se salva
 // en el 16 %, el 10 % o el 5 % de los casos; con +2 a la mitad (armas, destreza o escudo), en el 34 %, el 24 % o el 16 %.
-export const bonoAsesinos = (e) => ({ facil: 3, normal: ASESINOS_BONO, dificil: 5 })[e.opciones?.dificultadAsesinos || 'normal'] ?? ASESINOS_BONO;
+export const bonoAsesinos = (e) => ({ facil: 3, normal: ASESINOS_BONO, dificil: 5 })[e.opciones?.dificultadAsesinos || 'facil'] ?? ASESINOS_BONO;   // en línea, fácil si el banco no la cambia
 
 // ---------------------------------------------------------------- carta E1: los Asesinos aparecen (R 13.4)
 export function eventoAsesinos(data, e) {
