@@ -1,4 +1,4 @@
-// Reglas de estilo (ver CLAUDE.md): nunca «Mahoma» ni variantes en los textos del juego.
+// Reglas de estilo: nunca «Mahoma» ni variantes en los textos del juego.
 import fs from 'node:fs';
 import path from 'node:path';
 import assert from 'node:assert/strict';

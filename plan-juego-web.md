@@ -1,6 +1,6 @@
 # Mil y una Noches — juego web en red local: plan técnico y guía de continuación
 
-Estado a 1 de noviembre de 2026. Este documento está pensado para que una persona o una sesión nueva de Claude pueda continuar el proyecto sin haber visto nada antes. Todo lo descrito como «hecho» está implementado en esta carpeta y verificado con las pruebas de la sección 15. La versión online es **completa y jugable de principio a fin** (reglas R 1–24 del reglamento extendido); en la sección 8.3 solo quedan mejoras futuras.
+Estado a 1 de noviembre de 2026. Este documento está pensado para que una persona nueva pueda continuar el proyecto sin haber visto nada antes. Todo lo descrito como «hecho» está implementado en esta carpeta y verificado con las pruebas de la sección 15. La versión online es **completa y jugable de principio a fin** (reglas R 1–24 del reglamento extendido); en la sección 8.3 solo quedan mejoras futuras.
 
 Carpeta del proyecto: `docsJuegoMesa/onlineGame/`. Copia de este plan: `AgentStores/.../files/docs/plan-juego-web.md`.
 
@@ -657,7 +657,7 @@ Criterios de aceptación globales: (1) ≤ 1 carta completa montada; (2) memoria
 
 ---
 
-## 20. Prompt de arranque para una sesión nueva de Claude
+## 20. Prompt de arranque para una sesión nueva
 
 Copia y pega:
 

@@ -4,3 +4,5 @@ datos/
 paquete-servidor/
 .DS_Store
 *.log
+CLAUDE.md
+.claude/
