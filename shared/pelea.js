@@ -192,7 +192,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   }
   if (a.tipo === 'matar') {
     if (e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede matar en las 2 primeras rondas.');
-    if (!npc && !(pa.armas.length && pa.destreza)) return err('Para matar necesitas un arma y destreza con armas: sin ellas solo puedes robar.');
+    if (!npc && !(pa.armas.length && (pa.destreza || j.pj === '1'))) return err(j.pj === '1' ? 'Para matar necesitas un arma que puedas usar aquí.' : 'Para matar necesitas un arma y destreza con armas: sin ellas solo puedes robar.');   // Nur al Din, guerrero: ataca a muerte sin destreza
   }
   if (a.tipo === 'duelo' && tieneEsp(d, 'K1')) return err('Quien porta el Ejército de Kanmakán no puede ser desafiado a duelo.');
   return ok();

@@ -1179,6 +1179,18 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(n, { t: 'reto', id: 'R25' }).ok, 'la destreza la aprende en Estambul'); assert.ok(N.destreza);
   darItem(e, N, 'alfanje'); turnoDe(e, n, 'Aleppo'); N.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
   assert.ok(g.act(n, { t: 'reto', id: 'R42' }).ok, 'el alfanje lo entrena normal'); assert.ok(N.extra.entrenado.alfanje);
+  // por ser guerrero, Nur al Din puede atacar a muerte sin destreza; los demás no
+  const h = partida(['1', '4', '7']); assert.ok(h.iniciar().ok);
+  const f = h.e, [nur, jam, adi] = h.ids;
+  for (const id of h.ids) f.jugadores[id].ciudad = 'Damasco';
+  f.ronda = 4; f.mods = {}; turnoDe(f, nur, 'Damasco'); f.turno.fase = 'acciones';
+  assert.equal(f.jugadores[nur].destreza, false);
+  assert.ok(h.act(nur, { t: 'atacar', tipo: 'matar', objetivo: jam }).ok, 'Nur al Din ataca a muerte sin destreza');
+  const g2 = partida(['7', '4']); assert.ok(g2.iniciar().ok);
+  const f2 = g2.e, [a2, b2] = g2.ids; for (const id of g2.ids) f2.jugadores[id].ciudad = 'Damasco';
+  darItem(f2, f2.jugadores[a2], 'cimitarra'); f2.jugadores[a2].destreza = false;
+  f2.ronda = 4; f2.mods = {}; turnoDe(f2, a2, 'Damasco'); f2.turno.fase = 'acciones';
+  const r2 = g2.act(a2, { t: 'atacar', tipo: 'matar', objetivo: b2 }); assert.ok(!r2.ok && /destreza/.test(r2.error), 'los demás necesitan destreza');
 }
 
 console.log('reglas de la casa OK');
