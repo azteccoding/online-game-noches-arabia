@@ -3,6 +3,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
+marcarBuscado,
 } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
@@ -182,7 +183,7 @@ registrar('ev.h4', (data, e, args, resp) => {
   const ord = ordenadoPorTurno(e, Object.keys(resp).filter((k) => resp[k].opcion === 'si')), vistos = {};
   for (const pid of ord) {
     const j = jug(e, pid), c = j.ciudad; vistos[c] = (vistos[c] || 0) + 1;
-    j.dinares += vistos[c] === 1 ? 40 : 20; j.noches = Math.max(0, j.noches - 20); j.buscado = data.config.buscadoRondas;
+    j.dinares += vistos[c] === 1 ? 40 : 20; j.noches = Math.max(0, j.noches - 20); marcarBuscado(data, e, j, { tipo: 'saqueo' });
     log(e, `${j.nombre} saquea durante la revolución: +${vistos[c] === 1 ? 40 : 20} dinares, -20 noches y es Buscado.`, { pid });
   }
 });

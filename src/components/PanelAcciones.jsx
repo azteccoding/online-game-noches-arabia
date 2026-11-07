@@ -37,7 +37,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
         </div>
         <div className="acc-yo">
           <Dinares valor={yo.dinares} /><span className="chip" title="Noches">{yo.noches} noches</span>
-          {yo.herido && <span className="chip mal">Herido</span>}{(yo.buscado > 0 || yo.buscadoE7) && <span className="chip mal">Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
+          {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>
       {ccPendiente && <div className="acc-responde"><button className="btn responde" onClick={() => abrir('carta:' + cc.nro)} title={`Falta responder «${cc.titulo}»`}>¡Responde! <small>{cc.titulo}</small></button></div>}

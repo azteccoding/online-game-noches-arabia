@@ -26,6 +26,7 @@ import AcercaDe from './components/AcercaDe.jsx';
 import Fin from './components/Fin.jsx';
 import AlarmaDesconexion from './components/AlarmaDesconexion.jsx';
 import AvisoEspera from './components/AvisoEspera.jsx';
+import AvisoBuscado from './components/AvisoBuscado.jsx';
 import VotoReinicio from './components/VotoReinicio.jsx';
 import './styles/ui.css';
 
@@ -138,6 +139,7 @@ function Juego({ lienzo }) {
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
       {s.fase === 'juego' && <AvisoEspera s={s} />}
+      {s.fase === 'juego' && <AvisoBuscado s={s} />}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
       {error && <div className="toast" role="alert">{error}</div>}

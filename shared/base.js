@@ -355,3 +355,18 @@ export function ofrecerObjetos(data, e, pid, { ids, max = 2, titulo, texto, cont
   return true;
 }
 export const refDeUid = (j, u) => j.mano.find((c) => c.uid === u)?.ref;
+
+// Buscado: además de las rondas, se guarda el motivo para explicarlo en pantalla a todos.
+export function marcarBuscado(data, e, j, motivo) {
+  j.buscado = data.config.buscadoRondas; j.extra.buscadoMotivo = { ...motivo, ronda: e.ronda };
+}
+const POR = { matar: (m) => `por matar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí' };
+export function textoBuscado(data, e, j) {
+  const r = [];
+  if (j.buscado > 0) {
+    const m = j.extra?.buscadoMotivo, por = m && POR[m.tipo] ? POR[m.tipo](m) : '';
+    r.push(`Buscado${por ? ' ' + por : ''}: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado ?? 200} noches, además de su botín. Sigue jugando normal (no pierde acciones), y cualquiera puede robarle o atacarlo con las reglas de siempre. Deja de estarlo al terminar la ronda ${e.ronda + j.buscado - 1}, o antes con un Disfraz de mendigo.`);
+  }
+  if (e.evento?.buscadoE7 === j.id) r.push(`Buscado por la cacería del Califa (carta E7): quien lo mate en esta ronda gana 200 noches y 40 dinares, además de su botín. Deja de estarlo al terminar la ronda ${e.ronda}.`);
+  return r.join(' ');
+}

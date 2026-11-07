@@ -4,6 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
+marcarBuscado,
 } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
@@ -547,7 +548,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       const enmascarado = tieneObj(A, 'OB45');
       eliminar(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre });
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
-      else { A.buscado = data.config.buscadoRondas; log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
+      else { marcarBuscado(data, e, A, { tipo: 'matar', victima: D.nombre }); log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
       if (A.pj === '3' && D.pj === '4') for (const id of activos(e)) if (id !== P.atk) { const p = Math.max(0, Math.min(5, e.jugadores[id].dinares)); e.jugadores[id].dinares -= p; A.dinares += p; }   // Anís: 5 dinares de cada uno si mata a Jamil
     } else if (numeroOk) {
       A.herido = true; log(e, `${D.nombre} se salva a pedradas; ${A.nombre} queda herido.`, { pid: P.def });

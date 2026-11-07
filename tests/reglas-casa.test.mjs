@@ -621,6 +621,18 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.equal(vista(data, e, b).opciones.dificultadAsesinos, 'dificil');
 }
 
+// Buscado: todos ven por qué, cuánto se gana por él y hasta cuándo
+{
+  const { marcarBuscado } = await import('../shared/base.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids; e.ronda = 5;
+  marcarBuscado(data, e, e.jugadores[a], { tipo: 'matar', victima: 'Ana' });
+  const info = vistaDe(e, b).jugadores[a].buscadoInfo;
+  assert.match(info, /^Buscado por matar a Ana: quien lo mate gana 100 dinares y 200 noches/); assert.match(info, /terminar la ronda 6/);
+  e.evento.buscadoE7 = b; assert.match(vistaDe(e, a).jugadores[b].buscadoInfo, /cacería del Califa/);
+  assert.equal(vistaDe(e, a).jugadores[b].buscado, 0);
+}
+
 // Meta: solo cuentan las noches (los dinares ya no se suman)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

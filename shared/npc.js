@@ -2,6 +2,7 @@
 import {
   ok, err, rnd, dado, dados, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
   puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio, info, quitarPrimero,
+marcarBuscado,
 } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
 
@@ -218,7 +219,7 @@ registrar('npc.victima', (data, e, args, resp) => {
 // Única excepción a «si no te alcanza, no pasa nada»: a los Asesinos no se les hace perder el tiempo.
 function castigoPorTiempo(data, e, pid) {
   const j = e.jugadores[pid];
-  j.herido = true; j.perdido = true; j.ciudad = 'Jorasán'; j.transito = null; j.extra.enRumbo = false; j.buscado = data.config.buscadoRondas;
+  j.herido = true; j.perdido = true; j.ciudad = 'Jorasán'; j.transito = null; j.extra.enRumbo = false; marcarBuscado(data, e, j, { tipo: 'asesinosSinPago' });
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }
   log(e, `${j.nombre} intentó contratar a los Asesinos y no pudo pagar: lo dejan herido en el Jorasán por hacerles perder el tiempo y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches).`, { pid, aviso: true });
 }
@@ -236,7 +237,7 @@ function firmar(data, e, pid, v, precio, args = {}) {
   e.asesinos.actuaron = true; e.asesinos.contrato = { por: pid, victima: v, ronda: e.ronda };
   e.asesinos.pendiente = { por: pid, victima: v, precio, turnoVictima: vic.turnos };
   if (e.turno && e.turno.pid === pid) { e.turno.principal = true; e.turno.fin = true; }   // contratar termina el turno
-  j.buscado = data.config.buscadoRondas;                                  // regla de la casa: se sabe QUIÉN los contrató, nunca contra quién
+  marcarBuscado(data, e, j, { tipo: 'asesinos' });                       // regla de la casa: se sabe QUIÉN los contrató, nunca contra quién
   log(e, `${j.nombre} contrató a los Asesinos y queda Buscado ${data.config.buscadoRondas} rondas (quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches). La víctima es secreta.`, { pid, aviso: true });
   if (!j.npc) pedirEncargo(data, e, pid);
   info(e, pid, 'Contrato firmado', `Los Asesinos irán por ${vic.nombre} al final de su próximo turno. Nadie más sabe contra quién.`);

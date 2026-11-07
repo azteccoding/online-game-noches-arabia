@@ -8,6 +8,7 @@ import {
   VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, enCiudad, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
+textoBuscado,
 } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
@@ -1003,7 +1004,8 @@ export function vista(data, e, pid) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
       buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
-      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde };
+      kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
+      buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }
   const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
     ccActual: e.turno.ccActual ? { tipo: e.turno.ccActual.tipo, nro: e.turno.ccActual.nro, descartada: e.turno.ccActual.descartada ?? null } : null };
