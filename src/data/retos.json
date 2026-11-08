@@ -586,6 +586,21 @@
    "objetos": "",
    "refReglamento": "14.4",
    "arte": "re"
+  },
+  {
+   "id": "R44",
+   "nombre": "Visitar Timbuktú",
+   "ciudad": "Magreb",
+   "tipo": "V",
+   "requisito": "Pagar 10 dinares a la caravana del desierto.",
+   "resolucion": "Desde el Magreb, una caravana de sal cruza el Sahara hasta Timbuktú, la ciudad de los sabios y de las bibliotecas, donde todavía se habla del oro que repartió Mansa Musa en su peregrinación a La Meca. Pagas 10 dinares y ganas 30 noches. Mientras dure la carta «Mansa Musa despertó generoso», además tiras 1 dado: 6, 50 dinares y 60 noches; 4 o 5, 35 dinares y 40 noches; 1 a 3, 30 noches.",
+   "premio": "30 noches (y, con «Mansa Musa despertó generoso», un dado de premio extra).",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "En Timbuktú hay más libros que camellos, y eso que hay muchos camellos.",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

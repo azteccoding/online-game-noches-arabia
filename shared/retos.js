@@ -629,6 +629,19 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
 } };
 // R40 (regla de la casa): cruzar a Abisinia desde Yemen. Pasaje de 15; 1 dado +1 destreza +1 camello: 6+ carta de Ifrit
 // (o 40 dinares), 4–5 vuelves a Moca, 1–3 tormenta y quedas herido. Se gana una vez por partida; herido no se intenta.
+// R44 «Visitar Timbuktú» (Jorge, 7 de noviembre): desde el Magreb, 10 dinares de caravana y 30 noches; una vez por jugador. Mientras dure la
+// carta S2 «Mansa Musa despertó generoso», además se tira 1 dado (con su botón): 6, 50 dinares y 60 noches; 4–5, 35 y 40; 1–3, 30 noches.
+T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'La caravana a Timbuktú cuesta 10 dinares.'),
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid]; j.dinares -= 10; j.noches += 30; hacer(e, pid, 'R44');
+    ctx.say(`${j.nombre} cruza el Sahara con la caravana de la sal y visita Timbuktú: gana 30 noches.`);
+    if (e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta) {
+      const [x] = ctx.t(`${j.nombre}: la generosidad de Mansa Musa (6: 50 dinares y 60 noches; 4 o 5: 35 y 40; 1 a 3: 30 noches)`, 1);
+      const p = x === 6 ? { d: 50, n: 60 } : x >= 4 ? { d: 35, n: 40 } : { d: 0, n: 30 };
+      j.dinares += p.d; j.noches += p.n;
+      ctx.say(`Mansa Musa lo recibe: ${p.d ? p.d + ' dinares y ' : ''}${p.n} noches más.`);
+    }
+  } };
 T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if (j.herido) return 'Herido no puedes embarcarte.'; return j.dinares >= 15 ? null : 'El pasaje cuesta 15 dinares.'; },
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= 15;

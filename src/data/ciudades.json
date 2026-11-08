@@ -17,7 +17,8 @@
    "mazoCC": "Bagdad",
    "retos": [
     "R26",
-    "R41"
+    "R41",
+    "R43"
    ],
    "notas": "Zein NPC se reclama aquí",
    "impuestoVenta": 20
@@ -38,7 +39,8 @@
    "alojamiento": 3,
    "mazoCC": "Bagdad",
    "retos": [
-    "R23"
+    "R23",
+    "R44"
    ],
    "notas": "Sin ruta directa a Bagdad",
    "impuestoVenta": 20
@@ -103,7 +105,8 @@
    "alojamiento": 2,
    "mazoCC": "Aleppo",
    "retos": [
-    "R27"
+    "R27",
+    "R42"
    ],
    "notas": "Taller de pócimas",
    "impuestoVenta": 20
@@ -126,7 +129,8 @@
    "retos": [
     "R20",
     "R21",
-    "R22"
+    "R22",
+    "R42"
    ],
    "notas": "Única ciudad con caravana a Bagdad desde el inicio",
    "impuestoVenta": 20
@@ -240,7 +244,8 @@
    "alojamiento": 10,
    "mazoCC": "Bagdad",
    "retos": [
-    "R15"
+    "R15",
+    "R18"
    ],
    "notas": "Impuesto de venta del 50%; Gremio de los Asesinos",
    "impuestoVenta": 50

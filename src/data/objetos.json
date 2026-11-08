@@ -950,6 +950,24 @@
    "refReglamento": "17.1",
    "texto": "En la ciudadela de Damasco, el sultán Salah ad-Din al-Ayyubi recibe a los viajeros. Les habla con sencillez: «Sean honestos y crean en Dios con todo el corazón. No busquen la guerra, pero si los atacan, defiéndanse con valor». Al despedirlos, ordena que a cada uno se le entreguen 10 dinares y se le cuenten 50 noches de hospitalidad.",
    "efecto": "Sale una sola vez por partida, en cuanto Aleppo y Damasco hayan sido visitadas por jugadores humanos (no tiene que ser el mismo; las visitas de Yafar NPC no cuentan). Cada jugador vivo recibe 10 dinares y 50 noches (no se multiplican por ronda); Yafar NPC no recibe nada."
+  },
+  {
+   "id": "S2",
+   "nombre": "Mansa Musa despertó generoso",
+   "copias": 1,
+   "arte": "es",
+   "refReglamento": "17.1",
+   "texto": "Llegan noticias de Timbuktú: Mansa Musa, el rey de Malí que repartió tanto oro en su camino a La Meca que el oro bajó de precio en El Cairo, amaneció generoso y quiere recibir a los viajeros que lleguen desde el Magreb.",
+   "efecto": "Sale una sola vez por partida, en cuanto dos jugadores distintos hayan visitado el Magreb (Yafar NPC no cuenta). Dura el resto de esa ronda y las 2 siguientes: quien haga el reto R44 «Visitar Timbuktú» tira además 1 dado: 6, 50 dinares y 60 noches; 4 o 5, 35 dinares y 40 noches; 1 a 3, 30 noches."
+  },
+  {
+   "id": "S3",
+   "nombre": "Mansa Musa odia el nepotismo",
+   "copias": 1,
+   "arte": "es",
+   "refReglamento": "17.1",
+   "texto": "Todos los viajeros han llegado al Magreb y le han contado a Mansa Musa cómo el visir Yafar reparte favores entre los suyos. El rey de Malí, que premia el mérito y no el parentesco, manda decir que no quiere saber nada del visir.",
+   "efecto": "Sale una sola vez por partida, en cuanto todos los jugadores hayan visitado el Magreb (Yafar NPC no cuenta; Yafar jugador, sí). Yafar el Bermekí, sea NPC o jugador, pierde 50 noches. Si Yafar no está en la partida, no sale."
   }
  ],
  "ifrit": {
@@ -1116,7 +1134,8 @@
    "excepto": [
     "Samarcanda",
     "Magreb",
-    "India", "Bagdad"
+    "India",
+    "Bagdad"
    ],
    "noSaleDe": [
     "India"

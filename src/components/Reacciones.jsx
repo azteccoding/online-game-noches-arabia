@@ -30,7 +30,7 @@ export function BotonReacciones({ s }) {
           <li className="sep">{puedeTurno ? `Para ${turno.nombre}` : turno?.id === s.yo ? 'Para quien juega (es tu turno)' : 'Para quien juega (ahora no hay a quién)'}</li>
           {REACCIONES.filter((r) => r.para === 'turno').map((r) => <li key={r.id}><button role="menuitem" disabled={!puedeTurno || falta > 0} onClick={() => mandar(r.id)}>{r.emoji} {r.texto}</button></li>)}
           <li className="sep">Para todos</li>
-          {REACCIONES.filter((r) => r.para === 'todos').map((r) => <li key={r.id}><button role="menuitem" disabled={falta > 0} onClick={() => mandar(r.id)}>{r.emoji} {r.texto}</button></li>)}
+          {REACCIONES.filter((r) => r.para === 'todos').map((r) => <li key={r.id}><button role="menuitem" disabled={falta > 0} onClick={() => mandar(r.id)}>{r.emoji} {r.texto.replace('{ciudad}', yo.ciudad || 'Bagdad')}</button></li>)}
         </ul>
       )}
     </div>

@@ -7,6 +7,7 @@ export const REACCIONES = [
   { id: 'arena', para: 'turno', emoji: '⏳', texto: 'Se acaba la arena del reloj.' },
   { id: 'pelea', para: 'todos', emoji: '⚔️', texto: '¡Pelea!' },
   { id: 'comercio', para: 'todos', emoji: '🤝', texto: '¡Comerciemos!' },
+  { id: 'vengan', para: 'todos', emoji: '🐫', texto: '¡Vengan conmigo a {ciudad}!' },   // {ciudad} = donde está quien la manda
   { id: 'bien', para: 'todos', emoji: '👏', texto: '¡Bien jugado!' },
   { id: 'enojo', para: 'todos', emoji: '😠', texto: '¡Por las barbas del Califa!' },
   { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
@@ -28,5 +29,6 @@ export function armarReaccion(e, pid, id, ahora, ultima = 0) {
     if (turno.id === pid) return { error: 'Es tu turno: esa reacción es para los demás.' };
     if (turno.npc) return { error: 'Al NPC no le hacen falta prisas.' };
   }
-  return { r: { id, emoji: def.emoji, texto: def.texto, de: pid, nombre: j.nombre, a: def.para === 'turno' ? turno.id : null, aNombre: def.para === 'turno' ? turno.nombre : null, ts: ahora } };
+  const texto = def.texto.replace('{ciudad}', j.ciudad || 'Bagdad');
+  return { r: { id, emoji: def.emoji, texto, de: pid, nombre: j.nombre, a: def.para === 'turno' ? turno.id : null, aNombre: def.para === 'turno' ? turno.nombre : null, ts: ahora } };
 }
