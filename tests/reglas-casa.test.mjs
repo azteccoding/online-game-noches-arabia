@@ -1233,4 +1233,19 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!e.jugadores[c].mano.some((x) => x.ref === 'mapa'), 'el asesino no recibe el mapa');
 }
 
+// Deseo F de ifrit (Jorge): Firmán extra aunque no quede ninguno a la venta; si ya tienes uno o eres Yafar, 30 dinares;
+// si su dueño muere, ese Firmán extra se pierde (no vuelve a la venta)
+{
+  const { deseo } = await import('../shared/tesoros.js');
+  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Y = e.jugadores[y];
+  e.firmanes = 0;
+  let d0 = A.dinares; deseo(data, e, a, 'F', {});
+  assert.ok(tieneEsp(A, 'F1'), 'el deseo da Firmán aunque no quede a la venta'); assert.equal(A.dinares, d0); assert.equal(e.firmanes, 0);
+  d0 = A.dinares; deseo(data, e, a, 'F', {}); assert.equal(A.dinares, d0 + 30, 'si ya tienes uno, 30 dinares');
+  d0 = Y.dinares; deseo(data, e, y, 'F', {}); assert.equal(Y.dinares, d0 + 30, 'Yafar no lo recibe: 30 dinares');
+  eliminar(data, e, a, { por: b, causa: 'prueba' });
+  assert.equal(e.firmanes, 0, 'el Firmán extra se pierde al morir su dueño'); assert.ok(!tieneEsp(e.jugadores[b], 'F1'));
+}
+
 console.log('reglas de la casa OK');

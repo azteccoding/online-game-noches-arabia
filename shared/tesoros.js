@@ -222,14 +222,15 @@ function ghul(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- deseos de ifrit (R 15.4)
-function deseo(data, e, pid, letra, { alTerminar = null }) {
+export function deseo(data, e, pid, letra, { alTerminar = null }) {
   const j = e.jugadores[pid];
   const fin = () => { if (alTerminar === 'ghul') ghul(data, e, pid); };
   log(e, `${j.nombre} pide el deseo ${letra}: ${data.objetos.ifrit.deseos[letra]}.`, { pid });
   switch (letra) {
     case 'C': j.dinares += 60; break;
     case 'D': j.noches += 60; break;
-    case 'F': if (e.firmanes > 0 && j.pj !== 'B' && !tieneEsp(j, 'F1')) { e.firmanes--; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' }); } else j.dinares += 30; break;
+    // Regla de Jorge: el deseo da un Firmán extra aunque ya no quede ninguno a la venta (no sale de esos); a Yafar o a quien ya tiene uno, 30 dinares
+    case 'F': if (j.pj !== 'B' && !tieneEsp(j, 'F1')) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', extra: { deIfrit: true } }); else j.dinares += 30; break;
     case 'G': j.ventajaCombate = (j.ventajaCombate || 0) + 2; break;
     case 'H': darItem(e, j, 'alfombra'); break;
     case 'A': {

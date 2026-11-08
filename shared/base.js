@@ -282,7 +282,7 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   // Regla de la casa (Jorge, 7 de noviembre): el Firmán vuelve al Califa aunque alguien mate a su dueño; el mapa de los dinares
   // escondidos se pierde con su dueño (esos dinares ya no los recupera nadie).
   const cartas = j.mano.splice(0).filter((c) => {
-    if (c.tipo === 'especial' && c.ref === 'F1') { e.firmanes = (e.firmanes || 0) + 1; return false; }
+    if (c.tipo === 'especial' && c.ref === 'F1') { if (!c.extra?.deIfrit) e.firmanes = (e.firmanes || 0) + 1; return false; }   // el Firmán extra del deseo F se pierde
     if (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return false;
     return true;
   });
