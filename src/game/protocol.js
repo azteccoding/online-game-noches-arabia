@@ -38,7 +38,7 @@ export const ACCIONES = {
   ofrecer5: (a) => ({ t: 'ofrecer5', a }),
   reto: (id, sub) => ({ t: 'reto', id, sub }),
   tesoro: (sub, extra = {}) => ({ t: 'tesoro', sub, ...extra }),
-  esconder: (monto) => ({ t: 'esconder', monto }),
+  esconder: (monto, nuevo = false) => ({ t: 'esconder', monto, nuevo }),
   recuperar: (uid) => ({ t: 'recuperar', uid }),
   asesinos: () => ({ t: 'asesinos' }),
   venderFirmanYafar: () => ({ t: 'venderFirmanYafar' }),

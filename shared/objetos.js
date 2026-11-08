@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-} from './base.js';
+apurosZein, } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
@@ -45,6 +45,9 @@ export const precioFirman = (j) => (j.extra.joyaVisir ? 45 : 55);
 // Establo de Bagdad (Jorge, punto 13): caballo, burro y camello se venden en Bagdad por 60, 20 y 50 dinares; quien esté en Bagdad
 // los compra después por 10 dinares más. El animal conserva su edad. Yafar no compra burros.
 export const VENTA_ANIMAL_BAGDAD = { caballo: 60, burro: 20, camello: 50 }, RECARGO_ESTABLO = 10;
+// Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
+// revende (Cairo 35 → 75, Persia 30 → 60) y a todos les sale el aviso de dónde está. Entre jugadores, en un trato, al precio que quieran.
+export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
 export function comprar(data, e, pid, a) {
   const j = e.jugadores[pid];
   const enTurno = a.ref === 'firman' || a.ref === 'ifrit';
@@ -59,6 +62,14 @@ export function comprar(data, e, pid, a) {
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
+  }
+  if (DADOS_VENTA[a.ref]) {                                                                              // dados revendidos por el mercado
+    const D = DADOS_VENTA[a.ref], m = e.mercadoDados?.[a.ref];
+    if (!m || m.ciudad !== j.ciudad) return err(`Los ${D.nombre} no están a la venta aquí.`);
+    if (j.dinares < D.reventa) return err(`Cuestan ${D.reventa} dinares.`);
+    j.dinares -= D.reventa; delete e.mercadoDados[a.ref]; m.carta.pub = true; j.mano.push(m.carta);
+    log(e, `${j.nombre} compra los ${D.nombre} en el mercado de ${j.ciudad} por ${D.reventa} dinares.`, { pid });
+    return ok();
   }
   if (typeof a.ref === 'string' && a.ref.startsWith('establo:')) {
     if (j.ciudad !== 'Bagdad') return err('El establo está en Bagdad.');
@@ -188,6 +199,12 @@ export function vender(data, e, pid, a) {
     (e.establo ||= []).push({ carta: c, precio: v + RECARGO_ESTABLO });
     log(e, `${j.nombre} vende su ${ITEMS[c.ref].nombre.toLowerCase()} en el establo de Bagdad por ${v} dinares.`, { pid }); return ok();
   }
+  if (DADOS_VENTA[c.ref]) {
+    const D = DADOS_VENTA[c.ref];
+    quitarCarta(j, c.uid); j.dinares += D.venta; (e.mercadoDados ||= {})[c.ref] = { ciudad, carta: c }; apurosZein(e, j, c.ref);
+    log(e, `${j.nombre} vende los ${D.nombre} al mercado de ${ciudad} por ${D.venta} dinares.`, { pid });
+    log(e, `Los ${D.nombre} están a la venta en el mercado de ${ciudad} por ${D.reventa} dinares.`, { aviso: true }); return ok();
+  }
   if (c.ref === 'pergamino') { if (ciudad !== 'Damasco') return err('El pergamino se cobra en Damasco.'); quitarCarta(j, c.uid); j.dinares += 30; return ok(); }
   if (c.ref === 'especias') {                                                                             // H17: en Bagdad por 30, sin impuesto
     if (ciudad !== 'Bagdad') return err('Las especias se venden en Bagdad (30 dinares, sin impuesto).');
@@ -217,6 +234,7 @@ export function tienda(data, e, pid) {
     const hay = ifritEnVenta(e);
     r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });
   }
+  for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
   if (j.ciudad === 'Bagdad') for (const x of e.establo || []) {
     const ya = ['caballo', 'camello', 'burro'].some((r) => tieneItem(j, r));
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (establo)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !ya && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc) });
@@ -289,6 +307,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `Solo en el establo de Bagdad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares (luego se revende ahí por ${VENTA_ANIMAL_BAGDAD[c.ref] + RECARGO_ESTABLO}).`;
+  if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';

@@ -18,7 +18,7 @@
    ],
    "habilidades": [
     "Reto de honor en El Cairo, Damasco o Aleppo: quien se niegue paga lo que pida.",
-    "Inmune a robos; no puede robar; la cimitarra no se usa en Bagdad.",
+    "No puede robar a nadie (es un caballero), pero a él sí le pueden robar; la cimitarra no se usa en Bagdad.",
     "Empieza entrenado con la cimitarra (+1, como si ya hubiera hecho R18). La destreza (R25, Estambul) y las demás armas las entrena como cualquiera. Por ser guerrero, puede atacar a muerte aunque no tenga destreza."
    ],
    "limite": "No puede robar.",
@@ -51,12 +51,12 @@
     "ingreso": 5
    },
    "arma": [],
+   "cartasInicio": ["dadosCairo"],
    "destreza": false,
    "habilidades": [
-    "Noche discreta: con otro jugador de su ciudad gana 25 dinares (10 con Anís) si el esposo no los sorprende.",
-    "Dados del Cairo: una vez por ronda repite uno de sus dados."
+    "Dados del Cairo: empieza con esta carta, regalo de Zacaría al Ansari. Una vez por ronda, si va a perder una pelea, repite sus dados. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 35 dinares (el mercado la revende en 75)."
    ],
-   "limite": "El esposo puede sorprender a los dos.",
+   "limite": "Si vende los Dados del Cairo, queda en apuros financieros: vende sus alhajas y se costea un viaje gratis (un tramo, una sola vez por partida).",
    "stats": [
     2,
     4,
@@ -86,10 +86,11 @@
     "ingreso": 5
    },
    "arma": [],
+   "cartasInicio": ["dadosPersia"],
    "destreza": false,
    "habilidades": [
-    "Amigo de Zein: gana 10 dinares (+20 si no lo sorprenden).",
-    "Por la ventana: una vez por ronda, si lo atacan, con 5 o 6 huye y el agresor pierde su acción."
+    "Dados de Persia: empieza con esta carta. Una vez por ronda, si lo atacan, con 5 o 6 escapa por la ventana y el agresor pierde su acción. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 30 dinares (el mercado la revende en 60 y todos se enteran dónde).",
+    "Si mata a Jamil, cada uno de los demás jugadores le paga 8 dinares y gana 60 noches."
    ],
    "limite": "Sin armas ni destreza al inicio.",
    "stats": [
@@ -124,7 +125,7 @@
    "destreza": false,
    "habilidades": [
     "Gana 5 noches por turno sin hacer nada.",
-    "Viaja gratis de El Cairo a Bagdad; recita crímenes en Bagdad (5 dinares por estrofa) y difama."
+    "Viaja gratis de El Cairo a Bagdad; a quien esté en su ciudad le propone versos en su honra (gana 30 noches y le paga 5 dinares) o le canta versos de sátira (pierde 10 noches o le paga 7 dinares)."
    ],
    "limite": "Sin armas ni destreza al inicio.",
    "stats": [
@@ -159,8 +160,8 @@
    "arma": [],
    "destreza": false,
    "habilidades": [
-    "Empieza con 200 noches y 20 CRP que vende o usa.",
-    "Cada visitante recibe 50 noches y le paga 5 dinares; viaja gratis de Bagdad a El Cairo."
+    "Empieza con 200 noches y 5 cartas de respuestas: si falla una trivia, se gasta una y cuenta como correcta (gana el premio).",
+    "Quien llega a su ciudad (fuera de Bagdad) le compra 20 noches por 10 dinares, en automático; viaja gratis de Bagdad a El Cairo."
    ],
    "limite": "Débil; nunca el último en tirar.",
    "stats": [

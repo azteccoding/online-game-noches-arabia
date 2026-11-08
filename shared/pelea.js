@@ -160,10 +160,11 @@ function textoCategoria(e, pid, pf, cat, esDef) {
   return `${n} se defiende ${cat === 'D' ? `con ${armas} y destreza` : cat === 'B' ? 'con destreza pero sin armas' : 'sin armas ni destreza'}.`;
 }
 
-// Zein «Dados del Cairo» (habilidad oficial): una vez por ronda repite sus dados si iba a perder.
+// «Dados del Cairo» (Jorge, 8 de noviembre): ya es una carta (Zein empieza con ella, regalo de Zacaría al Ansari); quien la tenga,
+// una vez por ronda, repite sus dados si iba a perder.
 function zeinRepite(e, pid) {
   const j = e.jugadores[pid];
-  if (j.pj !== '2' || j.extra.cairoRonda === e.ronda) return false;
+  if (!j || !tieneItem(j, 'dadosCairo') || j.extra.cairoRonda === e.ronda) return false;
   j.extra.cairoRonda = e.ronda; return true;
 }
 // Dado de Ibn Arabi (regla de la casa): si vas a perder una pelea, se repite la tirada una vez y el dado se gasta.
@@ -195,7 +196,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   if (a.tipo === 'robo') {
     if (data.config.sinRobarPrimerasRondas && e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede robar en las 2 primeras rondas.');
     if (j.pj === '1') return err('Nur al Din no puede robar.');
-    if (d.pj === '1') return err('Nur al Din es inmune a los robos.');
+    // Jorge (8 de noviembre): a Nur al Din sí le pueden robar como a cualquiera (se defiende con su cimitarra entrenada).
     if (!pa.armas.length && !npc) return err('Para robar necesitas un arma que puedas usar aquí.');
   }
   if (a.tipo === 'matar') {
@@ -215,8 +216,8 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   const pedirNur = j.pj === '1' && nurHonor ? { dinares: Math.max(0, Math.floor(a.pedirDinares || 0)), noches: Math.max(0, Math.floor(a.pedirNoches || 0)) } : null;
   const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [], noRechazable: !!a.noRechazable };
   log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid });
-  // Anís: «Por la ventana» (una vez por ronda; solo si el agresor es un jugador con acción principal)
-  if (d.pj === '3' && d.extra.ventanaRonda !== e.ronda && a.tipo !== 'duelo') {
+  // «Dados de Persia» (Jorge, 8 de noviembre): antes «Por la ventana» de Anís; ahora la usa quien tenga la carta (una vez por ronda)
+  if (tieneItem(d, 'dadosPersia') && d.extra.ventanaRonda !== e.ronda && a.tipo !== 'duelo') {
     d.extra.ventanaRonda = e.ronda;
     const x = dado(e), min = data.config.equilibrio?.anisVentanaMin ?? 5;   // equilibrio: config.json
     mostrarDados(e, { por: a.objetivo, motivo: 'ventana', grupos: [{ etq: `${d.nombre} escapa por la ventana (${min <= 4 ? `${min} a 6` : '5 o 6'})`, valores: [x] }], resumen: [x >= min ? `${d.nombre} escapa por el tejado: el agresor pierde su acción principal.` : `${d.nombre} no consigue escapar.`] });
@@ -571,7 +572,10 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       eliminar(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre });
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
       else { marcarBuscado(data, e, A, { tipo: 'matar', victima: D.nombre }); log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
-      if (A.pj === '3' && D.pj === '4') for (const id of activos(e)) if (id !== P.atk) { const p = Math.max(0, Math.min(5, e.jugadores[id].dinares)); e.jugadores[id].dinares -= p; A.dinares += p; }   // Anís: 5 dinares de cada uno si mata a Jamil
+      if (A.pj === '3' && D.pj === '4') {   // Jorge (8 de noviembre): si Anís mata a Jamil, cada uno de los demás le paga 8 dinares (quien no los tenga queda endeudado con el banco) y gana 60 noches
+        for (const id of activos(e)) if (id !== P.atk) { e.jugadores[id].dinares -= 8; A.dinares += 8; }   // quien no tenga 8 queda endeudado con el banco
+        A.noches += 60; log(e, `${A.nombre} mató a Jamil: cada jugador le paga 8 dinares y gana 60 noches.`, { pid: P.atk, aviso: true });
+      }
     } else if (numeroOk) {
       A.herido = true; log(e, `${D.nombre} se salva a pedradas; ${A.nombre} queda herido.`, { pid: P.def });
     } else {

@@ -108,16 +108,20 @@ function Tesoro({ s, mi, mt }) {
   const [monto, setMonto] = useState(10);
   const [ocupado, una] = useBloqueo();
   const tengoAmate = s.mano.some((c) => c.tipo === 'item' && c.ref === 'amate');
-  const yaEscondi = mi.escondido > 0;
   const puedeEsc = mt && mi.pj !== 'B' && !mi.perdido && mi.dinares > 0;
   const papeles = s.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');
+  // Jorge (8 de noviembre): tantos escondites como papeles amate. Si ya tienes aquí uno (con su papel), puedes agregarle dinares.
+  const aqui = papeles.find((c) => c.extra.dueno === s.yo && c.extra.ciudad === mi.ciudad);
+  const esconder = (nuevo) => enviar(ACCIONES.esconder(Number(monto), nuevo));
+  const bloq = !!s.pend || ocupado;
   return (
     <>
       {puedeEsc && (
         <div className="accion-fila">
-          <div className="accion-txt"><b>Esconder dinares</b><small>{yaEscondi || tengoAmate ? 'Los dejas en esta ciudad (ya visitada) y los anotas en tu papel amate. Ese papel lo puedes vender a otro jugador; un robo no te lo quita.' : 'Necesitas un papel amate para anotar dónde los escondes: se compra en el mercado de cualquier ciudad.'}</small></div>
+          <div className="accion-txt"><b>Esconder dinares</b><small>{aqui || tengoAmate ? 'Los dejas en esta ciudad (ya visitada). Cada papel amate es un escondite con su propia carta; puedes tener tantos como papeles. El papel lo puedes vender a otro jugador; un robo no te lo quita.' : 'Necesitas un papel amate para anotar dónde los escondes: se compra en el mercado de cualquier ciudad.'}</small></div>
           <div className="accion-ctl"><input type="number" min="1" max={mi.dinares} value={monto} onChange={(e) => setMonto(e.target.value)} aria-label="Dinares a esconder" style={{ width: 80 }} />
-            <button className="btn mini" disabled={!!s.pend || ocupado || !(yaEscondi || tengoAmate)} onClick={una(() => enviar(ACCIONES.esconder(Number(monto))))}>Esconder</button></div>
+            {aqui && <button className="btn mini" disabled={bloq} onClick={una(() => esconder(false))}>Agregar a mi escondite</button>}
+            <button className="btn mini" disabled={bloq || !tengoAmate} onClick={una(() => esconder(true))}>{aqui ? 'Nuevo escondite (papel amate)' : 'Esconder'}</button></div>
         </div>
       )}
       {mt && papeles.map((c) => (

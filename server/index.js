@@ -148,7 +148,7 @@ function confirmacion(a, pid) {
     case 'host.repartir': return `Entregado a ${nom(a.pid)}: ${a.mazo === 'objeto' ? 'un objeto' : a.mazo === 'mensaje' ? 'un mensaje' : 'una carta'}.`;
     case 'host.corregir': return `Corregido: ${a.campo} de ${nom(a.pid)}.`;
     case 'esconder': return `Escondiste ${Math.floor(a.monto || 0)} dinares en ${yo?.ciudad}. Tienes ${yo?.escondido} escondidos.`;
-    case 'recuperar': return 'Recuperaste tu tesoro escondido.';
+    case 'recuperar': return 'Sacaste los dinares de ese escondite.';
     default: return null;
   }
 }

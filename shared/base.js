@@ -85,6 +85,8 @@ export const ITEMS = {
   recetaAverroes: { nombre: 'Receta de Averroes', texto: 'Regalo del cadí y médico Averroes: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. Úsala cuando estés herido: te cura y recuperas tu acción principal de ese turno. Se gasta al usarla.' },
   bendicionAbuMadyan: { nombre: 'Bendición de Abu Madyan', texto: 'Regalo del sufí Abu Madyan: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. En el Magreb y Andalucía te protege: los bandoleros de la caravana de la sal (R23) pasan de largo y el esposo de Zein no te sorprende en la Giralda (R26). Sirve una sola vez: se gasta al protegerte.' },
   libroIbnHazm: { nombre: 'Libro de Ibn Hazm', texto: 'Regalo del sheij Ibn Hazm al cumplir su Mensaje de entregar un libro, papiro o mapa. Empieza valiendo 50 dinares y gana 2 por ronda; solo lo compra la biblioteca de Bagdad, a la mitad de su valor actual. No se puede regalar ni vender a otros jugadores.' },
+  dadosCairo: { nombre: 'Dados del Cairo', texto: 'Regalo de Zacaría al Ansari a Zein. Una vez por ronda, si vas a perder una pelea, repites tus dados. Se vende a otro jugador en un trato (al precio que quieran) o al mercado de la ciudad por 35 dinares, que luego la revende en 75.' },
+  dadosPersia: { nombre: 'Dados de Persia', texto: 'Los dados de Anís. Una vez por ronda, si te atacan para robarte o matarte (no en duelo), tiras un dado: con 5 o 6 escapas por la ventana y el agresor pierde su acción. Se venden a otro jugador en un trato (al precio que quieran) o al mercado de la ciudad por 30 dinares, que luego los revende en 60.' },
   dadoIbnArabi: { nombre: 'Dado de Ibn Arabi', texto: 'Regalo de Ibn Arabi. La próxima vez que vayas a perder una pelea o un duelo (contra un jugador o un NPC), se repite la tirada una vez. Se gasta al usarlo.' },
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
 };
@@ -244,6 +246,25 @@ export function robarBotin(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- dinero
+// Escondites de dinares (Jorge, 8 de noviembre): tantos como papeles amate. Cada uno {id, ciudad, monto} tiene su carta
+// «Papel amate · N dinares en Ciudad»; j.escondido es la suma. Las partidas viejas (un solo tesoroEsc) se convierten solas.
+export function escondites(j) {
+  if (!j.escondites) { j.escondites = j.tesoroEsc ? [{ ...j.tesoroEsc, monto: j.escondido || 0 }] : []; delete j.tesoroEsc; }
+  return j.escondites;
+}
+export function sincronizarEscondites(e, j) {
+  const l = escondites(j); j.escondido = l.reduce((a, x) => a + x.monto, 0);
+  const porId = new Map(l.map((x) => [x.id, x]));
+  for (const x of Object.values(e.jugadores)) for (const q of x.mano) if (q.tipo === 'item' && q.ref === 'mapa' && q.extra?.tesoro === 'jugador' && q.extra.dueno === j.id && porId.has(q.extra.id)) q.extra.monto = porId.get(q.extra.id).monto;
+}
+// Zein (Jorge, 8 de noviembre): si vende sus Dados del Cairo (al mercado o en un trato) está en apuros financieros: vende sus
+// alhajas y así se costea un viaje gratis de un solo tramo a una ciudad con ruta directa. Una sola vez por partida.
+export function apurosZein(e, j, ref) {
+  if (ref !== 'dadosCairo' || j.pj !== '2' || j.extra.apurosZein) return;
+  j.extra.apurosZein = true; j.extra.viajeZein = true;
+  log(e, `${j.nombre} está en apuros financieros: vende sus alhajas y se costea un viaje gratis.`, { pid: j.id });
+  info(e, j.id, 'Apuros financieros', 'Vendiste tus Dados del Cairo y estás en apuros financieros: vendes tus alhajas y así te costeas un viaje gratis (un solo tramo, a una ciudad con ruta directa desde donde estés).');
+}
 export const patrimonio = (j) => j.noches + j.dinares + (j.escondido || 0);
 // Pagos obligatorios al banco o a una ciudad (alojamiento, multas, castigos…). Regla de la casa: si no alcanzan los dinares,
 // quedan en negativo (deuda con el banco) y se cobran solos en cuanto entren dinares; ya no se paga con noches ni se perdona.
@@ -287,8 +308,8 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
     if (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return false;
     return true;
   });
-  const papelAjeno = Object.values(e.jugadores).some((x) => x.id !== pid && x.mano.some((m) => m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === 'jugador' && m.extra?.dueno === pid));
-  if (!papelAjeno) { j.escondido = 0; j.tesoroEsc = null; }                          // si vendió el papel, el comprador conserva el escondite
+  { const ajenos = new Set(Object.values(e.jugadores).filter((x) => x.id !== pid).flatMap((x) => x.mano.filter((m) => m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === 'jugador' && m.extra?.dueno === pid).map((m) => m.extra.id)));
+    j.escondites = escondites(j).filter((x) => ajenos.has(x.id)); sincronizarEscondites(e, j); }   // los papeles vendidos conservan su escondite
   if (k) {
     k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan
     if (j.buscado > 0) { const n = data.config.recompensaBuscado ?? 200, d = data.config.recompensaBuscadoDinares ?? 100; k.noches += n; k.dinares += d; log(e, `${k.nombre} cobra la recompensa por ${j.nombre}, que estaba Buscado: ${d} dinares y ${n} noches.`, { pid: por, aviso: true }); }   // regla de la casa: no se multiplica por ronda

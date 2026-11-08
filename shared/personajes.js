@@ -1,6 +1,6 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
-  ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos,
+  ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
 } from './base.js';
 import { peleaNPC } from './pelea.js';
 
@@ -32,15 +32,18 @@ export function alLlegar(data, e, pid) {
   const ruy = activos(e).find((x) => jug(e, x).pj === '5' && x !== pid && jug(e, x).ciudad === j.ciudad && !jug(e, x).transito);
   if (!ruy) return;
   const r = jug(e, ruy);
-  if (r.noches <= 0) return;
-  const noches = Math.min(50, r.noches), precio = noches >= 50 ? 5 : Math.ceil(noches / 10);
-  if (j.dinares < precio) return;
+  // Jorge (8 de noviembre): al llegar a la ciudad de Ruyán se le compran, en automático, 20 noches por 10 dinares (sin dinero no hay trato).
+  if (r.noches <= 0 || j.dinares < RUYAN.dinares) return;
   t.ruyan.push(j.ciudad);
-  j.dinares -= precio; r.dinares += precio; r.noches -= noches; j.noches += noches;
-  log(e, `${j.nombre} visita a ${r.nombre} y le compra ${noches} noches por ${precio} dinares.`, { pid });
+  const noches = Math.min(RUYAN.noches, r.noches);
+  j.dinares -= RUYAN.dinares; r.dinares += RUYAN.dinares; r.noches -= noches; j.noches += noches;
+  const txt = `${j.nombre} visita a ${r.nombre} en ${j.ciudad}: le compra ${noches} noches por ${RUYAN.dinares} dinares.`;
+  log(e, txt, { pid }); info(e, pid, 'El Sabio Ruyán', txt); info(e, ruy, 'El Sabio Ruyán', txt);
 }
+export const RUYAN = { noches: 20, dinares: 10 };
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
+export const PRECIO_ZUBAYDA = 7;
 export function apedreo(data, e, pid) {
   const j = jug(e, pid), x = dado(e);
   mostrarDados(e, { por: pid, motivo: 'apedreo', grupos: [{ etq: `${j.nombre}: ¿apedreo? (par = a salvo)`, valores: [x] }], resumen: [par(x) ? `${j.nombre} está a salvo.` : `Intentan apedrear a ${j.nombre}.`] });
@@ -68,8 +71,6 @@ function sobornoGuardias(data, e, pid, ctx) {
   let costo = 5 * n; if (j.pj === 'B') costo = Math.ceil(costo / 2);
   const r = pagar(data, e, pid, costo);
   ctx.say(`${j.nombre} soborna a ${n} guardia(s) con ${costo} dinares${r.debe ? ' (no alcanza del todo)' : ''}.`);
-  const jamil = activos(e).find((x) => jug(e, x).pj === '4' && jug(e, x).ciudad === 'Bagdad' && x !== pid);
-  if (jamil) { jug(e, jamil).dinares += 5; ctx.say(`${jug(e, jamil).nombre} recita el crimen y cobra 5 dinares.`); }
 }
 
 const nuevoCtx = (e, pid, titulo) => ({ grupos: [], res: [], say(x) { this.res.push(x); }, fin() { if (this.grupos.length) mostrarDados(e, { por: pid, motivo: 'pj', grupos: this.grupos, resumen: [titulo, ...this.res] }); else for (const r of [titulo, ...this.res]) log(e, r, { pid }); } });
@@ -80,17 +81,13 @@ export function disponibles(data, e, pid) {
   if (!puedePrincipal(t) || j.transito || j.perdido) return r;
   const aqui = enCiudad(e, j.ciudad, pid).filter((x) => !jug(e, x).npc);
   if (j.pj === '6' && j.ciudad === 'Bagdad') r.push({ k: 'pj', sub: 'haren', titulo: 'Pasar la noche en el harén del Califa (+15 dinares, termina tu turno)' });
-  if (['2', '6', '7'].includes(j.pj) && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: true, texto: j.pj === '6' ? 'Entregas al cliente al menos 50 noches de tu haber.' : undefined });
+  if (['2', '6', '7'].includes(j.pj) && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: j.pj !== '6', texto: j.pj === '6' ? `Entregas al cliente 50 noches de tu haber (o las que tengas) y te paga ${PRECIO_ZUBAYDA} dinares.` : undefined });
   if (j.pj === '7') { const o = aqui.filter((x) => jug(e, x).pj !== '2'); if (o.length) r.push({ k: 'pj', sub: 'cuentos', titulo: 'Cuentos de noche (ambos +5 dinares, el compañero +10 noches)', objetivos: o }); }
-  const zein = zeinId(e);
-  if (zein && j.pj !== '7') {
-    const z = jug(e, zein);
-    if (zein === pid) { const o = aqui.filter((x) => jug(e, x).pj !== '7' && !(jug(e, x).pj === '5' && jug(e, x).extra.zeinRuyan)); if (o.length) r.push({ k: 'pj', sub: 'zein', titulo: 'Pasar la noche con otro jugador (R 10.3)', objetivos: o }); }
-    else if (z.ciudad === j.ciudad && !z.transito && !(j.pj === '5' && j.extra.zeinRuyan)) r.push({ k: 'pj', sub: 'zein', titulo: 'Pasar la noche con Zein (R 10.3)', objetivos: [zein] });
-  }
-  if (j.pj === '4') {
-    const o = activos(e).filter((x) => x !== pid && jug(e, x).extra.vergonzoso != null && e.ronda - jug(e, x).extra.vergonzoso <= 2 && jug(e, x).extra.difamadoRonda !== jug(e, x).extra.vergonzoso);
-    if (o.length) r.push({ k: 'pj', sub: 'difamar', titulo: 'Cantar versos difamatorios (R 10.6)', objetivos: o });
+  // Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (el otro pierde 10
+  // noches o le paga 7). Con alguien de su misma ciudad; gasta la acción principal.
+  if (j.pj === '4' && aqui.length) {
+    r.push({ k: 'pj', sub: 'honra', titulo: `Proponer versos en su honra (el otro gana ${HONRA.noches} noches y te paga ${HONRA.dinares} dinares)`, objetivos: aqui });
+    r.push({ k: 'pj', sub: 'satira', titulo: `Cantar versos de sátira (el otro pierde ${SATIRA.noches} noches o te paga ${SATIRA.dinares} dinares)`, objetivos: aqui });
   }
   return r;
 }
@@ -120,21 +117,29 @@ export function accion(data, e, pid, a) {
     case 'prost': {
       if (!['2', '6', '7'].includes(j.pj)) return err('Solo Zein, Zubayda o Adí pueden hacerlo.');
       if (!valido()) return err('Cliente no válido (misma ciudad).');
-      const precio = Math.max(0, Math.min(200, Math.floor(a.precio || 0)));
+      // Jorge (8 de noviembre): con Zubayda el precio es fijo, 7 dinares, y el otro solo recibe sus 50 noches (o las que tenga).
+      const precio = j.pj === '6' ? PRECIO_ZUBAYDA : Math.max(0, Math.min(200, Math.floor(a.precio || 0)));
       t.principal = true;
       pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Propuesta de compañía', texto: `${j.nombre} te ofrece su compañía. Recibes: una noche de compañía${j.pj === '6' ? (j.noches > 0 ? ` y ${Math.min(50, j.noches)} noches de su haber` : ' (no tiene noches que darte)') : ''}. Entregas: ${precio} dinares.`,
         opciones: [{ id: 'si', texto: `Pagar ${precio} dinares`, desactivada: k.dinares < precio }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.prost', args: { vend: pid, precio } } });
       return ok();
     }
-    case 'zein': return zein(data, e, pid, a);
-    case 'difamar': {
+    case 'honra': {
       if (j.pj !== '4') return err('Solo Jamil.');
-      const v = jug(e, a.con);
-      if (!v || v.eliminado || a.con === pid || v.extra.vergonzoso == null || e.ronda - v.extra.vergonzoso > 2) return err('Esa persona no ha hecho nada que cantar.');
-      v.extra.difamadoRonda = v.extra.vergonzoso;
-      const perdida = Math.min(v.noches, 10 * vivos(e));
-      v.noches -= perdida; v.extra.sinComercioHasta = e.ronda + 1; t.principal = true;
-      log(e, `${j.nombre} canta versos sobre ${v.nombre}: pierde ${perdida} noches y nadie querrá comerciar con ${v.nombre} durante 2 turnos.`, { pid });
+      if (!valido()) return err('Tiene que estar en tu misma ciudad.');
+      if (k.dinares < HONRA.dinares) return err(`${k.nombre} no tiene ${HONRA.dinares} dinares para pagarte los versos.`);
+      t.principal = true;
+      pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Versos en tu honra', texto: `${j.nombre} te propone cantarte versos en tu honra: ganas ${HONRA.noches} noches y le pagas ${HONRA.dinares} dinares.`,
+        opciones: [{ id: 'si', texto: `Aceptar (pagar ${HONRA.dinares} dinares)`, desactivada: k.dinares < HONRA.dinares }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.honra', args: { jamil: pid } } });
+      return ok();
+    }
+    case 'satira': {
+      if (j.pj !== '4') return err('Solo Jamil.');
+      if (!valido()) return err('Tiene que estar en tu misma ciudad.');
+      t.principal = true;
+      log(e, `${j.nombre} le canta versos de sátira a ${k.nombre}.`, { pid });
+      pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Versos de sátira', texto: `${j.nombre} te canta versos de sátira. Elige: pierdes ${SATIRA.noches} noches o le pagas ${SATIRA.dinares} dinares para que se calle.`,
+        opciones: [{ id: 'noches', texto: `Perder ${SATIRA.noches} noches` }, { id: 'pagar', texto: `Pagarle ${SATIRA.dinares} dinares`, desactivada: k.dinares < SATIRA.dinares }], porDefecto: 'noches', limiteMs: 45000, cont: { fn: 'pj.satira', args: { jamil: pid } } });
       return ok();
     }
     default: return err('Acción de personaje desconocida.');
@@ -148,6 +153,23 @@ registrar('pj.cuentos', (data, e, args, resp) => {
   log(e, `${c.nombre} acepta los cuentos de noche de ${adi.nombre}.`, { pid: args.adi });
   adi.dinares += 5; c.dinares += 5; c.noches += 10;
   log(e, `${adi.nombre} pasa la noche contando cuentos con ${c.nombre}: ambos ganan 5 dinares y ${c.nombre} 10 noches.`, { pid: args.adi });
+});
+export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares: 7 };
+registrar('pj.honra', (data, e, args, resp) => {
+  const jm = jug(e, args.jamil), c = jug(e, resp.pid);
+  if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza los versos en su honra de ${jm?.nombre}.`, { pid: args.jamil }); return devolverPrincipal(e, args.jamil, 'no aceptaron tus versos'); }
+  if (!jm || jm.eliminado || c.eliminado || jm.ciudad !== c.ciudad || c.dinares < HONRA.dinares) return devolverPrincipal(e, args.jamil, 'los versos no se cantaron');
+  c.dinares -= HONRA.dinares; jm.dinares += HONRA.dinares; c.noches += HONRA.noches;
+  const txt = `${jm.nombre} canta versos en honra de ${c.nombre}: ${c.nombre} gana ${HONRA.noches} noches y le paga ${HONRA.dinares} dinares.`;
+  log(e, txt, { pid: args.jamil }); info(e, args.jamil, 'Versos en su honra', txt); info(e, resp.pid, 'Versos en tu honra', txt);
+});
+registrar('pj.satira', (data, e, args, resp) => {
+  const jm = jug(e, args.jamil), c = jug(e, resp.pid);
+  if (!jm || !c || c.eliminado) return;
+  let txt;
+  if (resp.opcion === 'pagar' && c.dinares >= SATIRA.dinares) { c.dinares -= SATIRA.dinares; jm.dinares += SATIRA.dinares; txt = `${c.nombre} le paga ${SATIRA.dinares} dinares a ${jm.nombre} para que deje de cantar su sátira.`; }
+  else { const n = Math.min(SATIRA.noches, c.noches); c.noches -= n; txt = `La sátira de ${jm.nombre} corre por la ciudad: ${c.nombre} pierde ${n} noches.`; }
+  log(e, txt, { pid: args.jamil }); info(e, args.jamil, 'Versos de sátira', txt); info(e, resp.pid, 'Versos de sátira', txt);
 });
 registrar('pj.prost', (data, e, args, resp) => {
   const v = jug(e, args.vend), c = jug(e, resp.pid);
@@ -165,40 +187,6 @@ registrar('pj.prost', (data, e, args, resp) => {
   if (!par(x)) castigoApedreo(data, e, args.vend);
 });
 
-// ---------------------------------------------------------------- Zein al Mawasif (R 10.3)
-function zein(data, e, pid, a) {
-  const t = e.turno, yo = jug(e, pid);
-  const zid = yo.pj === '2' ? pid : zeinId(e);
-  const oid = yo.pj === '2' ? a.con : pid;
-  const z = jug(e, zid), o = jug(e, oid);
-  if (!z || !o || z.eliminado || o.eliminado || zid === oid) return err('Participantes no válidos.');
-  if (z.ciudad !== o.ciudad || z.transito || o.transito) return err('Deben estar en la misma ciudad.');
-  if (o.pj === '7' || z.pj === '7') return err('Adí nunca lo haría.');
-  if (o.pj === '5' && o.extra.zeinRuyan) return err('Ruyán solo puede acostarse con Zein una vez en todo el juego.');
-  t.principal = true;
-  const ctx = nuevoCtx(e, pid, `${z.nombre} y ${o.nombre} pasan la noche juntos.`);
-  log(e, `${z.nombre} y ${o.nombre} pasan la noche juntos.`, { pid });
-  if (o.pj === '5') o.extra.zeinRuyan = true;
-  marcarVergonzoso(e, zid);
-  const comparte = (id) => { const x = jug(e, id); if (x.ciudad === 'Bagdad') sobornoGuardias(data, e, id, ctx); };
-  comparte(zid);
-  const act = activos(e), v = act.map(() => dado(e));
-  ctx.grupos.push({ etq: 'Todos tiran: ¿sorprende el esposo?', valores: v });
-  const umbral = Math.floor(3.5 * act.length), salvo = o.pj === '5' || suma(v) > umbral;
-  ctx.say(o.pj === '5' ? 'El esposo no sospecha del Sabio Ruyán.' : `Suma ${suma(v)} contra ${umbral}: ${salvo ? 'no los sorprenden' : 'los sorprende'}.`);
-  const pagos = (porSalvo) => {
-    const conAnis = o.pj === '3';
-    z.dinares += conAnis ? 10 : 25;
-    if (conAnis) o.dinares += 10 + (porSalvo ? 20 : 0);
-    log(e, `${z.nombre} gana ${conAnis ? 10 : 25} dinares${conAnis ? '; Anís gana ' + (10 + (porSalvo ? 20 : 0)) : ''}.`, { pid: zid });
-  };
-  if (salvo) { ctx.fin(); pagos(true); return ok(); }
-  if (o.pj === '3') { ctx.say('Anís se escapa por la ventana.'); ctx.fin(); pagos(false); return ok(); }
-  ctx.fin();
-  const gana = peleaNPC(data, e, oid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true });
-  if (gana) { log(e, `${o.nombre} vence al esposo de Zein.`, { pid: oid }); pagos(false); }
-  else { log(e, `${o.nombre} pierde el duelo a muerte con el esposo de Zein.`, { pid: oid }); eliminar(data, e, oid, { causa: 'duelo con el esposo de Zein' }); }
-  return ok();
-}
+// Zein ya no tiene «Noche discreta» (Jorge, 8 de noviembre): se quitó junto con el esposo y su pelea.
 
 void dados; void zeinId;

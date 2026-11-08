@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-} from './base.js';
+apurosZein, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -95,6 +95,7 @@ function incorporarTarde(data, e, pid) {
   if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
   j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
   for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true });
+  for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });   // Zein: Dados del Cairo
   { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
   j.tarde = false; j.listo = true;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
@@ -215,6 +216,7 @@ function iniciar(data, e) {
     j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
     if (e.solitario && !j.npc && e.opciones.dificultad === 'facil') j.dinares = 30;                                   // R 21.5
     for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true }); }
+    for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;
@@ -794,6 +796,7 @@ export function viajar(data, e, pid, a) {
   let gratis = false;
   if ((j.pj === '4' && origen === 'El Cairo' && destino === 'Bagdad') || (j.pj === '5' && origen === 'Bagdad' && destino === 'El Cairo')) { precio = 0; gratis = true; }   // R 10.5, 10.6
   if (a.gratisPrimerVisitante && j.extra.viajeGratisBagdad) precio = 0;
+  if (j.extra.viajeZein && precio > 0) { precio = 0; gratis = true; j.extra.usaViajeZein = true; }               // Zein en apuros: un tramo gratis
   const args = { destino, precio, servicios: false, hilo: false };
   if (a.servicios && j.pj === '6') { args.servicios = true; args.precio = 0; }                                  // Zubayda paga con servicios (R 10.7)
   else {
@@ -814,6 +817,7 @@ export function partir(data, e, pid, args) {
   if (args.precio > 0) { if (j.dinares < args.precio) { log(e, `${j.nombre} ya no puede pagar el viaje.`); return err('No te alcanzan los dinares.'); } j.dinares -= args.precio; }
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
   if (args.califa) { j.extra.viajeCalifa = false; }
+  if (j.extra.usaViajeZein) { j.extra.viajeZein = false; j.extra.usaViajeZein = false; log(e, `${j.nombre} viaja gratis con lo que sacó de sus alhajas.`, { pid }); }
   t.tramos++; t.movio = true;
   const key = origen + '>' + destino;
   if (!e.caravanas.includes(key)) e.caravanas.push(key);                                                    // regla de la casa: primer viaje paga y crea la caravana (R 7.2)
@@ -933,15 +937,22 @@ export function sacarCuento(data, e, pid, clave) {
   return ent;
 }
 
+export const CRP_RUYAN = 5;
 function responderCC(data, e, pid, a) {
   const t = e.turno;
   if (!t || t.pid !== pid || !t.ccActual || t.ccActual.tipo !== 'trivia') return err('No hay trivia pendiente.');
   const tr = data.trivias.trivias.find((x) => x.id === t.ccActual.id);
   if (!(a.opcion >= 0 && a.opcion < tr.opciones.length)) return err('Opción inválida.');
-  const acierto = a.opcion === tr.correcta;
-  const ent = e.historial.find((h) => h.nro === t.ccActual.nro);
-  if (ent) ent.resuelto = { elegida: a.opcion, correcta: tr.correcta, acierto, nota: tr.nota };      // CRP: la respuesta se publica SOLO ahora
   const j = e.jugadores[pid];
+  let acierto = a.opcion === tr.correcta, nota = tr.nota;
+  // Ruyán (Jorge, 8 de noviembre): tiene 5 cartas de respuestas; si falla una trivia, se gasta una y cuenta como correcta.
+  if (!acierto && j.pj === '5' && (j.extra.crp ?? CRP_RUYAN) > 0) {
+    j.extra.crp = (j.extra.crp ?? CRP_RUYAN) - 1; acierto = true;
+    nota = `Tu carta de respuestas te corrigió: cuenta como correcta (te quedan ${j.extra.crp}).${tr.nota ? ' ' + tr.nota : ''}`;
+    log(e, `${j.nombre} usa una de sus cartas de respuestas para corregir la trivia (le quedan ${j.extra.crp}).`, { pid });
+  }
+  const ent = e.historial.find((h) => h.nro === t.ccActual.nro);
+  if (ent) ent.resuelto = { elegida: a.opcion, correcta: tr.correcta, acierto, nota };      // CRP: la respuesta se publica SOLO ahora
   if (acierto) { j.dinares += tr.premio; t.ccBien++; }
   log(e, `${j.nombre} ${acierto ? 'acierta la trivia (+' + tr.premio + ' dinares)' : 'falla la trivia'}.`, { pid });
   t.ccActual = null; if (ent) e.ultimaCarta = ent.nro;
@@ -1065,6 +1076,7 @@ function responderTrato(data, e, pid, a) {
   const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público
   const movA = tr.ofrece.objetos.map((u) => A.mano.find((c) => c.uid === u)).filter(Boolean), movB = tr.pide.objetos.map((u) => B.mano.find((c) => c.uid === u)).filter(Boolean);
   mover(A, B, tr.ofrece.objetos); mover(B, A, tr.pide.objetos);
+  for (const c of movA) apurosZein(e, A, c.ref); for (const c of movB) apurosZein(e, B, c.ref);   // Zein vendió sus Dados del Cairo
   recortarMano(data, e, A.id); recortarMano(data, e, B.id);
   if (e.mods.feria && e.mods.feriaVentas !== false) { if (movA.length) A.dinares += 5; if (movB.length) B.dinares += 5; }     // E12: +5 del banco a quien vende un objeto
   // Un trato cerrado invalida cualquier otra propuesta pendiente entre los dos (sus condiciones ya no valen).
@@ -1133,7 +1145,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: tarifa(data, e, j, j.ciudad, d) });
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein ? 0 : tarifa(data, e, j, j.ciudad, d) });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);

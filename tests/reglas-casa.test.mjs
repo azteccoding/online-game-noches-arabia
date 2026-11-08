@@ -1581,4 +1581,186 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok); assert.ok(A.retosHechos.includes('R44'));
 }
 
+// Varios escondites (Jorge, 8 de noviembre): tantos como papeles amate; cada carta saca solo su escondite; se puede agregar a uno
+// que ya tienes en la ciudad; el papel se vende en un trato y el comprador saca ese escondite; al morir se pierden los que no vendiste.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  const papeles = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');
+  const en = (ciudad) => { turnoDe(e, a, ciudad); A.ciudad = ciudad; if (!A.visitadas.includes(ciudad)) A.visitadas.push(ciudad); e.turno.fase = 'acciones'; };
+  A.dinares = 200; A.mano = A.mano.filter((c) => c.ref !== 'amate'); darItem(e, A, 'amate'); darItem(e, A, 'amate'); darItem(e, A, 'amate');
+  en('Damasco');
+  assert.ok(g.act(a, { t: 'esconder', monto: 30 }).ok);
+  assert.ok(g.act(a, { t: 'esconder', monto: 20, nuevo: true }).ok, 'segundo escondite en la misma ciudad con otro papel');
+  assert.ok(g.act(a, { t: 'esconder', monto: 5 }).ok, 'agregar a uno que ya tienes aquí no gasta papel');
+  en('Aleppo');
+  assert.ok(g.act(a, { t: 'esconder', monto: 40 }).ok, 'tercer escondite en otra ciudad');
+  assert.equal(papeles(A).length, 3); assert.equal(A.mano.filter((c) => c.ref === 'amate').length, 0, 'se gastaron los 3 papeles');
+  assert.equal(A.escondido, 95); assert.equal(A.dinares, 105);
+  assert.deepEqual(papeles(A).map((c) => c.extra.monto).sort((x, y) => x - y), [20, 35, 40], 'cada carta dice cuánto tiene');
+  assert.ok(!g.act(a, { t: 'esconder', monto: 5, nuevo: true }).ok, 'sin papel no se crea otro escondite');
+  // recuperar en Aleppo: solo ese
+  const pAleppo = papeles(A).find((c) => c.extra.ciudad === 'Aleppo');
+  assert.ok(g.act(a, { t: 'recuperar', uid: pAleppo.uid }).ok);
+  assert.equal(A.dinares, 145); assert.equal(A.escondido, 55); assert.equal(papeles(A).length, 2);
+  // vende un papel de Damasco a B (en un trato); B saca ese escondite
+  const p20 = papeles(A).find((c) => c.extra.monto === 20);
+  A.mano.splice(A.mano.indexOf(p20), 1); B.mano.push(p20);
+  turnoDe(e, b, 'Damasco'); B.ciudad = 'Damasco'; e.turno.fase = 'acciones'; const db = B.dinares;
+  assert.ok(g.act(b, { t: 'recuperar', uid: p20.uid }).ok); assert.equal(B.dinares, db + 20); assert.equal(A.escondido, 35, 'al dueño le queda el otro');
+  // otro papel vendido sigue vivo aunque el dueño muera
+  en('Damasco'); A.mano = A.mano.filter((c) => c.ref !== 'amate'); darItem(e, A, 'amate');
+  assert.ok(g.act(a, { t: 'esconder', monto: 10, nuevo: true }).ok);
+  const p10 = papeles(A).find((c) => c.extra.monto === 10); A.mano.splice(A.mano.indexOf(p10), 1); B.mano.push(p10);
+  eliminar(data, e, a, { causa: 'prueba', por: b });
+  assert.equal(A.escondido, 10, 'al morir se pierden sus escondites, salvo el del papel vendido');
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones'; const db2 = B.dinares;
+  assert.ok(g.act(b, { t: 'recuperar', uid: p10.uid }).ok); assert.equal(B.dinares, db2 + 10);
+}
+
+// Zubayda (Jorge, 8 de noviembre): su propuesta de compañía cuesta siempre 7 dinares; el cliente recibe 50 noches de su haber y nada más.
+{
+  const { PRECIO_ZUBAYDA } = await import('../shared/personajes.js');
+  assert.equal(PRECIO_ZUBAYDA, 7);
+  const g = partida(['6', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, c] = g.ids, Z = e.jugadores[z], C = e.jugadores[c];
+  turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; C.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+  Z.noches = 120; Z.dinares = 10; C.noches = 0; C.dinares = 30;
+  assert.ok(g.act(z, { t: 'pj', sub: 'prost', con: c, precio: 150 }).ok, 'aunque mande otro precio');
+  assert.match(e.pend.texto, /Entregas: 7 dinares/);
+  assert.ok(g.act(c, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.equal(C.dinares, 23, 'el cliente paga 7'); assert.equal(C.noches, 50, 'y recibe 50 noches');
+  assert.equal(Z.dinares, 17); assert.equal(Z.noches, 70);
+}
+
+// Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (pierde 10 noches o
+// le paga 7). Ya no cobra por recitar crímenes ni canta versos difamatorios.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jm, b] = g.ids, J = e.jugadores[jm], B = e.jugadores[b];
+  const prep = () => { turnoDe(e, jm, 'Damasco'); J.ciudad = 'Damasco'; B.ciudad = 'Damasco'; e.turno.fase = 'acciones'; };
+  prep(); J.dinares = 10; B.dinares = 20; B.noches = 100;
+  assert.ok(g.act(jm, { t: 'pj', sub: 'honra', con: b }).ok);
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.equal(B.noches, 130); assert.equal(B.dinares, 15); assert.equal(J.dinares, 15);
+  assert.ok(e.pend && e.pend.tipo === 'info', 'ventana con el resultado');
+  // rechazo: Jamil recupera su acción
+  prep(); e.pend = null; e.colaPend = [];
+  assert.ok(g.act(jm, { t: 'pj', sub: 'honra', con: b }).ok);
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok);
+  assert.ok(!e.turno.principal, 'si rechaza, Jamil recupera su acción');
+  // sin 5 dinares no hay trato
+  prep(); e.pend = null; e.colaPend = []; B.dinares = 4;
+  assert.ok(!g.act(jm, { t: 'pj', sub: 'honra', con: b }).ok);
+  // sátira: paga 7 o pierde 10
+  prep(); e.pend = null; e.colaPend = []; B.dinares = 20; B.noches = 100; J.dinares = 0;
+  assert.ok(g.act(jm, { t: 'pj', sub: 'satira', con: b }).ok);
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'pagar' }).ok);
+  assert.equal(B.dinares, 13); assert.equal(J.dinares, 7); assert.equal(B.noches, 100);
+  prep(); e.pend = null; e.colaPend = []; B.dinares = 3;
+  assert.ok(g.act(jm, { t: 'pj', sub: 'satira', con: b }).ok);
+  assert.ok(e.pend.opciones.find((o) => o.id === 'pagar').desactivada, 'sin 7 dinares no puede pagar');
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
+  assert.equal(B.noches, 90, 'sin 7 dinares pierde las 10 noches'); assert.equal(B.dinares, 3);
+  // otra ciudad: no se puede
+  prep(); e.pend = null; e.colaPend = []; B.ciudad = 'Aleppo';
+  assert.ok(!g.act(jm, { t: 'pj', sub: 'satira', con: b }).ok);
+}
+
+// Zein (Jorge, 8 de noviembre): sin «Noche discreta»; empieza con la carta «Dados del Cairo» (regalo de Zacaría al Ansari). Quien la
+// tenga repite sus dados una vez por ronda si va a perder. Se vende en un trato o al mercado por 35 (aviso a todos) y ahí se revende en 75.
+{
+  const { disponibles: accPj } = await import('../shared/personajes.js');
+  const g = partida(['2', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, b] = g.ids, Z = e.jugadores[z], B = e.jugadores[b];
+  assert.ok(Z.mano.some((c) => c.ref === 'dadosCairo'), 'Zein empieza con los Dados del Cairo');
+  turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; B.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+  assert.ok(!accPj(data, e, z).some((a) => a.sub === 'zein'), 'ya no hay noche discreta');
+  // vender al mercado (en su turno): 35 y aviso
+  const d0 = Z.dinares, cd = Z.mano.find((c) => c.ref === 'dadosCairo');
+  assert.ok(g.act(z, { t: 'vender', uid: cd.uid }).ok);
+  assert.equal(Z.dinares, d0 + 35); assert.ok(!Z.mano.some((c) => c.ref === 'dadosCairo'));
+  assert.ok(e.log.some((l) => l.aviso && /Dados del Cairo están a la venta en el mercado de Damasco por 75/.test(l.texto)), 'aviso para todos');
+  // B la compra en Damasco por 75 (fuera de su turno, como el mercado)
+  assert.equal(e.pend?.titulo, 'Apuros financieros'); assert.ok(g.act(z, { t: 'decidir', id: e.pend.id, opcion: 'ok' }).ok);
+  B.dinares = 80;
+  assert.ok(g.act(b, { t: 'comprar', ref: 'dadosCairo' }).ok);
+  assert.equal(B.dinares, 5); assert.ok(B.mano.some((c) => c.ref === 'dadosCairo')); assert.ok(!e.mercadoDados?.dadosCairo);
+  assert.ok(!g.act(b, { t: 'comprar', ref: 'dadosCairo' }).ok, 'solo hay una');
+  // apuros financieros: Zein consigue un viaje gratis de un tramo (una sola vez)
+  assert.ok(Z.extra.viajeZein && e.log.some((l) => /apuros financieros/.test(l.texto)));
+  turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; e.turno.fase = 'mov'; const d1 = Z.dinares;
+  assert.ok(g.act(z, { t: 'viajar', destino: 'Aleppo' }).ok); assert.equal(Z.ciudad, 'Aleppo'); assert.equal(Z.dinares, d1, 'el viaje le sale gratis');
+  assert.ok(!Z.extra.viajeZein, 'solo uno');
+}
+
+// Ruyán (Jorge, 8 de noviembre): 5 cartas de respuestas que corrigen una trivia fallada (gana el premio); y a quien llega a su
+// ciudad (fuera de Bagdad) le compra en automático 20 noches por 10 dinares.
+{
+  const g = partida(['5', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [r, b] = g.ids, R = e.jugadores[r], B = e.jugadores[b];
+  const tr = data.trivias.trivias[0], mala = (tr.correcta + 1) % tr.opciones.length;
+  const trivia = (pid) => { turnoDe(e, pid, 'Damasco'); e.turno.ccActual = { tipo: 'trivia', id: tr.id, nro: 0 }; };
+  for (let k = 5; k >= 1; k--) {
+    trivia(r); const d0 = R.dinares;
+    assert.ok(g.act(r, { t: 'responderCC', opcion: mala }).ok);
+    assert.equal(R.dinares, d0 + tr.premio, 'la carta de respuestas lo corrige y gana el premio');
+    assert.equal(R.extra.crp, k - 1);
+  }
+  trivia(r); const d1 = R.dinares;
+  assert.ok(g.act(r, { t: 'responderCC', opcion: mala }).ok); assert.equal(R.dinares, d1, 'sin cartas, falla');
+  trivia(b); const d2 = B.dinares;
+  assert.ok(g.act(b, { t: 'responderCC', opcion: mala }).ok); assert.equal(B.dinares, d2, 'a los demás no los corrige');
+  // visita: automática, 20 noches por 10 dinares, con aviso a los dos
+  R.ciudad = 'Damasco'; R.noches = 200; B.dinares = 20; B.noches = 0;
+  turnoDe(e, b, 'Aleppo'); B.ciudad = 'Damasco'; llegada(data, e, b, 'Aleppo');
+  assert.ok([e.pend, ...e.colaPend].some((p) => p?.tipo === 'info' && p.titulo === 'El Sabio Ruyán'), 'aviso');
+  assert.ok(B.noches >= 20); assert.equal(B.dinares, 10); assert.equal(R.noches, 180);
+}
+
+// Nur al Din (Jorge, 8 de noviembre): a él sí le pueden robar como a cualquiera; él no puede robar a nadie.
+{
+  const g = partida(['1', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [n, b] = g.ids, N = e.jugadores[n], B = e.jugadores[b];
+  e.ronda = 4; turnoDe(e, b, 'Damasco'); N.ciudad = 'Damasco'; B.ciudad = 'Damasco'; e.turno.fase = 'acciones'; darItem(e, B, 'jambiya');
+  const rr = g.act(b, { t: 'atacar', tipo: 'robo', objetivo: n }); assert.ok(rr.ok, 'se le puede robar: ' + rr.error);
+  turnoDe(e, n, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(n, { t: 'atacar', tipo: 'robo', objetivo: b }).error, /no puede robar/);
+}
+
+// Anís (Jorge, 8 de noviembre): «Por la ventana» pasa a ser la carta «Dados de Persia» (empieza con ella; quien la tenga escapa con
+// 5 o 6); se vende en trato o al mercado por 30 (aviso a todos) y ahí se revende en 60.
+{
+  const g = partida(['3', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [an, b] = g.ids, A = e.jugadores[an], B = e.jugadores[b];
+  assert.ok(A.mano.some((c) => c.ref === 'dadosPersia'), 'Anís empieza con los Dados de Persia');
+  turnoDe(e, an, 'Aleppo'); A.ciudad = 'Aleppo'; B.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
+  const d0 = A.dinares, c = A.mano.find((x) => x.ref === 'dadosPersia');
+  assert.ok(g.act(an, { t: 'vender', uid: c.uid }).ok); assert.equal(A.dinares, d0 + 30);
+  assert.ok(e.log.some((l) => l.aviso && /Dados de Persia están a la venta en el mercado de Aleppo por 60/.test(l.texto)));
+  B.dinares = 60; assert.ok(g.act(b, { t: 'comprar', ref: 'dadosPersia' }).ok); assert.equal(B.dinares, 0);
+  assert.ok(B.mano.some((x) => x.ref === 'dadosPersia'), 'ahora la usa quien la compró');
+}
+
+// Anís mata a Jamil (Jorge, 8 de noviembre): cada uno de los demás le paga 8 dinares completos (quien no los tenga queda endeudado
+// con el banco) y Anís gana 60 noches.
+{
+  let hecho = false;
+  for (let s = 1; s < 300 && !hecho; s++) {
+    const g = partida(['3', '4', '7'], {}, s); assert.ok(g.iniciar().ok);
+    const e = g.e, [an, jm, c] = g.ids, A = e.jugadores[an], J = e.jugadores[jm], C = e.jugadores[c];
+    e.ronda = 5; turnoDe(e, an, 'Damasco'); for (const x of [A, J, C]) x.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+    A.destreza = true; darItem(e, A, 'cimitarra'); J.mano = J.mano.filter((x) => x.ref !== 'dadosPersia'); C.dinares = 3; J.dinares = 0; A.noches = 100;
+    const d0 = A.dinares;
+    if (!g.act(an, { t: 'atacar', tipo: 'matar', objetivo: jm }).ok) continue;
+    while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => !o.desactivada) || {}).id });
+    if (!J.eliminado) continue;
+    assert.equal(C.dinares, -5, 'sin 8 dinares queda endeudado con el banco');
+    assert.ok(A.dinares - d0 >= 8, 'Anís recibe los 8 de cada uno');
+    assert.ok(A.noches >= 160, 'y gana 60 noches');
+    hecho = true;
+  }
+  assert.ok(hecho, 'se pudo probar que Anís mata a Jamil');
+}
+
 console.log('reglas de la casa OK');
