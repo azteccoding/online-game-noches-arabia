@@ -1485,7 +1485,7 @@ for (let k = 0; k < 6; k++) {
   const r0 = e.ronda;
   for (let k = 0; k < 8 && e.ronda === r0; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
   assert.ok(e.traicion && e.historial.some((h) => h.id === 'S4' && !h.para), 'sale y la ven todos');
-  assert.ok(e.log.some((l) => /Traición en Jerusalén: Los concomitantes se han aliado con los Cruzados\./.test(l.texto)));
+  assert.ok(e.log.some((l) => /Traición en Jerusalén: Los judíos se han aliado con los Cruzados\./.test(l.texto)));
   assert.ok(A.dinares <= 4 && A.noches <= 19 + 50, 'el jugador pierde 1 y 1 (puede quedar en deuda)');
   if (N) assert.ok(e.log.some((l) => /Yafar NPC pierde 10 dinares y 10 noches/.test(l.texto)));
   const n = e.historial.filter((h) => h.id === 'S4').length; e.traicionRonda = e.ronda + 1;
