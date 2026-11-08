@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { AvisoTrato, LadoTrato, esCostoso, ConfirmaTrato } from './AlertaTrato.jsx';
 
 // Mercado de la ciudad (comprar / vender, R 15 y 8.5) y Tratos entre jugadores de la misma ciudad (R 8.6: propuesta + aceptación).
 function Producto({ it, puedeActuar, s }) {
@@ -35,6 +36,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const [objs, setObjs] = useState([]);
   const [nchOfrece, setNchOfrece] = useState(0);
   const [nchPide, setNchPide] = useState(0);
+  const [confirma, setConfirma] = useState(null);   // trato costoso esperando el «Sí, acepto»
   const [pideObjs, setPideObjs] = useState([]);
   const [esContra, setEsContra] = useState(false);
   const suyas = (con && s.comerciables?.[con]) || [];
@@ -56,7 +58,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
     if (mios.current && [...mios.current].some((id) => !ahora.has(id)) && !esContra) { limpiar(); onCerrar(); }
     mios.current = ahora;
   }, [s.tratos]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const responder = (t, okv) => { enviar(ACCIONES.responderTrato(t.id, okv)); limpiar(); onCerrar(); };
+  const responder = (t, okv, seguro = false) => { if (okv && !seguro && esCostoso(t)) { setConfirma(t.id); return; } setConfirma(null); enviar(ACCIONES.responderTrato(t.id, okv)); limpiar(); onCerrar(); };
   React.useEffect(() => { if (contraDe && !contraHecha.current) { const t = entrantes.find((x) => x.id === contraDe); if (t) { contraHecha.current = true; contraofertar(t); } } });   // desde la alerta de trato
   return (
     <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
@@ -96,14 +98,16 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
               <div key={t.id} className="trato entrante">
                 <p><b>{s.jugadores[t.de].nombre}</b> {t.contra ? 'te hace una contraoferta' : 'te propone un trato'}:</p>
                 <div className="trato-bloques">
-                  <div className="trato-bloque recibes"><b>Recibes</b><span>{lado(t.ofrece)}</span></div>
-                  <div className="trato-bloque entregas"><b>Entregas</b><span>{lado(t.pide)}</span></div>
+                  <div className="trato-bloque recibes"><b>Recibes</b><LadoTrato x={t.ofrece} /></div>
+                  <div className="trato-bloque entregas"><b>Entregas</b><LadoTrato x={t.pide} /></div>
                 </div>
-                <div className="fila-btn"><button className="btn mini" onClick={() => responder(t, true)}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => responder(t, false)}>Rechazar</button></div>
+                <AvisoTrato ofrece={t.ofrece} pide={t.pide} />
+                {confirma === t.id ? <ConfirmaTrato t={t} onSi={() => responder(t, true, true)} onNo={() => setConfirma(null)} />
+                  : <div className="fila-btn"><button className="btn mini" onClick={() => responder(t, true)}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => responder(t, false)}>Rechazar</button></div>}
               </div>
             ))}
             {s.tratos.filter((t) => t.de === s.yo).map((t) => (
-              <div key={t.id} className="trato"><p>Ofreces {lado(t.ofrece)} por {lado(t.pide)}. Esperando a {s.jugadores[t.con].nombre}… <button className="btn mini sec" onClick={() => enviar(ACCIONES.cancelarTrato(t.id))}>Cancelar</button></p></div>
+              <div key={t.id} className="trato"><p>Ofreces {lado(t.ofrece)} por {lado(t.pide)}. Esperando a {s.jugadores[t.con].nombre}… <button className="btn mini sec" onClick={() => enviar(ACCIONES.cancelarTrato(t.id))}>Cancelar</button></p><AvisoTrato ofrece={t.ofrece} pide={t.pide} /></div>
             ))}
             <h3 className="sub-h">Proponer un trato (misma ciudad)</h3>
             {!companeros.length ? <p className="it">Nadie más está en {yo.ciudad}.</p> : (
@@ -121,6 +125,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
                   {con && !suyas.length && <p className="it">{s.jugadores[con]?.nombre} no tiene cartas que se puedan intercambiar.</p>}
                   {suyas.map((c) => <label key={c.i} className="chk"><input type="checkbox" checked={pideObjs.includes(c.i)} onChange={(e) => setPideObjs((o) => (e.target.checked ? [...o, c.i] : o.filter((x) => x !== c.i)))} /> {c.titulo}</label>)}
                 </fieldset>
+                <AvisoTrato ofrece={{ dinares: dinOfrece, noches: nchOfrece }} pide={{ dinares: dinPide, noches: nchPide }} />
                 <button className="btn" type="submit" disabled={!con || Number(dinOfrece) > yo.dinares || Number(nchOfrece) > yo.noches}>Enviar propuesta</button>
               </form>
             )}

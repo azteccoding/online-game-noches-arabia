@@ -331,6 +331,11 @@ fieldset:disabled { opacity: .5; }
 .trato-bloques { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0 8px; }
 .trato-bloque { border-radius: 10px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; }
 .trato-bloque b { font-size: .8em; letter-spacing: .08em; text-transform: uppercase; }
+.trato-linea { display: block; font-size: 1.15em; font-weight: 700; line-height: 1.25; }
+.trato-confirma { border: 2px solid #ff8a8a; background: rgba(179, 32, 42, .35); border-radius: 10px; padding: 8px 10px; margin: 0 0 6px; }
+.trato-confirma p { margin: 0 0 6px; }
+.trato-aviso { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.trato-aviso span { color: #fff; background: #b3202a; border: 1px solid #ff8a8a; border-radius: 8px; padding: 2px 8px; font-size: .85em; font-weight: 700; letter-spacing: .02em; }
 .trato-bloque.recibes { background: rgba(31, 90, 58, .55); border: 1px solid #7fd3a0; }
 .trato-bloque.entregas { background: rgba(120, 30, 30, .45); border: 1px solid #ffb3b3; }
 .btn.trato-pendiente { animation: pulso-oro 1.4s ease-in-out infinite; border-color: #ffd36b; }

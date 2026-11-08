@@ -12,7 +12,7 @@
     "build": "vite build",
     "preview": "vite preview --host",
     "start": "node server/index.js",
-    "test": "node tests/estilo.test.mjs && node tests/engine.test.mjs && node tests/cuentos.test.mjs && node tests/mensajes.test.mjs && node tests/reglas-casa.test.mjs && node tests/delta.test.mjs && node tests/sim.mjs 48 && node tests/servidor.test.mjs",
+    "test": "node tests/estilo.test.mjs && node tests/engine.test.mjs && node tests/cuentos.test.mjs && node tests/mensajes.test.mjs && node tests/reglas-casa.test.mjs && node tests/delta.test.mjs && node tests/tratos-avisos.test.mjs && node tests/sim.mjs 48 && node tests/servidor.test.mjs",
     "empaquetar": "node tools/empaquetar.mjs",
     "build:demo": "vite build --mode demo",
     "simular": "node tests/simulacion-ws.mjs"
