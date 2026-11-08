@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import { nuevaMemoria, reducirVista } from '../shared/delta.js';
 import { fileURLToPath } from 'node:url';
 import { armarReaccion } from '../shared/reacciones.js';
 import { WebSocketServer } from 'ws';
@@ -116,6 +117,7 @@ let difusionPendiente = false;
 function enviar(ws, obj) { if (ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 // Primero los dados, después las consecuencias: mientras haya dados en pantalla, cada jugador sigue viendo la vista de
 // antes de la tirada (solo cambian los dados). Al cerrarse los últimos dados se muestra todo lo que ocurrió.
+const memorias = new Map();      // ws -> lo que ya se le mandó (shared/delta.js); una conexión nueva recibe todo
 const ultimaVista = new Map();   // pid -> última vista enviada sin congelar
 let congelada = null;            // pid -> vista de antes de la tirada
 function difundir() {
@@ -133,7 +135,8 @@ function difundir() {
       const antes = congelada?.get(pid);
       if (antes && antes.fase === v.fase) v = { ...antes, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
       else ultimaVista.set(pid, v);
-      enviar(ws, { t: 'estado', s: { ...v, urls: direcciones() } });
+      if (!memorias.has(ws)) memorias.set(ws, nuevaMemoria());
+      enviar(ws, { t: 'estado', s: reducirVista({ ...v, urls: direcciones() }, memorias.get(ws)) });   // solo lo nuevo del historial y del registro
     }
   }, 25);
 }
@@ -156,7 +159,7 @@ function avisarCaja(nAntes) {
 function desconectar(ws) {
   const pid = clientes.get(ws);
   if (!pid) return;
-  clientes.delete(ws);
+  clientes.delete(ws); memorias.delete(ws);
   if (![...clientes.values()].includes(pid)) { const antes = estado.logN || 0; conexion(estado, pid, false); avisarCaja(antes); marcar(); difundir(); }
 }
 

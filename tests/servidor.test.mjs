@@ -1,5 +1,6 @@
 // Prueba de integración del servidor real (WebSocket): privacidad, persistencia y continuidad sin el banco.
 //   npm run build && node tests/servidor.test.mjs        (arranca su propia instancia en un puerto libre y una carpeta temporal)
+import { aplicarDelta } from '../shared/delta.js';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -30,7 +31,7 @@ function cliente(nombre, token, clave) {
     ws.on('message', (raw) => {
       const m = JSON.parse(raw); c.crudos.push(String(raw));
       if (m.t === 'bienvenida') { c.pid = m.pid; c.token = m.token; ok(c); }
-      if (m.t === 'estado') c.s = m.s;
+      if (m.t === 'estado') c.s = aplicarDelta(c.s, m.s);   // igual que el navegador (shared/delta.js)
       if (m.t === 'error') c.errores.push(m.msg);
     });
     ws.on('open', () => ws.send(JSON.stringify({ t: 'hola', nombre, token, clave })));

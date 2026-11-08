@@ -1,19 +1,21 @@
 // Adaptador WebSocket: habla con server/index.js. Reconexión automática con el token guardado en localStorage.
+import { aplicarDelta } from '../../../shared/delta.js';
 export function crearWs() {
-  let ws = null, cerrado = false, intento = 0, ping = null, nombre = '', clave = '', entro = false;
+  let ws = null, cerrado = false, intento = 0, ping = null, nombre = '', clave = '', entro = false, ultimo = null;
   const cb = { estado: () => {}, conexion: () => {}, error: () => {}, rechazo: () => {}, hecho: () => {}, reaccion: () => {} };
   const url = `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
   const abrir = () => {
     cb.conexion(intento ? 'reconectando' : 'conectando');
     ws = new WebSocket(url);
     ws.onopen = () => {
+      ultimo = null;                                                     // conexión nueva: el servidor vuelve a mandar todo
       intento = 0; cb.conexion('ok');
       ws.send(JSON.stringify({ t: 'hola', token: localStorage.getItem('mun.token') || undefined, nombre: nombre || undefined, clave: clave || undefined, reconecta: entro || undefined }));
       clearInterval(ping); ping = setInterval(() => ws.readyState === 1 && ws.send('{"t":"ping"}'), 20000);
     };
     ws.onmessage = (ev) => {
       const m = JSON.parse(ev.data);
-      if (m.t === 'estado') cb.estado(m.s);
+      if (m.t === 'estado') { ultimo = aplicarDelta(ultimo, m.s); cb.estado(ultimo); }   // el servidor manda solo lo nuevo del historial y del registro
       else if (m.t === 'bienvenida') { localStorage.setItem('mun.token', m.token); entro = true; }
       else if (m.t === 'error') cb.error(m.msg);
       else if (m.t === 'reaccion') cb.reaccion(m.r);
