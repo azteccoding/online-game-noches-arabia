@@ -9,11 +9,12 @@ export const ladoTrato = (x) => [x.dinares ? `${x.dinares} dinares` : '', x.noch
 
 export default function AlertaTrato({ s, abrir }) {
   const [vistas, setVistas] = useState([]);                  // propuestas que el jugador ya apartó («Luego»)
+  const [respondidas, setRespondidas] = useState([]);        // ya se mandó la respuesta: no se puede volver a pulsar
   const entrantes = s.tratos.filter((t) => t.con === s.yo);
   const nombre = (id) => s.jugadores[id]?.nombre || 'Alguien';
   const leyendo = useJuego((x) => x.cartaEnPantalla);
 
-  const t = entrantes.find((x) => !vistas.includes(x.id));
+  const t = entrantes.find((x) => !vistas.includes(x.id) && !respondidas.includes(x.id));
   if (!t) return null;
   const ocupado = !!s.dados || (s.pend?.mia && !s.pend.respondiste) || leyendo != null;
   if (ocupado) return null;                                   // espera detrás de los dados y las decisiones
@@ -25,8 +26,8 @@ export default function AlertaTrato({ s, abrir }) {
         <div className="trato-bloque entregas"><b>Entregas</b><span>{ladoTrato(t.pide)}</span></div>
       </div>
       <div className="fila-btn">
-        <button className="btn mini" onClick={() => enviar(ACCIONES.responderTrato(t.id, true))}>Aceptar</button>
-        <button className="btn mini sec" onClick={() => enviar(ACCIONES.responderTrato(t.id, false))}>Rechazar</button>
+        <button className="btn mini" onClick={() => { setRespondidas((v) => [...v, t.id]); enviar(ACCIONES.responderTrato(t.id, true)); }}>Aceptar</button>
+        <button className="btn mini sec" onClick={() => { setRespondidas((v) => [...v, t.id]); enviar(ACCIONES.responderTrato(t.id, false)); }}>Rechazar</button>
         <button className="btn mini sec" onClick={() => abrir('mercado-contra:' + t.id)}>Contraofertar</button>
         <button className="btn mini sec" onClick={() => { abrir('mercado-tratos'); setVistas((v) => [...v, t.id]); }}>Ver</button>
         <button className="btn mini sec" onClick={() => setVistas((v) => [...v, t.id])}>Luego</button>

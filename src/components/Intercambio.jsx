@@ -47,6 +47,16 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const lado = (x) => [x.dinares ? `${x.dinares} dinares` : '', x.noches ? `${x.noches} noches` : '', ...(x.nombres || [])].filter(Boolean).join(', ') || 'nada';
   const entrantes = s.tratos.filter((t) => t.con === s.yo);
   const contraHecha = React.useRef(false);
+  // Al resolverse un trato en el que participo (aceptado, rechazado o cancelado) se limpia el formulario y se cierra la ventana,
+  // para que nadie mande otra vez la misma propuesta por error.
+  const limpiar = () => { setCon(''); setDinOfrece(0); setNchOfrece(0); setObjs([]); setDinPide(0); setNchPide(0); setPideObjs([]); setEsContra(false); };
+  const mios = React.useRef(null);
+  React.useEffect(() => {
+    const ahora = new Set(s.tratos.filter((t) => t.de === s.yo || t.con === s.yo).map((t) => t.id));
+    if (mios.current && [...mios.current].some((id) => !ahora.has(id)) && !esContra) { limpiar(); onCerrar(); }
+    mios.current = ahora;
+  }, [s.tratos]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const responder = (t, okv) => { enviar(ACCIONES.responderTrato(t.id, okv)); limpiar(); onCerrar(); };
   React.useEffect(() => { if (contraDe && !contraHecha.current) { const t = entrantes.find((x) => x.id === contraDe); if (t) { contraHecha.current = true; contraofertar(t); } } });   // desde la alerta de trato
   return (
     <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
@@ -89,7 +99,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
                   <div className="trato-bloque recibes"><b>Recibes</b><span>{lado(t.ofrece)}</span></div>
                   <div className="trato-bloque entregas"><b>Entregas</b><span>{lado(t.pide)}</span></div>
                 </div>
-                <div className="fila-btn"><button className="btn mini" onClick={() => enviar(ACCIONES.responderTrato(t.id, true))}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => enviar(ACCIONES.responderTrato(t.id, false))}>Rechazar</button></div>
+                <div className="fila-btn"><button className="btn mini" onClick={() => responder(t, true)}>Aceptar</button><button className="btn mini sec" onClick={() => contraofertar(t)}>Contraofertar</button><button className="btn mini sec" onClick={() => responder(t, false)}>Rechazar</button></div>
               </div>
             ))}
             {s.tratos.filter((t) => t.de === s.yo).map((t) => (
@@ -97,7 +107,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
             ))}
             <h3 className="sub-h">Proponer un trato (misma ciudad)</h3>
             {!companeros.length ? <p className="it">Nadie más está en {yo.ciudad}.</p> : (
-              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs }, esContra)); setObjs([]); setPideObjs([]); setEsContra(false); } }}>
+              <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs }, esContra)); limpiar(); } }}>
                 <label>Con <select value={con} onChange={(e) => { setCon(e.target.value); setPideObjs([]); }}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
                 <fieldset className="lado-trato"><legend>Yo doy</legend>
                   <label>Dinares <input type="number" min="0" max={yo.dinares} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>
