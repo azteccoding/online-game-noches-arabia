@@ -869,8 +869,12 @@ export function llegada(data, e, pid, origen) {
     t.llegadas.push(j.ciudad);
     const mult = multiplicadorRonda(data, e.ronda, activos(e).length);
     let base = c.nochesLuego, bono = 0;
-    if (c.nochesLlegada !== c.nochesLuego) { if (primera) bono = c.nochesLlegada - c.nochesLuego; } else base = c.nochesLlegada;   // Magreb 50/5, Andalucía 30/5
+    if (c.nochesLlegada !== c.nochesLuego) {
+      if (primera && c.nochesLlegada > c.nochesLuego) bono = c.nochesLlegada - c.nochesLuego;   // Magreb 50/5, Andalucía 40/8, Samarcanda 30/10: bono de primera visita
+      else if (primera) base = c.nochesLlegada;                                                 // Jorge (8 de noviembre): Basra 5 y Bagdad 0 la primera vez; luego 25 y 20
+    } else base = c.nochesLlegada;
     let n = base * mult + bono;
+    if (j.npc && j.ciudad === 'Samarcanda') n = 0;                                              // Jorge (8 de noviembre): Yafar NPC no gana noches en Samarcanda
     if (e.mods.cordoba && j.ciudad === 'Andalucía') n *= 2;
     const npcSolo = j.npc && !enCiudad(e, j.ciudad, pid).some((x) => !e.jugadores[x].npc);   // regla de la casa: Yafar NPC solo cobra completo si alcanza a alguien
     if (npcSolo) n = Math.floor(n / 2);

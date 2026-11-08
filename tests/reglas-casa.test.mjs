@@ -214,7 +214,7 @@ function forzar(e, ...valores) {
   turnoDe(e, 'npc', 'Damasco'); e.ronda = 1;
   for (const id of g.ids) e.jugadores[id].ciudad = 'Bagdad';
   y.ciudad = 'Basra'; y.visitadas = ['Bagdad', 'Basra']; let n0 = y.noches; llegada(data, e, 'npc', 'Damasco');
-  assert.equal(y.noches - n0, Math.floor(25 / 2), 'solo: la mitad (Basra da 25)');
+  assert.equal(y.noches - n0, Math.floor(10 / 2), 'solo: la mitad (Basra da 10 después de la primera vez)');
   turnoDe(e, 'npc', 'Damasco'); e.jugadores[g.ids[0]].ciudad = 'Isfahán';
   y.ciudad = 'Isfahán'; y.visitadas.push('Isfahán'); n0 = y.noches; llegada(data, e, 'npc', 'Damasco');
   assert.equal(y.noches - n0, 15, 'con un jugador en la ciudad: completo');
@@ -1799,6 +1799,26 @@ for (let k = 0; k < 6; k++) {
   const al = mostrarDados(e, { por: 'npc', npc: true, alerta: true, motivo: 'npc:Yafar', grupos: [{ etq: 'Yafar NPC: 1-3 asalto, 4-6 duelo', valores: [2] }], resumen: ['Yafar va contra J0: lo asalta para robarle.'] });
   assert.ok(!dadosDeNPC(e, al), 'la alerta contra alguien sí tiene ventana');
   g.tickear(RODAR_NPC_MS + 600); assert.equal(e.dados, al, 'no se cierra sola al terminar de rodar');
+}
+
+// Ciudades (Jorge, 8 de noviembre): Basra 5 la primera vez y 10 después; Bagdad 0 y 15; Samarcanda 30 y 10; Yafar NPC no gana noches
+// en Samarcanda.
+{
+  const { multiplicadorRonda } = await import('../shared/base.js').catch(() => ({}));
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], Y = e.jugadores.npc;
+  e.ronda = 1;
+  const llega = (pid, ciudad) => { const j = e.jugadores[pid]; turnoDe(e, pid, 'Damasco'); j.ciudad = ciudad; const n0 = j.noches; llegada(data, e, pid, 'Damasco'); return j.noches - n0; };
+  e.jugadores[b].ciudad = 'Basra';
+  const m = llega(a, 'Basra'); assert.ok(m > 0);
+  const basra1 = m;
+  A.ciudadPrevia = null; const basra2 = llega(a, 'Basra');
+  assert.ok(basra2 > basra1, `Basra: primera ${basra1} < después ${basra2}`);
+  assert.equal(basra1 * 2, basra2, '5 contra 10 con el mismo multiplicador');
+  A.ciudadPrevia = null; assert.ok(llega(a, 'Bagdad') > 0, 'Bagdad después de la primera vez da noches');
+  e.jugadores[b].ciudad = 'Samarcanda'; Y.visitadas = Y.visitadas.filter((c) => c !== 'Samarcanda');
+  assert.equal(llega('npc', 'Samarcanda'), 0, 'Yafar NPC no gana noches en Samarcanda');
+  void multiplicadorRonda;
 }
 
 console.log('reglas de la casa OK');
