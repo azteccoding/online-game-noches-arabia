@@ -65,7 +65,7 @@ export function comprar(data, e, pid, a) {
     const k = (e.establo || []).findIndex((x) => x.carta.uid === a.ref.slice(8));
     if (k < 0) return err('Ese animal ya se vendió.');
     const x = e.establo[k];
-    if (x.carta.ref === 'burro' && j.pj === 'B') return err('Yafar no compra burros: dice que es indigno de su posición.');
+    if (x.carta.ref === 'burro' && j.pj === 'B' && j.npc) return err('Yafar no compra burros: dice que es indigno de su posición.');
     if (['caballo', 'camello', 'burro'].some((r) => tieneItem(j, r))) return err('Ya tienes un animal: solo puedes llevar uno a la vez.');
     if (j.dinares < x.precio) return err(`Cuesta ${x.precio} dinares.`);
     j.dinares -= x.precio; e.establo.splice(k, 1); x.carta.priv = false; x.carta.pub = true; j.mano.push(x.carta);
@@ -93,7 +93,7 @@ export function comprar(data, e, pid, a) {
     p *= dobleCairo(e, j.ciudad); p *= n;
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     if (ARMAS_ORIG.includes(a.ref) && tieneItem(j, a.ref)) return err('Ya tienes esa arma.');
-    if (a.ref === 'burro' && j.pj === 'B') return err('Yafar no compra burros: dice que es indigno de su posición.');
+    if (a.ref === 'burro' && j.pj === 'B' && j.npc) return err('Yafar no compra burros: dice que es indigno de su posición.');
     if (a.ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x))) return err('Ya tienes un animal: solo puedes llevar uno a la vez.');
     if (a.ref === 'burro' && n > 1) return err('Solo un burro.');
     if (a.ref === 'burro' && !(e.burros > 0)) return err('No quedan burros en Basra.');
@@ -219,7 +219,7 @@ export function tienda(data, e, pid) {
   }
   if (j.ciudad === 'Bagdad') for (const x of e.establo || []) {
     const ya = ['caballo', 'camello', 'burro'].some((r) => tieneItem(j, r));
-    r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (establo)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !ya && !(x.carta.ref === 'burro' && j.pj === 'B') });
+    r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (establo)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !ya && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc) });
   }
   if (j.ciudad === 'Bagdad') {
     const p = precioFirman(j);
@@ -344,8 +344,8 @@ export function disponibles(data, e, pid) {
       if (j.ciudad === 'Bagdad') r.push({ k: 'usar', uid: c.uid, titulo: `Envenenar un abrevadero (Masrur, ${5 * vivos(e)} dinares)`, destinos: data.ciudades.ciudades.map((q) => q.id), via: 'abrevadero' });
     }
     if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && !motivoNoSalir(e, j, false) && t.tramos < (t.maxTramos || data.config.maxTramosPorTurno)) {
-      const dest = destinosTransporte(data, c.ref, j.ciudad).filter((q) => !(j.pj === 'B' && q === 'India'));
-      if (c.ref === 'burro' && j.pj === 'B') continue;                       // Jorge (punto 9): Yafar no usa burro
+      const dest = destinosTransporte(data, c.ref, j.ciudad).filter((q) => !(j.pj === 'B' && j.npc && q === 'India'));
+      if (c.ref === 'burro' && j.pj === 'B' && j.npc) continue;                       // Jorge (punto 9): Yafar no usa burro
       if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : ''), destinos: dest });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
@@ -426,8 +426,8 @@ export function usar(data, e, pid, a) {
     if (j.perdido) return err('Estás perdido.');
     const dest = a.destino;
     if (!ciudadDe(data, dest) || dest === j.ciudad) return err('Destino inválido.');
-    if (c.ref === 'burro' && j.pj === 'B') return err('Yafar no monta en burro: dice que es indigno de su posición.');
-    if (j.pj === 'B' && dest === 'India') return err('Yafar no tiene contactos en India: no puede ir.');
+    if (c.ref === 'burro' && j.pj === 'B' && j.npc) return err('Yafar no monta en burro: dice que es indigno de su posición.');
+    if (j.pj === 'B' && j.npc && dest === 'India') return err('Yafar no tiene contactos en India: no puede ir.');
     if (!destinosTransporte(data, c.ref, j.ciudad).includes(dest)) return err(`Ahí no te lleva: ${textoTransporte(c.ref)}`);
     { const m = motivoNoSalir(e, j, false); if (m) return err(m); }
     return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: null });   // la alfombra ya no se gasta (regla de la casa)

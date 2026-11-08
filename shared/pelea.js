@@ -601,7 +601,7 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
   L.herido = true;
   if (e.mods?.premioDuelo && ['Andalucía', 'Magreb'].includes(G.ciudad)) { G.dinares += e.mods.premioDuelo; log(e, `${G.nombre} cobra ${e.mods.premioDuelo} dinares del banco (Mercenarios de la frontera).`, { pid: ganador }); }
   log(e, `${G.nombre} gana el duelo: ${L.nombre} entrega ${din} dinares y ${noc} noches y queda herido.`, { pid: ganador });
-  if (G.pj === 'B' && P.atk === ganador) { L.noches += 50; log(e, `${L.nombre} perdió el duelo que le impuso Yafar, pero gana 50 noches por la historia que va a contar.`, { pid: perdedor }); }   // Jorge (punto 12)
+  if (G.pj === 'B' && G.npc && P.atk === ganador) { L.noches += 50; log(e, `${L.nombre} perdió el duelo que le impuso Yafar, pero gana 50 noches por la historia que va a contar.`, { pid: perdedor }); }   // Jorge (punto 12)
 }
 
 // R 12.1: el ladrón toma dinares, objetos, mapas y cartas poseídas (no noches, ni Mensajes, ni dinares escondidos).
@@ -614,7 +614,7 @@ function robar(data, e, atk, def) {
   for (const c of cartas) { c.priv = true; A.mano.push(c); }                // nadie ve qué se llevó: deja de ser público
   recortarMano(data, e, atk);
   log(e, `${A.nombre} roba ${din} dinares${cartas.length ? ' y ' + cartas.length + ' carta(s)' : ''} a ${D.nombre}.`, { pid: atk });
-  if (A.pj === 'B' && D.pj !== 'B') { D.noches += 20; log(e, `${D.nombre} al menos gana 20 noches para contar la historia del robo de Yafar.`, { pid: def }); }   // Jorge (punto 12)
+  if (A.pj === 'B' && A.npc && D.pj !== 'B') { D.noches += 20; log(e, `${D.nombre} al menos gana 20 noches para contar la historia del robo de Yafar.`, { pid: def }); }   // Jorge (punto 12)
 }
 
 function terminarPelea(data, e, res) {

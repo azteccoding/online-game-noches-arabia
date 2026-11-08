@@ -165,6 +165,7 @@ function firmanYafarTurno(data, e, j) {
     return;
   }
   const f = firmanDeYafar(j); if (!f) return;
+  if (!j.npc) return;                                                    // Jorge: a Yafar jugador su Firmán no le cuesta
   const c = costoFirmanYafar(e);
   if (j.dinares >= c) { j.dinares -= c; log(e, `${j.nombre} paga ${c} dinares por mantener su Firmán.`, { pid: j.id }); }
   else { j.mano.splice(j.mano.indexOf(f), 1); e.firmanes = (e.firmanes || 0) + 1; log(e, `${j.nombre} no puede pagar los ${c} dinares de su Firmán: lo devuelve al Califa y queda a la venta.`, { pid: j.id, aviso: true }); }
@@ -363,8 +364,8 @@ function iniciarTurno(data, e, id, idx) {
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
-  // Regla de Jorge (punto 1): Yafar, jugador o NPC, llega ebrio a su primer turno y lo termina sin hacer nada.
-  if (j.pj === 'B' && primerTurno) { t.fase = 'mov'; t.principal = true; t.fin = true; t.ebrio = true; log(e, `${j.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`, { pid: id, aviso: true }); return; }
+  // Regla de Jorge (punto 1, solo Yafar NPC): llega ebrio a su primer turno y lo termina sin hacer nada.
+  if (j.pj === 'B' && j.npc && primerTurno) { t.fase = 'mov'; t.principal = true; t.fin = true; t.ebrio = true; log(e, `${j.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`, { pid: id, aviso: true }); return; }
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
@@ -439,7 +440,7 @@ function saladino(data, e) {
   if (!s) return;
   e.saladino = { ronda: e.ronda };
   publicarCarta(e, { id: 'S1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
-  const quienes = activos(e).filter((id) => !e.jugadores[id].npc && e.jugadores[id].pj !== 'B');   // Jorge (punto 3): Saladino tampoco beneficia a Yafar
+  const quienes = activos(e).filter((id) => !e.jugadores[id].npc);   // Jorge (punto 3): Saladino no beneficia a Yafar NPC
   for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
   log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
 }
@@ -743,7 +744,6 @@ function tirarDados(data, e, pid, a) {
   const v = dado(e);
   const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
-  if (j.pj === 'B' && v === 1) sobornoPrimos(e, j);
   t.fase = 'mov';
   const tenia = j.mensajes.length;
   if (v === data.config.minimoMensajeDado) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
@@ -762,7 +762,7 @@ function tirarDadosLibres(e, pid, a) {
 }
 function darMensaje(data, e, pid) {
   const j = e.jugadores[pid];
-  if (j.npc || j.pj === 'B') return;                                     // Jorge (punto 3): los sheijs nunca benefician a Yafar
+  if (j.npc) return;                                                     // Jorge (punto 3): los sheijs nunca benefician a Yafar NPC
   const yaEstaRonda = e.log.some((l) => l.msgRonda === e.ronda);                                                      // máx. 1 jugador por ronda
   if (yaEstaRonda) return;
   const id = robar(e, 'mensajes');

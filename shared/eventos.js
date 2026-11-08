@@ -73,7 +73,7 @@ export function finTurno(data, e, pid) {
     if (arco || esc) mostrarDados(e, { por: pid, motivo: 'defensa', grupos: [arco && { etq: `${j.nombre} dispara su arco a los ladrones (5 o 6)`, valores: [arco.x] }, esc && { etq: `${j.nombre} levanta su escudo (5 o 6 para; 1 lo rompe)`, valores: [esc.x] }].filter(Boolean), resumen: [] });
     if (arco?.acierta || esc?.para) { log(e, `${j.nombre} ahuyenta a los ladrones de Alí Babá ${arco?.acierta ? 'con su arco' : 'con su escudo'}.`, { pid }); return; }
     const p = Math.max(0, Math.min(10, j.dinares)); j.dinares -= p; log(e, `Los ladrones de Alí Babá asaltan a ${j.nombre}: pierde ${p} dinares.`, { pid });
-    if (j.pj === 'B') { const q = Math.min(80, Math.max(0, j.noches)); j.noches -= q; log(e, `Con ${j.nombre} se ensañan por ser un político indeseado: además le quitan su dignidad (${q} noches).`, { pid, aviso: true }); }   // Jorge (punto 10)
+    if (j.pj === 'B' && j.npc) { const q = Math.min(80, Math.max(0, j.noches)); j.noches -= q; log(e, `Con ${j.nombre} se ensañan por ser un político indeseado: además le quitan su dignidad (${q} noches).`, { pid, aviso: true }); }   // Jorge (punto 10)
   }
 }
 

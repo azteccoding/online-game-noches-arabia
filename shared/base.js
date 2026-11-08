@@ -326,9 +326,9 @@ export function tarifa(data, e, j, a, b) {
   if (m.almoravides && par2('Magreb', 'Andalucía')) t = 0;
   if (m.seda && ['Samarcanda', 'Isfahán', 'India'].includes(a) && ['Samarcanda', 'Isfahán', 'India'].includes(b)) t = Math.ceil(t / 2);
   if (j.pj === 'B') {
-    if (b === 'India') return null;                                                   // Jorge (punto 2): Yafar no tiene contactos en India
+    if (j.npc && b === 'India') return null;                                         // Jorge (punto 2, solo Yafar NPC): no tiene contactos en India
     t = Math.ceil(t / 2);
-    if (b === 'Magreb' || b === 'Andalucía') t += 20;                                 // su familia tuvo problemas con las tribus de Occidente
+    if (j.npc && (b === 'Magreb' || b === 'Andalucía')) t += 20;                                 // su familia tuvo problemas con las tribus de Occidente
   }
   return t;
 }

@@ -635,7 +635,7 @@ T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= 10; j.noches += 30; hacer(e, pid, 'R44');
     ctx.say(`${j.nombre} cruza el Sahara con la caravana de la sal y visita Timbuktú: gana 30 noches.`);
-    if (e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta && j.pj !== 'B') {          // Jorge (punto 3): Mansa Musa no beneficia a Yafar
+    if (e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta && !j.npc) {          // Jorge (punto 3): Mansa Musa no beneficia a Yafar
       const [x] = ctx.t(`${j.nombre}: la generosidad de Mansa Musa (6: 50 dinares y 60 noches; 4 o 5: 35 y 40; 1 a 3: 30 noches)`, 1);
       const p = x === 6 ? { d: 50, n: 60 } : x >= 4 ? { d: 35, n: 40 } : { d: 0, n: 30 };
       j.dinares += p.d; j.noches += p.n;

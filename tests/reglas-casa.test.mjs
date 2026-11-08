@@ -1357,40 +1357,47 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!g.act(b, { t: 'responderTrato', id: t3, ok: true }).ok, 'un trato rechazado no se puede aceptar'); assert.equal(A.dinares, 30);
 }
 
-// Yafar (puntos 1, 2, 3, 4, 9 y 10 de Jorge): primer turno ebrio; no va a India y Magreb/Andalucía le cuestan +20; ni sheijs ni Saladino ni
-// Mansa Musa lo benefician; no compra ni usa burro; los ladrones de Alí Babá le quitan además 80 noches; reacción «¡Matemos a Yafar!»
+// Yafar (Jorge, 8 de noviembre): estas reglas aplican SOLO a Yafar NPC — primer turno ebrio; sin India y +20 al Magreb y Andalucía; nada de
+// sheijs, Saladino ni Mansa Musa; no usa burro; los ladrones le quitan 80 noches. Yafar jugador no tiene nada de eso. Reacción «¡Matemos a Yafar!».
 {
   const { armarReaccion } = await import('../shared/reacciones.js');
   const { tarifa } = await import('../shared/base.js');
-  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
-  const e = g.e, [a, b, y] = g.ids, Y = e.jugadores[y];
-  // 1: primer turno ebrio
-  { const { avanzar } = await import('../shared/engine.js');
+  const { avanzar } = await import('../shared/engine.js');
+  // --- Yafar NPC
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, Y = e.jugadores.npc, A = e.jugadores[a];
     for (let k = 0; k < 6 && !e.log.some((l) => /llega ebrio/.test(l.texto)); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
-    assert.ok(e.log.some((l) => l.texto === `${Y.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`), 'Yafar pierde su primer turno ebrio');
-    assert.ok(!e.log.some((l) => l.texto.startsWith(`Turno de ${Y.nombre}: cobra`)), 'en ese turno no cobra ni hace nada'); }
-  const ty = null;
-  // 2: tarifas
-  assert.equal(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar no va a India');
-  const nor = tarifa(data, e, e.jugadores[a], 'El Cairo', 'Magreb'); assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(nor / 2) + 20, 'Magreb: +20 sobre su mitad');
-  // 9: burro
-  Y.ciudad = 'Basra'; Y.dinares = 200; e.burros = 2; turnoDe(e, a, 'Basra');
-  const rb = g.act(y, { t: 'comprar', ref: 'burro' }); assert.ok(!rb.ok && /indigno/.test(rb.error), 'Yafar no compra burro');
-  // 3: Saladino no le da nada
-  const n0 = Y.noches; e.saladino = null; for (const id of g.ids) e.jugadores[id].visitadas.push('Aleppo', 'Damasco');
-  const A = e.jugadores[a]; const an0 = A.noches; turnoDe(e, a, 'Damasco'); A.visitadas = A.visitadas.filter((c) => c !== 'Aleppo'); A.ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
-  assert.ok(e.saladino && A.noches >= an0 + 50 && Y.noches === n0, 'Saladino premia a los jugadores pero no a Yafar');
-  // 10: ladrones
-  e.mods.ladrones = true; Y.noches = 200; Y.dinares = 30; Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.movio = false; Y.mano = Y.mano.filter((c) => c.ref !== 'arco');
-  finTurno(data, e, y);
-  assert.ok(Y.noches <= 120, 'los ladrones le quitan además 80 noches de dignidad');
-  // 4: reacción
-  assert.equal(armarReaccion(e, a, 'matemosYafar', 9e12, 0).r.texto, '¡Matemos a Yafar!');
-  assert.ok(armarReaccion(e, y, 'matemosYafar', 9e12, 0).error, 'Yafar no la manda');
-  void ty;
+    assert.ok(e.log.some((l) => l.texto === `${Y.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`), 'Yafar NPC pierde su primer turno ebrio');
+    assert.equal(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar NPC no va a India');
+    const nor = tarifa(data, e, A, 'El Cairo', 'Magreb'); assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(nor / 2) + 20, 'Magreb: +20 sobre su mitad');
+    e.mods.ladrones = true; Y.noches = 200; Y.dinares = 30; Y.ciudad = 'Damasco'; Y.mano = Y.mano.filter((c) => c.ref !== 'arco');
+    e.turno = { pid: 'npc', fase: 'mov', movio: false, tramos: 0, llegadas: [], principal: false, gastos: {} };
+    finTurno(data, e, 'npc');
+    assert.ok(Y.noches <= 120, 'a Yafar NPC los ladrones le quitan además 80 noches');
+  }
+  // --- Yafar jugador: nada de lo anterior
+  {
+    const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, , y] = g.ids, Y = e.jugadores[y], A = e.jugadores[a];
+    for (let k = 0; k < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    assert.ok(!e.log.some((l) => /llega ebrio/.test(l.texto)), 'Yafar jugador no pierde su primer turno');
+    assert.notEqual(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar jugador sí va a India');
+    assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(tarifa(data, e, A, 'El Cairo', 'Magreb') / 2), 'sin recargo: solo su mitad de siempre');
+    Y.ciudad = 'Basra'; Y.dinares = 200; e.burros = 2; turnoDe(e, a, 'Basra'); Y.mano = Y.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
+    assert.ok(g.act(y, { t: 'comprar', ref: 'burro' }).ok, 'Yafar jugador sí compra burro');
+    const n0 = Y.noches; e.saladino = null; for (const id of g.ids) e.jugadores[id].visitadas.push('Aleppo', 'Damasco');
+    turnoDe(e, a, 'Damasco'); A.visitadas = A.visitadas.filter((c) => c !== 'Aleppo'); A.ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
+    assert.ok(e.saladino && Y.noches >= n0 + 50, 'Saladino sí premia a Yafar jugador');
+    e.mods.ladrones = true; Y.noches = 200; Y.dinares = 30; Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.movio = false; Y.mano = Y.mano.filter((c) => c.ref !== 'arco');
+    finTurno(data, e, y);
+    assert.ok(Y.noches === 200, 'a Yafar jugador los ladrones no le quitan noches');
+    assert.equal(armarReaccion(e, a, 'matemosYafar', 9e12, 0).r.texto, '¡Matemos a Yafar!');
+    assert.ok(armarReaccion(e, y, 'matemosYafar', 9e12, 0).error, 'Yafar no la manda');
+  }
 }
 
-// Establo de Bagdad (punto 13): caballo 60, burro 20, camello 50; quien esté en Bagdad lo compra por 10 más; Yafar no compra burros
+// Establo de Bagdad (punto 13): caballo 60, burro 20, camello 50; quien esté en Bagdad lo compra por 10 más
 {
   const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b], Y = e.jugadores[y];
@@ -1401,7 +1408,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'vender', uid: bur.uid }).ok); assert.equal(A.dinares, 80);
   turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';   // el mercado vende fuera de tu turno: compra B
   Bj.dinares = 100; Y.dinares = 100;
-  const ry = g.act(y, { t: 'comprar', ref: 'establo:' + bur.uid }); assert.ok(!ry.ok && /indigno/.test(ry.error), 'Yafar no compra burros');
+  void y; void Y;
   assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + cab.uid }).ok, 'compra el caballo de segunda mano'); assert.equal(Bj.dinares, 30, '60 + 10');
   assert.ok(tieneItem(Bj, 'caballo'));
   assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'un animal a la vez');
@@ -1414,28 +1421,35 @@ for (let k = 0; k < 6; k++) {
   const { avanzar } = await import('../shared/engine.js');
   const { duelo } = await import('../shared/pelea.js');
   const { kanmakanVigente } = await import('../shared/pelea.js');
-  // 6: con 1 en su dado de ingreso, Yafar jugador paga 10 a sus primos
+  // 6: con 1 en su dado de ingreso, Yafar NPC paga 10 a sus primos; Yafar jugador no
   {
     const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
     const e = g.e, [, y] = g.ids, Y = e.jugadores[y];
     e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
     turnoDe(e, y, 'Bagdad'); e.turno.fase = 'ingreso'; Y.dinares = 30; forzar(e, 1);
-    assert.ok(g.act(y, { t: 'tirarDados' }).ok); assert.equal(Y.dinares, 20, 'paga 10 de soborno');
+    assert.ok(g.act(y, { t: 'tirarDados' }).ok); assert.equal(Y.dinares, 30, 'Yafar jugador no paga soborno');
+    const h = partida(['4']); assert.ok(h.iniciar().ok);
+    const f = h.e, N = f.jugadores.npc; N.extra.jugoTurno = true; N.dinares = 30;
+    for (let k = 0; k < 6 && f.turno.pid === 'npc'; k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; avanzar(data, f); }
+    f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; forzar(f, 1); avanzar(data, f);   // le toca a Yafar NPC con un 1
+    assert.ok(f.log.some((l) => /sobornar a sus primos/.test(l.texto)), 'Yafar NPC soborna a sus primos cuando saca 1');
   }
-  // 8: Firmán de Yafar en su 3er turno, costo por turno y venta en Bagdad
+  // 8: el Firmán llega en el 3er turno a los dos; solo a Yafar NPC le cuesta cada turno
   {
     const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
     const e = g.e, [, y] = g.ids, Y = e.jugadores[y];
     Y.dinares = 100; Y.extra.jugoTurno = true; Y.turnos = 2;
     for (let k = 0; k < 8 && !Y.mano.some((c) => c.ref === 'F1'); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
-    assert.ok(Y.mano.some((c) => c.ref === 'F1' && c.extra?.yafar), 'le llega en su 3er turno');
+    assert.ok(Y.mano.some((c) => c.ref === 'F1' && c.extra?.yafar), 'a Yafar jugador le llega en su 3er turno');
     assert.ok(e.historial.some((h) => h.id === 'F1' && !h.para), 'todos ven la carta');
-    const f0 = e.firmanes; const d0 = Y.dinares;
     for (let k = 0; k < 8 && Y.turnos < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
-    assert.ok(e.log.some((l) => /paga 10 dinares por mantener su Firmán/.test(l.texto)), 'en normal le cuesta 10 por turno'); void d0;
-    Y.ciudad = 'Bagdad'; turnoDe(e, y, 'Bagdad'); e.turno.fase = 'acciones'; const d1 = Y.dinares;
-    assert.ok(g.act(y, { t: 'venderFirmanYafar' }).ok); assert.equal(Y.dinares, d1 + 25); assert.equal(e.firmanes, f0 + 1, 'queda a la venta como uno normal');
-    assert.ok(!Y.mano.some((c) => c.ref === 'F1'));
+    assert.ok(!e.log.some((l) => /por mantener su Firmán/.test(l.texto)), 'a Yafar jugador no le cuesta');
+    const f0 = e.firmanes; Y.ciudad = 'Bagdad'; turnoDe(e, y, 'Bagdad'); e.turno.fase = 'acciones'; const d1 = Y.dinares;
+    assert.ok(g.act(y, { t: 'venderFirmanYafar' }).ok); assert.equal(Y.dinares, d1 + 25); assert.equal(e.firmanes, f0 + 1, 'lo puede vender y queda a la venta');
+    const h = partida(['4']); assert.ok(h.iniciar().ok);
+    const f = h.e, N = f.jugadores.npc; N.extra.jugoTurno = true; N.turnos = 2; N.dinares = 100;
+    for (let k = 0; k < 20 && !f.log.some((l) => /por mantener su Firmán/.test(l.texto)); k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; avanzar(data, f); }
+    assert.ok(N.mano.some((c) => c.ref === 'F1') && f.log.some((l) => /paga 10 dinares por mantener su Firmán/.test(l.texto)), 'a Yafar NPC le cuesta 10 por turno en normal');
   }
   // 7: Kanmakán se disuelve al pelear si no pasó por Isfahán en sus últimos 2 turnos
   {
@@ -1450,12 +1464,16 @@ for (let k = 0; k < 6; k++) {
     while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => o.id === 'luchar') || e.pend.opciones[0]).id });
     assert.ok(!A.mano.some((c) => c.ref === 'K1'), 'se disolvió al usarlo');
   }
-  // 12: si Yafar te gana un duelo que él te impuso, ganas 50 noches; si te roba, 20
+  // 12: si Yafar NPC te gana un duelo que él te impuso, ganas 50 noches; con Yafar jugador, no
   {
-    const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
-    const e = g.e, [a, y] = g.ids, A = e.jugadores[a];
+    const g = partida(['4']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
     A.noches = 100; A.dinares = 10;
-    duelo(data, e, y, a, { atk: y }); assert.equal(A.noches, 100 - 30 + 50, 'pierde 30 por el duelo y gana 50 por la historia');
+    duelo(data, e, 'npc', a, { atk: 'npc' }); assert.equal(A.noches, 100 - 30 + 50, 'Yafar NPC: pierde 30 por el duelo y gana 50 por la historia');
+    const h = partida(['4', 'B']); assert.ok(h.iniciar().ok);
+    const f = h.e, [b, y] = h.ids, B2 = f.jugadores[b];
+    B2.noches = 100; B2.dinares = 10;
+    duelo(data, f, y, b, { atk: y }); assert.equal(B2.noches, 70, 'Yafar jugador: solo el duelo normal');
   }
 }
 
