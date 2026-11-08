@@ -15,7 +15,7 @@ export const REACCIONES = [
   { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
   { id: 'furia', para: 'todos', emoji: '😡', texto: '¡P#@$%T!*¿?#@M!' },
   { id: 'extranar', para: 'todos', emoji: '😢', texto: '¡Te extrañaremos!' },
-  { id: 'manitas', para: 'todos', emoji: '👉👈', texto: 'Cmo que ya se tardó, ¿No?' },
+  { id: 'manitas', para: 'todos', emoji: '👉👈', texto: 'Como que ya se tardó, ¿No?' },
 ];
 export const ESPERA_REACCION_MS = 1000;   // antirrebote de 1 s
 
