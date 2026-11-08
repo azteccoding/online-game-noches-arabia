@@ -18,6 +18,7 @@ import Mano from './components/Mano.jsx';
 import Misiones from './components/Misiones.jsx';
 import HojaCiudad from './components/HojaCiudad.jsx';
 import Intercambio from './components/Intercambio.jsx';
+import { PanelChat, AvisoChat } from './components/Chat.jsx';
 import AlertaTrato, { AvisosTrato } from './components/AlertaTrato.jsx';
 import VictoriaYafar from './components/VictoriaYafar.jsx';
 import PanelAnfitrion from './components/PanelAnfitrion.jsx';
@@ -129,6 +130,8 @@ function Juego({ lienzo }) {
         {panel === 'registro' && <Registro s={s} onCerrar={cerrar} />}
         {panel === 'anfitrion' && <PanelAnfitrion s={s} onCerrar={cerrar} />}
         {panel === 'acerca' && <AcercaDe onCerrar={cerrar} />}
+        {panel === 'chat' && <PanelChat s={s} onCerrar={cerrar} abrir={abrir} />}
+        {s.fase === 'juego' && panel !== 'chat' && <AvisoChat s={s} abrir={abrir} />}
         {s.fase !== 'fin' && <Decision s={s} />}
         {s.fase === 'juego' && <VotoReinicio s={s} />}
       </main>

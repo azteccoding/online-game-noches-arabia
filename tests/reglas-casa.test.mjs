@@ -575,7 +575,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(vista(data, e, a).cuenta > 0 && e.fase === 'lobby', 'todos listos: arranca la cuenta');
   act(a, { t: 'listo', v: false }); now += 1000; tick(data, e, now);
   assert.equal(vista(data, e, a).cuenta, null, 'si alguien deja de estar listo se detiene');
-  act(a, { t: 'listo', v: true }); now += 1000; tick(data, e, now); now += 10500; tick(data, e, now);
+  act(a, { t: 'listo', v: true }); now += 1000; tick(data, e, now); now += 15500; tick(data, e, now);
   assert.equal(e.fase, 'juego', 'al llegar a cero empieza sola');
 }
 
@@ -1246,6 +1246,87 @@ for (let k = 0; k < 6; k++) {
   d0 = Y.dinares; deseo(data, e, y, 'F', {}); assert.equal(Y.dinares, d0 + 30, 'Yafar no lo recibe: 30 dinares');
   eliminar(data, e, a, { por: b, causa: 'prueba' });
   assert.equal(e.firmanes, 0, 'el Firmán extra se pierde al morir su dueño'); assert.ok(!tieneEsp(e.jugadores[b], 'F1'));
+}
+
+// Sala (Jorge, 7 de noviembre): «Esperar a más jugadores» se marca solo con un jugador listo y detiene la cuenta; solo el banco lo desmarca;
+// la cuenta dura 15 segundos; a los 20 segundos de desconectado, el banco puede sacarlo; los desconectados no bloquean el inicio
+{
+  const e = nuevoJuego(data, { semilla: 5, ahora: 1000 });
+  let now = 1000; const act = (p, a) => { now += 100; return reducir(data, e, p, a, now); };
+  const a = unir(e, { nombre: 'A', token: 'a' });
+  act(a, { t: 'elegirPj', pj: '4' }); act(a, { t: 'listo', v: true }); now += 500; tick(data, e, now);
+  assert.equal(vista(data, e, a).esperarMas, true, 'con un solo jugador listo se marca solo');
+  now += 20000; tick(data, e, now); assert.equal(e.fase, 'lobby', 'marcado: no arranca la cuenta');
+  const b = unir(e, { nombre: 'B', token: 'b' }); act(b, { t: 'elegirPj', pj: '7' }); act(b, { t: 'listo', v: true }); now += 500; tick(data, e, now);
+  assert.equal(e.esperarMas, false, 'con dos listos, mientras nadie lo haya tocado, se desmarca');
+  assert.ok(!act(b, { t: 'esperarMas', v: true }).ok, 'solo el banco lo cambia');
+  assert.ok(act(a, { t: 'esperarMas', v: true }).ok); now += 500; tick(data, e, now);
+  assert.equal(vista(data, e, a).cuenta, null, 'el banco lo marca: no hay cuenta');
+  assert.ok(act(a, { t: 'esperarMas', v: false }).ok); now += 500; tick(data, e, now);
+  assert.ok(vista(data, e, a).cuenta > 10, 'al desmarcarlo arranca la cuenta de 15 segundos');
+  // el banco se desconecta: pasa a B; A no bloquea el inicio y a los 20 s B puede sacarlo
+  conexion(e, a, false); now += 500; tick(data, e, now);
+  assert.equal(e.host, b, 'el banco pasa al siguiente listo'); assert.ok(act(b, { t: 'esperarMas', v: true }).ok, 'el nuevo banco puede detener la cuenta');
+  assert.deepEqual(vista(data, e, b).sacablesSala, [], 'aún no se puede sacar');
+  assert.ok(!act(b, { t: 'host.sacarSala', pid: a }).ok);
+  now += 20500; tick(data, e, now);
+  assert.deepEqual(vista(data, e, b).sacablesSala, [a], 'a los 20 segundos ya se puede sacar');
+  assert.ok(act(b, { t: 'iniciar' }).ok, 'el desconectado no bloquea el inicio');
+  assert.equal(e.fase, 'juego'); assert.ok(!e.orden.includes(a) || !e.jugadores[a].pj, 'el desconectado no entra');
+}
+
+// Mensajes privados (Jorge, 7 de noviembre): tres frases fijas; solo los ve el destinatario; «comprarte» solo con lo público del otro
+{
+  const g = partida(['4', '7', '2']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b];
+  assert.ok(g.act(a, { t: 'chat', para: b, tipo: 'ire', ciudad: 'Damasco' }).ok);
+  assert.ok(!g.act(a, { t: 'chat', para: b, tipo: 'ire', ciudad: 'Roma' }).ok, 'ciudad inexistente');
+  const vB = vista(data, e, b), vC = vista(data, e, c);
+  assert.ok(vB.chat.some((m) => m.texto === 'Iré a Damasco.' && m.de === a), 'el destinatario lo ve');
+  assert.ok(!vC.chat.length, 'los demás no lo ven');
+  const libro = darItem(e, A, 'libro');
+  assert.ok(g.act(a, { t: 'chat', para: b, tipo: 'vender', uid: libro.uid }).ok);
+  assert.ok(!g.act(a, { t: 'chat', para: b, tipo: 'vender', uid: 999999 }).ok, 'solo cartas propias');
+  const pub = darItem(e, Bj, 'alfanje'), priv = darItem(e, Bj, 'libro'); priv.priv = true;
+  const vA = vista(data, e, a);
+  assert.ok(vA.publicas[b].some((x) => x.uid === pub.uid), 'lo público del otro aparece');
+  assert.ok(!vA.publicas[b].some((x) => x.uid === priv.uid), 'lo privado no aparece');
+  assert.ok(g.act(a, { t: 'chat', para: b, tipo: 'comprar', uid: pub.uid }).ok);
+  assert.ok(!g.act(a, { t: 'chat', para: b, tipo: 'comprar', uid: priv.uid }).ok, 'no se puede pedir lo privado');
+  assert.ok(!g.act(a, { t: 'chat', para: a, tipo: 'ire', ciudad: 'Damasco' }).ok, 'no a uno mismo');
+  const mv = e.chat.find((m) => m.tipo === 'vender');
+  assert.ok(!g.act(c, { t: 'chat', para: a, tipo: 'responder', a: mv.id, resp: 'sincera' }).ok, 'solo responde el destinatario');
+  assert.ok(g.act(b, { t: 'chat', para: a, tipo: 'responder', a: mv.id, resp: 'interesada' }).ok);
+  assert.ok(vista(data, e, a).chat.some((m) => m.tipo === 'respuesta' && m.texto === 'Sí, pero lleva buena morralla.' && m.de === b), 'la respuesta le llega al vendedor');
+  assert.ok(!g.act(b, { t: 'chat', para: a, tipo: 'responder', a: mv.id, resp: 'sarcastica' }).ok, 'una sola respuesta por mensaje');
+}
+
+// Mansa Musa (Jorge, 7 de noviembre): S2 sale con dos jugadores distintos en el Magreb y dura esa ronda y 2 más (dado extra en R44, con botón);
+// S3 sale cuando todos visitaron el Magreb y le quita 50 noches a Yafar (si no hay Yafar, no sale). Reacción «¡Vengan conmigo a N!»
+{
+  const { armarReaccion } = await import('../shared/reacciones.js');
+  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b], Y = e.jugadores[y];
+  e.ronda = 5; Y.noches = 120;
+  const llega = (pid) => { const j = e.jugadores[pid]; turnoDe(e, pid, 'Andalucía'); const o = j.ciudad; j.ciudad = 'Magreb'; llegada(data, e, pid, o); };
+  llega(a); assert.ok(!e.mansaGenerosa, 'con un solo jugador no sale');
+  llega(b); assert.ok(e.mansaGenerosa, 'con dos jugadores distintos sale «Mansa Musa despertó generoso»');
+  assert.ok(e.historial.some((h) => h.id === 'S2' && !h.para), 'todos ven la carta');
+  assert.equal(vista(data, e, a).mansaGenerosa.quedan, 3, 'dura esta ronda y 2 más');
+  assert.ok(!e.mansaNepotismo, 'falta Yafar jugador por visitar el Magreb');
+  llega(y); assert.ok(e.mansaNepotismo); assert.ok(e.log.some((l) => /nepotismo: .* pierde 50 noches/.test(l.texto)), 'Yafar pierde 50 noches');
+  assert.ok(e.historial.some((h) => h.id === 'S3'));
+  turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; e.turno.fase = 'acciones'; A.dinares = 20; A.extra.clienteWeb = true; const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);
+  const dadoMansa = [e.dados, ...e.colaDados].find((d) => d && /generosidad de Mansa Musa/.test(d.grupos[0].etq));
+  assert.ok(dadoMansa && dadoMansa.por === a && !dadoMansa.lanzado, 'el dado de Mansa Musa espera el botón');
+  assert.ok(A.noches >= n0 + 60, 'R44: 30 noches más el premio de Mansa Musa (al menos 30)');
+  e.ronda = 8; assert.equal(vista(data, e, a).mansaGenerosa, null, 'pasadas las 2 rondas ya no está');
+  const r = armarReaccion(e, a, 'vengan', 99999999, 0); assert.equal(r.r.texto, '¡Vengan conmigo a Magreb!');
+  // sin Yafar no sale la del nepotismo
+  const h = partida(['4', '7']); h.e.opciones.sinYafar = true; assert.ok(h.iniciar().ok);
+  for (const pid of h.ids) { const j = h.e.jugadores[pid]; turnoDe(h.e, pid, 'Andalucía'); j.ciudad = 'Magreb'; llegada(data, h.e, pid, 'Andalucía'); }
+  assert.ok(h.e.mansaGenerosa && !h.e.mansaNepotismo, 'sin Yafar en la partida, S3 no sale');
 }
 
 console.log('reglas de la casa OK');

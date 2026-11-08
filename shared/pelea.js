@@ -602,7 +602,7 @@ function robar(data, e, atk, def) {
   const oculta = (c) => (c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta)   // la jambiya escondida no se la llevan
     || (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');                   // ni el mapa del escondite de dinares (regla de Jorge)
   const cartas = D.mano.filter((c) => !oculta(c)); D.mano = D.mano.filter(oculta);
-  for (const c of cartas) A.mano.push(c);
+  for (const c of cartas) { c.priv = true; A.mano.push(c); }                // nadie ve qué se llevó: deja de ser público
   recortarMano(data, e, atk);
   log(e, `${A.nombre} roba ${din} dinares${cartas.length ? ' y ' + cartas.length + ' carta(s)' : ''} a ${D.nombre}.`, { pid: atk });
 }

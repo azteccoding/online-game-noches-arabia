@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { verComo } from '../game/store.js';
+import { noLeidos } from './Chat.jsx';
 
 // Pantalla completa (Fullscreen API). En iPhone no existe: se explica cómo agregar el juego a la pantalla de inicio.
 const fsEl = () => document.fullscreenElement || document.webkitFullscreenElement;
@@ -13,6 +14,9 @@ function alternarPantalla() {
 export default function BarraEstado({ s, demo, pids, panel, abrir }) {
   const [mas, setMas] = useState(false);
   const [completa, setCompleta] = useState(() => !!fsEl());
+  const [, setLeido] = useState(0);
+  useEffect(() => { const f = () => setLeido((n) => n + 1); window.addEventListener('chat-leido', f); return () => window.removeEventListener('chat-leido', f); }, []);
+  const sinLeer = panel === 'chat' ? 0 : noLeidos(s);
   useEffect(() => { const f = () => setCompleta(!!fsEl()); document.addEventListener('fullscreenchange', f); document.addEventListener('webkitfullscreenchange', f); return () => { document.removeEventListener('fullscreenchange', f); document.removeEventListener('webkitfullscreenchange', f); }; }, []);
   const act = (p) => { setMas(false); abrir(p); };
   const ev = s.evento?.actual && s.historial.slice().reverse().find((h) => h.deck === 'evento');
@@ -24,10 +28,12 @@ export default function BarraEstado({ s, demo, pids, panel, abrir }) {
         {ev && <button className="chip chip-ev" onClick={() => abrir('evento')} title="Evento de la ronda">{ev.titulo}</button>}
         {(s.carreras || []).map((c) => <button key={c.id} className="chip chip-ev" onClick={() => abrir('misiones')} title={`Carrera: dos noches seguidas en ${c.ciudad} (60 dinares y 50 noches). ` + (Object.entries(c.prog).map(([id, n]) => `${s.jugadores[id]?.nombre} ${n}/2`).join(', ') || 'Nadie ha empezado.')}>🏁 {c.ciudad}</button>)}
         {Object.entries(s.jugadores[s.yo]?.hazanas || {}).filter(([, h]) => h.bloqueada).map(([k, h]) => <button key={k} className="chip mal" onClick={() => abrir('misiones')} title={`${h.nombre}: bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.`}>{k === 'tariq' ? 'Tariq' : 'al-Quds'}: bloqueada</button>)}
+        {s.mansaGenerosa && <button className="chip chip-ev" onClick={() => abrir('historial')} title="Quien visite Timbuktú (R44, en el Magreb) tira un dado de premio extra.">Mansa Musa generoso · {s.mansaGenerosa.quedan === 1 ? 'última ronda' : `quedan ${s.mansaGenerosa.quedan} rondas`}</button>}
         {!s.hostConectado && <span className="chip mal" title="El banco está desconectado; la partida sigue.">banco ausente</span>}
       </div>
       <nav className="barra-der" aria-label="Menú">
         <button className="btn mini btn-pantalla" onClick={() => (fsPuede() ? alternarPantalla() : window.alert('En iPhone y iPad: toca Compartir y luego «Agregar a inicio». Al abrir el juego desde ese ícono se ve en pantalla completa.'))} title={completa ? 'Salir de pantalla completa' : 'Pantalla completa'} aria-label={completa ? 'Salir de pantalla completa' : 'Pantalla completa'}><span aria-hidden="true">⛶</span><span className="txt-pantalla">{completa ? 'Salir de pantalla completa' : 'Pantalla completa'}</span></button>
+        {s.fase === 'juego' && <button className="btn mini btn-chat" onClick={() => abrir('chat')} title="Mensajes privados a otro jugador" aria-label={sinLeer ? `Mensajes (${sinLeer} sin leer)` : 'Mensajes'}><span aria-hidden="true">✉</span><span className="txt-pantalla">Mensajes</span>{sinLeer > 0 && <span className="insignia-chat" aria-hidden="true">{sinLeer}</span>}</button>}
         <button className={`btn mini${panel === 'personajes' ? ' on' : ''}`} aria-expanded={panel === 'personajes'} onClick={() => abrir('personajes')}>Personajes ▾</button>
         <button className="btn mini" disabled={s.ultimaCarta == null} onClick={() => abrir('ultima')}>Última carta</button>
         <div className="menu-mas">

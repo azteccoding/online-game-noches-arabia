@@ -53,3 +53,5 @@
 .ruta.mar.animada .ruta-linea { animation-name: banda-mar; }
 @keyframes banda-mar { to { stroke-dashoffset: -15; } }
 @media (prefers-reduced-motion: reduce) { .ruta.animada .ruta-linea { animation: none; } }
+
+.tip-peon { position: absolute; transform: translate(-50%, calc(-100% - 14px)); z-index: 20; pointer-events: none; white-space: nowrap; background: rgba(29, 7, 9, .92); color: var(--oro-claro); border: 1px solid var(--oro); border-radius: 8px; padding: 4px 10px; font-size: 15px; box-shadow: var(--sombra); }

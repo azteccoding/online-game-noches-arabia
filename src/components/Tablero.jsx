@@ -73,6 +73,25 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
   const cont = useRef(null), svgRef = useRef(null), baseRef = useRef(null), rectMini = useRef(null), pz = useRef(null);
   const [cargado, setCargado] = useState(false);
   const infoRef = useRef(null);
+  // Tooltip de los monitos (Jorge, 7 de noviembre): «Jugador — Personaje» al pasar el cursor; en teléfono, al tocarlo (2.5 s).
+  // Los peones no reciben eventos (para no tapar las ciudades), así que se busca cuál está bajo el puntero por su recuadro.
+  const [tip, setTip] = useState(null), tipTimer = useRef(null);
+  const peonEn = (x, y) => {
+    const gs = [...(svgRef.current?.querySelectorAll('.peones .peon') || [])].reverse();
+    return gs.find((g) => { const r = g.querySelector('use')?.getBoundingClientRect(); return r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom; }) || null;
+  };
+  const mostrarTip = (g, x, y) => { const r = cont.current.getBoundingClientRect(); setTip({ texto: g.dataset.tip, x: x - r.left, y: y - r.top }); };
+  const alMover = (ev) => {
+    if (ev.pointerType !== 'mouse' || ev.buttons) return;
+    const g = peonEn(ev.clientX, ev.clientY);
+    if (g) mostrarTip(g, ev.clientX, ev.clientY); else if (tip) setTip(null);
+  };
+  const alSoltar = (ev) => {
+    if (ev.pointerType === 'mouse') return;
+    const g = peonEn(ev.clientX, ev.clientY); if (!g) return;
+    mostrarTip(g, ev.clientX, ev.clientY); clearTimeout(tipTimer.current); tipTimer.current = setTimeout(() => setTip(null), 2500);
+  };
+  useEffect(() => () => clearTimeout(tipTimer.current), []);
   const peones = useMemo(() => agruparPeones(jugadores, turnoPid), [jugadores, turnoPid]);
   const miCiudad = jugadores?.[miId]?.ciudad;
   const animadas = useMemo(() => caminoRutas(miCiudad, ciudadActiva), [miCiudad, ciudadActiva]);   // ruta hacia la ciudad elegida, en movimiento
@@ -112,7 +131,8 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
   };
 
   return (
-    <div className="tablero" ref={cont} tabIndex={0} role="application" aria-label="Tablero. Arrastra para mover, pellizca o usa la rueda para acercar.">
+    <div className="tablero" ref={cont} tabIndex={0} role="application" aria-label="Tablero. Arrastra para mover, pellizca o usa la rueda para acercar." onPointerMove={alMover} onPointerUp={alSoltar} onPointerLeave={() => setTip(null)}>
+      {tip && <div className="tip-peon" role="tooltip" style={{ left: tip.x, top: tip.y }}>{tip.texto}</div>}
       <div className="tablero-cargando" hidden={cargado}>Desplegando el mapa…</div>
       <svg ref={svgRef} className="tablero-svg" xmlns="http://www.w3.org/2000/svg" data-lod="medio" aria-hidden="true">
         <defs>

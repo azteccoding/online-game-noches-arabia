@@ -206,7 +206,7 @@ export const tieneItem = (j, ref) => j.mano.find((c) => c.tipo === 'item' && c.r
 export const tieneObj = (j, id) => j.mano.find((c) => c.tipo === 'objeto' && c.ref === id);
 export const tieneEsp = (j, id) => j.mano.find((c) => c.tipo === 'especial' && c.ref === id);
 export const nObjetos = (j) => j.mano.filter((c) => c.tipo === 'objeto').length;
-export function darItem(e, j, ref, extra = undefined) { const c = { uid: uid(e), tipo: 'item', ref }; if (extra) c.extra = extra; j.mano.push(c); return c; }
+export function darItem(e, j, ref, extra = undefined) { const c = { uid: uid(e), tipo: 'item', ref, pub: true }; if (extra) c.extra = extra; j.mano.push(c); return c; }
 export function quitarCarta(j, uidc) { const i = j.mano.findIndex((c) => c.uid === uidc); return i < 0 ? null : j.mano.splice(i, 1)[0]; }
 export function quitarPrimero(j, tipo, ref) { const c = j.mano.find((x) => x.tipo === tipo && x.ref === ref); return c ? quitarCarta(j, c.uid) : null; }
 
@@ -293,7 +293,7 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
     if (j.buscado > 0) { const n = data.config.recompensaBuscado ?? 200, d = data.config.recompensaBuscadoDinares ?? 100; k.noches += n; k.dinares += d; log(e, `${k.nombre} cobra la recompensa por ${j.nombre}, que estaba Buscado: ${d} dinares y ${n} noches.`, { pid: por, aviso: true }); }   // regla de la casa: no se multiplica por ronda
     if (e.evento?.buscadoE7 === pid) { k.noches += 200; k.dinares += 40; log(e, `${k.nombre} cobra la recompensa de la cacería del Califa: 200 noches y 40 dinares.`, { pid: por, aviso: true }); }   // regla de la casa (antes 50 noches); no se multiplica por ronda
     if (j.pj === 'B') { k.noches += 30; log(e, `${k.nombre} cobra 30 noches por matar a Yafar.`, { pid: por }); }
-    for (const c of cartas) k.mano.push(c);
+    for (const c of cartas) { c.priv = true; k.mano.push(c); }
     recortarMano(data, e, por);
   } else {
     for (const c of cartas) {

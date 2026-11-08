@@ -69,7 +69,7 @@ export default function Peon({ j, ciudad, i, n, turno, tablero, yo, onViaje }) {
   const dx = (i - (n - 1) / 2) * 30;
   const nombre = pjDe(j.pj)?.nombre || j.nombre;
   return (
-    <g ref={grupo} className={`peon${turno ? ' turno' : ''}${yo ? ' yo' : ''}${j.npc ? ' npc' : ''}${j.transito ? ' camino' : ''}`} style={{ transform: `translate(${c.x}px, ${c.y}px)` }} data-pid={j.id}>
+    <g ref={grupo} className={`peon${turno ? ' turno' : ''}${yo ? ' yo' : ''}${j.npc ? ' npc' : ''}${j.transito ? ' camino' : ''}`} style={{ transform: `translate(${c.x}px, ${c.y}px)` }} data-pid={j.id} data-tip={j.npc ? j.nombre : `${j.nombre} — ${nombre}`}>
       <title>{`${j.nombre} (${nombre}) en ${ciudad}${j.transito ? ' (de camino)' : ''}`}</title>
       <g className="escala-peon" style={{ transform: `scale(var(--inv, 1)) rotate(var(--contra, 0deg)) translate(${dx}px, 4px)` }}>
         <ellipse ref={sombra} className="sombra-peon" cx="0" cy="2" rx="20" ry="6" />

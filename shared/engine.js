@@ -53,17 +53,21 @@ export function unir(e, { nombre: nom, token }) {
 // Regla de la casa: en la sala, el banco es el primero que eligió personaje, está conectado y marcó «listo». Hasta entonces lo es, de manera
 // provisional, quien entró primero. Si alguien cede el banco o lo reclama con el PIN, esa decisión se respeta.
 function bancoDeSala(e) {
-  if (e.fase !== 'lobby' || e.bancoFijo) return;
+  if (e.fase !== 'lobby' || (e.bancoFijo && e.jugadores[e.host]?.conectado !== false)) return;   // si el banco se desconecta, pasa al siguiente
   const c = Object.values(e.jugadores).filter((j) => j.pj && j.listo && j.conectado !== false).sort((a, b) => (a.listoEn || 0) - (b.listoEn || 0))[0];
   if (c) e.host = c.id;
 }
 // Regla de la casa: con todos conectados y listos arranca una cuenta regresiva; el banco también puede iniciar antes, a mano.
-const CUENTA_INICIO_MS = 10000;
+// Regla de la casa (Jorge, 7 de noviembre): «Esperar a más jugadores» detiene la cuenta; se marca sola con un solo jugador listo y, una vez que hay
+// banco, solo el banco lo desmarca. Los desconectados no bloquean el inicio: no entran a la partida.
+export const CUENTA_INICIO_MS = 15000, SACAR_SALA_MS = 20000;
+const enSala = (e) => Object.values(e.jugadores).filter((j) => !j.npc && j.conectado !== false);
 function salaLista(e) {
-  const js = Object.values(e.jugadores).filter((j) => !j.npc && j.conectado !== false);
+  if (e.esperarMas) return false;
+  const js = enSala(e);
   if (!js.length || !js.every((j) => j.pj && j.listo)) return false;
-  const conPj = Object.values(e.jugadores).filter((j) => j.pj);
-  if (!conPj.every((j) => j.listo && j.conectado !== false) || conPj.length > 8) return false;
+  const conPj = js.filter((j) => j.pj);
+  if (conPj.length > 8) return false;
   return conPj.length < 4 || conPj.some((j) => j.pj === 'B');
 }
 // Qué falta para que arranque la cuenta regresiva (se muestra en la sala).
@@ -71,10 +75,11 @@ function faltaParaIniciar(e) {
   const r = [];
   for (const j of Object.values(e.jugadores)) {
     if (j.npc) continue;
-    if (j.conectado === false) { if (j.pj) r.push(`${j.nombre} (desconectado)`); continue; }
+    if (j.conectado === false) continue;                                       // los desconectados no bloquean: no entran a la partida
     if (!j.pj) r.push(`${j.nombre} (sin personaje)`); else if (!j.listo) r.push(`${j.nombre} (no está listo)`);
   }
-  const conPj = Object.values(e.jugadores).filter((j) => j.pj);
+  const conPj = enSala(e).filter((j) => j.pj);
+  if (e.esperarMas) r.push('que el banco desmarque «Esperar a más jugadores»');
   if (conPj.length >= 4 && !conPj.some((j) => j.pj === 'B')) r.push('alguien que juegue con Yafar el Bermekí (con 4 o más jugadores)');
   return r;
 }
@@ -89,8 +94,8 @@ function incorporarTarde(data, e, pid) {
   const j = e.jugadores[pid], p = pjDe(data, j.pj);
   if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
   j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
-  for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma });
-  if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });
+  for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true });
+  if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
   { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
   j.tarde = false; j.listo = true;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
@@ -106,7 +111,7 @@ export function conexion(e, pid, conectado) {
     const esperando = !conectado && e.turno?.pid === pid;
     log(e, conectado ? `${j.nombre} volvió a la partida.` : `⚠ ${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
   }
-  if (j) j.conectado = conectado;
+  if (j) { if (e.fase === 'lobby' && !conectado && j.conectado !== false) j.desconectadoEn = e.ahora; if (conectado) delete j.desconectadoEn; j.conectado = conectado; }
   if (j && conectado) volver(e, pid);
   bancoDeSala(e);
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
@@ -145,6 +150,7 @@ function reponerMercado(data, e) {
 // Regla de la casa (Jorge, 7 de noviembre): a la venta hay 1 Firmán por cada 3 jugadores, redondeando hacia arriba; el que trae Yafar va aparte.
 export const firmanesEnVenta = (n) => Math.ceil(Math.max(0, n) / 3);
 function iniciar(data, e) {
+  for (const j of Object.values(e.jugadores)) if (!j.npc && j.conectado === false && j.pj) { j.pj = null; j.listo = false; }   // quien no está conectado no entra
   const ids = e.orden.filter((id) => e.jugadores[id].pj);
   if (ids.length < 1) return err('Nadie ha elegido personaje.');
   if (ids.length > 8) return err('Máximo 8 jugadores.');
@@ -178,8 +184,8 @@ function iniciar(data, e) {
     const j = e.jugadores[id], p = pjDe(data, j.pj);
     j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
     if (e.solitario && !j.npc && e.opciones.dificultad === 'facil') j.dinares = 30;                                   // R 21.5
-    for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma }); }
-    if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });          // el de Yafar no sale de los que están a la venta
+    for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true }); }
+    if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });          // el de Yafar no sale de los que están a la venta
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;
@@ -380,6 +386,28 @@ function saladino(data, e) {
   for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
   log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
 }
+// Cartas especiales S2 y S3 (Jorge, 7 de noviembre), una vez por partida cada una:
+// S2 «Mansa Musa despertó generoso»: con dos jugadores distintos que ya visitaron el Magreb (Yafar NPC no cuenta). Dura el resto de la ronda
+//   y las 2 siguientes (cada jugador tiene al menos 2 turnos): quien haga R44 «Visitar Timbuktú» tira un dado de premio extra.
+// S3 «Mansa Musa odia el nepotismo»: cuando todos los jugadores visitaron el Magreb (Yafar NPC no cuenta; Yafar jugador, sí), Yafar pierde 50
+//   noches, sea NPC o jugador. Si Yafar no está en la partida, no sale.
+export const MANSA_RONDAS = 2;
+export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
+function mansaMusa(data, e) {
+  const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
+  const fueron = humanos.filter((x) => x.visitadas.includes('Magreb'));
+  const carta = (id) => { const s = data.objetos.especiales.find((x) => x.id === id); if (s) publicarCarta(e, { id, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null); };
+  if (!e.mansaGenerosa && fueron.length >= 2) {
+    e.mansaGenerosa = { ronda: e.ronda, hasta: e.ronda + MANSA_RONDAS }; carta('S2');
+    log(e, `Mansa Musa despertó generoso: hasta el final de la ronda ${e.ronda + MANSA_RONDAS}, quien visite Timbuktú (R44, en el Magreb) tira un dado de premio extra.`, { aviso: true });
+  }
+  const yafar = Object.values(e.jugadores).find((x) => x.pj === 'B' && !x.eliminado);
+  if (!e.mansaNepotismo && yafar && humanos.length && humanos.every((x) => x.visitadas.includes('Magreb'))) {
+    e.mansaNepotismo = { ronda: e.ronda }; carta('S3');
+    const quita = Math.min(50, Math.max(0, yafar.noches)); yafar.noches -= quita;
+    log(e, `Mansa Musa odia el nepotismo: ${yafar.nombre} pierde ${quita} noches.`, { aviso: true, pid: yafar.id });
+  }
+}
 export function carreraFinTurno(data, e) {
   const t = e.turno, j = e.jugadores[t.pid];
   if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
@@ -443,7 +471,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['jambiya', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['chat', 'jambiya', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -518,6 +546,16 @@ function despachar(data, e, pid, j, a, ahora) {
       return ok();
     }
     case 'iniciar': if (e.fase !== 'lobby') return err('Ya empezó.'); if (!esHost(e, pid)) return err('Solo el anfitrión (banco) inicia la partida.'); e.cuentaInicio = null; return iniciar(data, e);
+    case 'esperarMas':
+      if (e.fase !== 'lobby') return err('La partida ya empezó.'); if (!esHost(e, pid)) return err('Solo el banco puede cambiarlo.');
+      e.esperarMas = !!a.v; e.esperarDecidido = true; if (e.esperarMas) e.cuentaInicio = null; return ok();
+    case 'host.sacarSala': {
+      if (e.fase !== 'lobby') return err('La partida ya empezó.'); if (!esHost(e, pid)) return err('Solo el banco.');
+      const x = e.jugadores[a.pid]; if (!x || x.npc || a.pid === pid) return err('Jugador inexistente.');
+      if (x.conectado !== false || e.ahora - (x.desconectadoEn ?? e.ahora) < SACAR_SALA_MS) return err('Solo se puede sacar a quien lleva 20 segundos desconectado.');
+      delete e.jugadores[a.pid]; e.orden = e.orden.filter((i) => i !== a.pid); log(e, `El banco sacó de la sala a ${x.nombre}.`); bancoDeSala(e); return ok();
+    }
+    case 'chat': return chat(data, e, pid, a);
     case 'reclamarAnfitrion': if (String(a.pin) !== e.pinHost) return err('PIN incorrecto.'); e.host = pid; e.bancoFijo = true; log(e, `${j.nombre} es ahora el banco/anfitrión.`); return ok();
     // ---- decisiones y dados
     case 'decidir': return responderPend(data, e, pid, a);
@@ -719,7 +757,7 @@ export function llegada(data, e, pid, origen) {
     j.extra.viajeGratisBagdad = true;                                                                       // R 7.2: primer visitante, un viaje gratis a Bagdad
   }
   if (e.evento.actual === 'E4' && nadieAntes) j.extra.e4 = true;
-  if (primera) saladino(data, e);
+  if (primera) { saladino(data, e); if (j.ciudad === 'Magreb') mansaMusa(data, e); }
   if (t && [origen, j.ciudad].sort().join() === 'Andalucía,Magreb') hazana(data, e, pid, 'tariq');                 // cruzar el estrecho, con cualquier medio
   if (!t.llegadas.includes(j.ciudad) && j.ciudad !== j.ciudadPrevia) {                                      // R 8.2: no se ganan al volver a la ciudad que dejaste
     t.llegadas.push(j.ciudad);
@@ -922,7 +960,7 @@ function responderTrato(data, e, pid, a) {
   const imp = (de, din) => (sinImp || din <= 0 ? 0 : Math.floor(din * tasa / 100));
   const impA = tr.pide.objetos.length || tr.ofrece.objetos.length ? imp(A, tr.pide.dinares) : 0, impB = tr.ofrece.objetos.length || tr.pide.objetos.length ? imp(B, tr.ofrece.dinares) : 0;
   A.dinares += tr.pide.dinares - impA - tr.ofrece.dinares; B.dinares += tr.ofrece.dinares - impB - tr.pide.dinares;
-  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { a2.mano.push(c); } } };
+  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público
   const movA = tr.ofrece.objetos.map((u) => A.mano.find((c) => c.uid === u)).filter(Boolean), movB = tr.pide.objetos.map((u) => B.mano.find((c) => c.uid === u)).filter(Boolean);
   mover(A, B, tr.ofrece.objetos); mover(B, A, tr.pide.objetos);
   recortarMano(data, e, A.id); recortarMano(data, e, B.id);
@@ -1025,6 +1063,38 @@ function datosMano(data, e, c) {
   return cartaDatos(data, c.tipo, c.ref);
 }
 
+// ---------------------------------------------------------------- mensajes privados entre jugadores (Jorge, 7 de noviembre)
+// Tres frases fijas: «Iré a [ciudad]», «Quiero venderte [carta mía]» y «Quiero comprarte [carta pública suya]». Solo los ve el destinatario.
+// Pública = lo que la mesa vio entrar a su mano (marca «pub»: compras, premios, armas de inicio…); no lo que llegó por un trato o un robo, ni el mapa
+// del escondite, ni la jambiya escondida.
+export const CIUDADES_CHAT = ['Bagdad', 'Damasco', 'Aleppo', 'Basra', 'Estambul', 'Yemen', 'El Cairo', 'Isfahán', 'Samarcanda', 'India', 'Magreb', 'Andalucía'];
+const esPublica = (j, c) => !!c.pub && !c.priv && !(c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') && !(c.tipo === 'item' && c.ref === 'jambiya' && j.extra?.jambiyaOculta);
+const tituloCarta = (data, e, c) => datosMano(data, e, c)?.titulo || c.ref;
+// Respuestas a «Quiero venderte» (Jorge, 7 de noviembre): sarcástica, sincera o interesada.
+export const RESPUESTAS_VENTA = { sarcastica: '¡Qué bueno! Bien por ti.', sincera: '¿Necesitas ayuda?', interesada: 'Sí, pero lleva buena morralla.' };
+function chat(data, e, pid, a) {
+  if (e.fase !== 'juego') return err('El chat es durante la partida.');
+  if (a.tipo === 'responder') {
+    const m = (e.chat || []).find((x) => x.id === a.a && x.para === pid && x.tipo === 'vender');
+    if (!m) return err('Ese mensaje no es para ti.');
+    if (m.respondido) return err('Ya respondiste ese mensaje.');
+    if (!RESPUESTAS_VENTA[a.resp]) return err('Respuesta desconocida.');
+    m.respondido = a.resp;
+    e.chat.push({ id: ++e.seq, de: pid, para: m.de, tipo: 'respuesta', texto: RESPUESTAS_VENTA[a.resp], resp: a.resp, a: m.id, t: e.ahora });
+    return ok();
+  }
+  const yo = e.jugadores[pid], otro = e.jugadores[a.para];
+  if (!otro || otro.npc || a.para === pid || otro.eliminado || yo.eliminado) return err('Elige a otro jugador.');
+  let texto;
+  if (a.tipo === 'ire') { if (!CIUDADES_CHAT.includes(a.ciudad)) return err('Elige una ciudad.'); texto = `Iré a ${a.ciudad}.`; }
+  else if (a.tipo === 'vender') { const c = yo.mano.find((x) => x.uid === a.uid); if (!c) return err('Esa carta no es tuya.'); texto = `Quiero venderte: ${tituloCarta(data, e, c)}.`; }
+  else if (a.tipo === 'comprar') { const c = otro.mano.find((x) => x.uid === a.uid); if (!c || !esPublica(otro, c)) return err('Solo puedes pedir lo que se sabe que tiene.'); texto = `Quiero comprarte: ${tituloCarta(data, e, c)}.`; }
+  else return err('Mensaje desconocido.');
+  (e.chat ||= []).push({ id: ++e.seq, de: pid, para: a.para, tipo: a.tipo, texto, t: e.ahora });
+  if (e.chat.length > 200) e.chat.splice(0, e.chat.length - 200);
+  return ok();
+}
+
 export function vista(data, e, pid) {
   const yo = e.jugadores[pid];
   const jugadores = {};
@@ -1050,7 +1120,12 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
-    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [],
+    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
+    mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
+    chat: (e.chat || []).filter((m) => m.para === pid || m.de === pid).slice(-40),
+    publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},
+    miMano: yo ? yo.mano.map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) })) : [],
+    sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo?.extra?.jambiyaOculta,
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
@@ -1129,6 +1204,8 @@ function tick0(data, e, ahora) {
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
   for (const j of Object.values(e.jugadores)) if (j.extra?.cuentoPend && ahora - j.extra.cuentoPend.t > 90000) { cobrarCuento(e, j); cambio = true; }   // si nunca cierra la carta, cobra igual
   if (e.fase === 'lobby') {
+    if (!e.esperarDecidido) { const v = enSala(e).filter((j) => j.pj && j.listo).length <= 1; if (v !== !!e.esperarMas) { e.esperarMas = v; cambio = true; } }
+    for (const j of Object.values(e.jugadores)) if (j.conectado === false && j.desconectadoEn != null && !j.avisoSacarSala && ahora - j.desconectadoEn >= SACAR_SALA_MS) { j.avisoSacarSala = true; cambio = true; }
     const antes = e.cuentaInicio ? Math.ceil((e.cuentaInicio - ahora) / 1000) : null;
     if (!salaLista(e)) { if (e.cuentaInicio) { e.cuentaInicio = null; cambio = true; } }
     else if (!e.cuentaInicio) { e.cuentaInicio = ahora + CUENTA_INICIO_MS; cambio = true; }

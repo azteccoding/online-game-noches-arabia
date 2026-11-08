@@ -12,7 +12,8 @@ export default function Lobby({ s }) {
   const todos = Object.values(s.jugadores);
   const yafarHumano = Object.values(s.jugadores).some((j) => j.pj === 'B' && !j.npc);   // si alguien juega con Yafar, no hay Yafar NPC que ajustar
   const tarde = s.fase === 'juego';                // entra con la partida empezada, durante la primera ronda
-  const puedeIniciar = s.soyHost && todos.some((j) => j.pj) && todos.filter((j) => j.pj).every((j) => j.listo);
+  const enSala = todos.filter((j) => j.conectado !== false);           // los desconectados no bloquean el inicio
+  const puedeIniciar = s.soyHost && enSala.some((j) => j.pj) && enSala.filter((j) => j.pj).every((j) => j.listo);
   return (
     <main className="pantalla lobby">
       <header className="lobby-cab">
@@ -47,9 +48,16 @@ export default function Lobby({ s }) {
               <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}{j.id === s.host && j.listo ? ' · banco' : ''}</span>
               <span className={`chip${j.conectado ? '' : ' mal'}`}>{j.conectado ? 'conectado' : 'desconectado'}</span>
               <span className={`chip${j.listo ? '' : ' mal'}`}>{j.listo ? 'listo' : j.pj ? 'sin confirmar' : 'sin personaje'}</span>
+              {s.sacablesSala?.includes(j.id) && <button className="btn mini sec" onClick={() => { if (window.confirm(`¿Sacar a ${j.nombre} de la sala? Lleva más de 20 segundos desconectado.`)) enviar(ACCIONES.host.sacarSala(j.id)); }}>Sacar</button>}
             </li>
           ))}
         </ul>
+        {!tarde && (
+          <label className="dificultad" title={s.soyHost ? '' : 'Solo el banco puede cambiarlo'}>
+            <input type="checkbox" checked={!!s.esperarMas} disabled={!s.soyHost} onChange={(e) => enviar(ACCIONES.esperarMas(e.target.checked))} /> Esperar a más jugadores
+            {!s.soyHost && <small className="it"> (solo el banco lo cambia)</small>}
+          </label>
+        )}
         <div className="fila-btn">
           {tarde ? <button className="btn" disabled={!yo?.pj || !s.puedeUnirse} onClick={() => enviar(ACCIONES.listo(true))}>Entrar a la partida</button> : <>
             <button className="btn sec" disabled={!yo?.pj} onClick={() => enviar(ACCIONES.listo(!yo.listo))}>{yo?.listo ? 'Ya no estoy listo' : 'Estoy listo'}</button>

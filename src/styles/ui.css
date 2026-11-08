@@ -345,3 +345,22 @@ fieldset:disabled { opacity: .5; }
 .barra .btn.mini.btn-pantalla { background: linear-gradient(180deg, #2f7a52, #1b4a32); border-color: var(--oro-claro); color: #fff3c9; gap: 6px; }
 .btn-pantalla > span[aria-hidden] { font-size: 17px; line-height: 1; }
 @media (max-width: 760px) { .txt-pantalla { display: none; } .barra .btn.mini.btn-pantalla { padding: 4px 9px; } }
+
+.chat-form { display: grid; gap: 8px; margin-bottom: 10px; }
+.chat-form label { display: grid; gap: 4px; font-size: 15px; }
+.chat-lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.chat-lista li { display: grid; gap: 4px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--oro); background: rgba(241, 227, 184, .08); }
+.chat-lista li.mio { opacity: .85; }
+.chat-lista small { color: var(--oro-claro); }
+.chat-lista .btn { justify-self: start; }
+.aviso-chat { position: fixed; right: 12px; top: calc(var(--barra-alto, 56px) + 10px); z-index: 95; width: min(380px, calc(100vw - 24px)); padding: 12px 14px; }
+.aviso-chat p { margin: 0 0 8px; }
+
+.barra .btn.mini.btn-chat, .barra .btn.mini.btn-chat.on { background: linear-gradient(180deg, #34508f, var(--indigo-osc)); position: relative; gap: 6px; }
+.insignia-chat { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #c62828; color: #fff; border: 2px solid var(--oro-claro); font: 700 12px/16px system-ui, sans-serif; text-align: center; animation: vaiven-chat 3s ease-in-out infinite; }
+@keyframes vaiven-chat { 0%, 70%, 100% { transform: translateY(0) rotate(0); } 76% { transform: translateY(-4px) rotate(-12deg); } 82% { transform: translateY(0) rotate(10deg); } 88% { transform: translateY(-2px) rotate(-6deg); } 94% { transform: translateY(0) rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .insignia-chat { animation: none; } }
+.chat-tipos { display: flex; flex-wrap: wrap; gap: 6px; }
+.chat-tipos .btn.on { background: linear-gradient(180deg, var(--oro-claro), var(--oro)); color: #26100a; }
+
+.chat-resp { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }

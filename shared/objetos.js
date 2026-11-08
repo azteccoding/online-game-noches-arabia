@@ -54,7 +54,7 @@ export function comprar(data, e, pid, a) {
     if (tieneEsp(j, 'F1')) return err('Ya tienes un Firmán.');
     const p = precioFirman(j);
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
-    j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });
+    j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
   }
   if (a.ref === 'ifrit') {
@@ -97,7 +97,7 @@ export function comprar(data, e, pid, a) {
   if (j.dinares < p) return err('No te alcanzan los dinares.');
   if (nObjetos(j) >= data.objetos.limiteManoObjetos) return err('Mano llena (límite 5): vende o descarta uno.');
   j.dinares -= p; e.stock[a.id]--;
-  const c = { uid: uid(e), tipo: 'objeto', ref: a.id }; j.mano.push(c);
+  const c = { uid: uid(e), tipo: 'objeto', ref: a.id, pub: true }; j.mano.push(c);
   publicarCarta(e, cartaDatos(data, 'objeto', a.id), pid, [pid]);
   log(e, `${j.nombre} compra un objeto.`, { pid });
   return ok();
