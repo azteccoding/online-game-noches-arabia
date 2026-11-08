@@ -1512,4 +1512,73 @@ for (let k = 0; k < 6; k++) {
   void b;
 }
 
+// Banquete de Isfahán, H14 (Jorge, 8 de noviembre): 10 dinares de entrada y siempre 30 noches; luego 1 dado con botón.
+// 1: nada más (ya no pierde la acción principal); 2 a 5: alfombra (3 o 5 además herido, sin perder la alfombra); 6: +30 dinares y +20 noches.
+{
+  const { CONT } = await import('../shared/base.js');
+  for (const x of [1, 2, 3, 4, 5, 6]) {
+    const g = partida(['4']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    turnoDe(e, a, 'Isfahán'); A.ciudad = 'Isfahán'; A.dinares = 50; A.noches = 100; A.herido = false; A.extra.clienteWeb = true;
+    A.mano = A.mano.filter((c) => c.ref !== 'alfombraIsfahan');
+    forzar(e, x);
+    CONT['ev.h14'](data, e, {}, { pid: a, opcion: 'si' });
+    const d = e.dados;
+    assert.ok(d && d.por === a && !d.lanzado && d.grupos[0].valores[0] === x, `dado ${x}: espera el botón del jugador`);
+    assert.ok(d.resumen.length === 2, 'la ventana explica el resultado');
+    const alf = A.mano.some((c) => c.ref === 'alfombraIsfahan');
+    assert.equal(A.dinares, 40 + (x === 6 ? 30 : 0), `dado ${x}: dinares`);
+    assert.equal(A.noches, 130 + (x === 6 ? 20 : 0), `dado ${x}: noches`);
+    assert.equal(alf, x >= 2 && x <= 5, `dado ${x}: alfombra`);
+    assert.equal(A.herido, x === 3 || x === 5, `dado ${x}: herido solo con 3 o 5`);
+    assert.ok(!A.extra.sinPrincipal, `dado ${x}: ya no pierde la acción principal`);
+  }
+  // sin dinares para la entrada no pasa nada
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const A = g.e.jugadores[g.ids[0]]; A.dinares = 5; A.noches = 100;
+  CONT['ev.h14'](data, g.e, {}, { pid: g.ids[0], opcion: 'si' });
+  assert.equal(A.noches, 100); assert.equal(A.dinares, 5);
+}
+
+// Retos reintentables (Jorge, 8 de noviembre): R21, R28, R31, R32, R33, R34, R36 y R38. Si fallas, no queda hecho y se vuelve a abrir
+// cuando sales de la ciudad y regresas; si lo logras, queda hecho para siempre.
+{
+  const { REINTENTABLES, disponibles } = await import('../shared/retos.js');
+  assert.deepEqual(REINTENTABLES, ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38']);
+  const preparar = () => {
+    const g = partida(['4']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    turnoDe(e, a, 'Yemen'); A.ciudad = 'Yemen'; e.turno.fase = 'acciones'; A.dinares = 100;
+    return { g, e, a, A };
+  };
+  const ofrece = (e, a, id) => disponibles(data, e, a).some((x) => x.id === id);
+  // R38 «Dados en la taberna»: buscar una semilla en la que la casa gane y otra en la que gane el jugador
+  let perdio = null, gano = null;
+  for (let s = 1; s < 400 && (!perdio || !gano); s++) {
+    const { g, e, a, A } = preparar(); e.semilla = s; const d0 = A.dinares;
+    assert.ok(g.act(a, { t: 'reto', id: 'R38' }).ok);
+    if (A.dinares < d0 && !perdio) perdio = { g, e, a, A }; else if (A.dinares > d0 && !gano) gano = { g, e, a, A };
+  }
+  assert.ok(perdio && gano, 'hay semillas para ganar y perder');
+  {
+    const { g, e, a, A } = perdio;
+    assert.ok(!A.retosHechos.includes('R38'), 'fallado: no cuenta como hecho');
+    turnoDe(e, a, 'Yemen'); e.turno.fase = 'acciones';
+    assert.ok(!ofrece(e, a, 'R38'), 'en la misma visita no se ofrece');
+    assert.match(g.act(a, { t: 'reto', id: 'R38' }).error, /sal de la ciudad y vuelve/);
+    A.ciudad = 'Basra'; llegada(data, e, a, 'Yemen');
+    A.ciudad = 'Yemen'; turnoDe(e, a, 'Yemen'); llegada(data, e, a, 'Basra'); e.turno.fase = 'acciones';
+    assert.ok(ofrece(e, a, 'R38'), 'al volver a Yemen se puede intentar otra vez');
+  }
+  {
+    const { e, a, A } = gano;
+    assert.ok(A.retosHechos.includes('R38'), 'logrado: queda hecho');
+    A.ciudad = 'Basra'; llegada(data, e, a, 'Yemen'); A.ciudad = 'Yemen'; turnoDe(e, a, 'Yemen'); llegada(data, e, a, 'Basra'); e.turno.fase = 'acciones';
+    assert.ok(!ofrece(e, a, 'R38'), 'ya hecho: no se repite');
+  }
+  // un reto que no está en la lista (R44) sigue igual: hecho aunque sea solo una visita
+  const { g, e, a, A } = preparar(); A.ciudad = 'Magreb'; turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok); assert.ok(A.retosHechos.includes('R44'));
+}
+
 console.log('reglas de la casa OK');

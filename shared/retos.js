@@ -19,6 +19,10 @@ export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
 const cobrarFijo = (data, e, pid, monto) => { const j = e.jugadores[pid]; if (j.dinares < monto) return false; j.dinares -= monto; return true; };
 function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.includes(id)) j.retosHechos.push(id); }
 const REPETIBLES = ['R8', 'R9'];
+// Reintentables (Jorge, 8 de noviembre): si fallas uno de estos retos no queda hecho; se vuelve a abrir cuando sales de su ciudad y
+// regresas (como R8 y R9). Si lo logras, queda hecho para siempre. Cada reto marca su fallo con ctx.fallo.
+export const REINTENTABLES = ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38'];
+const esperaVolver = (j, id) => REINTENTABLES.includes(id) && !!j.extra.rep?.[id];
 // Regla de la casa: ningún premio da dos transportes. Si el jugador ya tiene un animal, recibe dinares en su lugar.
 const ANIMALES = ['caballo', 'camello', 'burro'], VALOR_ANIMAL = { caballo: 30, camello: 20, burro: 10 };
 export function darTransporte(data, e, pid, ref) {
@@ -68,6 +72,7 @@ export function disponibles(data, e, pid) {
     const d = m1(data, id);
     if (!d || !(T[id].ciudades || [d.ciudad]).includes(j.ciudad)) continue;
     if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) continue;
+    if (esperaVolver(j, id)) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = T[id].req ? T[id].req(data, e, pid) : null;
     r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || msg || undefined });
@@ -92,6 +97,7 @@ export function iniciarReto(data, e, pid, a) {
   if (!(def.ciudades || [d.ciudad]).includes(j.ciudad)) return err(`Ese reto está en ${(def.ciudades || [d.ciudad]).join(' o ')}.`);
   if (j.transito || j.perdido) return err('No puedes ahora.');
   if (hecho(j, a.id) && !(REPETIBLES.includes(a.id) && !j.extra.rep?.[a.id])) return err('Ya completaste ese reto.');
+  if (esperaVolver(j, a.id)) return err('Fallaste este reto: sal de la ciudad y vuelve para intentarlo otra vez.');
   if (j.misiones.some((m) => m.id === a.id)) return err('Ya lo tienes en curso.');
   const msg = def.req ? def.req(data, e, pid) : null;
   if (msg) return err(msg);
@@ -106,6 +112,12 @@ registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.
 function ejecutar(data, e, pid, id, usados) {
   const ctx = nuevoCtx(e, pid, id);
   { const antes = e.ctxCarta; e.ctxCarta = cartaDatos(data, 'reto', id).titulo; try { T[id].run(data, e, pid, ctx, usados); } finally { e.ctxCarta = antes; } }   // contexto de las tiradas del reto
+  if (ctx.fallo && REINTENTABLES.includes(id)) {
+    const j = e.jugadores[pid], ciudad = m1(data, id).ciudad;
+    j.retosHechos = j.retosHechos.filter((r) => r !== id);
+    if (j.ciudad === ciudad) { (j.extra.rep ||= {})[id] = true; ctx.say(`Puedes volver a intentarlo cuando salgas de ${ciudad} y regreses.`); }
+    else ctx.say(`Puedes volver a intentarlo cuando regreses a ${ciudad}.`);
+  }
   ctx.fin();
 }
 const usa = (data, e, pid, usados, id) => { if (!usados.includes(id)) return false; return consumirObj(data, e, pid, id); };
@@ -475,7 +487,7 @@ T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? '
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
-  if (x <= 3) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
+  if (x <= 3) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
   else { premio(data, e, pid, { dinares: 40 }, `${j.nombre} halla un cofre en la casa embrujada:`); if (x === 6) { darItem(e, j, 'mapa', { tesoro: 'ruman' }); ctx.say('Y un mapa de los Rumán.'); } }
 } };
 T.R22 = { ciudad: 'Damasco', req: (data, e, pid) => {
@@ -535,9 +547,9 @@ const aplic = (data, e, pid, usados, id) => usa(data, e, pid, usados, id);
 T.R28 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R28');
   let ganz = aplic(data, e, pid, us, 'OB07'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0);
-  if (!ganz) { const v = ctx.t(`${j.nombre}: el guardia`, 2); if (suma(v) + b1 < 7) { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardia te sorprende: -20 noches, herido.'); return; } ctx.say('Pasas al guardia.'); } else ctx.say('La ganzúa neutraliza al guardia.');
+  if (!ganz) { const v = ctx.t(`${j.nombre}: el guardia`, 2); if (suma(v) + b1 < 7) { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardia te sorprende: -20 noches, herido.'); ctx.fallo = true; return; } ctx.say('Pasas al guardia.'); } else ctx.say('La ganzúa neutraliza al guardia.');
   const llave = aplic(data, e, pid, us, 'OB06'), lin = aplic(data, e, pid, us, 'OB09') ? 1 : 0;
-  if (!llave) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x + lin < 4) { pagar(data, e, pid, 10); ctx.say('La cerradura no cede: huyes y pagas 10 dinares.'); return; } }
+  if (!llave) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x + lin < 4) { pagar(data, e, pid, 10); ctx.say('La cerradura no cede: huyes y pagas 10 dinares.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 45, noches: 10 }, `${j.nombre} vacía el cofre del tesorero:`);
 } };
 T.R29 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if (!tieneItem(j, 'camello')) return 'Necesitas un camello.'; return j.dinares >= 5 ? null : 'Cuestan 5 dinares las provisiones.'; }, run(data, e, pid, ctx, us) {
@@ -564,26 +576,26 @@ T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (e.jugadores[pid].dinares >=
 T.R31 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R31');
   const ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0);
-  if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches = Math.max(0, j.noches - 30); j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); return; } }
-  if (!aplic(data, e, pid, us, 'OB06')) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x < 5) { ctx.say('La cerradura resiste: huyes sin botín.'); return; } }
+  if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches = Math.max(0, j.noches - 30); j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); ctx.fallo = true; return; } }
+  if (!aplic(data, e, pid, us, 'OB06')) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x < 5) { ctx.say('La cerradura resiste: huyes sin botín.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 80, noches: 15 }, `${j.nombre} despoja la cámara del emir:`); robarBotin(data, e, pid);
 } };
-T.R32 = { ciudad: 'Aleppo', req: (data, e, pid) => (tieneArma(data, e, e.jugadores[pid]) ? null : 'Necesitas un arma.'), run(data, e, pid) {
+T.R32 = { ciudad: 'Aleppo', req: (data, e, pid) => (tieneArma(data, e, e.jugadores[pid]) ? null : 'Necesitas un arma.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R32');
   if (peleaNPC(data, e, pid, { etq: 'Bandoleros', dados: 2, bono: 2 })) { premio(data, e, pid, { dinares: 40, noches: 10 }, `${j.nombre} despeja el paso:`); robarBotin(data, e, pid); }
-  else { pagar(data, e, pid, 20); j.herido = true; log(e, `${j.nombre} pierde ante los bandoleros.`, { pid }); }
+  else { pagar(data, e, pid, 20); j.herido = true; log(e, `${j.nombre} pierde ante los bandoleros.`, { pid }); ctx.fallo = true; }
 } };
 T.R33 = { ciudad: 'Damasco', run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R33');
   if (aplic(data, e, pid, us, 'OB10')) { premio(data, e, pid, { dinares: 35, noches: 10 }, 'La red atrapa al ladrón:'); return; }
   const v = ctx.t(`${j.nombre}: persecución`, 2); const b = (aplic(data, e, pid, us, 'OB05') ? 2 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0); const s = suma(v) + b;
   if (s >= 8) premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} alcanza al ladrón:`);
-  else if (s >= 5) ctx.say('El ladrón se escapa.'); else { pagar(data, e, pid, 5); ctx.say('Tropiezas y pagas 5 dinares por los puestos.'); }
+  else if (s >= 5) { ctx.say('El ladrón se escapa.'); ctx.fallo = true; } else { pagar(data, e, pid, 5); ctx.say('Tropiezas y pagas 5 dinares por los puestos.'); ctx.fallo = true; }
 } };
 T.R34 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R34');
   const b = (aplic(data, e, pid, us, 'OB09') ? 1 : 0) + (aplic(data, e, pid, us, 'OB06') ? 1 : 0); const [x] = ctx.t(`${j.nombre}: la cueva`, 1); const r = x + b;
-  if (r <= 2) { if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
+  if (r <= 2) { ctx.fallo = true; if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
   else if (r <= 4) premio(data, e, pid, { dinares: 20 }, 'Un cofre pequeño:');
   else { premio(data, e, pid, { dinares: 20 }, 'Una lámpara:'); if (!tomarDeBotin(data, e, pid, 'OB24')) premio(data, e, pid, { dinares: 30, noches: 15 }); }
 } };
@@ -598,10 +610,10 @@ T.R35 = { ciudad: 'India', req: (data, e, pid) => { const j = e.jugadores[pid]; 
     for (const c of dar) { quitarCarta(j, c.uid); devolverObjeto(data, e, c.ref); }
     premio(data, e, pid, { dinares: 70, noches: 20 }, `${j.nombre} agasaja al rajá:`);
   } };
-T.R36 = { ciudad: 'Basra', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!tieneArma(data, e, j)) return 'Necesitas un arma.'; return j.dinares >= 5 ? null : 'Cuesta 5 dinares.'; }, run(data, e, pid) {
+T.R36 = { ciudad: 'Basra', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!tieneArma(data, e, j)) return 'Necesitas un arma.'; return j.dinares >= 5 ? null : 'Cuesta 5 dinares.'; }, run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 5; hacer(e, pid, 'R36');
   if (peleaNPC(data, e, pid, { etq: 'Campeón del puerto', dados: 2, bono: 2 })) { premio(data, e, pid, { dinares: 50, noches: 15 }, `${j.nombre} vence al campeón del puerto:`); robarBotin(data, e, pid); }
-  else { pagar(data, e, pid, 15); j.herido = true; log(e, `${j.nombre} cae ante el campeón del puerto.`, { pid }); }
+  else { pagar(data, e, pid, 15); j.herido = true; log(e, `${j.nombre} cae ante el campeón del puerto.`, { pid }); ctx.fallo = true; }
 } };
 T.R37 = { ciudad: 'El Cairo', req: (data, e, pid) => { const j = e.jugadores[pid]; return j.dinares >= 10 || tieneObj(j, 'OB30') ? null : 'Cuesta 10 dinares.'; }, run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R37');
@@ -616,10 +628,10 @@ T.R38 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ?
   const cargados = aplic(data, e, pid, us, 'OB13');
   for (let g = 0; g < 30; g++) {
     let v = ctx.t(`${j.nombre} apuesta 10`, 2); let s = suma(v);
-    if (cargados) { if (s === 2) { pagar(data, e, pid, 10); ctx.say('Te descubren con los dados cargados: pierdes el objeto y pagas 10 dinares.'); return; } s = 9; }
+    if (cargados) { if (s === 2) { pagar(data, e, pid, 10); ctx.say('Te descubren con los dados cargados: pierdes el objeto y pagas 10 dinares.'); ctx.fallo = true; return; } s = 9; }
     const h = ctx.t('La casa', 2); const sh = suma(h);
     if (s === sh) { ctx.say('Empate: se repite.'); ctx.grupos.length = 0; continue; }
-    if (s > sh) premio(data, e, pid, { dinares: 30 }, `${j.nombre} gana la apuesta:`); else { j.dinares -= 10; ctx.say('La casa gana: pierdes los 10 dinares.'); }
+    if (s > sh) premio(data, e, pid, { dinares: 30 }, `${j.nombre} gana la apuesta:`); else { j.dinares -= 10; ctx.say('La casa gana: pierdes los 10 dinares.'); ctx.fallo = true; }
     return;
   }
 } };

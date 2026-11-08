@@ -288,8 +288,8 @@
    "tipo": "historico",
    "nombre": "La corte selyúcida en Isfahán",
    "ciudades": "Isfahán",
-   "efecto": "Quien esté o llegue a Isfahán esta ronda puede asistir al banquete del sultán. Al terminar tira un dado: con 1, pierde su acción principal del siguiente turno; con 6, recibe una propina",
-   "costo": "Entrada: 10 dinares y gana 30 noches. Con 6: +10 dinares",
+   "efecto": "Quien esté o llegue a Isfahán esta ronda puede asistir al banquete del sultán. Al terminar tira un dado: con 1, nada más; con 2 a 5, se roba una alfombra (con 3 o 5 le cortan una mano por ladrón y queda herido); con 6, recibe una propina",
+   "costo": "Entrada: 10 dinares y gana 30 noches. Con 6: +30 dinares y +20 noches",
    "fomenta": "M, P",
    "arte": "hi",
    "refReglamento": "17.2"

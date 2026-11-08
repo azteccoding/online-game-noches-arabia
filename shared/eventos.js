@@ -161,7 +161,7 @@ function aplicarHistorico0(data, e, id) {
 function quitarSoloMarca(j, animal) { const c = j.mano.find((x) => x.tipo === 'item' && x.ref === animal && !x.extra?.h20); if (c) { c.extra = { ...(c.extra || {}), h20: true }; } const sig = j.mano.find((x) => x.tipo === 'item' && x.ref === animal && !x.extra?.h20); if (!sig) { /* fin: el bucle while se corta al marcar todos */ } }
 
 function preguntaBanquete(data, e, pid) {
-  pedir(e, { tipo: 'historico', para: [pid], titulo: 'La corte selyúcida en Isfahán', texto: 'Asistir al banquete del sultán cuesta 10 dinares y da 30 noches. Al final, un dado: 1 pierdes tu siguiente acción principal; 6 recibes 10 dinares de propina.', opciones: [{ id: 'si', texto: 'Asistir (10 dinares)' }, { id: 'no', texto: 'No asistir' }], porDefecto: 'no', cont: { fn: 'ev.h14', args: {} } });
+  pedir(e, { tipo: 'historico', para: [pid], titulo: 'La corte selyúcida en Isfahán', texto: 'Asistir al banquete del sultán cuesta 10 dinares y da 30 noches. Al final tiras un dado: con 1 no ganas nada más; con 2 a 5 te robas una alfombra del palacio (con 3 o 5 te descubren y te cortan una mano por ladrón: quedas herido, pero te quedas con la alfombra); con 6, propina de 30 dinares y 20 noches.', opciones: [{ id: 'si', texto: 'Asistir (10 dinares)' }, { id: 'no', texto: 'No asistir' }], porDefecto: 'no', cont: { fn: 'ev.h14', args: {} } });
 }
 function preguntaEspecias(data, e, pid) {
   const j = jug(e, pid);
@@ -214,12 +214,20 @@ registrar('ev.h12', (data, e, args, resp) => {
     else mover(data, e, p, 'Damasco', 0, 'huye a Damasco');
   }
 });
+// H14 (Jorge, 8 de noviembre): la entrada cuesta 10 dinares y siempre da 30 noches; luego 1 dado con su botón. 1: nada más.
+// 2 a 5: se roba una alfombra de Isfahán; con 3 o 5 además queda herido (le cortan una mano por ladrón), pero conserva la alfombra.
+// 6: propina de 30 dinares y 20 noches.
 registrar('ev.h14', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion !== 'si' || j.dinares < 10) return;
   j.dinares -= 10; j.noches += 30; const x = dado(e);
-  mostrarDados(e, { por: pid, motivo: 'h14', grupos: [{ etq: `${j.nombre} en el banquete`, valores: [x] }], resumen: [x === 1 ? 'Pierde su acción principal del siguiente turno.' : x === 6 ? 'Propina de 10 dinares.' : 'Sin novedad.'] });
-  if (x === 1) j.extra.sinPrincipal = true; if (x === 6) j.dinares += 10;
+  const res = x === 1 ? 'No gana nada más: solo las 30 noches del banquete.'
+    : x === 6 ? 'Propina del sultán: 30 dinares y 20 noches.'
+    : par(x) ? 'Se roba una alfombra del palacio sin que nadie lo vea.'
+    : 'Se roba una alfombra del palacio, pero lo descubren: le cortan una mano por ladrón y queda herido (se queda con la alfombra).';
+  conContexto(e, 'La corte selyúcida en Isfahán', () => mostrarDados(e, { por: pid, motivo: 'h14', grupos: [{ etq: `${j.nombre} en el banquete`, valores: [x] }], resumen: [`${j.nombre} asiste al banquete del sultán: paga 10 dinares y gana 30 noches.`, res] }));
+  if (x === 6) { j.dinares += 30; j.noches += 20; }
+  else if (x >= 2) { darItem(e, j, 'alfombraIsfahan'); if (!par(x)) j.herido = true; }
 });
 registrar('ev.h17', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid), n = Math.min(resp.numero || 0, Math.floor(j.dinares / 15));
