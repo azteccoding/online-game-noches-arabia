@@ -46,7 +46,7 @@ export function accion(data, e, pid, a) {
     if (a.via === 'piratas') {
       if (j.ciudad !== 'Yemen') return err('Los piratas salen de Yemen.');
       const v = dados(e, 2), costo = suma(v);
-      mostrarDados(e, { por: pid, motivo: 'piratas', grupos: [{ etq: `${j.nombre}: precio de los piratas`, valores: v }], resumen: [`Los piratas piden ${costo} dinares.`] });
+      mostrarDados(e, { por: pid, motivo: 'piratas', grupos: [{ etq: `${j.nombre}: precio de los piratas`, valores: v }], resumen: [`Los piratas piden ${costo} dinares.`, ...(j.dinares < costo ? ['No te alcanzan: no hay viaje ni noches, y no gastas tu acción (puedes volver a preguntar).'] : [])] });   // Jorge (8 de noviembre): sin los dinares, no hay trato
       if (j.dinares < costo) return err(`Los piratas piden ${costo} dinares y no los tienes.`);
       j.dinares -= costo; t.principal = true;
       return HOOK.viajarTransporte(data, e, pid, { destino: 'Jorasán', motivo: 'piratas de Yemen', turnos: 1, jorasan: true });

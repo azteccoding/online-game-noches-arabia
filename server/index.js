@@ -133,7 +133,7 @@ function difundir() {
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
       const antes = congelada?.get(pid);
-      if (antes && antes.fase === v.fase) v = { ...antes, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
+      if (antes && antes.fase === v.fase) v = { ...antes, turno: v.turno, acciones: v.acciones, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
       else ultimaVista.set(pid, v);
       if (!memorias.has(ws)) memorias.set(ws, nuevaMemoria());
       enviar(ws, { t: 'estado', s: reducirVista({ ...v, urls: direcciones() }, memorias.get(ws)) });   // solo lo nuevo del historial y del registro

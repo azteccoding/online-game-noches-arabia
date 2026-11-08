@@ -122,8 +122,8 @@
     "dy": 22,
     "anchor": "end"
    },
-   "nochesLlegada": 10,
-   "nochesLuego": 10,
+   "nochesLlegada": 5,
+   "nochesLuego": 5,
    "alojamiento": 5,
    "mazoCC": "Damasco",
    "retos": [
@@ -168,8 +168,8 @@
     "dy": 36,
     "anchor": "start"
    },
-   "nochesLlegada": 15,
-   "nochesLuego": 15,
+   "nochesLlegada": 25,
+   "nochesLuego": 25,
    "alojamiento": 3,
    "mazoCC": "Basra",
    "retos": [
@@ -189,8 +189,8 @@
     "dy": -82,
     "anchor": "middle"
    },
-   "nochesLlegada": 30,
-   "nochesLuego": 30,
+   "nochesLlegada": 20,
+   "nochesLuego": 20,
    "alojamiento": 10,
    "mazoCC": "Bagdad",
    "retos": [

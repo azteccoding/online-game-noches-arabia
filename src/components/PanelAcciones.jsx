@@ -1,15 +1,18 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { enviar, avisar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
 import Dinares from './Dinares.jsx';
+import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
 // Barra inferior: quién juega y los botones del turno. El detalle de acciones (combate, retos, objetos…) vive en el panel «Acciones».
 export default function PanelAcciones({ s, abrir, panel }) {
   const t = s.turno, yo = s.jugadores[s.yo];
+  const memSaldo = useRef({});
+  const saldo = saldoVisible(memSaldo.current, yo, !!cartaSinCerrar(s));   // consecuencias de una carta: al cerrarla
   const miTurno = t?.pid === s.yo && s.fase === 'juego';
   const enTurno = t && s.jugadores[t.pid];
   const ocupado = !!s.dados || !!s.pend;
@@ -35,7 +38,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           <small>{miTurno ? FASE[t.fase] : `${nombreCorto(enTurno?.pj) || ''} · ${t ? FASE[t.fase] : ''}`} · ronda {s.ronda}</small>
         </div>
         <div className="acc-yo">
-          <Dinares valor={yo.dinares} /><span className="chip" title="Noches">{yo.noches} noches</span>
+          <Dinares valor={saldo.dinares} /><span className="chip" title="Noches">{saldo.noches} noches</span>
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>

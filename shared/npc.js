@@ -105,12 +105,13 @@ function accionPrincipal(data, e, pid) {
       objetivos.sort((a, b) => e.jugadores[b].dinares - e.jugadores[a].dinares || e.orden.indexOf(a) - e.orden.indexOf(b));
       if (objetivos.length) {
         const x = dado(e);
-        mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC: 1-3 asalto, 4-6 duelo', valores: [x] }], resumen: [] });
+        // Jorge (8 de noviembre): cuando Yafar NPC va contra alguien, sí hay alerta que se cierra (4 s mínimo) y dice qué le hace y a quién
+        const aviso = mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, alerta: true, grupos: [{ etq: 'Yafar NPC: 1-3 asalto, 4-6 duelo', valores: [x] }], resumen: [] });
         const orden = x <= 3 ? ['robo', 'duelo'] : ['duelo', 'robo'];
         for (const obj of objetivos) for (const tipo of orden) {
           if (validarAtaque(data, e, pid, { tipo, objetivo: obj }, { npc: true }).ok) {
             const r = atacar(data, e, pid, { tipo, objetivo: obj, noRechazable: true }, { npc: true, cont });
-            if (r.ok) return;
+            if (r.ok) { aviso?.resumen?.push(`${j.nombre} va contra ${e.jugadores[obj].nombre}: ${tipo === 'robo' ? 'lo asalta para robarle' : 'lo reta a duelo'}.`); return; }
           }
         }
       }

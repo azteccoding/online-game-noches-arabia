@@ -124,12 +124,12 @@ export function robar(e, mazo) {
 
 // ---------------------------------------------------------------- dados sobre la mesa (cola)
 // Los resultados se calculan y APLICAN al instante en el servidor; los dados son la vista pública del resultado (modal sincronizado).
-export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null, boton = null }) {
+export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null, boton = null, alerta = false }) {
   const valores = grupos.flatMap((g) => g.valores);
   // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
   // Nadie los lanza por él: a los 60 segundos el banco puede sacarlo. (Bots y pruebas, sin cliente web, siguen como antes.)
   const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
-  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo, ...(boton ? { boton } : {}) };
+  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo, ...(boton ? { boton } : {}), ...(alerta ? { alerta: true } : {}) };
   for (const r of resumen) if (r) log(e, r, { pid: por });
   if (e.opciones?.rapido) return d;
   if (!e.dados) e.dados = d; else (e.colaDados ||= []).push(d);
@@ -393,7 +393,7 @@ export const refDeUid = (j, u) => j.mano.find((c) => c.uid === u)?.ref;
 export function marcarBuscado(data, e, j, motivo) {
   j.buscado = data.config.buscadoRondas; j.extra.buscadoMotivo = { ...motivo, ronda: e.ronda };
 }
-const POR = { matar: (m) => `por matar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí' };
+const POR = { matar: (m) => `por matar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí', mujer: (m) => `por atacar a ${m.victima}, que iba sin armas` };
 export function textoBuscado(data, e, j) {
   const r = [];
   if (j.buscado > 0) {

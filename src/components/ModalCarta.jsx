@@ -5,7 +5,10 @@ import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
 
-export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new URLSearchParams(location.search).get('minLectura'))) || 5000;
+import { lecturaMs, MIN_LECTURA_MS as MIN_NORMAL } from '../game/lectura.js';
+// Jorge (8 de noviembre): todas las cartas se cierran a los 4 s; Traición en Jerusalén, a los 7 s.
+export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new URLSearchParams(location.search).get('minLectura'))) || MIN_NORMAL;
+const minLectura = (c) => (MIN_LECTURA_MS !== MIN_NORMAL ? MIN_LECTURA_MS : lecturaMs(c));
 const PASO_MS = 1800;            // la ficha camina por la ruta entre 1.3 y 3.6 s (Peon3D.jsx): la carta espera a que casi llegue
 const GIRO_MS = 600;             // el dorso se ve y gira; luego entra el anverso (animaciones .carta-dorso / .modal-carta.gira)
 const DORSOS = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', objeto: 'objetos', item: 'objetos', especial: 'objetos', trivia: 'trivia', mesa: 'cc', cuento: 'crp', personaje: 'personajes', reto: 'retos', ifrit: 'ifrit' };
@@ -39,7 +42,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
     if (ciudades.current !== huellaCiudades) {
       ciudades.current = huellaCiudades;
       const lim = ultimaNro.current, porNro = Object.fromEntries(s.historial.map((h) => [h.nro, h]));
-      setCola((c) => c.filter((n) => n > lim || ['trivia', 'mesa'].includes(porNro[n]?.deck)));
+      setCola((c) => c.filter((n) => n > lim || porNro[n]?.deck !== 'cuento'));   // Jorge (8 de noviembre): solo se cierran los cuentos de ambiente; las demás cartas esperan a que las cierres
     }
     ultimaNro.current = Math.max(0, ...s.historial.map((h) => h.nro));
   }, [huellaCiudades, s.historial]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -74,8 +77,9 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
 
   useEffect(() => {
     if (!modoLectura || fase !== 'frente') return undefined;
-    const t0 = Date.now(); setAbierto(t0); setResta(Math.ceil(MIN_LECTURA_MS / 1000));
-    const iv = setInterval(() => { const r = Math.max(0, Math.ceil((MIN_LECTURA_MS - (Date.now() - t0)) / 1000)); setResta(r); if (r === 0) clearInterval(iv); }, 200);
+    const ms = minLectura(carta);
+    const t0 = Date.now(); setAbierto(t0); setResta(Math.ceil(ms / 1000));
+    const iv = setInterval(() => { const r = Math.max(0, Math.ceil((ms - (Date.now() - t0)) / 1000)); setResta(r); if (r === 0) clearInterval(iv); }, 200);
     return () => clearInterval(iv);
   }, [modoLectura, nroActual, fase]);
 
@@ -107,8 +111,8 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
           {!modoLectura && <span className="chip">Consulta</span>}
         </div>
         {modoLectura && (
-          <div className="barra-lectura" role="progressbar" aria-label="Tiempo mínimo de lectura" aria-valuemin="0" aria-valuemax={MIN_LECTURA_MS / 1000} aria-valuenow={resta}>
-            <i className="barra-i" key={abierto} style={{ animationDuration: MIN_LECTURA_MS + 'ms' }} />
+          <div className="barra-lectura" role="progressbar" aria-label="Tiempo mínimo de lectura" aria-valuemin="0" aria-valuemax={minLectura(carta) / 1000} aria-valuenow={resta}>
+            <i className="barra-i" key={abierto} style={{ animationDuration: minLectura(carta) + 'ms' }} />
           </div>
         )}
         <Carta datos={carta} key={carta.nro}>

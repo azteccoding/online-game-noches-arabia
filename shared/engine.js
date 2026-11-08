@@ -938,6 +938,8 @@ export function sacarCuento(data, e, pid, clave) {
 }
 
 export const CRP_RUYAN = 5;
+export const RODAR_NPC_MS = 1700;   // lo que tarda en rodar cada fila de dados en el cliente (Dados.jsx, RUEDA_MS)
+export const dadosDeNPC = (e, d) => !!(d && d.motivo === 'npc:Yafar' && !d.alerta);   // ingreso, movimiento, decisión y CC de Yafar NPC (las peleas sí tienen ventana)
 function responderCC(data, e, pid, a) {
   const t = e.turno;
   if (!t || t.pid !== pid || !t.ccActual || t.ccActual.tipo !== 'trivia') return err('No hay trivia pendiente.');
@@ -1239,6 +1241,7 @@ export function vista(data, e, pid) {
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
     mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
+    leidoHasta: e.jugadores[pid]?.extra?.leidoHasta ?? null,   // hasta qué carta cerró este jugador (consecuencias después de cerrar)
     chat: (e.chat || []).filter((m) => m.para === pid || m.de === pid).slice(-40),
     publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},
     miMano: yo ? yo.mano.map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) })) : [],
@@ -1330,6 +1333,8 @@ function tick0(data, e, ahora) {
     else if (antes !== e.ultimaCuenta) { e.ultimaCuenta = antes; cambio = true; }
   }
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
+  // Jorge (8 de noviembre): las tiradas de Yafar NPC no tienen ventana de resultado: se ven rodar y, al terminar, siguen las consecuencias.
+  else if (e.dados && e.dados.lanzado && dadosDeNPC(e, e.dados) && ahora - e.dados.t0 > RODAR_NPC_MS * Math.max(1, e.dados.grupos?.length || 1) + 400) { siguienteDados(e); cambio = true; }
   if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
   if (e.fase === 'juego') {
     if (e.pend && e.dados) e.pend.t0 = ahora;                     // el plazo de una decisión empieza cuando se cierran los dados

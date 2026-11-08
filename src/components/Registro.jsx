@@ -1,5 +1,6 @@
 import React from 'react';
 import { ETIQUETA, Icono } from './iconos.jsx';
+import { logVisible } from '../game/lectura.js';   // lo de una carta sin cerrar aparece al cerrarla
 
 export function Historial({ s, onAbrir, onCerrar }) {
   const lista = s.historial.slice().reverse();
@@ -30,7 +31,7 @@ export function Registro({ s, onCerrar }) {
       <div className="desp-cab"><h2>Registro</h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
         <ol className="registro" aria-live="polite">
-          {s.log.slice().reverse().map((l, i) => <li key={i}><time>{new Date(l.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time> {l.texto}</li>)}
+          {logVisible(s).slice().reverse().map((l, i) => <li key={i}><time>{new Date(l.t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</time> {l.texto}</li>)}
         </ol>
       </div>
     </div>

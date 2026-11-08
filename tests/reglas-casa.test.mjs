@@ -214,7 +214,7 @@ function forzar(e, ...valores) {
   turnoDe(e, 'npc', 'Damasco'); e.ronda = 1;
   for (const id of g.ids) e.jugadores[id].ciudad = 'Bagdad';
   y.ciudad = 'Basra'; y.visitadas = ['Bagdad', 'Basra']; let n0 = y.noches; llegada(data, e, 'npc', 'Damasco');
-  assert.equal(y.noches - n0, Math.floor(15 / 2), 'solo: la mitad');
+  assert.equal(y.noches - n0, Math.floor(25 / 2), 'solo: la mitad (Basra da 25)');
   turnoDe(e, 'npc', 'Damasco'); e.jugadores[g.ids[0]].ciudad = 'Isfahán';
   y.ciudad = 'Isfahán'; y.visitadas.push('Isfahán'); n0 = y.noches; llegada(data, e, 'npc', 'Damasco');
   assert.equal(y.noches - n0, 15, 'con un jugador en la ciudad: completo');
@@ -478,7 +478,7 @@ function avanzarHasta(g, cond, pasos = 400) {
       assert.ok(g.act(pid, { t: 'reto', id: rid }).ok);
       const gano = e.log.slice(L).some((l) => /Vences/.test(l.texto)); vistos.add(gano);
       const extra = j.noches - 100 - (gano ? gana : pierde);
-      assert.ok(extra >= 0 && extra <= 60, `${rid} ${gano ? 'gana' : 'pierde'}: noches ${j.noches - 100} (más la llegada a Basra)`);
+      assert.ok(extra >= 0 && extra <= 100, `${rid} ${gano ? 'gana' : 'pierde'}: noches ${j.noches - 100} (más la llegada a Basra)`);
       if (gano) assert.ok(j.dinares - 200 >= din, `${rid}: dinares sin cambio`);
     }
     assert.equal(vistos.size, 2, rid + ': se probaron los dos resultados');
@@ -1761,6 +1761,44 @@ for (let k = 0; k < 6; k++) {
     hecho = true;
   }
   assert.ok(hecho, 'se pudo probar que Anís mata a Jamil');
+}
+
+// Jorge (8 de noviembre): Yafar que asalta o ataca a muerte a Zein o a Zubayda sin armas a la vista queda Buscado (un arma escondida
+// no cuenta); con un arma a la vista, no. Piratas de Yemen: sin los dinares que piden no hay viaje ni noches ni se gasta la acción.
+{
+  for (const [pjV, arma, oculta, esperado] of [['6', null, false, true], ['2', 'jambiya', true, true], ['2', 'alfanje', false, false]]) {
+    const g = partida(['B', pjV]); assert.ok(g.iniciar().ok);
+    const e = g.e, [y, v] = g.ids, Y = e.jugadores[y], V = e.jugadores[v];
+    e.ronda = 5; turnoDe(e, y, 'Damasco'); Y.ciudad = 'Damasco'; V.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+    V.mano = V.mano.filter((c) => !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); V.extra.jambiyaOculta = false;
+    V.mano = V.mano.filter((c) => c.ref !== 'dadosPersia');
+    if (arma) { darItem(e, V, arma); V.extra.jambiyaOculta = oculta; }
+    Y.buscado = 0;
+    const r = g.act(y, { t: 'atacar', tipo: 'robo', objetivo: v }); assert.ok(r.ok, r.error);
+    assert.equal(Y.buscado > 0, esperado, `Yafar contra ${pjV} con ${arma || 'nada'}${oculta ? ' escondida' : ''}`);
+  }
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Yemen'); A.ciudad = 'Yemen'; e.turno.fase = 'acciones'; A.dinares = 1; A.noches = 100;
+  assert.ok(!g.act(a, { t: 'tesoro', sub: 'jorasan', via: 'piratas' }).ok);
+  assert.equal(A.noches, 100); assert.equal(A.dinares, 1); assert.ok(!e.turno.principal, 'no gasta la acción'); assert.ok(!A.transito);
+}
+
+// Jorge (8 de noviembre): las tiradas propias de Yafar NPC no tienen ventana: al terminar de rodar, el servidor sigue solo.
+{
+  const { dadosDeNPC, RODAR_NPC_MS } = await import('../shared/engine.js');
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const e = g.e; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  const d = mostrarDados(e, { por: 'npc', npc: true, motivo: 'npc:Yafar', grupos: [{ etq: 'Yafar NPC: dado de movimiento', valores: [3] }], resumen: [] });
+  assert.ok(dadosDeNPC(e, d) && d.lanzado);
+  g.tickear(RODAR_NPC_MS + 600); assert.equal(e.dados, null, 'se cierran solos al terminar de rodar');
+  const p = mostrarDados(e, { por: 'npc', npc: true, motivo: 'pelea', grupos: [{ etq: 'pelea', valores: [3, 4] }], resumen: [] });
+  assert.ok(!dadosDeNPC(e, p), 'las peleas conservan su ventana');
+  // cuando va contra alguien: alerta que se cierra (al momento, sin esperar)
+  e.dados = null; e.colaDados = [];
+  const al = mostrarDados(e, { por: 'npc', npc: true, alerta: true, motivo: 'npc:Yafar', grupos: [{ etq: 'Yafar NPC: 1-3 asalto, 4-6 duelo', valores: [2] }], resumen: ['Yafar va contra J0: lo asalta para robarle.'] });
+  assert.ok(!dadosDeNPC(e, al), 'la alerta contra alguien sí tiene ventana');
+  g.tickear(RODAR_NPC_MS + 600); assert.equal(e.dados, al, 'no se cierra sola al terminar de rodar');
 }
 
 console.log('reglas de la casa OK');

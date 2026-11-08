@@ -216,6 +216,12 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   const pedirNur = j.pj === '1' && nurHonor ? { dinares: Math.max(0, Math.floor(a.pedirDinares || 0)), noches: Math.max(0, Math.floor(a.pedirNoches || 0)) } : null;
   const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [], noRechazable: !!a.noRechazable };
   log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid });
+  // Jorge (8 de noviembre): si Yafar (NPC o jugador) asalta o ataca a muerte a Zein o a Zubayda y ella no lleva armas a la vista
+  // (un arma escondida no cuenta), Yafar queda Buscado, gane o pierda.
+  if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
+    marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
+    log(e, `${j.nombre} atacó a ${d.nombre}, que iba sin armas: queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
+  }
   // «Dados de Persia» (Jorge, 8 de noviembre): antes «Por la ventana» de Anís; ahora la usa quien tenga la carta (una vez por ronda)
   if (tieneItem(d, 'dadosPersia') && d.extra.ventanaRonda !== e.ronda && a.tipo !== 'duelo') {
     d.extra.ventanaRonda = e.ronda;

@@ -109,7 +109,7 @@ export default function Dados({ s }) {
           ))}
         </div>
       )}
-      {!rodando && !d.cerrados?.includes(s.yo) && (
+      {!rodando && !d.cerrados?.includes(s.yo) && (d.motivo !== 'npc:Yafar' || d.alerta) && (   /* Jorge: las tiradas propias de Yafar NPC no tienen ventana (las peleas sí) */
         <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Resultado de los dados">
           <div className="dados-resultado panel">
             {(grupos.length > 1 || !grupos[0].etq || s.enCola > 0) && <p className="quien">{por?.nombre || 'Banco'} · {motivo}{s.enCola ? ` · ${s.enCola} tirada(s) más en cola` : ''}</p>}
