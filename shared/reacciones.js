@@ -5,6 +5,7 @@ export const REACCIONES = [
   { id: 'te', para: 'turno', emoji: '🫖', texto: '¡Que se enfría el té!' },
   { id: 'camellos', para: 'turno', emoji: '🐪', texto: 'Los camellos ya bostezan…' },
   { id: 'arena', para: 'turno', emoji: '⏳', texto: 'Se acaba la arena del reloj.' },
+  { id: 'ojitos', para: 'turno', emoji: '👀', texto: '¿Ya merito?' },
   { id: 'pelea', para: 'todos', emoji: '⚔️', texto: '¡Pelea!' },
   { id: 'comercio', para: 'todos', emoji: '🤝', texto: '¡Comerciemos!' },
   { id: 'matemosYafar', para: 'todos', emoji: '🗡️', texto: '¡Matemos a Yafar!' },
@@ -12,8 +13,9 @@ export const REACCIONES = [
   { id: 'bien', para: 'todos', emoji: '👏', texto: '¡Bien jugado!' },
   { id: 'enojo', para: 'todos', emoji: '😠', texto: '¡Por las barbas del Califa!' },
   { id: 'fiesta', para: 'todos', emoji: '🎉', texto: '¡Que viva la fiesta!' },
-  { id: 'furia', para: 'todos', emoji: '😡', texto: '¡#@$%&!*¿?#@!!' },
+  { id: 'furia', para: 'todos', emoji: '😡', texto: '¡P#@$%T!*¿?#@M!' },
   { id: 'extranar', para: 'todos', emoji: '😢', texto: '¡Te extrañaremos!' },
+  { id: 'manitas', para: 'todos', emoji: '👉👈', texto: 'Cmo que ya se tardó, ¿No?' },
 ];
 export const ESPERA_REACCION_MS = 1000;   // antirrebote de 1 s
 
