@@ -279,7 +279,15 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   const k = por && e.jugadores[por] && !e.jugadores[por].eliminado ? e.jugadores[por] : null;
   for (const m of j.mensajes || []) e.mazos.descarte.mensajes.push(m.id);
   j.mensajes = [];
-  const cartas = j.mano.splice(0);
+  // Regla de la casa (Jorge, 7 de noviembre): el Firmán vuelve al Califa aunque alguien mate a su dueño; el mapa de los dinares
+  // escondidos se pierde con su dueño (esos dinares ya no los recupera nadie).
+  const cartas = j.mano.splice(0).filter((c) => {
+    if (c.tipo === 'especial' && c.ref === 'F1') { e.firmanes = (e.firmanes || 0) + 1; return false; }
+    if (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return false;
+    return true;
+  });
+  for (const x of Object.values(e.jugadores)) x.mano = x.mano.filter((m) => !(m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === 'jugador' && m.extra?.dueno === pid));
+  j.escondido = 0; j.tesoroEsc = null;
   if (k) {
     k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan
     if (j.buscado > 0) { const n = data.config.recompensaBuscado ?? 200, d = data.config.recompensaBuscadoDinares ?? 100; k.noches += n; k.dinares += d; log(e, `${k.nombre} cobra la recompensa por ${j.nombre}, que estaba Buscado: ${d} dinares y ${n} noches.`, { pid: por, aviso: true }); }   // regla de la casa: no se multiplica por ronda
@@ -290,7 +298,6 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
   } else {
     for (const c of cartas) {
       if (c.tipo === 'objeto') devolverObjeto(data, e, c.ref);
-      else if (c.tipo === 'especial' && c.ref === 'F1') e.firmanes = (e.firmanes || 0) + 1;
       else if (c.tipo === 'especial' && c.ref === 'K1') e.kanmakan = { dueno: null, usada: false };
       else if (c.tipo === 'item' && c.ref === 'burro') e.burros = (e.burros || 0) + 1;   // el burro vuelve al mercado de Basra
     }

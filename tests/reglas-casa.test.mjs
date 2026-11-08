@@ -1211,6 +1211,26 @@ for (let k = 0; k < 6; k++) {
   const B = e.jugadores[g.ids[1]]; B.extra.joyaVisir = true; turnoDe(e, g.ids[1], 'Bagdad'); e.turno.fase = 'acciones'; B.dinares = 45;
   assert.ok(g.act(g.ids[1], { t: 'comprar', ref: 'firman' }).ok, 'con la joya del visir cuesta 45'); assert.equal(e.firmanes, 0);
   eliminar(data, e, a, { causa: 'prueba' }); assert.equal(e.firmanes, 1, 'muerte sin asesino: el Firmán vuelve al visir');
+  Y.mano.push({ uid: 99001, tipo: 'especial', ref: 'F1' }); eliminar(data, e, y, { por: g.ids[1], causa: 'prueba' });
+  assert.equal(e.firmanes, 2, 'si matan a Yafar, su Firmán vuelve al Califa y queda a la venta');
+  assert.equal(e.jugadores[g.ids[1]].mano.filter((c) => c.ref === 'F1').length, 1, 'el asesino no recibe el Firmán del muerto (solo conserva el suyo)');
+}
+
+// Mapa del escondite (Jorge, 7 de noviembre): un robo nunca se lleva el mapa de tus dinares escondidos; si te matan, el mapa y esos dinares se pierden
+{
+  const g = partida(['4', '7', '2']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b];
+  A.escondido = 40; A.tesoroEsc = { ciudad: 'Damasco', id: 777 }; darItem(e, A, 'mapa', { tesoro: 'jugador', dueno: a, ciudad: 'Damasco', id: 777 }); darItem(e, A, 'libro');
+  for (const j of [A, Bj]) j.ciudad = 'Aleppo';
+  darItem(e, Bj, 'cimitarra'); e.ronda = 4; e.mods = {}; turnoDe(e, b, 'Aleppo'); e.turno.fase = 'acciones';
+  forzar(e, 6, 6, 1, 1);
+  assert.ok(g.act(b, { t: 'atacar', tipo: 'robo', objetivo: a }).ok);
+  while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => o.id === 'luchar') || e.pend.opciones[0]).id });
+  assert.ok(A.mano.some((x) => x.ref === 'mapa' && x.extra?.tesoro === 'jugador'), 'el robo no se lleva el mapa del escondite');
+  assert.ok(Bj.mano.some((x) => x.ref === 'libro'), 'el robo salió: el ladrón se llevó el libro'); assert.ok(!Bj.mano.some((x) => x.ref === 'mapa'), 'el ladrón no tiene el mapa');
+  eliminar(data, e, a, { por: c, causa: 'prueba' });
+  assert.equal(A.escondido, 0, 'al morir, los dinares escondidos se pierden');
+  assert.ok(!e.jugadores[c].mano.some((x) => x.ref === 'mapa'), 'el asesino no recibe el mapa');
 }
 
 console.log('reglas de la casa OK');
