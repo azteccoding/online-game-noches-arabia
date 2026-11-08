@@ -1199,7 +1199,7 @@ for (let k = 0; k < 6; k++) {
   for (const [pjs, venta] of [[['4', '7'], 1], [['4', '7', '2'], 1], [['4', '7', '2', 'B'], 2], [['4', '7', '2', '3', '5', 'B', '1'], 3]]) {
     const g = partida(pjs); assert.ok(g.iniciar().ok);
     assert.equal(g.e.firmanes, venta, `${pjs.length} jugadores: ${venta} a la venta`);
-    for (const id of Object.keys(g.e.jugadores)) if (g.e.jugadores[id].pj === 'B') assert.ok(tieneEsp(g.e.jugadores[id], 'F1'), 'Yafar trae el suyo');
+    for (const id of Object.keys(g.e.jugadores)) if (g.e.jugadores[id].pj === 'B') assert.ok(!tieneEsp(g.e.jugadores[id], 'F1'), 'Yafar ya no lo trae al inicio: le llega en su 3er turno');
   }
   const g = partida(['4', '7', '2', 'B']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, , , y] = g.ids, A = e.jugadores[a], Y = e.jugadores[y];
@@ -1327,6 +1327,171 @@ for (let k = 0; k < 6; k++) {
   const h = partida(['4', '7']); h.e.opciones.sinYafar = true; assert.ok(h.iniciar().ok);
   for (const pid of h.ids) { const j = h.e.jugadores[pid]; turnoDe(h.e, pid, 'Andalucía'); j.ciudad = 'Magreb'; llegada(data, h.e, pid, 'Andalucía'); }
   assert.ok(h.e.mansaGenerosa && !h.e.mansaNepotismo, 'sin Yafar en la partida, S3 no sale');
+}
+
+// Tratos de un solo uso (punto 16 de Jorge): una propuesta aceptada o rechazada ya no se puede volver a aceptar; al cerrarse un trato
+// se invalidan las demás propuestas pendientes entre esos dos jugadores; y no se acepta si alguno ya no tiene lo que ofrece
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const j of [A, B]) j.ciudad = 'Damasco';
+  A.dinares = 50; B.dinares = 50;
+  const libro = darItem(e, B, 'libro');
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 20 }, pide: { objetos: [libro.uid] } }).ok);
+  const t1 = Object.keys(e.tratos)[0];
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 10 }, pide: {} }).ok, 'una segunda propuesta pendiente');
+  assert.equal(Object.keys(e.tratos).length, 2);
+  assert.ok(g.act(b, { t: 'responderTrato', id: t1, ok: true }).ok);
+  assert.equal(A.dinares, 30); assert.ok(A.mano.some((c) => c.uid === libro.uid));
+  assert.equal(Object.keys(e.tratos).length, 0, 'al cerrarse el trato se invalidan las demás propuestas entre los dos');
+  const r = g.act(b, { t: 'responderTrato', id: t1, ok: true }); assert.ok(!r.ok && /ya no está pendiente/.test(r.error), 'el mismo trato no se acepta dos veces');
+  assert.equal(A.dinares, 30, 'nadie pierde dinares por pulsar otra vez');
+  // sin dinero no hay trato: si al aceptar ya no tiene lo que ofreció, falla
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 30 }, pide: {} }).ok);
+  const t2 = Object.keys(e.tratos)[0]; A.dinares = 5; const b0 = B.dinares;
+  assert.ok(!g.act(b, { t: 'responderTrato', id: t2, ok: true }).ok, 'faltan dinares: no se cierra'); assert.equal(B.dinares, b0);
+  // rechazado tampoco se puede aceptar después
+  A.dinares = 30; assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 5 }, pide: {} }).ok);
+  const t3 = Object.keys(e.tratos)[0];
+  assert.ok(g.act(b, { t: 'responderTrato', id: t3, ok: false }).ok);
+  assert.ok(!g.act(b, { t: 'responderTrato', id: t3, ok: true }).ok, 'un trato rechazado no se puede aceptar'); assert.equal(A.dinares, 30);
+}
+
+// Yafar (puntos 1, 2, 3, 4, 9 y 10 de Jorge): primer turno ebrio; no va a India y Magreb/Andalucía le cuestan +20; ni sheijs ni Saladino ni
+// Mansa Musa lo benefician; no compra ni usa burro; los ladrones de Alí Babá le quitan además 80 noches; reacción «¡Matemos a Yafar!»
+{
+  const { armarReaccion } = await import('../shared/reacciones.js');
+  const { tarifa } = await import('../shared/base.js');
+  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, Y = e.jugadores[y];
+  // 1: primer turno ebrio
+  { const { avanzar } = await import('../shared/engine.js');
+    for (let k = 0; k < 6 && !e.log.some((l) => /llega ebrio/.test(l.texto)); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    assert.ok(e.log.some((l) => l.texto === `${Y.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`), 'Yafar pierde su primer turno ebrio');
+    assert.ok(!e.log.some((l) => l.texto.startsWith(`Turno de ${Y.nombre}: cobra`)), 'en ese turno no cobra ni hace nada'); }
+  const ty = null;
+  // 2: tarifas
+  assert.equal(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar no va a India');
+  const nor = tarifa(data, e, e.jugadores[a], 'El Cairo', 'Magreb'); assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(nor / 2) + 20, 'Magreb: +20 sobre su mitad');
+  // 9: burro
+  Y.ciudad = 'Basra'; Y.dinares = 200; e.burros = 2; turnoDe(e, a, 'Basra');
+  const rb = g.act(y, { t: 'comprar', ref: 'burro' }); assert.ok(!rb.ok && /indigno/.test(rb.error), 'Yafar no compra burro');
+  // 3: Saladino no le da nada
+  const n0 = Y.noches; e.saladino = null; for (const id of g.ids) e.jugadores[id].visitadas.push('Aleppo', 'Damasco');
+  const A = e.jugadores[a]; const an0 = A.noches; turnoDe(e, a, 'Damasco'); A.visitadas = A.visitadas.filter((c) => c !== 'Aleppo'); A.ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
+  assert.ok(e.saladino && A.noches >= an0 + 50 && Y.noches === n0, 'Saladino premia a los jugadores pero no a Yafar');
+  // 10: ladrones
+  e.mods.ladrones = true; Y.noches = 200; Y.dinares = 30; Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.movio = false; Y.mano = Y.mano.filter((c) => c.ref !== 'arco');
+  finTurno(data, e, y);
+  assert.ok(Y.noches <= 120, 'los ladrones le quitan además 80 noches de dignidad');
+  // 4: reacción
+  assert.equal(armarReaccion(e, a, 'matemosYafar', 9e12, 0).r.texto, '¡Matemos a Yafar!');
+  assert.ok(armarReaccion(e, y, 'matemosYafar', 9e12, 0).error, 'Yafar no la manda');
+  void ty;
+}
+
+// Establo de Bagdad (punto 13): caballo 60, burro 20, camello 50; quien esté en Bagdad lo compra por 10 más; Yafar no compra burros
+{
+  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b], Y = e.jugadores[y];
+  for (const j of [A, Bj, Y]) { j.ciudad = 'Bagdad'; j.mano = j.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref)); }
+  const cab = darItem(e, A, 'caballo'), bur = darItem(e, A, 'burro'); A.dinares = 0;
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'vender', uid: cab.uid }).ok); assert.equal(A.dinares, 60);
+  assert.ok(g.act(a, { t: 'vender', uid: bur.uid }).ok); assert.equal(A.dinares, 80);
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';   // el mercado vende fuera de tu turno: compra B
+  Bj.dinares = 100; Y.dinares = 100;
+  const ry = g.act(y, { t: 'comprar', ref: 'establo:' + bur.uid }); assert.ok(!ry.ok && /indigno/.test(ry.error), 'Yafar no compra burros');
+  assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + cab.uid }).ok, 'compra el caballo de segunda mano'); assert.equal(Bj.dinares, 30, '60 + 10');
+  assert.ok(tieneItem(Bj, 'caballo'));
+  assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'un animal a la vez');
+  A.ciudad = 'Damasco'; const cam = darItem(e, A, 'camello'); turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(!g.act(a, { t: 'vender', uid: cam.uid }).ok, 'solo se venden en Bagdad');
+}
+
+// Puntos 6, 7, 8 y 12 de Jorge
+{
+  const { avanzar } = await import('../shared/engine.js');
+  const { duelo } = await import('../shared/pelea.js');
+  const { kanmakanVigente } = await import('../shared/pelea.js');
+  // 6: con 1 en su dado de ingreso, Yafar jugador paga 10 a sus primos
+  {
+    const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
+    const e = g.e, [, y] = g.ids, Y = e.jugadores[y];
+    e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+    turnoDe(e, y, 'Bagdad'); e.turno.fase = 'ingreso'; Y.dinares = 30; forzar(e, 1);
+    assert.ok(g.act(y, { t: 'tirarDados' }).ok); assert.equal(Y.dinares, 20, 'paga 10 de soborno');
+  }
+  // 8: Firmán de Yafar en su 3er turno, costo por turno y venta en Bagdad
+  {
+    const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
+    const e = g.e, [, y] = g.ids, Y = e.jugadores[y];
+    Y.dinares = 100; Y.extra.jugoTurno = true; Y.turnos = 2;
+    for (let k = 0; k < 8 && !Y.mano.some((c) => c.ref === 'F1'); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    assert.ok(Y.mano.some((c) => c.ref === 'F1' && c.extra?.yafar), 'le llega en su 3er turno');
+    assert.ok(e.historial.some((h) => h.id === 'F1' && !h.para), 'todos ven la carta');
+    const f0 = e.firmanes; const d0 = Y.dinares;
+    for (let k = 0; k < 8 && Y.turnos < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    assert.ok(e.log.some((l) => /paga 10 dinares por mantener su Firmán/.test(l.texto)), 'en normal le cuesta 10 por turno'); void d0;
+    Y.ciudad = 'Bagdad'; turnoDe(e, y, 'Bagdad'); e.turno.fase = 'acciones'; const d1 = Y.dinares;
+    assert.ok(g.act(y, { t: 'venderFirmanYafar' }).ok); assert.equal(Y.dinares, d1 + 25); assert.equal(e.firmanes, f0 + 1, 'queda a la venta como uno normal');
+    assert.ok(!Y.mano.some((c) => c.ref === 'F1'));
+  }
+  // 7: Kanmakán se disuelve al pelear si no pasó por Isfahán en sus últimos 2 turnos
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+    A.mano.push({ uid: 'k1', tipo: 'especial', ref: 'K1' }); e.kanmakan = { dueno: a, usada: false };
+    A.turnos = 5; A.extra.isfahanTurno = 4; assert.ok(kanmakanVigente(A));
+    A.extra.isfahanTurno = 1; assert.ok(!kanmakanVigente(A));
+    for (const j of [A, e.jugadores[b]]) j.ciudad = 'Damasco';
+    darItem(e, A, 'cimitarra'); A.destreza = true; e.ronda = 4; e.mods = {}; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok);
+    while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => o.id === 'luchar') || e.pend.opciones[0]).id });
+    assert.ok(!A.mano.some((c) => c.ref === 'K1'), 'se disolvió al usarlo');
+  }
+  // 12: si Yafar te gana un duelo que él te impuso, ganas 50 noches; si te roba, 20
+  {
+    const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, y] = g.ids, A = e.jugadores[a];
+    A.noches = 100; A.dinares = 10;
+    duelo(data, e, y, a, { atk: y }); assert.equal(A.noches, 100 - 30 + 50, 'pierde 30 por el duelo y gana 50 por la historia');
+  }
+}
+
+// Punto 15: al llegar a 1,001 noches se elige «Ganar ya» o «Seguir la ronda»
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones'; A.noches = 1000;
+  A.noches = 1001; g.act(b, { t: 'chat', para: a, tipo: 'ire', ciudad: 'Damasco' });   // cualquier acción revisa las metas
+  assert.ok(e.pend && e.pend.tipo === 'meta' && e.pend.para.includes(a), 'le pregunta a quien llegó');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'ganar' }).ok);
+  assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [a], 'gana en ese momento, sin esperar la ronda');
+  const h = partida(['4', '7']); assert.ok(h.iniciar().ok);
+  const f = h.e, [c, d] = h.ids; f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = [];
+  turnoDe(f, d, 'Bagdad'); f.turno.fase = 'acciones'; f.jugadores[c].noches = 1001; h.act(d, { t: 'chat', para: c, tipo: 'ire', ciudad: 'Damasco' });
+  assert.ok(h.act(c, { t: 'decidir', id: f.pend.id, opcion: 'seguir' }).ok); assert.equal(f.fase, 'juego', 'si sigue, la partida continúa');
+}
+
+// Carta S4 «Traición en Jerusalén»: una vez por partida, en una ronda al azar entre la 4 y la 12; todos pierden 1 dinar y 1 noche, Yafar NPC 10 y 10
+{
+  const { avanzar, TRAICION } = await import('../shared/engine.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], N = e.jugadores.npc;
+  assert.ok(e.traicionRonda >= TRAICION.desde && e.traicionRonda <= TRAICION.hasta, 'la ronda se sortea entre la 4 y la 12');
+  e.traicionRonda = e.ronda + 1; A.dinares = 0; A.noches = 20; if (N) { N.dinares = 30; N.noches = 40; }
+  const r0 = e.ronda;
+  for (let k = 0; k < 8 && e.ronda === r0; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+  assert.ok(e.traicion && e.historial.some((h) => h.id === 'S4' && !h.para), 'sale y la ven todos');
+  assert.ok(e.log.some((l) => /Traición en Jerusalén: Los concomitantes se han aliado con los Cruzados\./.test(l.texto)));
+  assert.ok(A.dinares <= 4 && A.noches <= 19 + 50, 'el jugador pierde 1 y 1 (puede quedar en deuda)');
+  if (N) assert.ok(e.log.some((l) => /Yafar NPC pierde 10 dinares y 10 noches/.test(l.texto)));
+  const n = e.historial.filter((h) => h.id === 'S4').length; e.traicionRonda = e.ronda + 1;
+  for (let k = 0; k < 8; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+  assert.equal(e.historial.filter((h) => h.id === 'S4').length, n, 'una sola vez por partida');
+  void b;
 }
 
 console.log('reglas de la casa OK');

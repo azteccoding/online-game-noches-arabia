@@ -13,7 +13,7 @@ export function libres(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
   if (!t || t.pid !== pid || t.fase === 'ingreso' || j.transito || j.perdido) return r;
   if (j.pj !== 'B' && j.dinares > 0 && (!j.tesoroEsc || j.tesoroEsc.ciudad === j.ciudad)) r.push({ k: 'esconder', titulo: 'Esconder dinares en esta ciudad' });
-  if (j.tesoroEsc && j.tesoroEsc.ciudad === j.ciudad && j.escondido > 0) r.push({ k: 'recuperar', titulo: `Recuperar mis ${j.escondido} dinares escondidos` });
+  for (const c of j.mano) if (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador' && c.extra.ciudad === j.ciudad) r.push({ k: 'recuperar', uid: c.uid, titulo: `Sacar los ${c.extra.monto ?? ''} dinares escondidos` });
   return r;
 }
 export function disponibles(data, e, pid) {
@@ -21,9 +21,9 @@ export function disponibles(data, e, pid) {
   if (!puedePrincipal(e.turno) || j.transito || j.perdido) return r;
   for (const c of mapasDe(j)) {
     const ciu = ciudadMapa(e, c);
-    if (ciu && ciu === j.ciudad && !(c.extra.tesoro in e.tesoros && e.tesoros[c.extra.tesoro].encontrado)) r.push({ k: 'tesoro', sub: 'buscar', uid: c.uid, titulo: 'Buscar el tesoro' + (TESOROS[c.extra.tesoro] ? ' de ' + TESOROS[c.extra.tesoro].nombre : ' escondido') });
+    if (c.extra?.tesoro !== 'jugador' && ciu && ciu === j.ciudad && !(c.extra.tesoro in e.tesoros && e.tesoros[c.extra.tesoro].encontrado)) r.push({ k: 'tesoro', sub: 'buscar', uid: c.uid, titulo: 'Buscar el tesoro' + (TESOROS[c.extra.tesoro] ? ' de ' + TESOROS[c.extra.tesoro].nombre : ' escondido') });
   }
-  const transp = ['caballo', 'camello', 'burro'].find((x) => tieneItem(j, x) && !(j.ciudad === 'India' && x !== 'burro'));   // caballo y camello no salen de India
+  const transp = ['caballo', 'camello', 'burro'].find((x) => tieneItem(j, x) && !(j.ciudad === 'India' && x !== 'burro') && !(x === 'burro' && j.pj === 'B'));   // caballo y camello no salen de India
   if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: 'Viajar al Jorasán con ' + ITEMS[transp].nombre });
   if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: 'Pagar a los piratas de Yemen para ir al Jorasán' });
   return r;
@@ -114,19 +114,22 @@ export function esconder(data, e, pid, a) {
   if (!j.visitadas.includes(j.ciudad)) return err('Primero debes visitar la ciudad.');
   const m = Math.floor(a.monto || 0);
   if (!(m > 0 && m <= j.dinares)) return err('Cantidad inválida.');
+  if (!j.tesoroEsc && !tieneItem(j, 'amate')) return err('Necesitas un papel amate para anotar dónde escondes tus dinares (se compra en el mercado de cualquier ciudad).');
   j.dinares -= m; j.escondido += m;
-  if (!j.tesoroEsc) { j.tesoroEsc = { ciudad: j.ciudad, id: uid(e) }; darItem(e, j, 'mapa', { tesoro: 'jugador', dueno: pid, ciudad: j.ciudad, id: j.tesoroEsc.id }); }
+  if (!j.tesoroEsc) { quitarPrimero(j, 'item', 'amate'); j.tesoroEsc = { ciudad: j.ciudad, id: uid(e) }; darItem(e, j, 'mapa', { tesoro: 'jugador', dueno: pid, ciudad: j.ciudad, id: j.tesoroEsc.id, monto: 0 }); }
+  for (const x of Object.values(e.jugadores)) for (const q of x.mano) if (q.tipo === 'item' && q.ref === 'mapa' && q.extra?.id === j.tesoroEsc.id) q.extra.monto = j.escondido;
   log(e, `${j.nombre} esconde dinares en ${j.ciudad}.`, { pid });
   return ok();
 }
-export function recuperar(data, e, pid) {
+export function recuperar(data, e, pid, a = {}) {
   const j = e.jugadores[pid], t = e.turno;
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
-  if (!j.tesoroEsc || j.tesoroEsc.ciudad !== j.ciudad || !(j.escondido > 0)) return err('Aquí no tienes nada escondido.');
-  j.dinares += j.escondido; j.escondido = 0;
-  for (const x of Object.values(e.jugadores)) for (const q of x.mano.filter((m) => m.tipo === 'item' && m.ref === 'mapa' && m.extra?.id === j.tesoroEsc.id)) quitarCarta(x, q.uid);
-  j.tesoroEsc = null;
-  log(e, `${j.nombre} recupera su tesoro escondido.`, { pid });
+  const mapa = j.mano.find((c) => c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador' && (!a.uid || c.uid === a.uid) && c.extra.ciudad === j.ciudad);
+  if (!mapa) return err('Aquí no tienes ningún papel amate con dinares escondidos.');
+  const dueno = e.jugadores[mapa.extra.dueno];
+  if (!dueno || !dueno.tesoroEsc || dueno.tesoroEsc.id !== mapa.extra.id || !(dueno.escondido > 0)) { quitarCarta(j, mapa.uid); return err('Ese escondite ya está vacío.'); }
+  const m = dueno.escondido; j.dinares += m; dueno.escondido = 0; dueno.tesoroEsc = null; quitarCarta(j, mapa.uid);
+  log(e, dueno === j ? `${j.nombre} recupera sus ${m} dinares escondidos.` : `${j.nombre} saca los ${m} dinares que ${dueno.nombre} escondió en ${j.ciudad}.`, { pid });
   return ok();
 }
 

@@ -109,7 +109,7 @@ export default function Dados({ s }) {
           ))}
         </div>
       )}
-      {!rodando && (
+      {!rodando && !d.cerrados?.includes(s.yo) && (
         <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Resultado de los dados">
           <div className="dados-resultado panel">
             {(grupos.length > 1 || !grupos[0].etq || s.enCola > 0) && <p className="quien">{por?.nombre || 'Banco'} · {motivo}{s.enCola ? ` · ${s.enCola} tirada(s) más en cola` : ''}</p>}
@@ -125,7 +125,7 @@ export default function Dados({ s }) {
               <ul className={`dados-resumen${d.motivo === 'pelea' ? ' paso-a-paso' : ''}`} role="status">{d.resumen.map((r, i) => <li key={d.id + '-' + i} style={{ '--i': i }} className={/^Gana |vence a|muere|roba|se salva|no se lleva|pierde el duelo|gana por|ambos heridos/.test(r) ? 'final' : undefined}>{r}</li>)}</ul>
             )}
             {!d.resumen?.length && grupos.length === 1 && <p className="total" role="status">{d.valores.length > 1 ? `Suma: ${total}` : `Salió ${total}`}</p>}
-            <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar para todos</button>
+            <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar</button>
           </div>
         </div>
       )}

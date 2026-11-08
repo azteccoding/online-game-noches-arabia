@@ -7,7 +7,7 @@
 import {
   VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, enCiudad, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
-  eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar,
+  eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
 } from './base.js';
@@ -95,7 +95,6 @@ function incorporarTarde(data, e, pid) {
   if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
   j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
   for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true });
-  if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
   { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
   j.tarde = false; j.listo = true;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
@@ -149,6 +148,35 @@ function reponerMercado(data, e) {
 // ---------------------------------------------------------------- partida
 // Regla de la casa (Jorge, 7 de noviembre): a la venta hay 1 Firmán por cada 3 jugadores, redondeando hacia arriba; el que trae Yafar va aparte.
 export const firmanesEnVenta = (n) => Math.ceil(Math.max(0, n) / 3);
+// Punto 8 (Jorge): el Firmán de Yafar llega del Califa en su 3er turno, tiene costo cada turno y lo puede vender en Bagdad.
+export const FIRMAN_YAFAR = { turno: 3, costo: { facil: 12, normal: 10, dificil: 5 }, venta: { facil: 20, normal: 25, dificil: 15 } };
+const dif = (e) => (['facil', 'normal', 'dificil'].includes(e.opciones?.dificultad) ? e.opciones.dificultad : 'normal');
+export const costoFirmanYafar = (e) => FIRMAN_YAFAR.costo[dif(e)];
+export const ventaFirmanYafar = (e) => FIRMAN_YAFAR.venta[dif(e)];
+const firmanDeYafar = (j) => j.mano.find((c) => c.tipo === 'especial' && c.ref === 'F1' && c.extra?.yafar);
+function firmanYafarTurno(data, e, j) {
+  if (j.pj !== 'B') return;
+  if (j.turnos === FIRMAN_YAFAR.turno && !j.extra.firmanRecibido) {
+    j.extra.firmanRecibido = true;
+    j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true, extra: { yafar: true } });
+    const s = data.objetos.especiales.find((x) => x.id === 'F1');
+    publicarCarta(e, { id: 'F1', deck: 'especial', titulo: s.nombre + ' (de Yafar)', sub: 'Carta especial', texto: `El Califa le entrega a ${j.nombre} un Firmán: con él puede portar y usar arco y jambiya en Bagdad, y desafiar y robar allí. A Yafar le cuesta ${costoFirmanYafar(e)} dinares cada turno; puede venderlo en Bagdad por ${ventaFirmanYafar(e)} y entonces queda a la venta como un Firmán normal.`, arte: s.arte, ref: s.refReglamento }, null);
+    log(e, `El Califa le entrega un Firmán a ${j.nombre}: arco y jambiya en Bagdad, y desafiar y robar allí. Le cuesta ${costoFirmanYafar(e)} dinares por turno.`, { pid: j.id, aviso: true });
+    return;
+  }
+  const f = firmanDeYafar(j); if (!f) return;
+  const c = costoFirmanYafar(e);
+  if (j.dinares >= c) { j.dinares -= c; log(e, `${j.nombre} paga ${c} dinares por mantener su Firmán.`, { pid: j.id }); }
+  else { j.mano.splice(j.mano.indexOf(f), 1); e.firmanes = (e.firmanes || 0) + 1; log(e, `${j.nombre} no puede pagar los ${c} dinares de su Firmán: lo devuelve al Califa y queda a la venta.`, { pid: j.id, aviso: true }); }
+}
+export function venderFirmanYafar(data, e, pid) {
+  const j = e.jugadores[pid], f = firmanDeYafar(j);
+  if (j.pj !== 'B' || !f) return err('No tienes el Firmán de Yafar.');
+  if (j.ciudad !== 'Bagdad') return err('El Firmán se le vende al Califa en Bagdad.');
+  const v = ventaFirmanYafar(e); j.mano.splice(j.mano.indexOf(f), 1); j.dinares += v; e.firmanes = (e.firmanes || 0) + 1;
+  log(e, `${j.nombre} le vende su Firmán al Califa por ${v} dinares: queda a la venta como un Firmán normal.`, { pid, aviso: true });
+  return ok();
+}
 function iniciar(data, e) {
   for (const j of Object.values(e.jugadores)) if (!j.npc && j.conectado === false && j.pj) { j.pj = null; j.listo = false; }   // quien no está conectado no entra
   const ids = e.orden.filter((id) => e.jugadores[id].pj);
@@ -178,6 +206,7 @@ function iniciar(data, e) {
   e.firmanes = firmanesEnVenta(ids.length);                                                  // regla de la casa: 1 Firmán a la venta por cada 3 jugadores (el de Yafar aparte)          // regla de la casa: N − 1 burros (Yafar no cuenta)
   // Regla de la casa: cada carrera de «dos noches» sale una sola vez, en una ronda al azar entre la 3 y la 12 (sin coincidir).
   const rondas = barajar(e, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  e.traicionRonda = TRAICION.desde + Math.floor(rnd(e) * (TRAICION.hasta - TRAICION.desde + 1));             // carta S4, una vez por partida
   e.carreras = Object.fromEntries(data.eventos.eventos.filter((x) => x.carrera).map((x, k) => [x.id, rondas[k]])); e.carrerasActivas = [];                                                     // para la regla del último en pie
   e.orden = orden.concat(Object.keys(e.jugadores).filter((i) => !orden.includes(i)));
   for (const id of orden) {
@@ -185,7 +214,6 @@ function iniciar(data, e) {
     j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
     if (e.solitario && !j.npc && e.opciones.dificultad === 'facil') j.dinares = 30;                                   // R 21.5
     for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true }); }
-    if (p.inicio.firman) j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });          // el de Yafar no sale de los que están a la venta
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;
@@ -199,9 +227,25 @@ function yafarAlFinal(e, orden) {
   return orden.filter((i) => !esB(i)).concat(orden.filter(esB));
 }
 
+// Carta especial S4 «Traición en Jerusalén» (Jorge, 7 de noviembre): sale una sola vez por partida, al empezar una ronda al azar entre la 4
+// y la 12 (se sortea al iniciar). El texto de la carta está en src/data/objetos.json (especiales, id «S4»). Todos los jugadores pierden
+// 1 dinar y 1 noche (Yafar jugador también); Yafar NPC pierde 10 dinares y 10 noches. Es un pago obligatorio: los dinares pueden quedar
+// en negativo (deuda); las noches no bajan de 0.
+export const TRAICION = { desde: 4, hasta: 12, jugador: { dinares: 1, noches: 1 }, npc: { dinares: 10, noches: 10 } };
+function traicionJerusalen(data, e) {
+  const s = data.objetos.especiales.find((x) => x.id === 'S4'); if (!s) return;
+  e.traicion = { ronda: e.ronda };
+  publicarCarta(e, { id: 'S4', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
+  for (const id of activos(e)) {
+    const j = e.jugadores[id], q = j.npc ? TRAICION.npc : TRAICION.jugador;
+    j.dinares -= q.dinares; j.noches = Math.max(0, j.noches - q.noches);
+  }
+  log(e, `Traición en Jerusalén: ${s.texto} Todos los jugadores pierden ${TRAICION.jugador.dinares} dinar y ${TRAICION.jugador.noches} noche${e.jugadores.npc ? `; Yafar NPC pierde ${TRAICION.npc.dinares} dinares y ${TRAICION.npc.noches} noches` : ''}.`, { aviso: true });
+}
 function empezarRonda(data, e) {
   e.orden = yafarAlFinal(e, e.orden);                                                             // también en partidas guardadas con el orden viejo
   e.ronda++;
+  if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
@@ -301,7 +345,7 @@ function cierreRonda(data, e) {
     if (npcId && Math.max(...hum.map((id) => e.jugadores[id].noches)) < e.jugadores[npcId].noches) {                  // R 2.4: si ambos llegan, gana quien tenga más noches; empate: ganan los jugadores
       e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1,001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
     }
-    const g = hum;
+    const g = hum.slice().sort((x, y) => (e.llegoMil?.[x] ?? Infinity) - (e.llegoMil?.[y] ?? Infinity)).slice(0, 1);   // punto 15: gana el primero que llegó
     e.fase = 'fin'; e.ganadores = g; e.turno = null;
     log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1,001 noches.');
     return ok();
@@ -316,7 +360,11 @@ function iniciarTurno(data, e, id, idx) {
   const j = e.jugadores[id], p = pjDe(data, j.pj);
   j.extra.descuentos = null;                                                // los descuentos de entrenar duran hasta tu siguiente turno
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
+  const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
+  if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
+  // Regla de Jorge (punto 1): Yafar, jugador o NPC, llega ebrio a su primer turno y lo termina sin hacer nada.
+  if (j.pj === 'B' && primerTurno) { t.fase = 'mov'; t.principal = true; t.fin = true; t.ebrio = true; log(e, `${j.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`, { pid: id, aviso: true }); return; }
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
@@ -328,6 +376,7 @@ function iniciarTurno(data, e, id, idx) {
   const esclavas = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclava');
   for (const c of esclavas) { if (j.dinares >= 1) j.dinares -= 1; j.noches += 5; }
   OBJ.animalesInicioTurno(data, e, id);                                                                   // albéitar y comida de los animales
+  firmanYafarTurno(data, e, j);
   log(e, `Turno de ${j.nombre}: cobra ${ing} dinares.`, { pid: id });
   PJ.inicioTurno(data, e, id);
   if (j.eliminado) return;
@@ -341,7 +390,15 @@ function iniciarTurno(data, e, id, idx) {
     if (tr.jorasan) { j.perdido = true; j.ciudad = 'Jorasán'; j.noches += NOCHES_JORASAN; log(e, `${j.nombre} llega al Jorasán (+${NOCHES_JORASAN} noches) y está perdido.`, { pid: id }); }
     else llegada(data, e, id, tr.desde);
   }
-  if (j.npc) t.fase = 'mov';
+  if (j.npc) {
+    t.fase = 'mov';
+    if (j.pj === 'B') {                                                                                 // Yafar NPC también tira su dado de ingreso (punto 6)
+      const v = dado(e);
+      mostrarDados(e, { por: id, npc: true, motivo: 'npc:Yafar', grupos: [{ etq: 'Yafar NPC: dado de ingreso (con 1 soborna a sus primos)', valores: [v] }], resumen: [v === 1 ? 'Un 1: tiene que sobornar a sus primos.' : 'Sin sobornos esta vez.'] });
+      if (v === 1) sobornoPrimos(e, j);
+      esconderYafarNPC(e, j);
+    }
+  }
 }
 
 // Carreras de «dos noches»: cuenta los turnos seguidos que cada jugador cierra hospedado (sin moverse) en la ciudad de la carrera.
@@ -382,7 +439,7 @@ function saladino(data, e) {
   if (!s) return;
   e.saladino = { ronda: e.ronda };
   publicarCarta(e, { id: 'S1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
-  const quienes = activos(e).filter((id) => !e.jugadores[id].npc);
+  const quienes = activos(e).filter((id) => !e.jugadores[id].npc && e.jugadores[id].pj !== 'B');   // Jorge (punto 3): Saladino tampoco beneficia a Yafar
   for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
   log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
 }
@@ -489,10 +546,29 @@ function tratosSinCiudad(e) {
     if (A && B && (A.ciudad !== B.ciudad || A.transito || B.transito)) { delete e.tratos[id]; log(e, `El trato entre ${A.nombre} y ${B.nombre} se cancela: ya no están en la misma ciudad.`, { pid: tr.de }); }
   }
 }
+// Punto 15 (Jorge): quien llega a 1,001 noches elige en ese momento «Ganar ya» o «Seguir la ronda». Si sigue y al cerrar la ronda hay
+// varios con 1,001, gana el primero que llegó (empate con Yafar NPC: ganan los jugadores, como siempre).
+function llegarAMil(data, e) {
+  if (e.fase !== 'juego') return;
+  for (const j of Object.values(e.jugadores)) {
+    if (!j.pj || j.npc || j.eliminado || j.noches < data.config.meta || e.llegoMil?.[j.id]) continue;
+    (e.llegoMil ||= {})[j.id] = ++e.seq;
+    log(e, `¡${j.nombre} llega a las 1,001 noches!`, { pid: j.id, aviso: true });
+    pedir(e, { tipo: 'meta', para: [j.id], titulo: '¡1,001 noches!', texto: 'Llegaste a las 1,001 noches. Puedes ganar ya, o seguir jugando hasta que termine la ronda (si otro también llega, gana quien llegó primero).',
+      opciones: [{ id: 'ganar', texto: 'Ganar ya' }, { id: 'seguir', texto: 'Seguir la ronda' }], porDefecto: 'ganar', limiteMs: 60000, cont: { fn: 'meta.decision', args: {} } });
+  }
+}
+registrar('meta.decision', (data, e, args, resp) => {
+  const j = e.jugadores[resp.pid];
+  if (!j || e.fase !== 'juego') return;
+  if (resp.opcion === 'seguir') { log(e, `${j.nombre} decide seguir jugando la ronda.`, { pid: j.id }); return; }
+  e.fase = 'fin'; e.ganadores = [j.id]; e.turno = null; e.dados = null; e.colaDados = []; e.colaPend = [];
+  log(e, `${j.nombre} gana la partida con 1,001 noches.`, { pid: j.id, aviso: true });
+});
 function anotarSaldos(e, antes, data) {
   if (!antes || e.fase === 'lobby') return;
   tratosSinCiudad(e);
-  if (data) topeNoches(e, data.config.meta);
+  if (data) { topeNoches(e, data.config.meta); llegarAMil(data, e); }
   for (const j of Object.values(e.jugadores)) {
     const a = antes[j.id]; if (!a || !j.pj) continue;
     const dd = j.dinares - a[0], dn = j.noches - a[1];
@@ -556,6 +632,7 @@ function despachar(data, e, pid, j, a, ahora) {
       delete e.jugadores[a.pid]; e.orden = e.orden.filter((i) => i !== a.pid); log(e, `El banco sacó de la sala a ${x.nombre}.`); bancoDeSala(e); return ok();
     }
     case 'chat': return chat(data, e, pid, a);
+    case 'venderFirmanYafar': { if (e.fase !== 'juego' || e.turno?.pid !== pid) return err('En tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); return venderFirmanYafar(data, e, pid); }
     case 'reclamarAnfitrion': if (String(a.pin) !== e.pinHost) return err('PIN incorrecto.'); e.host = pid; e.bancoFijo = true; log(e, `${j.nombre} es ahora el banco/anfitrión.`); return ok();
     // ---- decisiones y dados
     case 'decidir': return responderPend(data, e, pid, a);
@@ -569,7 +646,14 @@ function despachar(data, e, pid, j, a, ahora) {
       if (!e.dados) return ok();
       if (!e.dados.lanzado) { if (pid !== e.dados.por) return err(`Esperando a que ${nombre(e, e.dados.por)} lance los dados.`); e.dados.lanzado = true; e.dados.t0 = ahora; return ok(); }
       if (ahora - e.dados.t0 < MIN_DADOS_MS) return err('Los dados siguen rodando.');
-      siguienteDados(e); return ok();
+      // Jorge (puntos 5 y 11): nadie le cierra a otro el resultado. Cada quien lo cierra en su pantalla; se pasa al siguiente cuando lo
+      // cierra quien tiró (si es una persona conectada) o, si tiró un NPC, cuando lo cerraron todos los conectados (o a los 30 s).
+      const d = e.dados, cer = (d.cerrados ||= []);
+      if (!cer.includes(pid)) cer.push(pid);
+      const dueno = e.jugadores[d.por], humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado && x.conectado !== false);
+      const listo = dueno && !dueno.npc && dueno.conectado !== false ? cer.includes(d.por) : humanos.every((x) => cer.includes(x.id));
+      if (listo) siguienteDados(e);
+      return ok();
     }
     // ---- turno
     case 'viajar': return viajar(data, e, pid, a);
@@ -634,6 +718,22 @@ function despachar(data, e, pid, j, a, ahora) {
 }
 
 // ---------------------------------------------------------------- dados del turno
+// Jorge (punto 6): con un 1 en su dado de ingreso, Yafar tiene que sobornar a sus primos en el gobierno (10 dinares, o lo que tenga).
+// Punto 14 (Jorge): Yafar NPC esconde por fuerza parte de su dinero fuera de Bagdad: al pasar de 100 dinares deja 10 en una ciudad;
+// al pasar de 150 deja 15 en dos ciudades distintas (30 en total). Esos dinares quedan enterrados y él ya no los usa.
+function esconderYafarNPC(e, j) {
+  if (j.dinares <= 100) { j.extra.esc100 = false; }
+  if (j.dinares <= 150) { j.extra.esc150 = []; }
+  if (j.ciudad === 'Bagdad') return;
+  const deja = (n) => { j.dinares -= n; (e.enterradoYafar ||= {})[j.ciudad] = (e.enterradoYafar[j.ciudad] || 0) + n; log(e, `${j.nombre} tiene demasiado dinero y entierra ${n} dinares en ${j.ciudad}.`, { pid: j.id }); };
+  if (j.dinares > 150 && (j.extra.esc150 ||= []).length < 2 && !j.extra.esc150.includes(j.ciudad)) { j.extra.esc150.push(j.ciudad); deja(15); return; }
+  if (j.dinares > 100 && !j.extra.esc100) { j.extra.esc100 = true; deja(10); }
+}
+export const SOBORNO_PRIMOS = 10;
+function sobornoPrimos(e, j) {
+  const p = Math.min(SOBORNO_PRIMOS, Math.max(0, j.dinares)); j.dinares -= p;
+  log(e, `Un 1: ${j.nombre} tiene que sobornar a sus primos en el gobierno y paga ${p} dinares.`, { pid: j.id, aviso: true });
+}
 function tirarDados(data, e, pid, a) {
   const t = e.turno;
   if (e.fase !== 'juego') return err('La partida no está en curso.');
@@ -643,6 +743,7 @@ function tirarDados(data, e, pid, a) {
   const v = dado(e);
   const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
+  if (j.pj === 'B' && v === 1) sobornoPrimos(e, j);
   t.fase = 'mov';
   const tenia = j.mensajes.length;
   if (v === data.config.minimoMensajeDado) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
@@ -661,7 +762,7 @@ function tirarDadosLibres(e, pid, a) {
 }
 function darMensaje(data, e, pid) {
   const j = e.jugadores[pid];
-  if (j.npc) return;
+  if (j.npc || j.pj === 'B') return;                                     // Jorge (punto 3): los sheijs nunca benefician a Yafar
   const yaEstaRonda = e.log.some((l) => l.msgRonda === e.ronda);                                                      // máx. 1 jugador por ronda
   if (yaEstaRonda) return;
   const id = robar(e, 'mensajes');
@@ -746,6 +847,7 @@ export function viajarTransporte(data, e, pid, { destino, motivo = 'transporte',
 }
 
 export function llegada(data, e, pid, origen) {
+  if (e.jugadores[pid]?.ciudad === 'Isfahán') e.jugadores[pid].extra.isfahanTurno = e.jugadores[pid].turnos;   // Kanmakán (punto 7)
   const t = e.turno, j = e.jugadores[pid], c = ciudadDe(data, j.ciudad);
   const primera = !j.visitadas.includes(j.ciudad);
   const nadieAntes = !Object.values(e.jugadores).some((x) => x.visitadas.includes(j.ciudad));
@@ -936,7 +1038,7 @@ function proponerTrato(data, e, pid, a) {
 }
 function responderTrato(data, e, pid, a) {
   const tr = e.tratos[a.id];
-  if (!tr || tr.con !== pid) return err('Trato inexistente.');
+  if (!tr || tr.con !== pid) return err('Ese trato ya no está pendiente (ya se cerró, se rechazó o se canceló).');
   delete e.tratos[a.id];
   if (!a.ok) { log(e, `${e.jugadores[pid].nombre} rechaza el trato de ${e.jugadores[tr.de]?.nombre}${a.contra ? ' y le hace una contraoferta' : ''}.`, { pid: tr.de }); return ok(); }
   const A = e.jugadores[tr.de], B = e.jugadores[tr.con];
@@ -965,6 +1067,8 @@ function responderTrato(data, e, pid, a) {
   mover(A, B, tr.ofrece.objetos); mover(B, A, tr.pide.objetos);
   recortarMano(data, e, A.id); recortarMano(data, e, B.id);
   if (e.mods.feria && e.mods.feriaVentas !== false) { if (movA.length) A.dinares += 5; if (movB.length) B.dinares += 5; }     // E12: +5 del banco a quien vende un objeto
+  // Un trato cerrado invalida cualquier otra propuesta pendiente entre los dos (sus condiciones ya no valen).
+  for (const id of Object.keys(e.tratos)) { const x = e.tratos[id]; if ((x.de === A.id && x.con === B.id) || (x.de === B.id && x.con === A.id)) delete e.tratos[id]; }
   log(e, `${A.nombre} y ${B.nombre} cierran un trato.`);
   RET.mensajes(data, e, A.id, 'trato', { dio: movA, recibio: movB, con: B.id });
   RET.mensajes(data, e, B.id, 'trato', { dio: movB, recibio: movA, con: A.id });
@@ -1043,6 +1147,7 @@ export function acciones(data, e, pid) {
     for (const x of PJ.disponibles(data, e, pid)) r.push(x);
   }
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
+  if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
   r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' });
   return r;
 }
@@ -1051,7 +1156,7 @@ export function acciones(data, e, pid) {
 const manoPublica = (j) => j.mano.reduce((m, c) => { m[c.tipo] = (m[c.tipo] || 0) + 1; return m; }, {});   // casa: el NÚMERO de cartas por tipo es público
 
 function datosMano(data, e, c) {
-  if (c.tipo === 'especial') { const s = data.objetos.especiales.find((x) => x.id === c.ref); return { id: c.ref, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: c.ref === 'F1' ? 'Permite portar y usar arco y jambiya en Bagdad, desafiar y robar allí (R 15.3).' : c.ref === 'K1' ? '+2 a tus dados en cualquier pelea y no te pueden desafiar a duelo (R 15.5).' : s.nombre, arte: s.arte, ref: s.refReglamento }; }
+  if (c.tipo === 'especial') { const s = data.objetos.especiales.find((x) => x.id === c.ref); return { id: c.ref, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: c.ref === 'F1' ? 'Permite portar y usar arco y jambiya en Bagdad, desafiar y robar allí (R 15.3).' : c.ref === 'K1' ? '+2 a tus dados en cualquier pelea y no te pueden desafiar a duelo (R 15.5). Se disuelve al pelear si no has pasado por Isfahán en tus últimos 2 turnos.' : s.nombre, arte: s.arte, ref: s.refReglamento }; }
   if (c.tipo === 'item') {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }

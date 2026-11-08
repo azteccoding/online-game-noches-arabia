@@ -37,7 +37,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   assert.equal(vivos.slice(-2)[0], B, 'Adí justo antes de Yafar');
   assert.notEqual(e.jugadores[e.orden[e.orden.length - 1]].pj, '5', 'Ruyán nunca último');
   assert.equal(e.jugadores.npc.pj, 'B'); assert.equal(e.jugadores.npc.dinares, 10);
-  assert.ok(e.jugadores.npc.mano.some((c) => c.ref === 'jambiya') && e.jugadores.npc.mano.some((c) => c.ref === 'F1'));
+  assert.ok(e.jugadores.npc.mano.some((c) => c.ref === 'jambiya') && !e.jugadores.npc.mano.some((c) => c.ref === 'F1'))   // el Firmán le llega en su 3er turno (punto 8);
   assert.ok(e.historial.some((h) => h.deck === 'evento'), 'evento de ronda 1');
   void C;
 }
@@ -47,7 +47,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   assert.ok(!g.act(g.ids[0], { t: 'iniciar' }).ok, 'con 4 jugadores alguien debe llevar a Yafar (R 4.3)');
   const h = partida(['1', '2', '3', 'B']);
   assert.ok(h.listos().ok); assert.ok(!h.e.jugadores.npc, 'con Yafar jugador no hay NPC');
-  assert.equal(h.e.jugadores[h.ids[3]].mano.some((c) => c.ref === 'F1'), true);
+  assert.equal(h.e.jugadores[h.ids[3]].mano.some((c) => c.ref === 'F1'), false, 'el Firmán de Yafar llega en su 3er turno (punto 8)');
 }
 
 // ---------------------------------------------------------------- privacidad
@@ -72,7 +72,8 @@ const sinMensaje = (j) => { j.mensajes = []; };
   assert.ok(!act(p, { t: 'tirarDados' }).ok, 'ya tiraste');
   assert.ok(e.dados, 'los dados quedan en la mesa');
   assert.ok(!act(p, { t: 'cerrarDados' }).ok, 'siguen rodando');
-  g.tickear(3000); assert.ok(act(ids[1], { t: 'cerrarDados' }).ok); assert.equal(e.dados, null);
+  g.tickear(3000); assert.ok(act(ids[1], { t: 'cerrarDados' }).ok); assert.ok(e.dados && e.dados.cerrados.includes(ids[1]), 'otro jugador solo lo cierra en su pantalla');
+  assert.ok(act(p, { t: 'cerrarDados' }).ok); assert.equal(e.dados, null, 'quien tiró lo cierra para todos');
   sinMensaje(e.jugadores[p]); e.jugadores[p].dinares = 100;
   const r = act(p, { t: 'viajar', destino: 'Damasco' });
   assert.ok(r.ok, r.error);
@@ -185,6 +186,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
 {
   const g = partida(['4'], { opciones: { dificultad: 'dificil' } }); const { e } = g; g.listos();
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]);
+  e.jugadores.npc.extra.jugoTurno = true;   // su primer turno lo pierde ebrio (punto 1); aquí se mide un turno normal
   const d0 = e.jugadores.npc.dinares; g.cerrar(p);
   assert.ok(e.jugadores.npc.dinares >= d0 + 15, 'difícil: bolsa de 10');
 }
@@ -215,12 +217,14 @@ const sinMensaje = (j) => { j.mensajes = []; };
 {
   const g = partida(['4']); const { e } = g; g.listos();
   e.jugadores.npc.noches = 1001; e.jugadores[g.ids[0]].noches = 1400;
+  e.llegoMil = { [g.ids[0]]: 1 };   // ya eligió «Seguir la ronda» (punto 15): se resuelve al cerrar la ronda
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]); g.cerrar(p);
   assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [g.ids[0]], 'si ambos llegan y el jugador tiene más noches: gana el jugador');
 }
 {
   const g = partida(['4']); const { e } = g; g.listos();
   e.jugadores.npc.noches = 1400; e.jugadores[g.ids[0]].noches = 1001;
+  e.llegoMil = { [g.ids[0]]: 1 };   // ya eligió «Seguir la ronda» (punto 15): se resuelve al cerrar la ronda
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]); g.cerrar(p);
   assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [g.ids[0]], 'regla de la casa (tope de 1,001): si ambos llegan en la misma ronda quedan empatados en 1,001 y el empate es de los jugadores');
 }

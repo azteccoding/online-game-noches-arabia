@@ -68,7 +68,7 @@ export const ITEMS = {
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
   buza: { nombre: 'Buza', precio: 1, texto: 'Se compra en Damasco y se vende en El Cairo (4) o en Bagdad (3).' },
-  amate: { nombre: 'Papel amate', precio: 2, texto: 'Para esconder tu tesoro o rehacer un mapa.' },
+  amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 40, texto: 'Carga para R7. Ocupa las manos: no puedes huir con un objeto.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
@@ -89,6 +89,7 @@ export const ITEMS = {
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
 };
 export function itemDatos(data, ref, extra = {}) {
+  if (ref === 'mapa' && extra.tesoro === 'jugador') return { id: 'mapa:jugador', deck: 'objeto', titulo: `Papel amate · ${extra.monto ?? '?'} dinares en ${extra.ciudad}`, sub: 'Escondite de dinares', texto: `Aquí se anotó dónde están escondidos ${extra.monto ?? 'unos'} dinares: en ${extra.ciudad}. Quien tenga este papel puede ir a ${extra.ciudad} y sacarlos. Se puede vender o regalar a otro jugador en un trato; un robo no se lo lleva.`, valor: null, duracion: null, arte: 'ob-docum', ref: '16.3' };
   if (ref === 'mapa') {
     const t = extra.tesoro, d = TESOROS[t];
     return { id: 'mapa:' + t, deck: 'objeto', titulo: 'Mapa de tesoro' + (d ? ' · ' + d.nombre : t === 'jugador' ? ' · tesoro escondido' : ''), sub: 'Mapa · ' + (extra.ciudad || d?.ciudad || ''), texto: ITEMS.mapa.texto + (d ? ' Botín: ' + d.valor + ' dinares.' : ''), valor: null, duracion: null, arte: 'ob-lujo', ref: '16.1' };
@@ -286,8 +287,8 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
     if (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return false;
     return true;
   });
-  for (const x of Object.values(e.jugadores)) x.mano = x.mano.filter((m) => !(m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === 'jugador' && m.extra?.dueno === pid));
-  j.escondido = 0; j.tesoroEsc = null;
+  const papelAjeno = Object.values(e.jugadores).some((x) => x.id !== pid && x.mano.some((m) => m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === 'jugador' && m.extra?.dueno === pid));
+  if (!papelAjeno) { j.escondido = 0; j.tesoroEsc = null; }                          // si vendió el papel, el comprador conserva el escondite
   if (k) {
     k.noches += j.noches; if (!soloNoches) k.dinares += Math.max(0, j.dinares);   // las deudas no se heredan
     if (j.buscado > 0) { const n = data.config.recompensaBuscado ?? 200, d = data.config.recompensaBuscadoDinares ?? 100; k.noches += n; k.dinares += d; log(e, `${k.nombre} cobra la recompensa por ${j.nombre}, que estaba Buscado: ${d} dinares y ${n} noches.`, { pid: por, aviso: true }); }   // regla de la casa: no se multiplica por ronda
@@ -324,7 +325,11 @@ export function tarifa(data, e, j, a, b) {
   if (m.sindbad && (b === 'India' || (a === 'India' && b === 'Isfahán'))) t = 0;
   if (m.almoravides && par2('Magreb', 'Andalucía')) t = 0;
   if (m.seda && ['Samarcanda', 'Isfahán', 'India'].includes(a) && ['Samarcanda', 'Isfahán', 'India'].includes(b)) t = Math.ceil(t / 2);
-  if (j.pj === 'B') t = Math.ceil(t / 2);
+  if (j.pj === 'B') {
+    if (b === 'India') return null;                                                   // Jorge (punto 2): Yafar no tiene contactos en India
+    t = Math.ceil(t / 2);
+    if (b === 'Magreb' || b === 'Andalucía') t += 20;                                 // su familia tuvo problemas con las tribus de Occidente
+  }
   return t;
 }
 export const esLibro = (c) => c.tipo === 'item' && (c.ref === 'libro' || c.ref === 'papiro' || c.ref === 'libroIbnHazm');

@@ -25,6 +25,14 @@ export function armasUsables(data, e, j, ciudad = j.ciudad) {
   }
   return r;
 }
+// Jorge (punto 7): el Ejército de Kanmakán se extingue al usarlo en una pelea, salvo que su dueño haya estado en Isfahán en sus últimos 2 turnos.
+export const kanmakanVigente = (j) => j.extra?.isfahanTurno != null && j.turnos - j.extra.isfahanTurno <= 2;
+function usarKanmakan(e, j) {
+  if (kanmakanVigente(j)) return;
+  const c = j.mano.find((x) => x.tipo === 'especial' && x.ref === 'K1'); if (!c) return;
+  j.mano.splice(j.mano.indexOf(c), 1); e.kanmakan = { dueno: null, usada: true };
+  log(e, `El Ejército de Kanmakán peleó por ${j.nombre} y se disolvió: hacía más de dos turnos que no pasaba por Isfahán.`, { pid: j.id, aviso: true });
+}
 export function perfil(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
   const armas = armasUsables(data, e, j, ciudad || j.ciudad);
@@ -68,7 +76,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false } = {
       const x = data.config.armas?.cimitarra?.extraAtacante ?? 2; total += x; partes.push(`cimitarra al atacar +${x}`);
     }
   }
-  if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); }
+  if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
   const ob = objetoDeCombate(data, e, pid, rol, { contraNPC });
   let resta = 0;
@@ -432,7 +440,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
   if (j.herido) { partes.push('herido −1'); total -= 1; }
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
-  if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; }
+  if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
   if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1'); total += 1; }
   return { total, resta, partes };
@@ -593,6 +601,7 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
   L.herido = true;
   if (e.mods?.premioDuelo && ['Andalucía', 'Magreb'].includes(G.ciudad)) { G.dinares += e.mods.premioDuelo; log(e, `${G.nombre} cobra ${e.mods.premioDuelo} dinares del banco (Mercenarios de la frontera).`, { pid: ganador }); }
   log(e, `${G.nombre} gana el duelo: ${L.nombre} entrega ${din} dinares y ${noc} noches y queda herido.`, { pid: ganador });
+  if (G.pj === 'B' && P.atk === ganador) { L.noches += 50; log(e, `${L.nombre} perdió el duelo que le impuso Yafar, pero gana 50 noches por la historia que va a contar.`, { pid: perdedor }); }   // Jorge (punto 12)
 }
 
 // R 12.1: el ladrón toma dinares, objetos, mapas y cartas poseídas (no noches, ni Mensajes, ni dinares escondidos).
@@ -605,6 +614,7 @@ function robar(data, e, atk, def) {
   for (const c of cartas) { c.priv = true; A.mano.push(c); }                // nadie ve qué se llevó: deja de ser público
   recortarMano(data, e, atk);
   log(e, `${A.nombre} roba ${din} dinares${cartas.length ? ' y ' + cartas.length + ' carta(s)' : ''} a ${D.nombre}.`, { pid: atk });
+  if (A.pj === 'B' && D.pj !== 'B') { D.noches += 20; log(e, `${D.nombre} al menos gana 20 noches para contar la historia del robo de Yafar.`, { pid: def }); }   // Jorge (punto 12)
 }
 
 function terminarPelea(data, e, res) {

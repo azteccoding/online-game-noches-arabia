@@ -161,7 +161,6 @@ export function entraNPC(data, e) {
   const p = pjDe(data, 'B');
   const j = HOOK.nuevoJugador(e, 'npc', 'Yafar el Bermekí (NPC)', null);
   Object.assign(j, { pj: 'B', listo: true, npc: true, dinares: p.inicio.dinares, ciudad: 'Bagdad', visitadas: ['Bagdad'], destreza: true, mano: [{ uid: uid(e), tipo: 'item', ref: 'jambiya' }] });
-  j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1' });                   // Yafar trae su Firmán, aparte de los que están a la venta
   e.jugadores.npc = j;
   const iAdi = e.orden.findIndex((i) => e.jugadores[i].pj === '7' && !e.jugadores[i].eliminado);
   if (iAdi >= 0) e.orden.splice(iAdi, 0, 'npc'); else e.orden.push('npc');

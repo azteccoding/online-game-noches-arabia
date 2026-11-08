@@ -107,20 +107,23 @@ function Personaje({ a, s }) {
 function Tesoro({ s, mi, mt }) {
   const [monto, setMonto] = useState(10);
   const [ocupado, una] = useBloqueo();
+  const tengoAmate = s.mano.some((c) => c.tipo === 'item' && c.ref === 'amate');
+  const yaEscondi = mi.escondido > 0;
   const puedeEsc = mt && mi.pj !== 'B' && !mi.perdido && mi.dinares > 0;
+  const papeles = s.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');
   return (
     <>
       {puedeEsc && (
         <div className="accion-fila">
-          <div className="accion-txt"><b>Esconder dinares</b><small>Guardas dinares en esta ciudad (ya visitada) y recibes un mapa. Recupéralos aquí cuando quieras.</small></div>
+          <div className="accion-txt"><b>Esconder dinares</b><small>{yaEscondi || tengoAmate ? 'Los dejas en esta ciudad (ya visitada) y los anotas en tu papel amate. Ese papel lo puedes vender a otro jugador; un robo no te lo quita.' : 'Necesitas un papel amate para anotar dónde los escondes: se compra en el mercado de cualquier ciudad.'}</small></div>
           <div className="accion-ctl"><input type="number" min="1" max={mi.dinares} value={monto} onChange={(e) => setMonto(e.target.value)} aria-label="Dinares a esconder" style={{ width: 80 }} />
-            <button className="btn mini" disabled={!!s.pend || ocupado} onClick={una(() => enviar(ACCIONES.esconder(Number(monto))))}>Esconder</button></div>
+            <button className="btn mini" disabled={!!s.pend || ocupado || !(yaEscondi || tengoAmate)} onClick={una(() => enviar(ACCIONES.esconder(Number(monto))))}>Esconder</button></div>
         </div>
       )}
-      {mt && mi.escondido > 0 && (
-        <div className="accion-fila"><div className="accion-txt"><b>Recuperar el tesoro escondido</b><small>Tienes {mi.escondido} dinares escondidos (solo si estás en la ciudad donde los dejaste).</small></div>
-          <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || ocupado} onClick={una(() => enviar(ACCIONES.recuperar()))}>Recuperar</button></div></div>
-      )}
+      {mt && papeles.map((c) => (
+        <div key={c.uid} className="accion-fila"><div className="accion-txt"><b>{c.datos?.titulo || 'Papel amate'}</b><small>{c.extra.ciudad === mi.ciudad ? 'Estás en esa ciudad: puedes sacar los dinares.' : `Tienes que ir a ${c.extra.ciudad} para sacarlos.`}</small></div>
+          <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || ocupado || c.extra.ciudad !== mi.ciudad} onClick={una(() => enviar(ACCIONES.recuperar(c.uid)))}>Sacar los dinares</button></div></div>
+      ))}
     </>
   );
 }
@@ -143,7 +146,7 @@ function porQueNoAtacar(s, mi) {
   return 'Ahora no puedes desafiar ni atacar a nadie aquí (por ejemplo, por estar herido o porque nadie puede ser atacado en este momento).';
 }
 
-const SECCIONES = [['atacar', 'Combate y robos'], ['reto', 'Retos y misiones'], ['pj', 'Tu personaje'], ['tesoro', 'Tesoros y Jorasán'], ['asesinos', 'Los Asesinos'], ['usar', 'Usar objetos']];
+const SECCIONES = [['atacar', 'Combate y robos'], ['reto', 'Retos y misiones'], ['pj', 'Tu personaje'], ['tesoro', 'Tesoros y Jorasán'], ['asesinos', 'Los Asesinos'], ['venderFirmanYafar', 'Tu Firmán'], ['usar', 'Usar objetos']];
 
 export default function AccionesTurno({ s, onCerrar }) {
   const mi = s.jugadores[s.yo];
@@ -175,7 +178,7 @@ export default function AccionesTurno({ s, onCerrar }) {
                 return (
                   <div key={k + i} className="accion-fila">
                     <div className="accion-txt"><b>{a.titulo}</b>{a.texto && <small>{a.texto}</small>}</div>
-                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => enviar(k === 'asesinos' ? ACCIONES.asesinos() : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via }))}>{k === 'asesinos' ? 'Contratar' : 'Hacerlo'}</button></div>
+                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => enviar(k === 'asesinos' ? ACCIONES.asesinos() : k === 'venderFirmanYafar' ? ACCIONES.venderFirmanYafar() : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via }))}>{k === 'asesinos' ? 'Contratar' : 'Hacerlo'}</button></div>
                   </div>
                 );
               })}

@@ -968,6 +968,15 @@
    "refReglamento": "17.1",
    "texto": "Todos los viajeros han llegado al Magreb y le han contado a Mansa Musa cómo el visir Yafar reparte favores entre los suyos. El rey de Malí, que premia el mérito y no el parentesco, manda decir que no quiere saber nada del visir.",
    "efecto": "Sale una sola vez por partida, en cuanto todos los jugadores hayan visitado el Magreb (Yafar NPC no cuenta; Yafar jugador, sí). Yafar el Bermekí, sea NPC o jugador, pierde 50 noches. Si Yafar no está en la partida, no sale."
+  },
+  {
+   "id": "S4",
+   "nombre": "Traición en Jerusalén",
+   "copias": 1,
+   "arte": "es",
+   "refReglamento": "17.1",
+   "texto": "Los concomitantes se han aliado con los Cruzados.",
+   "efecto": "Todos los jugadores pierden 1 dinar y una noche. Yafar NPC pierde 10 dinares y 10 noches. Sale una sola vez por partida."
   }
  ],
  "ifrit": {
