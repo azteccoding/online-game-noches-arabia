@@ -364,3 +364,7 @@ fieldset:disabled { opacity: .5; }
 .chat-tipos .btn.on { background: linear-gradient(180deg, var(--oro-claro), var(--oro)); color: #26100a; }
 
 .chat-resp { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+
+.btn-ciudad { gap: 6px; }
+.btn-ciudad .ciudad-corta { display: none; }
+@media (max-width: 420px) { .btn-ciudad .ciudad-larga { display: none; } .btn-ciudad .ciudad-corta { display: inline; } }

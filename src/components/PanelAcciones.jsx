@@ -15,7 +15,6 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const ocupado = !!s.dados || !!s.pend;
   const sinCC = !t?.ccActual;
   const nAcc = s.acciones.filter((a) => !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)).length;
-  const puedeViajar = s.acciones.some((a) => a.k === 'viajar');
   const mano = s.mano.length + (s.mensajes?.length || 0);
   const marca = (p) => (panel === p ? ' on' : '');
   // Qué impide seguir: una decisión, los dados o una CC sin responder. En vez de un botón muerto, se avisa y se lleva a esa carta.
@@ -45,7 +44,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
         {miTurno && t.fase === 'ingreso' && <button className="btn grande" disabled={ocupado} onClick={() => enviar(ACCIONES.tirarDados())}>Tirar dado de ingreso</button>}
         {miTurno && t.fase !== 'ingreso' && (
           <>
-            <button className={`btn${bloqueo ? ' bloq' : ''}`} disabled={!puedeViajar} aria-disabled={!!bloqueo} onClick={intentar(() => abrir('ciudad:' + yo.ciudad))}>Viajar</button>
+            <button className={`btn btn-ciudad${bloqueo ? ' bloq' : ''}`} aria-disabled={!!bloqueo} title="Qué hay aquí y consejos" aria-label={`${yo.ciudad}: qué hay aquí y consejos`} onClick={intentar(() => abrir('ciudad:' + yo.ciudad))}><span aria-hidden="true">📍</span><span className="ciudad-larga">{yo.ciudad}</span><span className="ciudad-corta">Esta ciudad</span></button>
             <button className={`btn${marca('acciones')}`} onClick={() => abrir('acciones')}>Acciones{nAcc ? ` (${nAcc})` : ''}</button>
           </>
         )}
