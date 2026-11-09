@@ -948,8 +948,8 @@
    "copias": 1,
    "arte": "es",
    "refReglamento": "17.1",
-   "texto": "En la ciudadela de Damasco, el sultán Salah ad-Din al-Ayyubi recibe a los viajeros. Les habla con sencillez: «Sean honestos y crean en Dios con todo el corazón. No busquen la guerra, pero si los atacan, defiéndanse con valor». Al despedirlos, ordena que a cada uno se le entreguen 10 dinares y se le cuenten 50 noches de hospitalidad.",
-   "efecto": "Sale una sola vez por partida, en cuanto Aleppo y Damasco hayan sido visitadas por jugadores humanos (no tiene que ser el mismo; las visitas de Yafar NPC no cuentan). Cada jugador vivo recibe 10 dinares y 50 noches (no se multiplican por ronda); Yafar NPC no recibe nada."
+   "texto": "En Damasco, el sultán Salah ad-Din al-Ayyubi recibe a los viajeros diciendo: «Sean honestos y crean en Dios con todo el corazón. No busquen la guerra, pero si los atacan, defiéndanse con valor». Y ordena que a cada uno se le entreguen 10 dinares y se le cuenten 50 noches de hospitalidad.",
+   "efecto": "Sale una sola vez por partida, en cuanto Aleppo y Damasco hayan sido visitadas por jugadores humanos (no tiene que ser el mismo). Cada jugador vivo recibe 10 dinares y 50 noches."
   },
   {
    "id": "S2",

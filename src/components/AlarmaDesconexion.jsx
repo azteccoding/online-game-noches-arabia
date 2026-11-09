@@ -10,7 +10,7 @@ export default function AlarmaDesconexion({ s }) {
   const clave = fuera.map((j) => j.id).join();
   if (minimizadaCon === clave) return <button className="alarma-mini" onClick={() => setMinimizadaCon(null)} aria-label="Ver quién se desconectó">⚠ {fuera.length} {fuera.length === 1 ? 'desconectado' : 'desconectados'} ▾</button>;
   return (
-    <div className="alarma-desconexion" role="alert">
+    fuera.length && <div className="alarma-desconexion" role="alert">
       <button className="alarma-min" onClick={() => setMinimizadaCon(clave)} aria-label="Minimizar el aviso" title="Minimizar">▴</button>
       {fuera.map((j) => (
         <p key={j.id}>⚠ {j.nombre} se desconectó{s.turno?.pid === j.id ? ': es su turno y la partida lo está esperando' : ''}.
