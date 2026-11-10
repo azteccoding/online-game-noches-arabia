@@ -10,7 +10,7 @@ export default function AvisoEspera({ s }) {
   const [, setReloj] = useState(0);
   useEffect(() => { if (!espera) return undefined; const iv = setInterval(() => setReloj((n) => n + 1), 500); return () => clearInterval(iv); }, [espera]);
   const yo = s.jugadores[s.yo];
-  if (yo?.sacado) return <div className="aviso-espera panel" role="alert"><p>El banco te sacó por no tirar tu dado. Tu turno pasa al final del orden.</p><button className="btn mini" onClick={() => enviar(ACCIONES.volver())}>Volver a la partida</button></div>;
+  if (yo?.sacado) return <div className="aviso-espera panel" role="alert"><p>El banco te sacó de tu turno. Tu turno pasa al final del orden.</p><button className="btn mini" onClick={() => enviar(ACCIONES.volver())}>Volver a la partida</button></div>;
   const x = s.espera;
   if (!x?.sacable || !s.puedoSacar) return null;
   const clave = x.pid + ':' + x.desde;

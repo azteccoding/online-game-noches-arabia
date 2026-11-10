@@ -305,10 +305,10 @@ function alFinalDelOrden(e, pid) {
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
   if (t) t.idx = t.pid === pid ? i - 1 : e.orden.indexOf(t.pid);                 // quien sigue es quien venía después de él
 }
-function sacarDelTurno(e, pid) {
+function sacarDelTurno(e, pid, motivo = 'por no tirar su dado') {
   const j = e.jugadores[pid], t = e.turno;
   j.sacado = true; j.extra.turnoPerdido = e.ronda;
-  log(e, `El banco saca a ${j.nombre} por no tirar su dado: pierde este turno y, cuando vuelva, jugará al final del orden.`, { pid, aviso: true });
+  log(e, `El banco saca a ${j.nombre} ${motivo}: pierde este turno y, cuando vuelva, jugará al final del orden.`, { pid, aviso: true });
   if (t?.pid === pid) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; }
   else for (const d of [e.dados, ...(e.colaDados || [])]) if (d?.por === pid && !d.lanzado) { d.lanzado = true; d.t0 = e.ahora; }   // estos dados ya estaban decididos: solo se destapan para que la pelea termine
   alFinalDelOrden(e, pid);
@@ -706,6 +706,16 @@ function despachar(data, e, pid, j, a, ahora) {
       return sacarDelTurno(e, x.pid);
     }
     case 'volver': return volver(e, pid);
+    // Jorge (10 de noviembre): «Sacar de la partida» en el aviso de desconectados ya no elimina: lo saca del turno y, cuando se
+    // reconecta, vuelve solo al final del orden, con su monito (antes quedaba eliminado y ya nunca le tocaba turno).
+    case 'host.sacarDesconectado': {
+      if (!esHost(e, pid)) return err('Solo el banco.');
+      const x = e.jugadores[a.pid];
+      if (!x || x.npc || x.eliminado || a.pid === pid) return err('Jugador inexistente.');
+      if (x.conectado !== false) return err('Ese jugador está conectado.');
+      if (x.sacado) return ok();
+      return sacarDelTurno(e, a.pid, 'porque se desconectó');
+    }
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);

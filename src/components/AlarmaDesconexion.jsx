@@ -14,7 +14,7 @@ export default function AlarmaDesconexion({ s }) {
       <button className="alarma-min" onClick={() => setMinimizadaCon(clave)} aria-label="Minimizar el aviso" title="Minimizar">▴</button>
       {fuera.map((j) => (
         <p key={j.id}>⚠ {j.nombre} se desconectó{s.turno?.pid === j.id ? ': es su turno y la partida lo está esperando' : ''}.
-          {s.soyHost && <button className="btn mini sec" onClick={() => window.confirm(`¿Sacar a ${j.nombre} de la partida?`) && enviar(ACCIONES.host.eliminar(j.id))}>Sacar de la partida</button>}</p>
+          {s.soyHost && <button className="btn mini sec" onClick={() => window.confirm(`¿Sacar a ${j.nombre} de la partida? Si vuelve, jugará al final del orden.`) && enviar(ACCIONES.host.sacarDesconectado(j.id))}>Sacar de la partida</button>}</p>
       ))}
     </div>
   );

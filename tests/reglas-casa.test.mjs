@@ -1821,4 +1821,22 @@ for (let k = 0; k < 6; k++) {
   void multiplicadorRonda;
 }
 
+// Jorge (10 de noviembre): «Sacar de la partida» a un desconectado lo saca del turno (no lo elimina); al reconectarse vuelve solo,
+// con su monito, al final del orden, y le vuelve a tocar turno.
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [h, x, y] = g.ids, X = e.jugadores[x];
+  e.host = h; for (const id of g.ids) e.jugadores[id].conectado = true;
+  conexion(e, x, false);
+  assert.ok(!g.act(y, { t: 'host.sacarDesconectado', pid: x }).ok, 'solo el banco');
+  assert.ok(g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok);
+  assert.ok(X.sacado && !X.eliminado, 'sacado, no eliminado');
+  conexion(e, x, true);
+  assert.ok(!X.sacado && !X.eliminado, 'al volver ya no está sacado');
+  const humanos = e.orden.filter((id) => !e.jugadores[id].npc);
+  assert.equal(humanos[humanos.length - 1], x, 'juega al final del orden (entre los jugadores)');
+  assert.ok(vista(data, e, h).jugadores[x] && !vista(data, e, h).jugadores[x].eliminado, 'su monito se dibuja (no está eliminado)');
+  assert.ok(!g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok, 'conectado no se puede sacar');
+}
+
 console.log('reglas de la casa OK');

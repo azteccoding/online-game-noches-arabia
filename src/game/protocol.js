@@ -48,6 +48,7 @@ export const ACCIONES = {
   volver: () => ({ t: 'volver' }),
   host: {
     sacarEspera: (pid) => ({ t: 'host.sacarEspera', pid }),
+    sacarDesconectado: (pid) => ({ t: 'host.sacarDesconectado', pid }),
     dar: (pid, dinares, noches) => ({ t: 'host.dar', pid, dinares, noches }),
     corregir: (pid, campo, valor) => ({ t: 'host.corregir', pid, campo, valor }),
     repartir: (pid, mazo, id) => ({ t: 'host.repartir', pid, mazo, id }),
