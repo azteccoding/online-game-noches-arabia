@@ -23,11 +23,10 @@ const REPETIBLES = ['R8', 'R9'];
 // regresas (como R8 y R9). Si lo logras, queda hecho para siempre. Cada reto marca su fallo con ctx.fallo.
 export const REINTENTABLES = ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38'];
 const esperaVolver = (j, id) => REINTENTABLES.includes(id) && !!j.extra.rep?.[id];
-// Jorge (10 de noviembre): se pueden tener varios animales, uno de cada tipo. Si el premio es un animal que ya tienes, recibes dinares.
-const VALOR_ANIMAL = { caballo: 30, camello: 20, burro: 10 };
+// Jorge (10 de noviembre): se pueden tener varios animales, también del mismo tipo; un premio siempre da el animal.
+
 export function darTransporte(data, e, pid, ref) {
   const j = e.jugadores[pid];
-  if (tieneItem(j, ref)) { j.dinares += VALOR_ANIMAL[ref]; log(e, `${j.nombre} ya tiene un ${ref}: en lugar de otro recibe ${VALOR_ANIMAL[ref]} dinares.`, { pid }); return null; }
   // Jorge (10 de noviembre): al ganar un animal sale su carta (solo para quien lo gana) y queda en el registro.
   const c = darItem(e, j, ref);
   publicarCarta(e, { ...itemDatos(data, ref), sub: `Ganaste un ${ITEMS[ref]?.nombre?.toLowerCase() || ref}` }, pid, [pid]);
@@ -648,16 +647,16 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
 // R44 «Visitar Timbuktú» (Jorge, 7 de noviembre): desde el Magreb, 10 dinares de caravana y 30 noches; una vez por jugador. Mientras dure la
 // carta S2 «Mansa Musa despertó generoso», además se tira 1 dado (con su botón): 6, 50 dinares y 60 noches; 4–5, 35 y 40; 1–3, 30 noches.
 // R45 «Trabajar para el Nizam de Hyderabad» (Jorge, 10 de noviembre), con la estructura de R41: se inicia desde Acciones en India con
-// la acción principal y queda hecho (una vez por jugador). Tiras 1 dado (con botón): cobras 10 + 5 por punto, al momento. Pierdes tu
+// la acción principal y queda hecho (una vez por jugador). Tiras 1 dado (con botón): cobras 10 + 5 por punto y 10 noches, al momento. Pierdes tu
 // siguiente turno y, en el que sigue, no tienes acción principal (quedas herido por tanto trabajo: engine.iniciarTurno).
 T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NPC no trabaja para el Nizam.' : null),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; hacer(e, pid, 'R45');
     const [x] = ctx.t(`${j.nombre}: trabajo para el Nizam (10 dinares + 5 por punto)`, 1);
-    const pago = 10 + 5 * x; j.dinares += pago;
+    const pago = 10 + 5 * x; j.dinares += pago; j.noches += 10;   // Jorge (10 de noviembre): además 10 noches
     j.pierdeTurno = (j.pierdeTurno || 0) + 1; j.extra.nizam = true;
-    ctx.say(`El Nizam te paga ${pago} dinares. Pierdes tu siguiente turno y, en el que sigue, tu acción principal.`);
-    log(e, `${j.nombre} trabaja para el Nizam de Hyderabad y cobra ${pago} dinares: pierde su siguiente turno y, en el que sigue, su acción principal.`, { pid });
+    ctx.say(`El Nizam te paga ${pago} dinares y ganas 10 noches. Pierdes tu siguiente turno y, en el que sigue, tu acción principal.`);
+    log(e, `${j.nombre} trabaja para el Nizam de Hyderabad y cobra ${pago} dinares y 10 noches: pierde su siguiente turno y, en el que sigue, su acción principal.`, { pid });
   } };
 T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'La caravana a Timbuktú cuesta 10 dinares.'),
   run(data, e, pid, ctx) {

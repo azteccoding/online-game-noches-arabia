@@ -184,7 +184,7 @@ export default function AccionesTurno({ s, onCerrar }) {
                 return (
                   <div key={k + i} className="accion-fila">
                     <div className="accion-txt"><b>{a.titulo}</b>{a.texto && <small>{a.texto}</small>}</div>
-                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => enviar(k === 'asesinos' ? ACCIONES.asesinos() : k === 'venderFirmanYafar' ? ACCIONES.venderFirmanYafar() : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via }))}>{k === 'asesinos' ? 'Contratar' : 'Hacerlo'}</button></div>
+                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => { if (k === 'tesoro' && a.sub === 'jorasan' && !confirmarViajeBurro(s, 'Jorasán')) return; enviar(k === 'asesinos' ? ACCIONES.asesinos() : k === 'venderFirmanYafar' ? ACCIONES.venderFirmanYafar() : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via })); }}>{k === 'asesinos' ? 'Contratar' : 'Hacerlo'}</button></div>
                   </div>
                 );
               })}

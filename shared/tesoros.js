@@ -3,6 +3,7 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd,
 } from './base.js';
+import { etiquetaBurro } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
 function ciudadMapa(e, c) {
@@ -262,7 +263,7 @@ export function deseo(data, e, pid, letra, { alTerminar = null }) {
     case 'G': j.ventajaCombate = (j.ventajaCombate || 0) + 2; break;
     case 'H': darItem(e, j, 'alfombra'); break;
     case 'A': {
-      const op = data.ciudades.ciudades.map((c) => ({ id: c.id, texto: c.id })).filter((c) => c.id !== j.ciudad || j.perdido);
+      const op = data.ciudades.ciudades.map((c) => ({ id: c.id, texto: c.id + etiquetaBurro(j, c.id) })).filter((c) => c.id !== j.ciudad || j.perdido);   // aviso del burro (Jorge, 10 de noviembre)
       pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Viaje instantáneo', texto: '¿A qué ciudad quieres ir?', opciones: op, porDefecto: 'Bagdad', limiteMs: 60000, cont: { fn: 'tes.A', args: { alTerminar } } });
       return;
     }

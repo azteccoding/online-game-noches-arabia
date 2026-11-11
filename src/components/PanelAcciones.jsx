@@ -5,7 +5,7 @@ import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
 import Dinares from './Dinares.jsx';
 import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
-import { contadoresCarrera } from '../game/carrera.js';
+import { contadoresCarrera, vidaAnimales } from '../game/carrera.js';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
@@ -40,6 +40,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
         </div>
         <div className="acc-yo">
           <Dinares valor={saldo.dinares} /><span className="chip" title="Noches">{saldo.noches} noches</span>
+          {vidaAnimales(s).length > 0 && <span className="chip" title="Turnos de vida que le quedan a cada animal después de este">{vidaAnimales(s).map((a) => a.texto).join(' · ')}</span>}
           {contadoresCarrera(s).map((c) => <span key={c.id} className="chip chip-ev" title="Cada noche cuenta al terminar tu turno en esa ciudad; si terminas un turno en otra, vuelves a 0. Con 2 noches seguidas ganas 60 dinares y 50 noches.">🏁 {c.texto}</span>)}
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>

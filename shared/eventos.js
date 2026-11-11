@@ -7,6 +7,7 @@ marcarBuscado,
 enPartida, } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
+import { burroFueraDeZona, etiquetaBurro, destinosBurro } from './objetos.js';
 
 const jug = (e, id) => e.jugadores[id];
 const humanosEn = (e, ciudades) => enPartida(e).filter((id) => ciudades.includes(jug(e, id).ciudad) && !jug(e, id).transito && !jug(e, id).perdido);
@@ -16,6 +17,7 @@ const mover = (data, e, pid, destino, costo = 0, motivo = '') => {
   const o = j.ciudad; j.ciudad = destino; j.extra.ciudadPrevia = o;
   log(e, `${j.nombre} ${motivo || 'viaja'} de ${o} a ${destino}${costo ? ` (paga ${costo})` : ''}.`, { pid });
   if (!j.visitadas.includes(destino)) j.visitadas.push(destino);
+  burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
 };
 const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]) => k.startsWith(ciudad + '>')).map(([k, v]) => ({ id: k.split('>')[1], tarifa: v }));
 const vecinaBarata = (data, ciudad, excl = []) => vecinas(data, ciudad).filter((x) => !excl.includes(x.id)).sort((a, b) => a.tarifa - b.tarifa)[0]?.id || 'Bagdad';
@@ -83,7 +85,8 @@ function aplicarHistorico0(data, e, id) {
   switch (id) {
     case 'H1': cola(humanosEn(e, ['Bagdad', 'Basra']), (pid) => {
       const j = jug(e, pid);
-      const op = vecinas(data, j.ciudad).filter((x) => !['Bagdad', 'Basra'].includes(x.id)).map((x) => ({ id: x.id, texto: `Huir a ${x.id} (${Math.min(30, x.tarifa * 3)} dinares)` }));
+      const op = vecinas(data, j.ciudad).filter((x) => !['Bagdad', 'Basra'].includes(x.id)).map((x) => ({ id: x.id, texto: `Huir a ${x.id} (${Math.min(30, x.tarifa * 3)} dinares)${etiquetaBurro(j, x.id)}` }));
+      for (const d of destinosBurro(data, j).filter((x) => !['Bagdad', 'Basra'].includes(x))) op.unshift({ id: 'burro:' + d, texto: `Huir en tu burro a ${d} (sin tarifa)` });   // Jorge (10 de noviembre)
       op.push({ id: 'quedar', texto: 'Aguantar: -30 noches y sin ingreso este turno' });
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
     }); break;
@@ -135,7 +138,8 @@ function aplicarHistorico0(data, e, id) {
         for (const pid of ordenadoPorTurno(e, ids.filter((x) => jug(e, x).dinares === max))) {
           const j = jug(e, pid);
           if (j.npc) { if (j.dinares >= 40) { pagar(data, e, pid, 20); log(e, 'Yafar NPC paga a los recaudadores.'); } else mover(data, e, pid, vecinaBarata(data, ciudad), 0, 'huye de los recaudadores'); continue; }
-          pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los recaudadores del Califa', texto: 'Tienes más dinares que nadie en esta ciudad: paga o vete.', opciones: [{ id: 'pagar', texto: 'Pagar 20 dinares' }, { id: 'ir', texto: 'Irme (tarifa normal)' }], porDefecto: 'pagar', cont: { fn: 'ev.h19', args: {} } });
+          const vb = vecinaBarata(data, ciudad);
+          pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los recaudadores del Califa', texto: 'Tienes más dinares que nadie en esta ciudad: paga o vete.', opciones: [{ id: 'pagar', texto: 'Pagar 20 dinares' }, ...destinosBurro(data, j).map((d) => ({ id: 'burro:' + d, texto: `Irme en mi burro a ${d} (sin tarifa)` })), { id: 'ir', texto: `Irme a ${vb} (tarifa normal)${etiquetaBurro(j, vb)}` }], porDefecto: 'pagar', cont: { fn: 'ev.h19', args: {} } });
         }
       }
       break;
@@ -171,6 +175,7 @@ function preguntaEspecias(data, e, pid) {
 registrar('ev.h1', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'quedar') { j.noches = Math.max(0, j.noches - 30); (e.mods.sinIngreso ||= {})[pid] = true; log(e, `${j.nombre} aguanta la rebelión: -30 noches.`, { pid }); return; }
+  if (String(resp.opcion).startsWith('burro:')) { mover(data, e, pid, resp.opcion.slice(6), 0, 'huye de la rebelión en su burro'); return; }
   const t = Math.min(30, tarifa(data, e, j, j.ciudad, resp.opcion) * 3 * (j.pj === 'B' ? 1 : 1));
   mover(data, e, pid, resp.opcion, t, 'huye de la rebelión');
 });
@@ -236,6 +241,7 @@ registrar('ev.h17', (data, e, args, resp) => {
 registrar('ev.h19', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'pagar' && j.dinares >= 20) { pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares a los recaudadores.`, { pid }); return; }   // sin los 20 dinares completos, huye
+  if (String(resp.opcion).startsWith('burro:')) { mover(data, e, pid, resp.opcion.slice(6), 0, 'huye de los recaudadores en su burro'); return; }
   const dest = vecinaBarata(data, j.ciudad); mover(data, e, pid, dest, tarifa(data, e, j, j.ciudad, dest) ?? 0, 'huye de los recaudadores');
 });
 registrar('ev.h13', (data, e, args, resp) => { const pid = resp.pid, j = jug(e, pid); if (resp.opcion === 'si' && j.dinares >= 10) { j.dinares -= 10; j.noches += 25; log(e, `${j.nombre} disfruta de los baños y el banquete de Córdoba: +25 noches.`, { pid }); } });

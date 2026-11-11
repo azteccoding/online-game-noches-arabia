@@ -1118,13 +1118,6 @@ function responderTrato(data, e, pid, a) {
   if (eB.falta) return err(`${B.nombre} no tiene «${nombreRef(data, eB.falta)}»: no puede aceptar este trato.`);
   tr.ofrece.objetos = [...tr.ofrece.objetos, ...eA.uids]; tr.pide.objetos = [...tr.pide.objetos, ...eB.uids];
   if (!tr.ofrece.objetos.every((u) => A.mano.some((c) => c.uid === u)) || !tr.pide.objetos.every((u) => B.mano.some((c) => c.uid === u))) return err('Faltan objetos.');
-  { // Jorge (10 de noviembre): varios animales, pero uno de cada tipo
-    const dobles = (quien, da, recibe) => recibe.map((u) => (quien === A ? B : A).mano.find((c) => c.uid === u)).filter((c) => c && ANIMALES_VIAJE.includes(c.ref))
-      .find((c) => quien.mano.some((x) => x.ref === c.ref && x.tipo === 'item' && !da.includes(x.uid)));
-    const dA = dobles(A, tr.ofrece.objetos, tr.pide.objetos), dB = dobles(B, tr.pide.objetos, tr.ofrece.objetos);
-    if (dA) return err(`${A.nombre} ya tiene un ${dA.ref}: se pueden tener varios animales, pero uno de cada tipo.`);
-    if (dB) return err(`${B.nombre} ya tiene un ${dB.ref}: se pueden tener varios animales, pero uno de cada tipo.`);
-  }
   A.noches += tr.pide.noches - tr.ofrece.noches; B.noches += tr.ofrece.noches - tr.pide.noches;
   const sinImp = e.mods.feria || A.ciudad === 'Bagdad';
   const tasa = A.ciudad === 'Samarcanda' ? 50 : data.config.impuestoVentaPct;
