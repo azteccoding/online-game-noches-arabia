@@ -93,20 +93,20 @@ function busqueda(data, e, pid, uidMapa, aliados) {
   const j = e.jugadores[pid];
   const c = j.mano.find((x) => x.uid === uidMapa); if (!c) return ok();
   const n = 1 + aliados.length;
-  const astro = !!tieneItem(j, 'astrolabio');
-  const regla = astro ? Math.min(3, n + 1) : n;                                                                   // R 16.2: astrolabio aplica la regla del siguiente número sin repartir
+  // Jorge (10 de noviembre): la brújula da 1 intento extra en ese mismo turno y el astrolabio («una brújula con esteroides») 2;
+  // si tienes los dos, vale el astrolabio (no se suman). El reparto con socios es el normal. Cada intento se tira con su botón.
+  const astro = !!tieneItem(j, 'astrolabio'), bruj = !!tieneItem(j, 'brujula');
+  const extra = astro ? 2 : bruj ? 1 : 0, quien0 = astro ? 'astrolabio' : 'brújula';
+  const regla = n;                                                                                                // R 16.2: regla según cuántos buscan
   const bono = (tieneObj(j, 'OB11') ? 1 : 0) + (tieneObj(j, 'OB09') ? 1 : 0);
-  const ctx = { grupos: [], res: [] };
   let exito = false;
-  for (let intento = 0; intento < (tieneItem(j, 'brujula') ? 2 : 1) && !exito; intento++) {
+  for (let intento = 0; intento <= extra && !exito; intento++) {
     const v = regla === 3 ? [dado(e)] : [dado(e), dado(e)];
-    ctx.grupos.push({ etq: `${j.nombre}: búsqueda${intento ? ' (brújula)' : ''}`, valores: v });
     if (regla === 1) exito = v[0] + bono > 3 && v[1] > 3;
     else if (regla === 2) exito = v[0] + bono > 2 && v[1] > 3;
     else exito = par(v[0] + bono);
-    ctx.res.push(exito ? 'El tesoro aparece.' : 'No hay suerte.');
+    mostrarDados(e, { por: pid, motivo: 'tesoro', grupos: [{ etq: `${j.nombre}: búsqueda${intento ? ` (${quien0}, intento extra ${intento} de ${extra})` : ''}`, valores: v }], resumen: [exito ? 'El tesoro aparece.' : intento < extra ? `No hay suerte: con tu ${quien0} vuelves a intentarlo.` : 'No hay suerte.'] });
   }
-  mostrarDados(e, { por: pid, motivo: 'tesoro', grupos: ctx.grupos, resumen: ctx.res });
   if (!exito) { log(e, `${j.nombre} no encuentra el tesoro.`, { pid }); return ok(); }
   let valor, quien = [pid, ...aliados];
   if (c.extra.tesoro === 'jugador') {
@@ -119,9 +119,9 @@ function busqueda(data, e, pid, uidMapa, aliados) {
     for (const x of Object.values(e.jugadores)) for (const q of x.mano.filter((m) => m.tipo === 'item' && m.ref === 'mapa' && m.extra?.tesoro === c.extra.tesoro)) quitarCarta(x, q.uid);
   }
   quitarCarta(j, uidMapa);
-  const parte = regla === 3 && !astro ? Math.floor(valor / n) : regla === 2 && !astro ? Math.floor(valor / n) : astro ? valor : Math.floor(valor / n);
-  for (const x of astro ? [pid] : quien) e.jugadores[x].dinares += parte;
-  log(e, `Reparto del botín: ${parte} dinares a ${(astro ? [pid] : quien).map((x) => nombre(e, x)).join(', ')}.`, { pid });
+  const parte = Math.floor(valor / n);
+  for (const x of quien) e.jugadores[x].dinares += parte;
+  log(e, `Reparto del botín: ${parte} dinares a ${quien.map((x) => nombre(e, x)).join(', ')}.`, { pid });
   return ok();
 }
 
@@ -206,12 +206,13 @@ HOOK.usarIfrit = (data, e, pid, c, a) => {
   deseo(data, e, pid, a.deseo, {});
   return ok();
 };
-// Lámpara mágica (regla de la casa): una vez por partida, desde la ronda 4, quien llega de viaje puede encontrarla en el camino.
+// Lámpara mágica (regla de la casa): una vez por partida, desde la ronda 4, quien llega de viaje a Isfahán, Samarcanda, Yemen o
+// India puede encontrarla en el camino (Jorge, 10 de noviembre: solo en esas cuatro ciudades).
 // El genio le concede 1 deseo a elegir entre los 4 de una carta de Ifrit; toda la mesa sabe quién, dónde y qué pidió.
-export const LAMPARA = { desdeRonda: 4, prob: 0.055 };   // ~85 % de las partidas la encuentran (simulación)
+export const LAMPARA = { desdeRonda: 4, prob: 0.055, ciudades: ['Isfahán', 'Samarcanda', 'Yemen', 'India'] };   // por llegada a esas ciudades
 export function quizaLampara(data, e, pid) {
   const j = e.jugadores[pid];
-  if (e.lampara || j.npc || j.eliminado || (e.ronda || 0) < LAMPARA.desdeRonda) return;
+  if (e.lampara || j.npc || j.eliminado || !LAMPARA.ciudades.includes(j.ciudad) || (e.ronda || 0) < LAMPARA.desdeRonda) return;
   if (rnd(e) >= (data.config.lampara?.prob ?? LAMPARA.prob)) return;
   const id = robar(e, 'ifrit') || data.objetos.ifrit.cartas[0].id;
   const card = data.objetos.ifrit.cartas.find((x) => x.id === id);

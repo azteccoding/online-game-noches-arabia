@@ -189,7 +189,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]);
   e.jugadores.npc.extra.jugoTurno = true;   // su primer turno lo pierde ebrio (punto 1); aquí se mide un turno normal
   const d0 = e.jugadores.npc.dinares; g.cerrar(p);
-  assert.ok(e.jugadores.npc.dinares >= d0 + 15, 'difícil: bolsa de 10');
+  assert.ok(e.log.some((l) => /Yafar NPC cobra 10 dinares de la bolsa de sus parientes/.test(l.texto)), 'difícil: bolsa de 10'); void d0;   // el saldo neto depende del azar (sobornos, eventos)
 }
 
 // ---------------------------------------------------------------- victoria a 1,001 noches

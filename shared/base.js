@@ -77,8 +77,8 @@ export const ITEMS = {
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
   velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
   veneno: { nombre: 'Veneno', texto: 'Caduca a los 3 turnos. Cuesta 20 dinares y el viaje desde Bagdad usarlo.' },
-  brujula: { nombre: 'Brújula', texto: 'Permite repetir la tirada al buscar un tesoro.' },
-  astrolabio: { nombre: 'Astrolabio', texto: 'Ayuda al buscar un tesoro: aplicas la regla de un cazarrecompensas más sin repartir el botín.' },
+  brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
+  astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
   esclava: { nombre: 'Esclavas abisinias', texto: 'Dan +5 noches por turno; mantenimiento 1 dinar por turno.' },
   papiro: { nombre: 'Papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
@@ -109,7 +109,7 @@ export function itemDatos(data, ref, extra = {}) {
 }
 export const TESOROS = {
   mansa: { nombre: 'Mansa Musa', ciudad: 'Magreb', valor: 20 },   // Jorge (10 de noviembre): 20 como máximo (antes 96); se reparte con socios
-  persia: { nombre: 'Persia', ciudad: 'Isfahán', valor: 54 },
+  persia: { nombre: 'Persia', ciudad: 'Isfahán', valor: 30 },   // Jorge (10 de noviembre): 30 (antes 54)
   ruman: { nombre: 'Rumán', ciudad: 'Estambul', valor: 16 },
 };
 

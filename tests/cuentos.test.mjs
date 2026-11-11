@@ -18,6 +18,7 @@ function partida(pjs, semilla = 7) {
   const ids = pjs.map((pj, i) => { const id = unir(e, { nombre: 'J' + i, token: 't' + i }); assert.ok(act(id, { t: 'elegirPj', pj }).ok); return id; });
   for (const id of ids) act(id, { t: 'listo', v: true });
   assert.ok(act(ids[0], { t: 'iniciar' }).ok);
+  for (let k = 0; k < 10 && e.pend; k++) act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id });   // un evento de la primera ronda (según el azar)
   return { e, act, ids };
 }
 
@@ -104,7 +105,7 @@ function aViajar(g, pid, destino = 'Damasco') {
 {
   // solitario: el jugador lee y cobra igual
   const g = partida(['4']); const { e } = g;
-  const p = e.turno.pid;
+  const p = e.turno.pid; e.jugadores[p].ciudad = 'Bagdad';   // por si un evento de la primera ronda lo movió
   const { antes, precio } = aViajar(g, p, 'Isfahán');
   assert.ok(e.historial.some((h) => h.deck === 'cuento' && h.quien === p));
   assert.ok(g.act(p, { t: 'leido', nro: e.seq }).ok);

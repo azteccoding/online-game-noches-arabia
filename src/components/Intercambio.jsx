@@ -33,7 +33,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const solo = Object.values(s.jugadores).filter((j) => j.pj && !j.npc && !j.eliminado).length <= 1;   // en solitario también se compra en el propio turno
   const puedeComprar = s.fase === 'juego' && !!s.turno && (!esMiTurno || solo) && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
   // por qué no se puede comprar ahora (Jorge, 10 de noviembre)
-  const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : s.pend ? 'Espera un momento: hay una decisión pendiente en la partida; al resolverse puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán y el bazar del genio, sí).' : 'Ahora no puedes comprar.';
+  const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : s.pend ? 'Espera un momento: hay una decisión pendiente en la partida; al resolverse puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán, sí).' : 'Ahora no puedes comprar.';
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
   const [dinOfrece, setDinOfrece] = useState(0);
@@ -80,7 +80,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
         <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El mercado te vende mientras juegan los demás.' : noCompra) : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
         {tab === 'comprar' && (
           <ul className="lista-merc">
-            {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={it.ref === 'firman' || it.ref === 'ifrit' ? miTurno : puedeComprar} s={s} />)}
+            {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={it.ref === 'firman' ? miTurno : puedeComprar} s={s} />)}
             {!s.tienda.length && <li>Aquí no se vende nada.</li>}
           </ul>
         )}

@@ -12,8 +12,7 @@ const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 
 // Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
-export const BAZAR_IFRIT = { ciudades: ['Samarcanda', 'India'], precio: 60 };
-const ifritEnVenta = (e) => e.ifritVendida !== e.ronda && ((e.mazos?.ifrit?.length || 0) + (e.mazos?.descarte?.ifrit?.length || 0)) > 0;
+// Jorge (10 de noviembre): se quitó el bazar del genio (comprar una carta de Ifrit en Samarcanda o India): era demasiado fácil.
 // Regla de la casa: el mercado de la ciudad (objetos, mercancías y armas) solo vende FUERA de tu turno, mientras juegan los demás.
 // Excepción: Yafar NPC compra en su turno. El Firmán y el bazar de Ifrit siguen comprándose en tu turno.
 export function puedeMercado(e, pid) {
@@ -56,8 +55,8 @@ export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 20
 export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
 export function comprar(data, e, pid, a) {
   const j = e.jugadores[pid];
-  const enTurno = a.ref === 'firman' || a.ref === 'ifrit';
-  if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán y el bazar del genio se compran en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
+  const enTurno = a.ref === 'firman';
+  if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán se compra en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
   else { const no = puedeMercado(e, pid); if (no) return err(no); }
   if (a.ref === 'firman') {                                                                              // R 15.3
     if (j.ciudad !== 'Bagdad') return err('El visir vende el Firmán en Bagdad.');
@@ -89,18 +88,7 @@ export function comprar(data, e, pid, a) {
     log(e, `${j.nombre} compra un ${ITEMS[x.carta.ref].nombre.toLowerCase()} en el mercado de ${j.ciudad} por ${x.precio} dinares (con todos sus turnos de vida).`, { pid });
     return ok();
   }
-  if (a.ref === 'ifrit') {
-    if (!BAZAR_IFRIT.ciudades.includes(j.ciudad)) return err('El bazar del genio está en Samarcanda y en India.');
-    if (e.ifritVendida === e.ronda) return err('Ya se vendió la carta de Ifrit de esta ronda: vuelve en la siguiente.');
-    if (j.dinares < BAZAR_IFRIT.precio) return err(`Cuesta ${BAZAR_IFRIT.precio} dinares.`);
-    const id = robar(e, 'ifrit');
-    if (!id) return err('No quedan cartas de Ifrit.');
-    j.dinares -= BAZAR_IFRIT.precio; e.ifritVendida = e.ronda;
-    j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id });
-    publicarCarta(e, cartaDatos(data, 'ifrit', id), pid, [pid]);
-    log(e, `${j.nombre} compra una carta de Ifrit en el bazar de ${j.ciudad}.`, { pid });
-    return ok();
-  }
+  if (a.ref === 'ifrit') return err('El bazar del genio ya no existe: las cartas de Ifrit salen del Jorasán, de la lámpara mágica y de R40.');   // Jorge (10 de noviembre)
   if (a.ref) {                                                                                           // objetos originales
     const base = VENTA_ORIGINAL[a.ref];
     if (base === undefined) return err('Eso no se vende.');
@@ -246,10 +234,6 @@ export function tienda(data, e, pid) {
       motivo: ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro'].forEach(orig);
-  if (BAZAR_IFRIT.ciudades.includes(j.ciudad)) {
-    const hay = ifritEnVenta(e);
-    r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });
-  }
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
   for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc), motivo: j.dinares < x.precio ? 'No te alcanza' : undefined });
@@ -300,7 +284,7 @@ const MITAD = { esclava: 10, alfombraIsfahan: 20, sal: 2, cesta: 1 };
 const USO = {
   idolo: 'Destrúyelo en cualquier ciudad (100 noches) o véndelo en Estambul a los mercaderes venecianos (100 dinares, con riesgo de herejía). Sirve para: reto R41 (Andalucía).',
   caballo: 'Es tu transporte: úsalo para viajar.', camello: 'Es tu transporte: úsalo para viajar.', burro: 'Es tu transporte: úsalo para viajar.', alfombra: 'Es tu transporte: úsala para viajar.',
-  brujula: 'Sirve para buscar tesoros (un segundo intento).', astrolabio: 'Sirve para buscar tesoros (regla del siguiente número).',
+  brujula: 'Sirve para buscar tesoros (1 intento extra).', astrolabio: 'Sirve para buscar tesoros (2 intentos extra).',
   recetaAverroes: 'Úsala para curarte una herida.', bendicionAbuMadyan: 'Te protege una vez de los asaltos en Andalucía y el Magreb.', dadoIbnArabi: 'Repite una pelea que vayas a perder.',
   pergaminoSellado: 'Es la carga del reto R30.', cartaUrgente: 'Es la carga del reto R39: llévala a El Cairo.',
 };

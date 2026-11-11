@@ -185,7 +185,8 @@ function forzar(e, ...valores) {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
   const enRepo = (id) => e.reposicion.filter((x) => x === id).length;
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta)) {
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.copias === 1)) { assert.equal(e.stock[o.id] + enRepo(o.id), 1, 'copia única en el mercado: ' + o.id); assert.ok(!e.mazos.botin.includes(o.id), 'y no en el Botín: ' + o.id); }   // pala y linterna (Jorge, 10 de noviembre)
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.copias > 1)) {
     assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
     assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
   }
@@ -200,7 +201,7 @@ function forzar(e, ...valores) {
   assert.equal(e.stock.OB34, stock, 'lo vendido no vuelve al instante al mercado');
   assert.equal(e.reposicion[e.reposicion.length - 1], 'OB34', 'lo vendido espera en la reposición');
   const total = (id) => (e.stock[id] || 0) + e.reposicion.filter((x) => x === id).length;
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.copias - 1, 'ninguna copia desaparece: ' + o.id);
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.copias === 1 ? 1 : o.copias - 1, 'ninguna copia desaparece: ' + o.id);
   j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco'; e.mods = {};   // sin feria ni otros eventos que quiten el impuesto
   const a2 = j.dinares; assert.ok(vender(data, e, pid, { uid: 9101 }).ok);
   assert.equal(j.dinares, a2 + seda.valor - Math.floor(seda.valor * 20 / 100), 'en otra ciudad vale lo normal menos impuesto');
@@ -1088,21 +1089,20 @@ for (let k = 0; k < 6; k++) {
   assert.ok(e.log.some((l) => /derrotó a Yafar/.test(l.texto)));
 }
 
-// 10) Bazar del genio: una carta de Ifrit por ronda en Samarcanda o India, por 60 dinares
+// Jorge (10 de noviembre): ya no hay bazar del genio; la lámpara mágica solo aparece al llegar a Isfahán, Samarcanda, Yemen o India
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
-  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
-  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; A.dinares = 200; B.dinares = 200;
-  assert.ok(!g.act(a, { t: 'comprar', ref: 'ifrit' }).ok, 'en Bagdad no hay bazar del genio');
-  A.ciudad = 'Samarcanda';
-  assert.ok(tienda(data, e, a).some((x) => x.ref === 'ifrit' && x.puede), 'aparece en la tienda de Samarcanda');
-  assert.ok(g.act(a, { t: 'comprar', ref: 'ifrit' }).ok);
-  assert.equal(A.dinares, 140); assert.equal(A.mano.filter((c) => c.tipo === 'ifrit').length, 1, 'la carta queda en la mano');
-  assert.ok(e.historial.some((h) => h.deck === 'ifrit' && h.para?.includes(a)), 'se le muestra la carta');
-  turnoDe(e, b, 'India'); e.turno.fase = 'acciones'; B.ciudad = 'India';
-  assert.ok(!g.act(b, { t: 'comprar', ref: 'ifrit' }).ok, 'solo una por ronda en toda la partida');
-  e.ronda++;
-  assert.ok(g.act(b, { t: 'comprar', ref: 'ifrit' }).ok, 'en la ronda siguiente hay otra');
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Samarcanda'; turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones'; A.dinares = 200;
+  assert.ok(!tienda(data, e, a).some((x) => x.ref === 'ifrit'), 'no aparece en la tienda');
+  assert.ok(!g.act(a, { t: 'comprar', ref: 'ifrit' }).ok, 'no se puede comprar');
+  const { quizaLampara, LAMPARA } = await import('../shared/tesoros.js');
+  const p0 = LAMPARA.prob; LAMPARA.prob = 1; e.ronda = 5; e.pend = null; e.colaPend = [];
+  try {
+    A.ciudad = 'Damasco'; quizaLampara(data, e, a); assert.ok(!e.lampara, 'fuera de Isfahán no sale');
+    A.ciudad = 'Yemen'; quizaLampara(data, e, a); assert.ok(e.lampara && e.lampara.ciudad === 'Yemen', 'al llegar a Yemen sí');
+    assert.deepEqual(LAMPARA.ciudades, ['Isfahán', 'Samarcanda', 'Yemen', 'India']);
+  } finally { LAMPARA.prob = p0; }
 }
 
 // 4) El banco propone terminar y empezar de nuevo: votación por mayoría y sala nueva con los mismos jugadores
@@ -1369,7 +1369,7 @@ for (let k = 0; k < 6; k++) {
   {
     const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
     const e = g.e, [a] = g.ids, Y = e.jugadores.npc, A = e.jugadores[a];
-    for (let k = 0; k < 6 && !e.log.some((l) => /llega ebrio/.test(l.texto)); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    for (let k = 0; k < 6 && !e.log.some((l) => /llega ebrio/.test(l.texto)); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
     assert.ok(e.log.some((l) => l.texto === `${Y.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`), 'Yafar NPC pierde su primer turno ebrio');
     assert.equal(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar NPC no va a India');
     const nor = tarifa(data, e, A, 'El Cairo', 'Magreb'); assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(nor / 2) + 20, 'Magreb: +20 sobre su mitad');
@@ -1382,7 +1382,7 @@ for (let k = 0; k < 6; k++) {
   {
     const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
     const e = g.e, [a, , y] = g.ids, Y = e.jugadores[y], A = e.jugadores[a];
-    for (let k = 0; k < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    for (let k = 0; k < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
     assert.ok(!e.log.some((l) => /llega ebrio/.test(l.texto)), 'Yafar jugador no pierde su primer turno');
     assert.notEqual(tarifa(data, e, Y, 'Isfahán', 'India'), null, 'Yafar jugador sí va a India');
     assert.equal(tarifa(data, e, Y, 'El Cairo', 'Magreb'), Math.ceil(tarifa(data, e, A, 'El Cairo', 'Magreb') / 2), 'sin recargo: solo su mitad de siempre');
@@ -1437,7 +1437,7 @@ for (let k = 0; k < 6; k++) {
     assert.ok(g.act(y, { t: 'tirarDados' }).ok); assert.equal(Y.dinares, 30, 'Yafar jugador no paga soborno');
     const h = partida(['4']); assert.ok(h.iniciar().ok);
     const f = h.e, N = f.jugadores.npc; N.extra.jugoTurno = true; N.dinares = 30;
-    for (let k = 0; k < 6 && f.turno.pid === 'npc'; k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; avanzar(data, f); }
+    for (let k = 0; k < 6 && f.turno.pid === 'npc'; k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; if (f.turno) f.turno.fin = true; avanzar(data, f); }
     f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; forzar(f, 1); avanzar(data, f);   // le toca a Yafar NPC con un 1
     assert.ok(f.log.some((l) => /sobornar a sus primos/.test(l.texto)), 'Yafar NPC soborna a sus primos cuando saca 1');
   }
@@ -1446,16 +1446,16 @@ for (let k = 0; k < 6; k++) {
     const g = partida(['4', 'B']); assert.ok(g.iniciar().ok);
     const e = g.e, [, y] = g.ids, Y = e.jugadores[y];
     Y.dinares = 100; Y.extra.jugoTurno = true; Y.turnos = 2;
-    for (let k = 0; k < 8 && !Y.mano.some((c) => c.ref === 'F1'); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    for (let k = 0; k < 8 && !Y.mano.some((c) => c.ref === 'F1'); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
     assert.ok(Y.mano.some((c) => c.ref === 'F1' && c.extra?.yafar), 'a Yafar jugador le llega en su 3er turno');
     assert.ok(e.historial.some((h) => h.id === 'F1' && !h.para), 'todos ven la carta');
-    for (let k = 0; k < 8 && Y.turnos < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+    for (let k = 0; k < 8 && Y.turnos < 4; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
     assert.ok(!e.log.some((l) => /por mantener su Firmán/.test(l.texto)), 'a Yafar jugador no le cuesta');
     const f0 = e.firmanes; Y.ciudad = 'Bagdad'; turnoDe(e, y, 'Bagdad'); e.turno.fase = 'acciones'; const d1 = Y.dinares;
     assert.ok(g.act(y, { t: 'venderFirmanYafar' }).ok); assert.equal(Y.dinares, d1 + 25); assert.equal(e.firmanes, f0 + 1, 'lo puede vender y queda a la venta');
     const h = partida(['4']); assert.ok(h.iniciar().ok);
     const f = h.e, N = f.jugadores.npc; N.extra.jugoTurno = true; N.turnos = 2; N.dinares = 100;
-    for (let k = 0; k < 20 && !f.log.some((l) => /por mantener su Firmán/.test(l.texto)); k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; f.turno.fin = true; avanzar(data, f); }
+    for (let k = 0; k < 20 && !f.log.some((l) => /por mantener su Firmán/.test(l.texto)); k++) { f.dados = null; f.colaDados = []; f.pend = null; f.colaPend = []; if (f.turno) f.turno.fin = true; avanzar(data, f); }
     assert.ok(N.mano.some((c) => c.ref === 'F1') && f.log.some((l) => /paga 10 dinares por mantener su Firmán/.test(l.texto)), 'a Yafar NPC le cuesta 10 por turno en normal');
   }
   // 7: Kanmakán se disuelve al pelear si no pasó por Isfahán en sus últimos 2 turnos
@@ -1508,13 +1508,13 @@ for (let k = 0; k < 6; k++) {
   assert.ok(e.traicionRonda >= TRAICION.desde && e.traicionRonda <= TRAICION.hasta, 'la ronda se sortea entre la 4 y la 12');
   e.traicionRonda = e.ronda + 1; A.dinares = 0; A.noches = 20; if (N) { N.dinares = 30; N.noches = 40; }
   const r0 = e.ronda;
-  for (let k = 0; k < 8 && e.ronda === r0; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+  for (let k = 0; k < 8 && e.ronda === r0; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
   assert.ok(e.traicion && e.historial.some((h) => h.id === 'S4' && !h.para), 'sale y la ven todos');
   assert.ok(e.log.some((l) => /Traición en Jerusalén: Los judíos se han aliado con los Cruzados\./.test(l.texto)));
   assert.ok(A.dinares <= 4 && A.noches <= 19 + 50, 'el jugador pierde 1 y 1 (puede quedar en deuda)');
   if (N) assert.ok(e.log.some((l) => /Yafar NPC pierde 10 dinares y 10 noches/.test(l.texto)));
   const n = e.historial.filter((h) => h.id === 'S4').length; e.traicionRonda = e.ronda + 1;
-  for (let k = 0; k < 8 && e.turno; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+  for (let k = 0; k < 8 && e.turno; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; avanzar(data, e); }
   assert.equal(e.historial.filter((h) => h.id === 'S4').length, n, 'una sola vez por partida');
   void b;
 }
@@ -2195,10 +2195,10 @@ for (let k = 0; k < 6; k++) {
 }
 
 // Jorge (10 de noviembre): los mapas de tesoro funcionan de punta a punta: con el mapa en su ciudad aparece «Buscar el tesoro» en
-// Acciones → Tesoros y Jorasán, se tiran los dados y, si sale, se cobra (Rumán 16, Persia 54, Mansa Musa 20).
+// Acciones → Tesoros y Jorasán, se tiran los dados y, si sale, se cobra (Rumán 16, Persia 30, Mansa Musa 20).
 {
   const { TESOROS } = await import('../shared/base.js');
-  for (const [k, ciudad, valor] of [['ruman', 'Estambul', 16], ['persia', 'Isfahán', 54], ['mansa', 'Magreb', 20]]) {
+  for (const [k, ciudad, valor] of [['ruman', 'Estambul', 16], ['persia', 'Isfahán', 30], ['mansa', 'Magreb', 20]]) {
     assert.equal(TESOROS[k].ciudad, ciudad); assert.equal(TESOROS[k].valor, valor);
     let cobrado = false;
     for (let s = 1; s < 60 && !cobrado; s++) {
@@ -2252,9 +2252,9 @@ for (let k = 0; k < 6; k++) {
   assert.equal(A.pierdeTurno, 1);
   // siguiente turno: perdido; el que sigue: sin acción principal
   e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
-  for (let k = 0; k < 20 && !(e.turno.pid === a && e.turno.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; g.tickear(100); }
-  assert.ok(e.turno.pid === a && e.turno.omitido, 'pierde su siguiente turno');
-  for (let k = 0; k < 20 && !(e.turno.pid === a && !e.turno.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; g.tickear(100); }
+  for (let k = 0; k < 20 && !(e.turno?.pid === a && e.turno?.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; g.tickear(100); }
+  assert.ok(e.turno?.pid === a && e.turno?.omitido, 'pierde su siguiente turno');
+  for (let k = 0; k < 20 && !(e.turno?.pid === a && !e.turno?.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.fin = true; g.tickear(100); }
   assert.ok(e.turno.pid === a && e.turno.principal && e.turno.heridoAhora, 'en el que sigue no tiene acción principal');
   void b; void h0;
 }
@@ -2325,7 +2325,7 @@ for (let k = 0; k < 6; k++) {
 // Tesoro de Mansa Musa: 20 dinares como máximo (se reparte con socios).
 {
   const { TESOROS } = await import('../shared/base.js');
-  assert.equal(TESOROS.mansa.valor, 20); assert.equal(TESOROS.persia.valor, 54); assert.equal(TESOROS.ruman.valor, 16);
+  assert.equal(TESOROS.mansa.valor, 20); assert.equal(TESOROS.persia.valor, 30); assert.equal(TESOROS.ruman.valor, 16);
   let gano = false, perdio = false;
   for (let s = 1; s < 80 && !(gano && perdio); s++) {
     const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
@@ -2392,6 +2392,27 @@ for (let k = 0; k < 6; k++) {
   // el deseo de ifrit también lo ofrece
   const { cartaDatos } = await import('../shared/engine.js'); void cartaDatos;
   assert.match(data.objetos.ifrit.deseos.I, /Mansa Musa/);
+}
+
+// Jorge (10 de noviembre): brújula = 1 intento extra; astrolabio = 2 intentos extra («una brújula con esteroides»); con los dos vale
+// el astrolabio; cada intento con su propio dado y botón; el reparto con socios es el normal.
+{
+  const prueba = (items, esperados) => {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Bagdad';
+    A.mano = A.mano.filter((c) => !['brujula', 'astrolabio'].includes(c.ref) && c.tipo !== 'objeto');
+    for (const it of items) darItem(e, A, it);
+    const mapa = darItem(e, A, 'mapa', { tesoro: 'persia' }); A.ciudad = 'Isfahán'; turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones';
+    forzar(e, 1, 1, 1, 1, 1, 1);   // todos los intentos fallan
+    e.dados = null; e.colaDados = [];
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'buscar', uid: mapa.uid }).ok);
+    const ds = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.motivo === 'tesoro');
+    assert.equal(ds.length, esperados, `${items.join('+') || 'nada'}: ${esperados} tirada(s), cada una con su botón`);
+    assert.ok(tieneItem(A, 'mapa'), 'si no sale, conserva el mapa');
+  };
+  prueba([], 1); prueba(['brujula'], 2); prueba(['astrolabio'], 3); prueba(['brujula', 'astrolabio'], 3);
+  const { ITEMS: IT2 } = await import('../shared/base.js'); assert.match(IT2.astrolabio.texto, /2 intentos extra/);
 }
 
 console.log('reglas de la casa OK');

@@ -126,7 +126,8 @@ function prepararMazos(data, e) {
   const botin = [], guardadas = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (o.copias <= 1) { e.stock[o.id] = 1; continue; }   // copia única (pala y linterna, Jorge 10 de noviembre): solo en el mercado
+    else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
   }
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
   e.reposicion = barajar(e, guardadas);
