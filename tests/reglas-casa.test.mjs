@@ -2483,7 +2483,7 @@ for (let k = 0; k < 6; k++) {
   const { tienda, ARMAS_CIUDAD } = await import('../shared/objetos.js');
   const { LAMPARA } = await import('../shared/tesoros.js');
   assert.equal(LAMPARA.prob, 0.06); assert.equal(data.config.r1.maxAyudantes, 4); assert.equal(data.config.r1.costoAyudante, 17);
-  assert.deepEqual(ARMAS_CIUDAD, { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul'] });
+  assert.deepEqual(ARMAS_CIUDAD, { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul', 'Samarcanda'] });
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
   turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
@@ -2492,6 +2492,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!ver('Bagdad', 'alfanje') && !ver('El Cairo', 'alfanje'), 'no hay alfanje en Bagdad ni en El Cairo');
   assert.ok(!ver('Bagdad', 'cimitarra') && !ver('Yemen', 'cimitarra'), 'cimitarra solo en Andalucía, El Cairo y Estambul');
   assert.equal(ver('Estambul', 'cimitarra').precio, ver('El Cairo', 'cimitarra').precio + 5, 'en Estambul, 5 dinares más');
+  assert.equal(ver('Samarcanda', 'cimitarra').precio, ver('El Cairo', 'cimitarra').precio, 'en Samarcanda, al precio normal');
   for (const c of ['Bagdad', 'Damasco', 'Yemen', 'India', 'Magreb']) { assert.ok(ver(c, 'jambiya'), 'jambiya en ' + c); assert.ok(ver(c, 'flechas'), 'flechas en ' + c); }
   for (const c of ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb']) assert.ok(ver(c, 'arco'), 'arco en ' + c);
   for (const c of ['Bagdad', 'Basra', 'Estambul', 'Samarcanda', 'India', 'Andalucía']) assert.ok(!ver(c, 'arco'), 'sin arco en ' + c);

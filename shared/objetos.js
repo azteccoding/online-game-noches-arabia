@@ -13,7 +13,7 @@ const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (10 de noviembre): el alfanje solo en Yemen, Estambul, Isfahán y Samarcanda, y la cimitarra solo en Andalucía y El Cairo, con
 // 1 en cada mercado (la jambiya, en todas las ciudades, sin límite). Venderlas se puede en cualquier ciudad; la vendida queda a la
 // venta en el mercado de esa ciudad, al momento.
-export const ARMAS_CIUDAD = { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul'] };
+export const ARMAS_CIUDAD = { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul', 'Samarcanda'] };   // Jorge (10 de noviembre): también 1 en Samarcanda
 export const RECARGO_ARMA = { cimitarra: { Estambul: 5 } };   // en Estambul la cimitarra cuesta 5 dinares más
 for (const [r, cs] of Object.entries(ARMAS_CIUDAD)) CIUDAD_ORIGINAL[r] = cs;
 CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
