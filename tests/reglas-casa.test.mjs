@@ -2312,7 +2312,11 @@ for (let k = 0; k < 6; k++) {
   const d0 = A.dinares; assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'venecianos' }).ok); assert.equal(A.dinares, d0 + 100, 'venta: 100 dinares');
   const { alEliminar } = await import('../shared/retos.js');
   A.misiones.push({ id: 'R2', objetivo: b, limite: 99 }); const d1 = A.dinares;
-  alEliminar(data, e, b, a); assert.equal(A.dinares, d1 + 50, 'R2: 50 dinares'); assert.ok(tieneItem(A, 'astrolabio') && tieneItem(A, 'alfanje'), 'R2: astrolabio y alfanje');
+  const h0 = e.historial.length; A.mano = A.mano.filter((c) => !['caballo', 'alfanje'].includes(c.ref));
+  alEliminar(data, e, b, a); assert.equal(A.dinares, d1 + 50, 'R2: 50 dinares'); assert.ok(tieneItem(A, 'astrolabio') && tieneItem(A, 'caballo'), 'R2: astrolabio y caballo');
+  assert.ok(!tieneItem(A, 'alfanje'), 'ya no da alfanje'); assert.ok(e.historial.slice(h0).some((h) => /Ganaste un caballo/.test(h.sub || '')), 'sale la carta del caballo');
+  assert.equal(A.mano.find((c) => c.ref === 'caballo').extra?.usados || 0, 0, 'con vida completa');
+  assert.doesNotMatch(JSON.stringify(data.retos.retos.find((r) => r.id === 'R2')), /60 dinares|Envenenamiento/, 'sin las frases que no estaban programadas');
   assert.match(data.retos.retos.find((r) => r.id === 'R2').premio, /50 dinares/);
   assert.match(data.retos.retos.find((r) => r.id === 'R41').premio, /100 noches.*100 dinares/);
 }
@@ -2336,6 +2340,23 @@ for (let k = 0; k < 6; k++) {
     assert.ok(!g.act(a, { t: 'reto', id: 'R8' }).ok || true);
   }
   assert.ok(gano && perdio, 'se probaron las dos salidas');
+}
+
+// Jorge (10 de noviembre): R2 solo se puede tomar cuando alguien ya cobró una carrera «Dos noches» en Damasco o Aleppo; el testigo
+// es el último jugador que visitó Damasco o Aleppo.
+{
+  const { carreraFinTurno: cft } = await import('../shared/engine.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.turnos = 6; A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  B.ciudad = 'Aleppo'; llegada(data, e, b, 'Bagdad'); assert.equal(e.ultimoDamasco, b, 'Aleppo también deja testigo');
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'reto', id: 'R2' }).error || '', /carrera «Dos noches» en Damasco o Aleppo/, 'antes del crimen no se puede');
+  e.carrerasActivas = [{ id: 'E14', ciudad: 'Aleppo', prog: { [b]: 1 } }]; turnoDe(e, b, 'Aleppo'); cft(data, e);
+  assert.ok(e.crimenPresenciado, 'cobrar la carrera en Aleppo abre el reto');
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  const r = g.act(a, { t: 'reto', id: 'R2' }); assert.ok(r.ok, r.error); assert.ok(A.misiones.some((m) => m.id === 'R2' && m.objetivo === b), 'el objetivo es el último que visitó Aleppo');
 }
 
 console.log('reglas de la casa OK');

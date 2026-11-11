@@ -482,6 +482,7 @@ export function carreraFinTurno(data, e) {
     if (hospedado && j.ciudad === c.ciudad) c.prog[j.id] = (c.prog[j.id] || 0) + 1; else delete c.prog[j.id];
     if ((c.prog[j.id] || 0) >= 2) {
       j.dinares += 60; j.noches += 50;
+      if (['Damasco', 'Aleppo'].includes(c.ciudad)) e.crimenPresenciado = true;   // R2: en ese alojamiento se presenció un crimen (Jorge, 10 de noviembre)
       e.carrerasActivas.splice(e.carrerasActivas.indexOf(c), 1);
       log(e, `${j.nombre} es el primero en pasar dos noches seguidas en ${c.ciudad}: gana 60 dinares y 50 noches.`, { pid: j.id, aviso: true });
     } else if (c.prog[j.id] === 1) log(e, `${j.nombre} lleva una noche en ${c.ciudad} (carrera: 1 de 2).`, { pid: j.id });

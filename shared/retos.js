@@ -166,7 +166,7 @@ export function finTurno(data, e, pid) {}
 export function alLlegar(data, e, pid, origen) {
   const j = e.jugadores[pid];
   e.ultimaCiudadVisita ||= {};
-  if (j.ciudad === 'Damasco') e.ultimoDamasco = pid;
+  if (j.ciudad === 'Damasco' || j.ciudad === 'Aleppo') e.ultimoDamasco = pid;   // Jorge (10 de noviembre): el testigo es el último que visitó Damasco o Aleppo
   if (j.extra.rep) for (const id of Object.keys(j.extra.rep)) if (m1(data, id).ciudad !== j.ciudad) delete j.extra.rep[id];
   for (const m of j.misiones.slice()) {
     if (m.id === 'R3') { if (j.ciudad === 'Estambul') m.visito = true; if (j.ciudad === 'Bagdad' && m.visito) completarR3(data, e, pid, m); continue; }
@@ -215,7 +215,7 @@ export function alEliminar(data, e, victima, por) {
   if (!por) return;
   const j = e.jugadores[por];
   const m = j?.misiones.find((x) => x.id === 'R2' && x.objetivo === victima);
-  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); if (!tieneItem(j, 'alfanje')) darItem(e, j, 'alfanje'); premio(data, e, por, { dinares: 50 }, `${j.nombre} cumple el encargo de Yafar (R2):`); }   // Jorge (10 de noviembre): 50 dinares (antes 100)
+  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); darTransporte(data, e, por, 'caballo'); premio(data, e, por, { dinares: 50 }, `${j.nombre} cumple el encargo de Yafar (R2):`); }   // Jorge (10 de noviembre): astrolabio, 50 dinares y un caballo (ya no alfanje)
 }
 HOOK.alEliminar = alEliminar;
 
@@ -280,6 +280,7 @@ T.R1.sinSalir = true;
 T.R2 = { ciudad: 'Bagdad', req: (data, e, pid) => {
   const j = e.jugadores[pid];
   if (j.turnos < 5) return 'Necesitas haber jugado 5 turnos.';
+  if (!e.crimenPresenciado) return 'Todavía nadie ha presenciado el crimen: alguien debe cobrar antes una carrera «Dos noches» en Damasco o Aleppo.';   // Jorge (10 de noviembre)
   const o = e.ultimoDamasco; if (!o || o === pid || e.jugadores[o].eliminado) return 'No hay testigo al que matar.';
   return null;
 }, run(data, e, pid, ctx) {
