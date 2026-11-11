@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useJuego, iniciarJuego, leer, avisar, avisarPerdida, enviar } from './game/store.js';
+import { useJuego, iniciarJuego, leer, avisar, avisarPerdida, enviar, cerrarAviso } from './game/store.js';
 import { ACCIONES } from './game/protocol.js';
 import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
@@ -146,8 +146,8 @@ function Juego({ lienzo }) {
       {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
-      {error && <div className="toast" role="alert">{error}</div>}
-      {aviso && !error && <div className="toast ok" role="status">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
+      {error && <div className="toast" role="alert" onClick={() => cerrarAviso('error')} title="Toca para cerrar">{error}</div>}
+      {aviso && !error && <div className="toast ok" role="status" onClick={() => cerrarAviso('aviso')} title="Toca para cerrar">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
     </div>
   );
 }

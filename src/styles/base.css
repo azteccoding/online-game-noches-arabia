@@ -23,6 +23,9 @@ h1, h2, h3 { font-family: var(--f-titulo); font-weight: 400; margin: 0; letter-s
 .chip.mal { background: rgba(179, 64, 42, .35); border-color: #e08a74; }
 .chip img, .chip svg { width: 16px; height: 16px; }
 .panel { background: linear-gradient(180deg, #2a0f14, #1d0709); border: 2px solid var(--oro); border-radius: var(--radio); box-shadow: var(--sombra); }
-.toast { position: absolute; left: 50%; bottom: calc(var(--acciones-alto) + 14px); transform: translateX(-50%); background: var(--alerta); color: #fff; padding: 10px 16px; border-radius: 12px; box-shadow: var(--sombra); z-index: 90; max-width: 90%; pointer-events: none; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+/* Anuncios (Jorge, 10 de noviembre): el texto siempre completo (antes se cortaba a 3 líneas con line-clamp), con salto de línea, ancho
+   adaptado a la pantalla y se cierran al tocarlos. Si es muy largo, se desplaza dentro del anuncio en vez de cortarse. */
+.toast { position: absolute; left: 50%; bottom: calc(var(--acciones-alto) + 14px); transform: translateX(-50%); background: var(--alerta); color: #fff; padding: 10px 16px; border-radius: 12px; box-shadow: var(--sombra); z-index: 90; width: max-content; max-width: min(560px, calc(100vw - 24px)); box-sizing: border-box; white-space: normal; overflow-wrap: anywhere; text-align: center; line-height: 1.35; max-height: 40vh; overflow-y: auto; cursor: pointer; pointer-events: auto; }
+@media (max-width: 480px) { .toast { font-size: 14px; padding: 9px 12px; } }
 @media (prefers-reduced-motion: reduce) { *:not(.barra-i) { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 .toast.ok { background: #1f5a3a; border: 1px solid var(--oro-claro); }

@@ -24,8 +24,10 @@ export async function iniciarJuego(params) {
   adaptador = await crearAdaptador(params);
   adaptador.onEstado((estado) => poner({ estado, error: null }));
   adaptador.onConexion((conexion) => poner({ conexion }));
-  adaptador.onError((error) => { poner({ error }); setTimeout(() => { if (S.error === error) poner({ error: null }); }, 4000); });
-  adaptador.onHecho?.((aviso) => { poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, 3500); });   // confirmación de entregas y tesoro
+  // los anuncios largos duran un poco más (y se cierran al tocarlos: cerrarAviso)
+  const dura = (t, base) => base + Math.min(6000, 45 * String(t || '').length);
+  adaptador.onError((error) => { poner({ error }); setTimeout(() => { if (S.error === error) poner({ error: null }); }, dura(error, 4000)); });
+  adaptador.onHecho?.((aviso) => { poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, dura(aviso, 3500)); });   // confirmación de entregas y tesoro
   adaptador.onReaccion?.((r) => {                                       // burbujas de reacción: como mucho 3 a la vez, 4.5 s cada una
     const k = `${r.de}-${r.ts}`; poner({ reacciones: [...S.reacciones, { ...r, k }].slice(-3) });
     setTimeout(() => poner({ reacciones: S.reacciones.filter((x) => x.k !== k) }), 4500);
@@ -35,6 +37,8 @@ export async function iniciarJuego(params) {
   adaptador.conectar(params);
 }
 export const enviar = (a) => adaptador?.enviar(a);
+// Cerrar un anuncio al tocarlo: solo lo oculta en este navegador; no cambia nada del juego (Jorge, 10 de noviembre).
+export const cerrarAviso = (k) => poner({ [k]: null });
 export const reaccionar = (id) => adaptador?.reaccionar?.(id);
 export const verComo = (pid) => adaptador?.verComo?.(pid);
 export const adaptadorActual = () => adaptador;
