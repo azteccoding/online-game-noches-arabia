@@ -295,14 +295,14 @@ function forzar(e, ...valores) {
   assert.ok(!tieneItem(A, 'bendicionAbuMadyan'), 'sirve una sola vez: se gasta al proteger');
 }
 
-// Ningún premio da dos transportes; quien ya tiene un animal recibe dinares en su lugar
+// Jorge (10 de noviembre): un premio no da un animal que ya tienes (recibes dinares); de distinto tipo, sí
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
   const din = j.dinares;
-  darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello');
-  assert.equal(j.mano.filter((c) => ['caballo', 'camello', 'burro'].includes(c.ref)).length, 1, 'un solo transporte');
-  assert.ok(tieneItem(j, 'caballo')); assert.equal(j.dinares, din + 20, 'el camello se cambia por 20 dinares');
+  darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello'); darTransporte(data, e, pid, 'camello');
+  assert.equal(j.mano.filter((c) => ['caballo', 'camello', 'burro'].includes(c.ref)).length, 2, 'caballo y camello');
+  assert.equal(j.dinares, din + 20, 'el segundo camello se cambia por 20 dinares');
 }
 
 // Dado de ingreso: aviso verde si llega carta de sheij, rojo si no
@@ -555,7 +555,7 @@ function avanzarHasta(g, cond, pasos = 400) {
 // Mensajes de ir a una ciudad: mínimo 20 dinares; trivias nuevas
 {
   for (const id of ['M1', 'M4', 'M5', 'M7', 'M9', 'M11', 'M12', 'M13', 'M14', 'M15']) assert.ok(data.mensajes.mensajes.find((m) => m.id === id).dinares >= 20, id);
-  for (const m of data.mensajes.mensajes) assert.ok(m.premio.startsWith(m.dinares + ' dinares'), 'el premio dice lo que paga: ' + m.id);
+  for (const m of data.mensajes.mensajes.filter((x) => !x.permiso)) assert.ok(m.premio.startsWith(m.dinares + ' dinares'), 'el premio dice lo que paga: ' + m.id);
   const vat = data.trivias.trivias.find((t) => /mujeres no pueden votar/.test(t.pregunta)), uni = data.trivias.trivias.find((t) => /universidad más antigua/.test(t.pregunta));
   assert.equal(vat.opciones[vat.correcta], 'El Vaticano'); assert.match(uni.opciones[uni.correcta], /Al-Qarawiyyin/); assert.match(uni.nota, /859/);
 }
@@ -1415,7 +1415,7 @@ for (let k = 0; k < 6; k++) {
   void y; void Y;
   assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + cab.uid }).ok, 'compra el caballo de segunda mano'); assert.equal(Bj.dinares, 90, 'a 10');
   const c = Bj.mano.find((q) => q.ref === 'caballo'); assert.equal(c.extra.usados, 0, 'con todos sus turnos de vida');
-  assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'un animal a la vez');
+  assert.ok(tienda(data, e, b).find((x) => x.ref === 'establo:' + bur.uid).puede, 'con caballo también puede comprar el burro: uno de cada tipo');
   Bj.ciudad = 'Aleppo'; Bj.mano = Bj.mano.filter((q) => q.ref !== 'caballo');
   assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'solo en la ciudad donde se vendió');
   Bj.ciudad = 'Damasco'; Bj.dinares = 34; assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'el burro de segunda mano cuesta 35');
@@ -2070,6 +2070,148 @@ for (let k = 0; k < 6; k++) {
   AD.turnos = t0 + 3; const h1 = e.historial.length; OBJ.caducarKanmakan(data, e, ad);
   assert.ok(!AD.mano.includes(k), 'sin volver a Isfahán, se disuelve'); assert.ok(e.kanmakan.usada);
   assert.ok(e.historial.slice(h1).some((h) => /Kanmakán/.test(h.titulo)), 'aviso al disolverse');
+}
+
+// Jorge (10 de noviembre): varios animales a la vez, uno de cada tipo; cada uno con su vida y su costo; se elige con cuál viajar.
+{
+  const { darTransporte } = await import('../shared/retos.js');
+  const { motivoNoSalir } = await import('../shared/base.js');
+  const OBJ = await import('../shared/objetos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const J of [A, B]) { J.ciudad = 'Basra'; J.dinares = 200; J.mano = J.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref) && c.tipo !== 'objeto'); }
+  e.burros = 2; turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'compra burro');
+  darTransporte(data, e, a, 'caballo'); assert.ok(tieneItem(A, 'caballo') && tieneItem(A, 'burro'), 'gana un caballo teniendo burro');
+  const d0 = A.dinares; darTransporte(data, e, a, 'caballo');
+  assert.equal(A.mano.filter((c) => c.ref === 'caballo').length, 1, 'no dos caballos'); assert.equal(A.dinares, d0 + 30, 'en su lugar, dinares');
+  darTransporte(data, e, a, 'camello'); assert.equal(['caballo', 'camello', 'burro'].filter((r) => tieneItem(A, r)).length, 3, 'los tres a la vez');
+  const dd = A.dinares; OBJ.animalesInicioTurno(data, e, a); assert.equal(A.dinares, dd - 7, 'paga cada animal: 1 + 3 + 3');
+  const burro = A.mano.find((c) => c.ref === 'burro'); burro.extra = { ...(burro.extra || {}), usados: 99 }; OBJ.animalesFinTurno(data, e, a);
+  assert.ok(!tieneItem(A, 'burro') && tieneItem(A, 'caballo') && tieneItem(A, 'camello'), 'muere solo el burro');
+  for (let k = 0; k < 9; k++) A.mano.push({ uid: 9950 + k, tipo: 'objeto', ref: 'OB34' });
+  assert.equal(motivoNoSalir(e, A), null, 'la carga sigue cubierta por el caballo');
+  turnoDe(e, a, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+  const viajes = OBJ.disponibles(data, e, a).filter((x) => x.k === 'usar' && /Viajar con/.test(x.titulo)).map((x) => x.titulo);
+  assert.ok(viajes.some((t) => /Caballo/.test(t)), 'puede elegir el caballo'); assert.ok(viajes.length >= 1);
+  B.ciudad = 'Damasco'; const cb = darItem(e, B, 'caballo');
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(b, { t: 'proponerTrato', con: a, ofrece: { dinares: 0, objetos: [cb.uid] }, pide: { dinares: 5, objetos: [] } }).ok);
+  const id = Object.keys(e.tratos)[0]; assert.match(g.act(a, { t: 'responderTrato', id, ok: true }).error || '', /uno de cada tipo/, 'trato: no dos caballos');
+}
+
+// Jorge (10 de noviembre): cartas de Ibn Hazm (M17) e Ibn Arabi (M18): una sola vez, acción principal aunque viajes en animal;
+// van a la mano, no cargan, se venden en tratos pero no al mercado.
+{
+  const { cartaPermiso } = await import('../shared/engine.js');
+  const { nCarga, ITEMS: IT } = await import('../shared/base.js');
+  assert.equal(IT.cartaIbnHazm.nombre, 'Carta de Ibn Hazm: no pierdes tu turno por montar');
+  assert.equal(IT.cartaIbnArabi.nombre, 'Carta de Ibn Arabi: no pierdes tu turno por montar');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  e.cajaAbierta = true; e.mazos.mensajes = ['M17', ...e.mazos.mensajes.filter((x) => x !== 'M17')];
+  const n0 = nCarga(A);
+  const rr = g.act(e.host, { t: 'host.repartir', pid: a, mazo: 'mensaje' }); assert.ok(rr.ok, rr.error);
+  const carta = A.mano.find((c) => c.ref === 'cartaIbnHazm'); assert.ok(carta, 'va a la mano'); assert.ok(!A.mensajes.some((m) => m.id === 'M17'), 'no es un encargo');
+  assert.equal(nCarga(A), n0, 'no carga');
+  A.ciudad = B.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'vender', uid: carta.uid }).error || '', /no compra cartas de sheij/, 'no al mercado');
+  A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref)); const cab = darItem(e, A, 'caballo');
+  const resolverHasta = () => { for (let k = 0; k < 20 && e.pend && e.pend.titulo !== IT.cartaIbnHazm.nombre; k++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones?.[0] || {}).id }); };
+  const ru = g.act(a, { t: 'usar', uid: cab.uid, destino: 'Aleppo' }); assert.ok(ru.ok, ru.error); resolverHasta();
+  assert.equal(e.pend?.titulo, IT.cartaIbnHazm.nombre, 'pregunta si la usa');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok); assert.ok(e.turno.fin || e.turno.finTrasCC, 'sin usarla, termina el turno'); assert.ok(cartaPermiso(data, A), 'la conserva');
+  turnoDe(e, a, 'Aleppo'); A.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
+  const ru2 = g.act(a, { t: 'usar', uid: cab.uid, destino: 'Damasco' }); assert.ok(ru2.ok, ru2.error); resolverHasta();
+  const h0 = e.historial.length;
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.ok(!e.turno.fin && !e.turno.principal, 'puede hacer su acción principal ' + JSON.stringify({ fin: e.turno.fin, pr: e.turno.principal, pend: e.pend?.titulo, pid: e.turno.pid === a })); assert.ok(!cartaPermiso(data, A), 'se extingue');
+  assert.ok(e.historial.slice(h0).some((h) => h.titulo === IT.cartaIbnHazm.nombre), 'se muestra la carta');
+  const c2 = darItem(e, A, 'cartaIbnArabi', { msg: 'M18' }); B.ciudad = A.ciudad;
+  turnoDe(e, a, A.ciudad); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'proponerTrato', con: b, ofrece: { dinares: 0, objetos: [c2.uid] }, pide: { dinares: 10, objetos: [] } }).ok);
+  const id = Object.keys(e.tratos)[0]; const rt = g.act(b, { t: 'responderTrato', id, ok: true }); assert.ok(rt.ok, rt.error);
+  assert.ok(B.mano.some((c) => c.ref === 'cartaIbnArabi'), 'se vende en un trato');
+}
+
+// Jorge (10 de noviembre): contador de la carrera en la barra de abajo
+{
+  const { contadoresCarrera } = await import('../src/game/carrera.js');
+  const s = { yo: 'a', jugadores: { a: { ciudad: 'Aleppo' } }, carreras: [{ id: 'E14', ciudad: 'Aleppo', prog: {} }, { id: 'E15', ciudad: 'Damasco', prog: {} }] };
+  assert.deepEqual(contadoresCarrera(s).map((c) => c.texto), ['Carrera en Aleppo: 0 de 2 noches'], 'en la ciudad: 0 de 2');
+  s.carreras[0].prog.a = 1; assert.equal(contadoresCarrera(s)[0].texto, 'Carrera en Aleppo: 1 de 2 noches');
+  s.jugadores.a.ciudad = 'Bagdad'; assert.equal(contadoresCarrera(s).length, 1, 'con una noche se sigue viendo hasta reiniciarse');
+  delete s.carreras[0].prog.a; assert.equal(contadoresCarrera(s).length, 0, 'al reiniciarse se quita');
+  s.carreras = []; assert.equal(contadoresCarrera(s).length, 0, 'al completarse se quita');
+}
+
+// Jorge (10 de noviembre): regalar al mercado algo sin precio que ese mercado no maneja: se disuelve
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const o = data.objetos.mazo.find((x) => x.id === 'OB04'), v0 = o.valor; o.valor = 0;   // Escudo: solo Estambul y Yemen
+  try {
+    A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    let c = { uid: 9990, tipo: 'objeto', ref: 'OB04' }; A.mano.push(c); const r0 = (e.reposicion || []).length;
+    assert.ok(g.act(a, { t: 'vender', uid: c.uid }).ok); assert.equal((e.reposicion || []).length, r0, 'en Damasco se disuelve');
+    A.ciudad = 'Estambul'; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
+    c = { uid: 9991, tipo: 'objeto', ref: 'OB04' }; A.mano.push(c);
+    assert.ok(g.act(a, { t: 'vender', uid: c.uid }).ok); assert.equal((e.reposicion || []).length, r0 + 1, 'en Estambul vuelve a la venta');
+  } finally { o.valor = v0; }
+}
+
+// Jorge (10 de noviembre): el burro muere si viajas fuera de su zona (con aviso antes); caballo y camello no mueren fuera de sus rutas.
+{
+  const { avisoBurro, ZONA_BURRO } = await import('../shared/objetos.js');
+  const { motivoNoSalir } = await import('../shared/base.js');
+  assert.deepEqual(ZONA_BURRO, ['Bagdad', 'Damasco', 'Aleppo', 'Basra', 'El Cairo']);
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref) && c.tipo !== 'objeto'); A.ciudad = 'Damasco';
+  darItem(e, A, 'burro');
+  assert.equal(avisoBurro(A, 'Aleppo'), null, 'dentro de su zona, sin aviso');
+  assert.match(avisoBurro(A, 'Estambul') || '', /^Tu burro no aguantará este viaje: morirá si sales de su zona/);
+  for (let k = 0; k < 9; k++) A.mano.push({ uid: 9970 + k, tipo: 'objeto', ref: 'OB34' });
+  assert.match(avisoBurro(A, 'Estambul'), /llevarías 9 objetos y sin animal; en Estambul no podrás salir/, 'avisa de la sobrecarga');
+  const b0 = e.burros || 0;
+  A.ciudad = 'Estambul'; llegada(data, e, a, 'Damasco');
+  assert.ok(!tieneItem(A, 'burro'), 'muere al llegar fuera de su zona'); assert.equal(e.burros, b0 + 1, 'llega otro a Basra');
+  assert.ok(e.log.some((l) => /no aguantó el viaje a Estambul/.test(l.texto)));
+  assert.match(motivoNoSalir(e, A) || '', /Vas muy cargado/, 'queda bloqueado en el destino hasta vender');
+  // con caballo, el burro muere pero la carga sigue cubierta; el caballo no muere en India aunque ahí no te mueva
+  darItem(e, A, 'burro'); const cab = darItem(e, A, 'caballo'); A.ciudad = 'India'; llegada(data, e, a, 'Basra');
+  assert.ok(!tieneItem(A, 'burro') && tieneItem(A, 'caballo'), 'el caballo va contigo a India');
+  assert.equal(motivoNoSalir(e, A), null, 'el caballo sigue cargando');
+  turnoDe(e, a, 'India'); e.turno.fase = 'acciones';
+  const OBJ = await import('../shared/objetos.js');
+  { const v = OBJ.disponibles(data, e, a).filter((x) => x.uid === cab.uid && /Viajar con/.test(x.titulo)); assert.ok(v.every((x) => x.bloqueado), 'en India el caballo no te mueve (sale bloqueado con su razón)'); }
+}
+
+// Jorge (10 de noviembre): los mapas de tesoro funcionan de punta a punta: con el mapa en su ciudad aparece «Buscar el tesoro» en
+// Acciones → Tesoros y Jorasán, se tiran los dados y, si sale, se cobra (Rumán 16, Persia 54, Mansa Musa 96).
+{
+  const { TESOROS } = await import('../shared/base.js');
+  for (const [k, ciudad, valor] of [['ruman', 'Estambul', 16], ['persia', 'Isfahán', 54], ['mansa', 'Magreb', 96]]) {
+    assert.equal(TESOROS[k].ciudad, ciudad); assert.equal(TESOROS[k].valor, valor);
+    let cobrado = false;
+    for (let s = 1; s < 60 && !cobrado; s++) {
+      const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+      const e = g.e, [a] = g.ids, A = e.jugadores[a];
+      const mapa = darItem(e, A, 'mapa', { tesoro: k });
+      A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+      assert.ok(!vistaDe(e, a).acciones.some((x) => x.k === 'tesoro' && x.sub === 'buscar'), 'fuera de su ciudad no aparece');
+      A.ciudad = ciudad; turnoDe(e, a, ciudad); e.turno.fase = 'acciones';
+      for (const id of e.orden) if (id !== a) e.jugadores[id].ciudad = 'Bagdad';   // nadie más en la ciudad: sin socios
+      const acc = vistaDe(e, a).acciones.find((x) => x.k === 'tesoro' && x.sub === 'buscar' && x.uid === mapa.uid);
+      assert.ok(acc, `aparece «${acc?.titulo}» para ${k}`); assert.match(acc.titulo, new RegExp('Buscar el tesoro de ' + TESOROS[k].nombre));
+      e.semilla = s * 977; const d0 = A.dinares;
+      const r = g.act(a, { t: 'tesoro', sub: 'buscar', uid: mapa.uid }); assert.ok(r.ok, r.error);
+      for (let q = 0; q < 10 && e.pend; q++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones?.find((o) => o.id === 'no') || e.pend.opciones?.[0] || {}).id });
+      if (A.dinares === d0 + valor) { cobrado = true; assert.ok(!tieneItem(A, 'mapa'), 'el mapa se entrega'); assert.ok(e.tesoros[k]?.encontrado, 'ya nadie lo puede encontrar'); }
+      else assert.equal(A.dinares, d0, 'si no sale, no cobra');
+    }
+    assert.ok(cobrado, 'se puede encontrar y cobrar el tesoro de ' + k);
+  }
 }
 
 console.log('reglas de la casa OK');

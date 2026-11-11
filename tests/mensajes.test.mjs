@@ -8,7 +8,7 @@ import { cargarDatos } from '../server/datos.js';
 const data = cargarDatos();
 data.config.meta = 1e9;                       // la partida de prueba no debe terminar por noches
 const TOTAL = data.mensajes.mensajes.length;
-assert.equal(TOTAL, 16);
+assert.equal(TOTAL, 18);   // 16 encargos + 2 cartas de permiso (Ibn Hazm e Ibn Arabi, 10 de noviembre)
 
 function partida(pjs, semilla = 11) {
   const e = nuevoJuego(data, { semilla, ahora: 1000 });
@@ -23,7 +23,7 @@ function partida(pjs, semilla = 11) {
 }
 
 // Tira el dado de ingreso del jugador en turno forzando `valor`; devuelve los Mensajes activos antes y después.
-const ids = (j) => j.mensajes.map((m) => m.id);
+const ids = (j) => [...j.mensajes.map((m) => m.id), ...j.mano.filter((c) => c.extra?.msg).map((c) => c.extra.msg)];   // las cartas de permiso van a la mano
 function ingreso(g, valor) {
   const { e, act } = g;
   const pid = e.turno.pid;
@@ -65,7 +65,7 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
   const host = e.host, otro = e.orden.find((i) => i !== host);
   assert.ok(act(host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' }).ok);
   assert.ok(act(host, { t: 'host.repartir', pid: otro, mazo: 'mensaje' }).ok, 'segundo Mensaje activo');
-  assert.equal(e.jugadores[otro].mensajes.length, 2);
+  assert.equal(ids(e.jugadores[otro]).length, 2);
   assert.equal(e.mazos.mensajes.length, TOTAL - 2);
 }
 
@@ -93,7 +93,7 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
       break;
     }
   }
-  assert.equal(vistos.length, TOTAL, 'los 16 salieron, cada uno una sola vez');
+  assert.equal(vistos.length, TOTAL, 'los 18 salieron, cada uno una sola vez');
   assert.equal(new Set(vistos).size, TOTAL);
   assert.equal(e.mazos.mensajes.length, 0);
   const fuera = e.mazos.descarte.mensajes.length;

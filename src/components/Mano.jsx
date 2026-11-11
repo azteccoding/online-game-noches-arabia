@@ -17,7 +17,9 @@ export default function Mano({ s, onAbrir, onCerrar }) {
         {msgs.map((m) => (
           <div className="mano-msg" key={m.id}>
             <button className="mano-carta" onClick={() => onAbrir(m.carta)} aria-label={`Abrir mensaje: ${m.carta.titulo}`}><Carta datos={m.carta} tam="mini" /></button>
-            <div><p><b>Mensaje en curso</b>: {m.carta.texto}</p><p className="it">Premio {m.carta.premio}. Plazo hasta la ronda {m.turnoLimite}. Se cumple solo cuando haces lo que pide; no hay que marcarlo.</p></div>
+            {m.carta.permiso
+              ? <div><p><b>{m.carta.titulo}</b>: {m.carta.efecto}</p><p className="it">No caduca. Cuando viajes en caballo o camello, al llegar te pregunta si la usas.</p></div>
+              : <div><p><b>Mensaje en curso</b>: {m.carta.texto}</p><p className="it">Premio {m.carta.premio}. Plazo hasta la ronda {m.turnoLimite}. Se cumple solo cuando haces lo que pide; no hay que marcarlo.</p></div>}
           </div>
         ))}
         {!mano.length && !msgs.length && <p className="it">No tienes cartas. Compra objetos en el Mercado.</p>}

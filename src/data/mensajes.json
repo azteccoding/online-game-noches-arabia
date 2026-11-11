@@ -207,7 +207,43 @@
    "plazoTurnos": 3,
    "arte": "me",
    "refReglamento": "18.3"
+  },
+  {
+   "id": "M17",
+   "de": "Ibn Hazm",
+   "honorifico": "Sheij Ibn Hazm (Dios tenga misericordia de él)",
+   "tipoSheij": "jurista",
+   "titulo": "Carta de Ibn Hazm: no pierdes tu turno por montar",
+   "item": "cartaIbnHazm",
+   "texto": "Te escribe el sabio de Córdoba: “Llegaste. Eso es lo evidente, y lo evidente basta. No busques en el cansancio una prohibición que nadie escribió.”",
+   "efecto": "Una sola vez, haz tu acción principal aunque hayas viajado en caballo, camello o burro. Luego la carta se extingue.",
+   "permiso": "accionTrasAnimal",
+   "encargo": "Una sola vez, haz tu acción principal aunque hayas viajado en caballo, camello o burro. Luego la carta se extingue.",
+   "premio": "",
+   "dinares": 0,
+   "noches": 0,
+   "plazoTurnos": null,
+   "arte": "me",
+   "refReglamento": "18.3"
+  },
+  {
+   "id": "M18",
+   "de": "Ibn Arabi",
+   "honorifico": "Sheij al-Akbar Ibn Arabi (Dios esté complacido con él)",
+   "tipoSheij": "místico",
+   "titulo": "Carta de Ibn Arabi: no pierdes tu turno por montar",
+   "item": "cartaIbnArabi",
+   "texto": "Te escribe el Sheij al Akbar: “Quien viaja con el corazón despierto ya llegó antes de partir. Que tu montura descanse; tú, obra.”",
+   "efecto": "Una sola vez, haz tu acción principal aunque hayas viajado en caballo, camello o burro. Luego la carta se extingue.",
+   "permiso": "accionTrasAnimal",
+   "encargo": "Una sola vez, haz tu acción principal aunque hayas viajado en caballo, camello o burro. Luego la carta se extingue.",
+   "premio": "",
+   "dinares": 0,
+   "noches": 0,
+   "plazoTurnos": null,
+   "arte": "me",
+   "refReglamento": "18.3"
   }
  ],
- "nota": "Regla 18.2: un jugador puede tener varios Mensajes activos (regla de la casa); cada uno de los 16 sale una sola vez por partida (cumplido, vencido o de un eliminado: sale del juego, no se baraja de nuevo); agotados, ya no salen más y un 6 en el ingreso no tiene efecto. Regla de la casa: los Mensajes de ir a una ciudad pagan como mínimo 20 dinares."
+ "nota": "Regla 18.2: un jugador puede tener varios Mensajes activos (regla de la casa); cada uno de los 18 sale una sola vez por partida (cumplido, vencido o de un eliminado: sale del juego, no se baraja de nuevo); agotados, ya no salen más y un 6 en el ingreso no tiene efecto. Regla de la casa: los Mensajes de ir a una ciudad pagan como mínimo 20 dinares."
 }

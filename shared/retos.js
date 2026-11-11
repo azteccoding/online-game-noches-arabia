@@ -23,11 +23,11 @@ const REPETIBLES = ['R8', 'R9'];
 // regresas (como R8 y R9). Si lo logras, queda hecho para siempre. Cada reto marca su fallo con ctx.fallo.
 export const REINTENTABLES = ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38'];
 const esperaVolver = (j, id) => REINTENTABLES.includes(id) && !!j.extra.rep?.[id];
-// Regla de la casa: ningún premio da dos transportes. Si el jugador ya tiene un animal, recibe dinares en su lugar.
-const ANIMALES = ['caballo', 'camello', 'burro'], VALOR_ANIMAL = { caballo: 30, camello: 20, burro: 10 };
+// Jorge (10 de noviembre): se pueden tener varios animales, uno de cada tipo. Si el premio es un animal que ya tienes, recibes dinares.
+const VALOR_ANIMAL = { caballo: 30, camello: 20, burro: 10 };
 export function darTransporte(data, e, pid, ref) {
   const j = e.jugadores[pid];
-  if (ANIMALES.some((a) => tieneItem(j, a))) { j.dinares += VALOR_ANIMAL[ref]; log(e, `${j.nombre} ya tiene transporte: en lugar del ${ref} recibe ${VALOR_ANIMAL[ref]} dinares.`, { pid }); return null; }
+  if (tieneItem(j, ref)) { j.dinares += VALOR_ANIMAL[ref]; log(e, `${j.nombre} ya tiene un ${ref}: en lugar de otro recibe ${VALOR_ANIMAL[ref]} dinares.`, { pid }); return null; }
   // Jorge (10 de noviembre): al ganar un animal sale su carta (solo para quien lo gana) y queda en el registro.
   const c = darItem(e, j, ref);
   publicarCarta(e, { ...itemDatos(data, ref), sub: `Ganaste un ${ITEMS[ref]?.nombre?.toLowerCase() || ref}` }, pid, [pid]);

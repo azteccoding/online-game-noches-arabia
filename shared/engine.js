@@ -7,7 +7,7 @@
 import {
   VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, enCiudad, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
-  eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
+  eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
 apurosZein, enPartida, } from './base.js';
@@ -391,7 +391,7 @@ function iniciarTurno(data, e, id, idx) {
     if (j.transito.faltan > 0) { t.fase = 'mov'; t.principal = true; t.enTransito = true; t.fin = true; log(e, `${j.nombre} sigue de camino hacia ${j.transito.destino}.`, { pid: id }); return; }
     const tr = j.transito; j.transito = null; j.ciudad = tr.destino; t.movio = true;
     log(e, `${j.nombre} llega a ${tr.destino}.`, { pid: id });
-    if (tr.jorasan) { j.perdido = true; j.ciudad = 'Jorasán'; j.noches += NOCHES_JORASAN; log(e, `${j.nombre} llega al Jorasán (+${NOCHES_JORASAN} noches) y está perdido.`, { pid: id }); }
+    if (tr.jorasan) { j.perdido = true; j.ciudad = 'Jorasán'; OBJ.burroFueraDeZona(data, e, id); j.noches += NOCHES_JORASAN; log(e, `${j.nombre} llega al Jorasán (+${NOCHES_JORASAN} noches) y está perdido.`, { pid: id }); }
     else llegada(data, e, id, tr.desde);
   }
   if (j.npc) {
@@ -782,7 +782,7 @@ function darMensaje(data, e, pid) {
   if (yaEstaRonda) return;
   const id = robar(e, 'mensajes');
   if (!id) return;
-  j.mensajes.push({ id, turnoLimite: e.ronda + data.mensajes.mensajes.find((m) => m.id === id).plazoTurnos });   // regla de la casa: se pueden tener varios a la vez
+  recibirMensaje(data, e, j, id);   // regla de la casa: se pueden tener varios a la vez
   publicarCarta(e, cartaDatos(data, 'mensaje', id), pid, [pid]);
   log(e, `${j.nombre} recibe un mensaje de un sheij.`, { msgRonda: e.ronda });
 }
@@ -843,6 +843,28 @@ export function partir(data, e, pid, args) {
 
 // Transporte propio (regla de la casa): llega en el mismo turno, sin tarifa ni caravana nueva. El caballo, el camello y la
 // alfombra terminan el turno (en cuanto se resuelve la carta de Cuentos de la llegada); el burro no.
+// Cartas de Ibn Hazm (M17) e Ibn Arabi (M18), Jorge (10 de noviembre): una sola vez, haces tu acción principal aunque hayas viajado en
+// animal. Sin plazo; se extinguen al usarse. Caballo y camello terminan el turno: al llegar te pregunta si la usas.
+const limiteMensaje = (data, e, id) => { const p = data.mensajes.mensajes.find((m) => m.id === id)?.plazoTurnos; return p == null ? null : e.ronda + p; };
+const ANIMALES_VIAJE = ['caballo', 'camello', 'burro'];
+// Las de permiso van a la mano como carta (se pueden vender a otro jugador en un trato, no al mercado); las demás son encargos.
+function recibirMensaje(data, e, j, id) {
+  const m = data.mensajes.mensajes.find((q) => q.id === id);
+  if (m?.item) darItem(e, j, m.item, { msg: id }); else j.mensajes.push({ id, turnoLimite: limiteMensaje(data, e, id) });
+}
+export const cartaPermiso = (data, j) => j.mano.find((c) => c.tipo === 'item' && ITEMS[c.ref]?.msg) || null;
+registrar('msg.permiso', (data, e, args, resp) => {
+  const j = e.jugadores[args.pid], t = e.turno;
+  if (!j || !t || t.pid !== args.pid) return;
+  const m = cartaPermiso(data, j);
+  if ((resp?.opcion ?? resp) === 'si' && m) {
+    const c = data.mensajes.mensajes.find((q) => q.id === ITEMS[m.ref].msg);
+    quitarCarta(j, m.uid); e.mazos.descarte.mensajes.push(c.id);
+    publicarCarta(e, { ...cartaDatos(data, 'mensaje', c.id), sub: 'La usas: puedes hacer tu acción principal. La carta se extingue.' }, args.pid, [args.pid]);
+    t.principal = false; t.fin = false; t.finTrasCC = false;
+    log(e, `${j.nombre} usa la ${c.titulo.split(':')[0]}: hace su acción principal aunque viajó en ${args.animal}. La carta se extingue.`, { pid: args.pid });
+  } else if (!t.ccActual) t.fin = true;
+});
 export function viajarPropio(data, e, pid, { destino, motivo, termina, consumeUid = null }) {
   const t = e.turno, j = e.jugadores[pid], origen = j.ciudad;
   if (consumeUid) quitarCarta(j, consumeUid);
@@ -851,6 +873,13 @@ export function viajarPropio(data, e, pid, { destino, motivo, termina, consumeUi
   if (motivo === 'burro' && [origen, destino].sort().join() === 'Damasco,El Cairo') hazana(data, e, pid, 'quds');
   if (termina) { t.principal = true; t.maxTramos = t.tramos; t.finTrasCC = true; }
   const r = llegada(data, e, pid, origen);
+  const animal = ANIMALES_VIAJE.find((x) => motivo === x);
+  if (termina && animal && cartaPermiso(data, j) && !j.eliminado && !j.perdido) {
+    const c = data.mensajes.mensajes.find((q) => q.id === ITEMS[cartaPermiso(data, j).ref].msg);
+    pedir(e, { tipo: 'reto', para: [pid], titulo: c.titulo, texto: `Viajaste en ${animal} y eso termina tu turno. ¿Usas la carta para hacer tu acción principal? ${c.efecto}`,
+      opciones: [{ id: 'si', texto: 'Usar carta' }, { id: 'no', texto: 'Guardarla y terminar mi turno' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'msg.permiso', args: { pid, animal } } });
+    return r;
+  }
   if (termina && !t.ccActual) t.fin = true;
   return r;
 }
@@ -864,6 +893,7 @@ export function viajarTransporte(data, e, pid, { destino, motivo = 'transporte',
 }
 
 export function llegada(data, e, pid, origen) {
+  OBJ.burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
   if (e.jugadores[pid]?.ciudad === 'Isfahán') e.jugadores[pid].extra.isfahanTurno = e.jugadores[pid].turnos;   // Kanmakán (punto 7)
   const t = e.turno, j = e.jugadores[pid], c = ciudadDe(data, j.ciudad);
   const primera = !j.visitadas.includes(j.ciudad);
@@ -1007,7 +1037,7 @@ function terminarTurno(data, e, pid) {
       log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad} (no se movió este turno).`, { pid });
     }
   }
-  for (const m of j.mensajes.filter((x) => e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
+  for (const m of j.mensajes.filter((x) => x.turnoLimite != null && e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   RET.finTurno(data, e, pid);
   t.fin = true;
@@ -1085,6 +1115,13 @@ function responderTrato(data, e, pid, a) {
   if (eB.falta) return err(`${B.nombre} no tiene «${nombreRef(data, eB.falta)}»: no puede aceptar este trato.`);
   tr.ofrece.objetos = [...tr.ofrece.objetos, ...eA.uids]; tr.pide.objetos = [...tr.pide.objetos, ...eB.uids];
   if (!tr.ofrece.objetos.every((u) => A.mano.some((c) => c.uid === u)) || !tr.pide.objetos.every((u) => B.mano.some((c) => c.uid === u))) return err('Faltan objetos.');
+  { // Jorge (10 de noviembre): varios animales, pero uno de cada tipo
+    const dobles = (quien, da, recibe) => recibe.map((u) => (quien === A ? B : A).mano.find((c) => c.uid === u)).filter((c) => c && ANIMALES_VIAJE.includes(c.ref))
+      .find((c) => quien.mano.some((x) => x.ref === c.ref && x.tipo === 'item' && !da.includes(x.uid)));
+    const dA = dobles(A, tr.ofrece.objetos, tr.pide.objetos), dB = dobles(B, tr.pide.objetos, tr.ofrece.objetos);
+    if (dA) return err(`${A.nombre} ya tiene un ${dA.ref}: se pueden tener varios animales, pero uno de cada tipo.`);
+    if (dB) return err(`${B.nombre} ya tiene un ${dB.ref}: se pueden tener varios animales, pero uno de cada tipo.`);
+  }
   A.noches += tr.pide.noches - tr.ofrece.noches; B.noches += tr.ofrece.noches - tr.pide.noches;
   const sinImp = e.mods.feria || A.ciudad === 'Bagdad';
   const tasa = A.ciudad === 'Samarcanda' ? 50 : data.config.impuestoVentaPct;
@@ -1131,7 +1168,7 @@ function hostRepartir(data, e, a) {
     const c = OBJ.robarBotinPublico(data, e, a.pid); if (!c) return err('El Botín está vacío.');
   } else if (a.mazo === 'mensaje') {
     const id = robar(e, 'mensajes'); if (!id) return err('No quedan mensajes: cada uno sale una sola vez por partida.');
-    j.mensajes.push({ id, turnoLimite: e.ronda + 3 }); publicarCarta(e, cartaDatos(data, 'mensaje', id), a.pid, [a.pid]);
+    recibirMensaje(data, e, j, id); publicarCarta(e, cartaDatos(data, 'mensaje', id), a.pid, [a.pid]);
   } else return err('Mazo no repartible.');
   log(e, `El banco reparte una carta a ${j.nombre}.`); return ok();
 }

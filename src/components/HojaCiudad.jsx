@@ -3,6 +3,7 @@ import { ciudadDe, DATA, tablero } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { consejosVenta } from '../game/ventas.js';
+import { confirmarViajeBurro } from '../game/burro.js';
 
 // Ficha de ciudad (al tocar un pin) con la acción de viajar si procede.
 export default function HojaCiudad({ s, id, onCerrar }) {
@@ -30,7 +31,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}
         <button className="btn mini sec" aria-expanded={verVentas} onClick={() => setVerVentas((v) => !v)}>{verVentas ? 'Ocultar consejos de venta' : 'Consejos para ganar dinares aquí'}</button>
         {verVentas && <ul className="consejos-venta">{consejosVenta(id).map((x) => <li key={x}>{x}</li>)}</ul>}
-        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { enviar(ACCIONES.viajar(id)); onCerrar(); }}>Viajar a {id} ({tarifa} dinares)</button>}
+        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>Viajar a {id} ({tarifa} dinares)</button>}
         {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
       </div>

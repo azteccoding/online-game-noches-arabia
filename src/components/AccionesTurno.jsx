@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { confirmarViajeBurro } from '../game/burro.js';
 import { useBloqueo } from '../hooks/useBloqueo.js';
 
 const nom = (s, id) => s.jugadores[id]?.nombre || id;
@@ -21,7 +22,7 @@ export function UsarCarta({ s, a, etiqueta }) {
   const [obj, setObj] = useState(a.objetivos?.[0] || '');
   const [dest, setDest] = useState(a.destinos?.[0] || '');
   const [deseo, setDeseo] = useState(a.ifrit?.[0] || '');
-  const plazos = carta?.ref === 'OB31' ? [...(s.mensajes || []).map((m) => ({ v: 'mensaje:' + m.id, t: `Mensaje de ${m.carta.titulo}` })), ...s.misiones.map((m, i) => (m.turnosRestantes != null ? { v: i, t: `${m.id} · ${m.nombre}` } : null)).filter(Boolean)] : null;
+  const plazos = carta?.ref === 'OB31' ? [...(s.mensajes || []).filter((m) => m.turnoLimite != null).map((m) => ({ v: 'mensaje:' + m.id, t: `Mensaje de ${m.carta.titulo}` })), ...s.misiones.map((m, i) => (m.turnosRestantes != null ? { v: i, t: `${m.id} · ${m.nombre}` } : null)).filter(Boolean)] : null;
   const [mision, setMision] = useState(plazos?.[0]?.v ?? '');
   const enviarUso = () => {
     const x = {};
@@ -30,6 +31,7 @@ export function UsarCarta({ s, a, etiqueta }) {
     if (a.ifrit) x.deseo = deseo;
     if (plazos) x.mision = mision;
     if (a.via) x.via = a.via;
+    if (x.destino && !confirmarViajeBurro(s, x.destino)) return;   // el burro muere fuera de su zona
     enviar(ACCIONES.usar(a.uid, x));
   };
   return (
