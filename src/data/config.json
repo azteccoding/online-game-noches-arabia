@@ -130,6 +130,6 @@
  "r1": {
   "nota": "Reto del Éufrates (regla de la casa): cada sirviente añade un dado de búsqueda; se paga al contratarlo y sin dinares no se contrata (se busca solo).",
   "costoAyudante": 17,
-  "maxAyudantes": 3
+  "maxAyudantes": 4
  }
 }

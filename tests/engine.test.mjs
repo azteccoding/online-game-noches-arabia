@@ -111,6 +111,8 @@ const sinMensaje = (j) => { j.mensajes = []; };
   e.jugadores[p].dinares = 200; e.jugadores[q].ciudad = e.jugadores[p].ciudad;
   const rp = act(p, { t: 'comprar', ref: 'alfanje' }); assert.ok(!rp.ok && /juegan los demás/.test(rp.error), 'en tu turno el mercado no te vende');
   const j = e.jugadores[q]; j.dinares = 200; j.mano = [];
+  assert.ok(!act(q, { t: 'comprar', ref: 'alfanje' }).ok, 'en Bagdad no hay alfanjes (Jorge, 10 de noviembre)');
+  j.ciudad = 'Estambul';
   const antes = j.dinares;
   assert.ok(act(q, { t: 'comprar', ref: 'alfanje' }).ok);
   assert.ok(j.mano.some((c) => c.ref === 'alfanje'));

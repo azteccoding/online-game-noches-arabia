@@ -209,7 +209,8 @@ HOOK.usarIfrit = (data, e, pid, c, a) => {
 // Lámpara mágica (regla de la casa): una vez por partida, desde la ronda 4, quien llega de viaje a Isfahán, Samarcanda, Yemen o
 // India puede encontrarla en el camino (Jorge, 10 de noviembre: solo en esas cuatro ciudades).
 // El genio le concede 1 deseo a elegir entre los 4 de una carta de Ifrit; toda la mesa sabe quién, dónde y qué pidió.
-export const LAMPARA = { desdeRonda: 4, prob: 0.055, ciudades: ['Isfahán', 'Samarcanda', 'Yemen', 'India'] };   // por llegada a esas ciudades
+export const LAMPARA = { desdeRonda: 4, prob: 0.06,   // Jorge (10 de noviembre): 6 %
+  ciudades: ['Isfahán', 'Samarcanda', 'Yemen', 'India'] };   // por llegada a esas ciudades
 export function quizaLampara(data, e, pid) {
   const j = e.jugadores[pid];
   if (e.lampara || j.npc || j.eliminado || !LAMPARA.ciudades.includes(j.ciudad) || (e.ronda || 0) < LAMPARA.desdeRonda) return;

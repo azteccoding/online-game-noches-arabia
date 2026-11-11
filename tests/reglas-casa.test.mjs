@@ -514,7 +514,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.equal(conAlf, 1); assert.equal(conCim, 2, 'cimitarra +2');
   darItem(e, j, 'alfanje'); darItem(e, j, 'jambiya'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, 4, 'tope de +4');
   assert.match(bonosCombate(data, e, a, 'atk', 'Damasco').partes.join(' '), /cimitarra \+2/, 'el desglose lo muestra');
-  j.ciudad = 'Estambul'; j.dinares = 100; turnoDe(e, g.ids[1], 'Estambul');
+  j.ciudad = 'El Cairo'; j.dinares = 100; turnoDe(e, g.ids[1], 'El Cairo');   // la cimitarra solo en Andalucía y El Cairo (Jorge, 10 de noviembre)
   const t = tienda(data, e, a); const cim = t.find((x) => x.ref === 'cimitarra');
   assert.ok(cim && /\+2 al pelear/.test(cim.nombre), 'la tienda dice «Cimitarra · +2 al pelear»');
 }
@@ -660,7 +660,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(disponibles(data, e, a).find((r) => r.id === 'R42').bloqueado, 'sin alfanje no entrena');
   darItem(e, j, 'alfanje'); const b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
-  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 45);
+  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
   // jambiya escondida: no cuenta ni se la roban
   darItem(e, j, 'jambiya'); const conJ = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   assert.ok(g.act(a, { t: 'jambiya', ocultar: true }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, conJ - 1);
@@ -2474,6 +2474,41 @@ for (let k = 0; k < 6; k++) {
   A.ciudad = 'Damasco'; e.carrerasActivas = [{ id: 'E15', ciudad: 'Damasco', prog: { [a]: 1 } }]; const d0 = A.dinares, n0 = A.noches;
   turnoDe(e, a, 'Damasco'); cft(data, e); assert.equal(A.dinares, d0 + 20); assert.equal(A.noches, n0 + 15);
   for (const id of ['E13', 'E14', 'E15']) assert.doesNotMatch(data.eventos.eventos.find((x) => x.id === id).efecto, /60 dinares/);
+}
+
+// Jorge (10 de noviembre): alfanje solo en Yemen, Estambul, Isfahán y Samarcanda (1 por mercado); cimitarra solo en Andalucía y
+// El Cairo (1 por mercado); jambiya en todas; vender, en cualquier ciudad (la vendida vuelve a un mercado que se quedó sin ella).
+// R25 cuesta 50. R1: hasta 4 sirvientes. Lámpara mágica: 6 %.
+{
+  const { tienda, ARMAS_CIUDAD } = await import('../shared/objetos.js');
+  const { LAMPARA } = await import('../shared/tesoros.js');
+  assert.equal(LAMPARA.prob, 0.06); assert.equal(data.config.r1.maxAyudantes, 4); assert.equal(data.config.r1.costoAyudante, 17);
+  assert.deepEqual(ARMAS_CIUDAD, { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul'] });
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
+  for (const J of [A, B]) { J.dinares = 300; J.mano = J.mano.filter((c) => !['alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); }
+  const ver = (ciudad, ref) => { A.ciudad = ciudad; return tienda(data, e, a).find((x) => x.ref === ref); };
+  assert.ok(!ver('Bagdad', 'alfanje') && !ver('El Cairo', 'alfanje'), 'no hay alfanje en Bagdad ni en El Cairo');
+  assert.ok(!ver('Bagdad', 'cimitarra') && !ver('Yemen', 'cimitarra'), 'cimitarra solo en Andalucía, El Cairo y Estambul');
+  assert.equal(ver('Estambul', 'cimitarra').precio, ver('El Cairo', 'cimitarra').precio + 5, 'en Estambul, 5 dinares más');
+  for (const c of ['Bagdad', 'Damasco', 'Yemen', 'India', 'Magreb']) assert.ok(ver(c, 'jambiya'), 'jambiya en ' + c);
+  A.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'comprar', ref: 'alfanje' }).ok); assert.equal(ver('Estambul', 'alfanje').motivo, 'Agotado', 'solo 1 en Estambul');
+  assert.notEqual(ver('Yemen', 'alfanje').motivo, 'Agotado', 'en Yemen sigue el suyo');
+  A.ciudad = 'El Cairo'; assert.ok(g.act(a, { t: 'comprar', ref: 'cimitarra' }).ok);
+  B.ciudad = 'El Cairo'; turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
+  assert.match(g.act(b, { t: 'comprar', ref: 'cimitarra' }).error || '', /Agotado/, 'la de El Cairo ya se vendió');
+  // vender en cualquier ciudad: vuelve a la venta en un mercado que se quedó sin ella
+  A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  const alf = A.mano.find((c) => c.ref === 'alfanje'); assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok, 'se vende en Bagdad');
+  assert.ok(ver('Estambul', 'alfanje').puede, 'vuelve a la venta en Estambul');
+  // R1 con 4 sirvientes
+  const h = partida(['4', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
+  const f = h.e, [c] = h.ids, C = f.jugadores[c];
+  turnoDe(f, c, 'Bagdad'); C.ciudad = 'Bagdad'; C.dinares = 100;
+  assert.ok(h.act(c, { t: 'reto', id: 'R1' }).ok); h.act(c, { t: 'decidir', id: f.pend.id, opcion: 'si' });
+  assert.equal(f.pend.max, 4, 'hasta 4 sirvientes');
+  h.act(c, { t: 'decidir', id: f.pend.id, numero: 4 }); assert.ok(f.log.some((l) => l.texto.includes('contrata 4 sirviente(s) por 68 dinares')));
 }
 
 console.log('reglas de la casa OK');

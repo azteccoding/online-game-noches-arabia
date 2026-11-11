@@ -5,7 +5,7 @@ import {
 marcarBuscado,
 enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
-import { vender } from './objetos.js';
+import { vender, existenciaArma, quitarArma, RECARGO_ARMA } from './objetos.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
 
@@ -149,8 +149,9 @@ function cierre(data, e, pid) {
   if (j.dinares > 60) {
     for (const ref of ['cimitarra', 'alfanje', 'arco']) {
       if (tieneItem(j, ref)) break;
-      if (j.dinares >= precio(ref) + (ref === 'arco' ? 5 : 0)) {
-        j.dinares -= precio(ref); j.mano.push({ uid: uid(e), tipo: 'item', ref });
+      const pr = precio(ref) + (RECARGO_ARMA[ref]?.[j.ciudad] || 0);
+      if (j.dinares >= pr + (ref === 'arco' ? 5 : 0) && existenciaArma(e, ref, j.ciudad) > 0) {   // solo donde hay (Jorge, 10 de noviembre)
+        j.dinares -= pr; quitarArma(e, ref, j.ciudad); j.mano.push({ uid: uid(e), tipo: 'item', ref });
         if (ref === 'arco' && !tieneItem(j, 'flechas')) { j.dinares -= 5; j.mano.push({ uid: uid(e), tipo: 'item', ref: 'flechas' }); }
         log(e, `Yafar NPC compra ${ref}.`, { pid });
         break;

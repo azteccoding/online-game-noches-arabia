@@ -259,7 +259,7 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  // Regla de la casa: cada sirviente cuesta 17 dinares (Jorge, 10 de noviembre: antes 12; máximo 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
+  // Regla de la casa: cada sirviente cuesta 17 dinares (Jorge, 10 de noviembre: antes 12) y se pueden contratar hasta 4 (antes 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
   const cA = data.config.r1?.costoAyudante ?? 12, mA = data.config.r1?.maxAyudantes ?? 3, alcanza = Math.min(mA, Math.floor(Math.max(0, j.dinares) / cA));
   if (!alcanza) { log(e, `${j.nombre} no tiene ${cA} dinares para contratar sirvientes: busca solo.`, { pid }); return CONT['r1.ayudantes'](data, e, {}, { pid, numero: 0 }); }
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Sirvientes', texto: `Cada sirviente añade un dado de búsqueda y cuesta ${cA} dinares, que se pagan ahora (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, nota: `Te alcanza para contratar hasta ${alcanza} ${alcanza === 1 ? 'sirviente' : 'sirvientes'}.`, modo: 'numero', min: 0, max: alcanza, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
@@ -489,8 +489,8 @@ T.R18 = { ciudad: 'Isfahán', ciudades: ['Isfahán', 'Samarcanda'], req: reqArma
 T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42'), run(data, e, pid) { entrenarArma(e, pid, 'R42'); } };
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
 T.R43 = { ciudad: 'Andalucía', req: reqArma('R43'), run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= 45 ? null : 'Cuesta 45 dinares.'), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= 45; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= 50 ? null : 'Cuesta 50 dinares.'), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= 50; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45)
   log(e, `${j.nombre} entrena en Estambul: obtiene destreza con armas (+1 en todas las peleas, robos, ataques y duelos) y gana 50 noches.`, { pid });
 } };
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
