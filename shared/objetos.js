@@ -16,8 +16,9 @@ const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 export const ARMAS_CIUDAD = { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul'] };
 export const RECARGO_ARMA = { cimitarra: { Estambul: 5 } };   // en Estambul la cimitarra cuesta 5 dinares más
 for (const [r, cs] of Object.entries(ARMAS_CIUDAD)) CIUDAD_ORIGINAL[r] = cs;
+CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
 const stockArmas = (e) => (e.stockArmas ||= Object.fromEntries(Object.entries(ARMAS_CIUDAD).map(([r, cs]) => [r, Object.fromEntries(cs.map((c) => [c, 1]))])));
-export const existenciaArma = (e, ref, ciudad) => (ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : Infinity);
+export const existenciaArma = (e, ref, ciudad) => (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : Infinity);
 export const quitarArma = (e, ref, ciudad) => { if (ARMAS_CIUDAD[ref]) stockArmas(e)[ref][ciudad] = Math.max(0, (stockArmas(e)[ref][ciudad] || 0) - 1); };
 function devolverArma(e, ref) {
   if (!ARMAS_CIUDAD[ref]) return null;

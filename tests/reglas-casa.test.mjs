@@ -2492,7 +2492,9 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!ver('Bagdad', 'alfanje') && !ver('El Cairo', 'alfanje'), 'no hay alfanje en Bagdad ni en El Cairo');
   assert.ok(!ver('Bagdad', 'cimitarra') && !ver('Yemen', 'cimitarra'), 'cimitarra solo en Andalucía, El Cairo y Estambul');
   assert.equal(ver('Estambul', 'cimitarra').precio, ver('El Cairo', 'cimitarra').precio + 5, 'en Estambul, 5 dinares más');
-  for (const c of ['Bagdad', 'Damasco', 'Yemen', 'India', 'Magreb']) assert.ok(ver(c, 'jambiya'), 'jambiya en ' + c);
+  for (const c of ['Bagdad', 'Damasco', 'Yemen', 'India', 'Magreb']) { assert.ok(ver(c, 'jambiya'), 'jambiya en ' + c); assert.ok(ver(c, 'flechas'), 'flechas en ' + c); }
+  for (const c of ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb']) assert.ok(ver(c, 'arco'), 'arco en ' + c);
+  for (const c of ['Bagdad', 'Basra', 'Estambul', 'Samarcanda', 'India', 'Andalucía']) assert.ok(!ver(c, 'arco'), 'sin arco en ' + c);
   A.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'comprar', ref: 'alfanje' }).ok); assert.equal(ver('Estambul', 'alfanje').motivo, 'Agotado', 'solo 1 en Estambul');
   assert.notEqual(ver('Yemen', 'alfanje').motivo, 'Agotado', 'en Yemen sigue el suyo');
   A.ciudad = 'El Cairo'; assert.ok(g.act(a, { t: 'comprar', ref: 'cimitarra' }).ok);
