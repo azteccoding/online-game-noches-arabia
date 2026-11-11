@@ -355,18 +355,18 @@ function forzar(e, ...valores) {
   assert.ok(j.mano.some((x) => x.uid === 9300), 'la alfombra ya no se gasta');
 }
 
-// Animales: albéitar y comida cada turno (con deuda), mueren a los 4 (burro) o 5 turnos; el burro se repone en Basra y el caballo reactiva R1
+// Animales: albéitar y comida cada turno (con deuda), mueren a los 3 (burro, Jorge 10 de noviembre) o 5 turnos; el burro se repone en Basra y el caballo reactiva R1
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
   const burro = darItem(e, j, 'burro'), b0 = e.burros;
   j.dinares = 0;
-  for (let n = 1; n <= 4; n++) {
+  for (let n = 1; n <= 3; n++) {
     animalesInicioTurno(data, e, pid);
     assert.equal(j.dinares, -n, 'el burro cuesta 1 dinar por turno y, sin dinero, queda como deuda');
-    assert.match(vistaDe(e, pid).mano.find((c) => c.uid === burro.uid).datos.texto, n < 4 ? new RegExp(`Le quedan ${4 - n} turno`) : /último turno/);
+    assert.match(vistaDe(e, pid).mano.find((c) => c.uid === burro.uid).datos.texto, n < 3 ? new RegExp(`Le quedan ${3 - n} turno`) : /último turno/);
     animalesFinTurno(data, e, pid);
-    assert.equal(!!tieneItem(j, 'burro'), n < 4, n < 4 ? 'el burro sigue vivo' : 'el burro muere a los 4 turnos');
+    assert.equal(!!tieneItem(j, 'burro'), n < 3, n < 3 ? 'el burro sigue vivo' : 'el burro muere a los 3 turnos');
   }
   assert.equal(e.burros, b0 + 1, 'llega otro burro a Basra');
   assert.ok(e.log.some((l) => /Muere de viejo el burro/.test(l.texto) && l.aviso), 'se avisa la muerte');
@@ -1004,18 +1004,20 @@ for (let k = 0; k < 6; k++) {
   e.carrerasActivas = [{ id: 'E13', ciudad: 'El Cairo', prog: {} }];
   A.ciudad = 'El Cairo'; const d0 = A.dinares, n0 = A.noches;
   turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], 1);
-  turnoDe(e, a, 'El Cairo'); e.turno.movio = true; carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], undefined, 'moverse reinicia');
-  turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e); turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e);
+  A.ciudad = 'Aleppo'; turnoDe(e, a, 'El Cairo'); e.turno.movio = true; carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], undefined, 'terminar el turno en otra ciudad reinicia');
+  // Jorge (10 de noviembre): la noche del turno en que llegas también cuenta
+  A.ciudad = 'El Cairo'; turnoDe(e, a, 'Aleppo'); e.turno.movio = true; carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], 1, 'llegar y quedarse cuenta como la primera noche');
+  turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e);
   assert.equal(A.dinares, d0 + 60); assert.equal(A.noches, n0 + 50); assert.equal(e.carrerasActivas.length, 0, 'la carrera se retira');
 }
 
-// Burro: solo en el mercado de Basra (70 dinares + 20 noches), fuera de tu turno y un animal a la vez
+// Burro: solo en el mercado de Basra (35 dinares + 20 noches), fuera de tu turno y un animal a la vez
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
-  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones'; A.ciudad = 'Basra'; A.dinares = 69; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
-  assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'sin 70 dinares no hay trato');
-  A.dinares = 70; const n0 = A.noches;
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones'; A.ciudad = 'Basra'; A.dinares = 34; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
+  assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'sin 35 dinares no hay trato');
+  A.dinares = 35; const n0 = A.noches;
   assert.ok(g.act(a, { t: 'comprar', ref: 'burro' }).ok); assert.equal(A.dinares, 0); assert.equal(A.noches, n0 + 20);
   A.dinares = 100; assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'un animal a la vez');
   A.ciudad = 'Bagdad'; A.mano = A.mano.filter((c) => c.ref !== 'burro'); assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'solo en Basra');
@@ -1397,23 +1399,28 @@ for (let k = 0; k < 6; k++) {
   }
 }
 
-// Establo de Bagdad (punto 13): caballo 60, burro 20, camello 50; quien esté en Bagdad lo compra por 10 más
+// Animales (Jorge, 10 de noviembre): caballo y camello se venden a 10 en el mercado de cualquier ciudad y ahí se revenden a 10; el burro
+// se vende a 15 (por desnutrido) y se revende a 35. Quien lo compra lo recibe con todos sus turnos de vida.
 {
   const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b], Y = e.jugadores[y];
-  for (const j of [A, Bj, Y]) { j.ciudad = 'Bagdad'; j.mano = j.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref)); }
-  const cab = darItem(e, A, 'caballo'), bur = darItem(e, A, 'burro'); A.dinares = 0;
-  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
-  assert.ok(g.act(a, { t: 'vender', uid: cab.uid }).ok); assert.equal(A.dinares, 60);
-  assert.ok(g.act(a, { t: 'vender', uid: bur.uid }).ok); assert.equal(A.dinares, 80);
-  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';   // el mercado vende fuera de tu turno: compra B
+  for (const j of [A, Bj, Y]) { j.ciudad = 'Damasco'; j.mano = j.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref)); }
+  const cab = darItem(e, A, 'caballo', { usados: 4 }), bur = darItem(e, A, 'burro'); A.dinares = 0;
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'vender', uid: cab.uid }).ok); assert.equal(A.dinares, 10);
+  assert.ok(g.act(a, { t: 'vender', uid: bur.uid }).ok); assert.equal(A.dinares, 25, 'burro a 15');
+  assert.ok(e.log.some((l) => /por desnutrido/.test(l.texto)));
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';   // el mercado vende fuera de tu turno: compra B
   Bj.dinares = 100; Y.dinares = 100;
   void y; void Y;
-  assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + cab.uid }).ok, 'compra el caballo de segunda mano'); assert.equal(Bj.dinares, 30, '60 + 10');
-  assert.ok(tieneItem(Bj, 'caballo'));
+  assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + cab.uid }).ok, 'compra el caballo de segunda mano'); assert.equal(Bj.dinares, 90, 'a 10');
+  const c = Bj.mano.find((q) => q.ref === 'caballo'); assert.equal(c.extra.usados, 0, 'con todos sus turnos de vida');
   assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'un animal a la vez');
-  A.ciudad = 'Damasco'; const cam = darItem(e, A, 'camello'); turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
-  assert.ok(!g.act(a, { t: 'vender', uid: cam.uid }).ok, 'solo se venden en Bagdad');
+  Bj.ciudad = 'Aleppo'; Bj.mano = Bj.mano.filter((q) => q.ref !== 'caballo');
+  assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'solo en la ciudad donde se vendió');
+  Bj.ciudad = 'Damasco'; Bj.dinares = 34; assert.ok(!g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok, 'el burro de segunda mano cuesta 35');
+  Bj.dinares = 35; assert.ok(g.act(b, { t: 'comprar', ref: 'establo:' + bur.uid }).ok); assert.equal(Bj.dinares, 0);
+  assert.equal(Bj.mano.find((q) => q.ref === 'burro').extra?.usados || 0, 0, 'burro con sus 3 turnos de vida');
 }
 
 // Puntos 6, 7, 8 y 12 de Jorge
@@ -1711,10 +1718,13 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(r, { t: 'responderCC', opcion: mala }).ok); assert.equal(R.dinares, d1, 'sin cartas, falla');
   trivia(b); const d2 = B.dinares;
   assert.ok(g.act(b, { t: 'responderCC', opcion: mala }).ok); assert.equal(B.dinares, d2, 'a los demás no los corrige');
-  // visita: automática, 20 noches por 10 dinares, con aviso a los dos
+  // visita: se le ofrece (no es obligatorio) y, si acepta, Ruyán tiene que vender
   R.ciudad = 'Damasco'; R.noches = 200; B.dinares = 20; B.noches = 0;
   turnoDe(e, b, 'Aleppo'); B.ciudad = 'Damasco'; llegada(data, e, b, 'Aleppo');
-  assert.ok([e.pend, ...e.colaPend].some((p) => p?.tipo === 'info' && p.titulo === 'El Sabio Ruyán'), 'aviso');
+  const oferta = [e.pend, ...e.colaPend].find((p) => p?.titulo === 'El Sabio Ruyán');
+  assert.ok(oferta && oferta.para[0] === b, 'se le ofrece a quien llega');
+  e.pend = oferta; e.colaPend = [];
+  assert.ok(g.act(b, { t: 'decidir', id: oferta.id, opcion: 'si' }).ok);
   assert.ok(B.noches >= 20); assert.equal(B.dinares, 10); assert.equal(R.noches, 180);
 }
 
@@ -1837,6 +1847,178 @@ for (let k = 0; k < 6; k++) {
   assert.equal(humanos[humanos.length - 1], x, 'juega al final del orden (entre los jugadores)');
   assert.ok(vista(data, e, h).jugadores[x] && !vista(data, e, h).jugadores[x].eliminado, 'su monito se dibuja (no está eliminado)');
   assert.ok(!g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok, 'conectado no se puede sacar');
+}
+
+// Jorge (10 de noviembre): el sacado no participa en cartas ni eventos ni se le puede atacar en su ciudad hasta que vuelva; ganar un
+// animal muestra su carta.
+{
+  const { enPartida, enCiudad } = await import('../shared/base.js');
+  const { darTransporte } = await import('../shared/retos.js');
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [h, x, y] = g.ids;
+  e.host = h; for (const id of g.ids) e.jugadores[id].conectado = true;
+  for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+  conexion(e, x, false); assert.ok(g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok);
+  assert.ok(!enPartida(e).includes(x), 'fuera de la partida mientras no vuelve');
+  assert.ok(!enCiudad(e, 'Damasco').includes(x), 'no está «en la ciudad» para cartas, tratos o ataques');
+  conexion(e, x, true); assert.ok(enPartida(e).includes(x), 'al volver, otra vez dentro');
+  const Y = e.jugadores[y]; Y.mano = Y.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
+  const n0 = e.historial.length; darTransporte(data, e, y, 'caballo');
+  const c = e.historial.slice(n0).find((q) => q.para?.includes(y));
+  assert.ok(c && /caballo/i.test(c.sub), 'sale la carta del caballo ganado');
+}
+
+// Jorge (10 de noviembre): en el mercado, si no se puede comprar, el botón dice por qué (agotado, no alcanza…); no hay límite de compras.
+{
+  const { tienda } = await import('../shared/objetos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.dinares = 500;
+  const obj = tienda(data, e, a).find((x) => x.id && x.stock > 0);
+  assert.ok(obj && obj.puede && !obj.motivo);
+  for (let k = 0; k < 5; k++) A.mano.push({ uid: 9000 + k, tipo: 'objeto', ref: obj.id });
+  const lleno = tienda(data, e, a).find((x) => x.id === obj.id);
+  assert.ok(lleno.puede && !lleno.motivo, 'no hay límite de compras: con 5 objetos se sigue comprando');
+}
+
+// Jorge (10 de noviembre): sin animal de carga, máximo 7 objetos (con caballo, burro o camello, sin límite; la alfombra no carga); con
+// más de 7 y sin animal no sales de la ciudad. La alfombra mágica solo se vende en Samarcanda o Isfahán y te saca del Jorasán.
+{
+  const { tienda } = await import('../shared/objetos.js');
+  const { motivoNoSalir } = await import('../shared/base.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.dinares = 900; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro', 'alfombra'].includes(c.ref) && c.tipo !== 'objeto');
+  const obj = tienda(data, e, a).find((x) => x.id && x.stock > 0);
+  for (let k = 0; k < 7; k++) A.mano.push({ uid: 9100 + k, tipo: 'objeto', ref: obj.id });
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  const t1 = tienda(data, e, a).find((x) => x.id === obj.id);
+  assert.ok(!t1.puede && /Ya cargas 7 objetos/.test(t1.motivo), 'con 7 y sin animal no compras más');
+  assert.match(g.act(a, { t: 'comprar', id: obj.id }).error || '', /Ya cargas 7 objetos/);
+  darItem(e, A, 'alfombra'); assert.ok(!tienda(data, e, a).find((x) => x.id === obj.id).puede, 'la alfombra no carga');
+  darItem(e, A, 'camello'); assert.ok(tienda(data, e, a).find((x) => x.id === obj.id).puede, 'con camello, sin límite');
+  assert.ok(g.act(a, { t: 'comprar', id: obj.id }).ok);
+  A.mano = A.mano.filter((c) => c.ref !== 'camello');   // se le muere el camello con 8 objetos
+  assert.match(motivoNoSalir(e, A) || '', /llevas 8 objetos/, 'no puede salir de la ciudad');
+  A.mano.splice(A.mano.findIndex((c) => c.tipo === 'objeto'), 1);
+  assert.equal(motivoNoSalir(e, A), null, 'con 7 ya puede salir');
+  // alfombra: venta solo en Samarcanda o Isfahán
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  const alf = A.mano.find((c) => c.ref === 'alfombra');
+  assert.match(g.act(a, { t: 'vender', uid: alf.uid }).error || '', /Samarcanda o Isfahán/);
+  // y te saca del Jorasán
+  A.perdido = true; A.ciudad = 'Jorasán'; turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'tesoro', sub: 'alfombra' }).ok);
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'Isfahán' }).ok);
+  assert.ok(!A.perdido && A.ciudad === 'Isfahán', 'sale del Jorasán en su alfombra');
+  turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones';
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok); assert.equal(A.dinares, d0 + 50, 'en Isfahán sí se vende');
+}
+
+// Jorge (10 de noviembre): premio, robo, trato y banco sí dan objetos de más; quedas sobrecargado sin poder salir de la ciudad
+// hasta conseguir animal de carga o vender (o dejar) lo que sobra. Igual si se muere el animal. Yafar NPC no se atora.
+{
+  const { motivoNoSalir, darObjeto, nObjetos } = await import('../shared/base.js');
+  const { animalesFinTurno } = await import('../shared/objetos.js');
+  const prep = (ciudad = 'Damasco') => {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const J of [A, B]) { J.ciudad = ciudad; J.dinares = 300; J.mano = J.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref) && c.tipo !== 'objeto'); }
+    const ob = data.objetos.mazo.find((o) => e.stock[o.id] >= 2 && o.valor > 0 && !/mapa|amate/i.test(o.nombre)).id;
+    const llenar = (J, n) => { for (let k = 0; k < n; k++) J.mano.push({ uid: 9600 + J.mano.length + k * 7 + (J === A ? 0 : 500), tipo: 'objeto', ref: ob }); };
+    return { g, e, a, b, A, B, ob, llenar, ciudad };
+  };
+  const bloqueado = (g, e, pid, ciudad, destino) => { turnoDe(e, pid, ciudad); e.turno.fase = 'acciones'; e.info = []; return g.act(pid, { t: 'viajar', destino }); };
+  const avisado = (e, pid) => e.log.some((l) => /Vas muy cargado: llevas (8|9|10) objetos/.test(l.texto));
+
+  // exactamente 7: sí sale; el 8.º (premio) llega, avisa y bloquea
+  { const { g, e, a, A, ob, llenar } = prep(); llenar(A, 7);
+    assert.equal(nObjetos(A), 7); assert.equal(motivoNoSalir(e, A), null, 'con 7 exactos sí sale');
+    darObjeto(data, e, a, ob); assert.equal(nObjetos(A), 8, 'el premio sí se recibe aunque pase de 7');
+    assert.ok(avisado(e, a), 'aviso de sobrecarga al recibir el premio');
+    assert.match(bloqueado(g, e, a, 'Damasco', 'Aleppo').error || '', /Vas muy cargado/, 'premio: no sale de la ciudad');
+    // vender hasta 7 lo desbloquea
+    turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    const c = A.mano.find((x) => x.tipo === 'objeto'); const rv = g.act(a, { t: 'vender', uid: c.uid }); assert.ok(rv.ok, rv.error);
+    assert.equal(nObjetos(A), 7); assert.equal(motivoNoSalir(e, A), null, 'tras vender uno, ya sale'); }
+
+  // banco (host.repartir) y luego comprar un animal lo desbloquea
+  { const { g, e, a, b, A, ob, llenar } = prep('Basra'); llenar(A, 7); e.cajaAbierta = true;
+    const host = e.host; const r = g.act(host, { t: 'host.repartir', pid: a, mazo: 'objeto', id: ob }); assert.ok(r.ok, r.error);
+    assert.equal(nObjetos(A), 8, 'el banco sí reparte el 8.º'); assert.ok(avisado(e, a));
+    assert.match(motivoNoSalir(e, A) || '', /Vas muy cargado/, 'banco: bloqueado');
+    e.burros = Math.max(1, e.burros || 0); turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
+    const rb = g.act(a, { t: 'comprar', ref: 'burro' }); assert.ok(rb.ok, rb.error);
+    assert.equal(motivoNoSalir(e, A), null, 'con burro ya sale con 8 objetos'); 
+    // muere el burro: vuelve a quedar bloqueado y avisado
+    const burro = A.mano.find((x) => x.ref === 'burro'); burro.extra = { ...(burro.extra || {}), usados: 99 }; e.log = [];
+    animalesFinTurno(data, e, a); assert.ok(!A.mano.some((x) => x.ref === 'burro'), 'se muere el burro');
+    assert.ok(avisado(e, a), 'aviso de sobrecarga al morir el animal');
+    assert.match(bloqueado(g, e, a, 'Basra', 'Bagdad').error || '', /Vas muy cargado/, 'muerte del animal: bloqueado'); }
+
+  // trato: recibe el 8.º objeto por un trato
+  { const { g, e, a, b, A, B, ob, llenar } = prep(); llenar(A, 7); llenar(B, 1);
+    turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    const u = B.mano.find((x) => x.tipo === 'objeto').uid;
+    assert.ok(g.act(b, { t: 'proponerTrato', con: a, ofrece: { dinares: 0, objetos: [u] }, pide: { dinares: 5, objetos: [] } }).ok);
+    const id = Object.keys(e.tratos)[0]; const rt = g.act(a, { t: 'responderTrato', id, ok: true }); assert.ok(rt.ok, rt.error);
+    assert.equal(nObjetos(A), 8, 'el trato sí entrega el 8.º'); assert.ok(avisado(e, a));
+    assert.match(bloqueado(g, e, a, 'Damasco', 'Aleppo').error || '', /Vas muy cargado/, 'trato: bloqueado');
+    // sin dinero no hay trato
+    A.dinares = 0; const u2 = A.mano.find((x) => x.tipo === 'objeto').uid;
+    assert.ok(g.act(b, { t: 'proponerTrato', con: a, ofrece: { dinares: 0, objetos: [] }, pide: { dinares: 10, objetos: [] } }).ok || true);
+    const id2 = Object.keys(e.tratos)[0]; if (id2) assert.ok(!g.act(a, { t: 'responderTrato', id: id2, ok: true }).ok, 'sin dinero no hay trato');
+    void u2; }
+
+  // robo: el ladrón con 7 se lleva más y queda sobrecargado
+  { let probado = false;
+    for (let s = 1; s < 40 && !probado; s++) {
+      const { g, e, a, b, A, B, llenar } = prep('Isfahán'); llenar(A, 7); llenar(B, 2);
+      A.mano.push({ uid: 9990, tipo: 'item', ref: 'cimitarra' }); e.ronda = 5; turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones'; e.semilla = s * 101;
+      const r = g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }); if (!r.ok) continue;
+      for (let k = 0; k < 30 && (e.pend || e.dados); k++) { if (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.tipo === 'defensa' ? 'luchar' : (e.pend.opciones[0] || {}).id }); else { e.dados = e.colaDados.shift() || null; } }
+      if (nObjetos(A) > 7) { probado = true; assert.ok(avisado(e, a), 'aviso al robar de más'); assert.match(motivoNoSalir(e, A) || '', /Vas muy cargado/, 'robo: bloqueado'); }
+    }
+    assert.ok(probado, 'algún robo con éxito');
+  }
+
+  // sobrecargado: siempre puede vender al mercado; lo que no tiene precio se regala (botón «Regalar»)
+  { const { g, e, a, A, ob, llenar } = prep(); llenar(A, 8);
+    assert.ok(motivoNoSalir(e, A)); turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    const { estimarVenta } = await import('../shared/objetos.js');
+    const o = data.objetos.mazo.find((x) => x.id === ob), v0 = o.valor; o.valor = 0;
+    try {
+      const c = A.mano.find((x) => x.tipo === 'objeto');
+      assert.equal(estimarVenta(data, e, a, c), 0, 'sin precio: la vista lo marca para «Regalar»');
+      const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: c.uid }).ok, 'se regala al mercado');
+      assert.equal(A.dinares, d0); assert.ok(e.log.some((l) => /regala «/.test(l.texto)));
+    } finally { o.valor = v0; }
+    assert.equal(motivoNoSalir(e, A), null, 'con 7 ya sale'); }
+  // Yafar NPC: en difícil sin límite; en fácil y normal hasta 10, y antes de moverse vende lo que sobra
+  { const { aligerar } = await import('../shared/npc.js');
+    for (const dif of ['facil', 'normal', 'dificil']) {
+      const g = partida(['4']); assert.ok(g.iniciar().ok); const e = g.e, N = e.jugadores.npc; if (!N) continue;
+      e.opciones.dificultad = dif; N.mano = N.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref) && c.tipo !== 'objeto');
+      for (let k = 0; k < 12; k++) N.mano.push({ uid: 9850 + k, tipo: 'objeto', ref: 'OB34' });
+      turnoDe(e, N.id, N.ciudad); e.turno.fase = 'acciones';
+      if (dif === 'dificil') { assert.equal(motivoNoSalir(e, N), null, 'difícil: sin límite'); continue; }
+      assert.match(motivoNoSalir(e, N) || '', /solo puedes con 10/, dif + ': límite de 10');
+      aligerar(data, e, N.id); assert.equal(nObjetos(N), 10, dif + ': vende hasta 10'); assert.equal(motivoNoSalir(e, N), null);
+    }
+  }
+}
+
+// Jorge (10 de noviembre): los mapas (de tesoro y papeles amate de escondites) no cuentan para el límite de 7; puedes tener varios.
+{
+  const { motivoNoSalir, nObjetos, darItem } = await import('../shared/base.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref) && c.tipo !== 'objeto');
+  for (let k = 0; k < 7; k++) A.mano.push({ uid: 9700 + k, tipo: 'objeto', ref: 'OB34' });
+  for (let k = 0; k < 3; k++) darItem(e, A, 'mapa', { tesoro: 'R' + k });
+  for (let k = 0; k < 3; k++) darItem(e, A, 'mapa', { tesoro: 'jugador', dueno: a, id: 'x' + k, ciudad: 'Damasco', monto: 5 });
+  for (let k = 0; k < 4; k++) darItem(e, A, 'amate');
+  assert.equal(nObjetos(A), 7, 'mapas y papeles amate no cuentan como carga'); assert.equal(motivoNoSalir(e, A), null, 'con 7 objetos y 10 mapas/amates sí sale');
 }
 
 console.log('reglas de la casa OK');

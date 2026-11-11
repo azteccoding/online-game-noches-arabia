@@ -31,7 +31,9 @@ export const objDe = (data, id) => data.objetos.mazo.find((o) => o.id === id);
 export const activos = (e) => e.orden.filter((id) => !e.jugadores[id].eliminado);
 export const humanosVivos = (e) => activos(e).filter((id) => !e.jugadores[id].npc);
 export const nombre = (e, pid) => e.jugadores[pid]?.nombre || '—';
-export const enCiudad = (e, ciudad, salvo = null) => activos(e).filter((id) => id !== salvo && e.jugadores[id].ciudad === ciudad && !e.jugadores[id].transito);
+// Jorge (10 de noviembre): quien el banco sacó de la partida (desconectado) no participa en cartas ni eventos hasta que vuelva.
+export const enPartida = (e) => activos(e).filter((id) => !e.jugadores[id].sacado);
+export const enCiudad = (e, ciudad, salvo = null) => enPartida(e).filter((id) => id !== salvo && e.jugadores[id].ciudad === ciudad && !e.jugadores[id].transito);
 export const ordenTurno = (e, pid) => e.orden.indexOf(pid);
 export const npcId = (e) => e.orden.find((id) => e.jugadores[id].npc) || null;
 
@@ -63,7 +65,7 @@ export const ITEMS = {
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde las ciudades cercanas); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },
   idolo: { nombre: 'Ídolo de Toledo', texto: 'Ídolo cubierto de oro y pedrería robado en Toledo. Destrúyelo en cualquier ciudad (acción libre): ganas 150 noches. O véndelo en Estambul a los mercaderes venecianos: 150 dinares, pero con 1 o 2 en el dado te acusan de herejía y acabas herido en el Jorasán sin dinares. Se puede robar e intercambiar.' },
-  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra en el mercado de Basra por 70 dinares y al comprarlo recibes 20 noches. Transporte propio para viajes cortos entre Bagdad y las ciudades cercanas (Damasco, Aleppo y Basra) y entre El Cairo y Damasco (visitar al-Quds: +40 noches, máximo 2 veces), sin tarifa. No termina tu turno. Cada turno pagas 1 dinar de albéitar y comida; muere a los 4 turnos y llega otro a Basra. Solo puedes llevar un animal a la vez.' },
+  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra en el mercado de Basra por 35 dinares y al comprarlo recibes 20 noches; vive 3 turnos. Transporte propio para viajes cortos entre Bagdad y las ciudades cercanas (Damasco, Aleppo y Basra) y entre El Cairo y Damasco (visitar al-Quds: +40 noches, máximo 2 veces), sin tarifa. No termina tu turno. Cada turno pagas 1 dinar de albéitar y comida; al morir llega otro a Basra. Se vende al mercado por 15 dinares (por desnutrido) y ahí se revende a 35 con su vida completa. Solo puedes llevar un animal a la vez.' },
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
@@ -218,16 +220,24 @@ export function devolverObjeto(data, e, id) {
   const o = objDe(data, id);
   if (o.sinVenta) (e.mazos.descarte.botin ||= []).push(id); else (e.reposicion ||= []).push(id);   // escasez: vuelve al mercado al empezar una ronda (engine.reponerMercado)
 }
-// R 15.2: más de 5 objetos del mazo => el sobrante se vende al banco de inmediato (mitad del valor, hacia abajo).
+// Jorge (10 de noviembre): sin animal de carga se llevan hasta 7 objetos del mazo; con caballo, burro o camello, los que quieras
+// (la alfombra mágica no carga). Si ganas, robas o recibes de más sin animal, el sobrante se vende al banco (mitad del valor).
+export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello'];
+export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
+// Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
+export const LIMITE_NPC = 10;
+export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS);
+export const cargaExcedida = (j, e) => !tieneCarga(j) && nObjetos(j) > limiteCarga(e, j);
+export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;
+export const MSJ_COMPRA_LLENO = 'Ya cargas 7 objetos y sin animal no puedes llevar más, así que el mercado ya no te vende. Compra un caballo, burro o camello, o vende algo para hacer espacio.';   // Jorge (10 de noviembre): decir que por eso el mercado ya no te vende
+// Jorge (10 de noviembre): premios, robos, tratos y cartas del banco sí te dan los objetos aunque pases de 7; quedas sobrecargado y no
+// puedes salir de la ciudad (motivoNoSalir) hasta conseguir un animal de carga o vender lo que sobra. Ya no se vende nada solo.
+export const sobrecarga = (j, e) => `Vas muy cargado: llevas ${nObjetos(j)} objetos y sin animal solo puedes con ${limiteCarga(e, j)}. No podrás salir de esta ciudad hasta conseguir un caballo, burro o camello, o vender lo que te sobra.`;
 export function recortarMano(data, e, pid) {
-  const j = e.jugadores[pid], lim = data.objetos.limiteManoObjetos;
-  while (nObjetos(j) > lim) {
-    const peor = j.mano.filter((c) => c.tipo === 'objeto').sort((a, b) => objDe(data, a.ref).valor - objDe(data, b.ref).valor)[0];
-    quitarCarta(j, peor.uid);
-    const o = objDe(data, peor.ref);
-    j.dinares += Math.floor(o.valor / 2); devolverObjeto(data, e, peor.ref);
-    log(e, `${j.nombre} supera el límite de objetos y vende «${o.nombre}» al banco por ${Math.floor(o.valor / 2)} dinares.`, { pid });
-  }
+  const j = e.jugadores[pid];
+  if (!j || j.npc || !cargaExcedida(j, e)) return;   // Yafar NPC lo resuelve solo en su turno (npc.js, aligerar)
+  log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid });
+  info(e, pid, 'Vas muy cargado', sobrecarga(j, e));
 }
 export function darObjeto(data, e, pid, id) {
   const j = e.jugadores[pid];
@@ -408,6 +418,7 @@ export function textoBuscado(data, e, j) {
 export function motivoNoSalir(e, j, enCaravana = true) {
   if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return 'Tienes una deuda con Bagdad (reto R1, el cofre del Éufrates): págala antes de salir de la ciudad.';
   if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
+  if (cargaExcedida(j, e)) return sobrecarga(j, e);
   if (e.mods?.varado?.[j.id]) return 'Estás varado en India por los vientos del monzón: esta ronda no puedes moverte.';
   if (enCaravana && e.sinCaravanasBagdad && j.ciudad === 'Bagdad') return 'Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).';
   return null;

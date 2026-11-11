@@ -1,7 +1,7 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
   ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
-} from './base.js';
+enPartida, } from './base.js';
 import { peleaNPC } from './pelea.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -29,18 +29,26 @@ export function alLlegar(data, e, pid) {
   if (!t || j.pj === '5' || j.npc || j.ciudad === 'Bagdad' || j.eliminado) return;
   t.ruyan ||= [];
   if (t.ruyan.includes(j.ciudad)) return;
-  const ruy = activos(e).find((x) => jug(e, x).pj === '5' && x !== pid && jug(e, x).ciudad === j.ciudad && !jug(e, x).transito);
+  const ruy = enPartida(e).find((x) => jug(e, x).pj === '5' && x !== pid && jug(e, x).ciudad === j.ciudad && !jug(e, x).transito);
   if (!ruy) return;
   const r = jug(e, ruy);
-  // Jorge (8 de noviembre): al llegar a la ciudad de Ruyán se le compran, en automático, 20 noches por 10 dinares (sin dinero no hay trato).
+  // Jorge (10 de noviembre): comprarle a Ruyán no es obligatorio; se le OFRECE a quien llega (20 noches por 10 dinares) y, si acepta,
+  // Ruyán tiene que vender. Sin 10 dinares no hay oferta.
   if (r.noches <= 0 || j.dinares < RUYAN.dinares) return;
   t.ruyan.push(j.ciudad);
   const noches = Math.min(RUYAN.noches, r.noches);
-  j.dinares -= RUYAN.dinares; r.dinares += RUYAN.dinares; r.noches -= noches; j.noches += noches;
-  const txt = `${j.nombre} visita a ${r.nombre} en ${j.ciudad}: le compra ${noches} noches por ${RUYAN.dinares} dinares.`;
-  log(e, txt, { pid }); info(e, pid, 'El Sabio Ruyán', txt); info(e, ruy, 'El Sabio Ruyán', txt);
+  pedir(e, { tipo: 'trato', para: [pid], titulo: 'El Sabio Ruyán', texto: `${r.nombre} está en ${j.ciudad}: le puedes comprar ${noches} noches por ${RUYAN.dinares} dinares.`,
+    opciones: [{ id: 'si', texto: `Comprar (${RUYAN.dinares} dinares)` }, { id: 'no', texto: 'No, gracias' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.ruyan', args: { ruyan: ruy } } });
 }
 export const RUYAN = { noches: 20, dinares: 10 };
+registrar('pj.ruyan', (data, e, args, resp) => {
+  const j = jug(e, resp.pid), r = jug(e, args.ruyan);
+  if (resp.opcion !== 'si' || !r || r.eliminado || r.ciudad !== j.ciudad || j.dinares < RUYAN.dinares || r.noches <= 0) return;
+  const noches = Math.min(RUYAN.noches, r.noches);
+  j.dinares -= RUYAN.dinares; r.dinares += RUYAN.dinares; r.noches -= noches; j.noches += noches;
+  const txt = `${j.nombre} le compra a ${r.nombre} ${noches} noches por ${RUYAN.dinares} dinares.`;
+  log(e, txt, { pid: resp.pid }); info(e, args.ruyan, 'El Sabio Ruyán', txt);
+});
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
 export const PRECIO_ZUBAYDA = 7;

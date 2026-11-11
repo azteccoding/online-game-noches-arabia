@@ -64,7 +64,7 @@ const Pin = ({ id, c, resaltada, activa }) => (
 
 function agruparPeones(jugadores, turnoPid) {
   const porCiudad = {};
-  Object.values(jugadores).filter((j) => j.pj && !j.eliminado).forEach((j) => (porCiudad[j.ciudad] ||= []).push(j));
+  Object.values(jugadores).filter((j) => j.pj && !j.eliminado && !j.sacado).forEach((j) => (porCiudad[j.ciudad] ||= []).push(j));
   return Object.entries(porCiudad).flatMap(([ciudad, lista]) => lista.map((j, i) => ({ j, ciudad, i, n: lista.length, turno: j.id === turnoPid })));
 }
 

@@ -123,7 +123,7 @@
  },
  "animales": {
   "nota": "Regla de la casa: turnos de vida y dinares de albéitar y comida por turno de su dueño.",
-  "burro": { "vida": 4, "costo": 1 },
+  "burro": { "vida": 3, "costo": 1 },
   "caballo": { "vida": 5, "costo": 3 },
   "camello": { "vida": 5, "costo": 3 }
  },

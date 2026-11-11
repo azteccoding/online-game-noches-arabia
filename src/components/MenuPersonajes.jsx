@@ -8,7 +8,7 @@ import { DATA } from '../game/data.js';
 // Panel desplegable con las hojas de los personajes: jugadores en la partida (estado público) y las 8 hojas de referencia.
 export default function MenuPersonajes({ s, onCerrar }) {
   const [abierto, setAbierto] = useState();
-  const jug = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj);
+  const jug = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.eliminado && !j.sacado);   // fuera de la partida: no se listan
   const toggle = (k) => setAbierto((a) => (a === k ? null : k));
   return (
     <div className="desplegable panel" role="region" aria-label="Personajes">

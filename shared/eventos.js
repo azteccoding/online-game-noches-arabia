@@ -4,12 +4,12 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 marcarBuscado,
-} from './base.js';
+enPartida, } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
 
 const jug = (e, id) => e.jugadores[id];
-const humanosEn = (e, ciudades) => activos(e).filter((id) => ciudades.includes(jug(e, id).ciudad) && !jug(e, id).transito && !jug(e, id).perdido);
+const humanosEn = (e, ciudades) => enPartida(e).filter((id) => ciudades.includes(jug(e, id).ciudad) && !jug(e, id).transito && !jug(e, id).perdido);
 const ordenadoPorTurno = (e, ids) => ids.slice().sort((a, b) => e.orden.indexOf(a) - e.orden.indexOf(b));
 const mover = (data, e, pid, destino, costo = 0, motivo = '') => {
   const j = jug(e, pid); const p = pagar(data, e, pid, costo);
@@ -26,7 +26,7 @@ function conContexto(e, titulo, fn) { const antes = e.ctxCarta; e.ctxCarta = tit
 export function aplicarEvento(data, e, id) { return conContexto(e, data.eventos.eventos.find((x) => x.id === id)?.nombre, () => aplicarEvento0(data, e, id)); }
 export function aplicarHistorico(data, e, id) { return conContexto(e, data.eventos.historicos.find((x) => x.id === id)?.nombre, () => aplicarHistorico0(data, e, id)); }
 function aplicarEvento0(data, e, id) {
-  const act = activos(e);
+  const act = enPartida(e);
   switch (id) {
     case 'E1': NPC.eventoAsesinos(data, e); break;
     case 'E2': e.mods.ladrones = true; break;
@@ -128,7 +128,7 @@ function aplicarHistorico0(data, e, id) {
     case 'H18': e.mods.salteadores = true; break;
     case 'H19': {
       for (const ciudad of ['Bagdad', 'Basra', 'Damasco', 'El Cairo']) {
-        let ids = activos(e).filter((x) => jug(e, x).ciudad === ciudad && !jug(e, x).transito);
+        let ids = enPartida(e).filter((x) => jug(e, x).ciudad === ciudad && !jug(e, x).transito);
         ids = ids.filter((x) => { if (tieneObj(jug(e, x), 'OB42')) { consumirObj(data, e, x, 'OB42'); log(e, `${jug(e, x).nombre} pasa inadvertido con su Disfraz de mendigo.`); return false; } return true; });
         if (!ids.length) continue;
         const max = Math.max(...ids.map((x) => jug(e, x).dinares)); // los dinares escondidos no cuentan

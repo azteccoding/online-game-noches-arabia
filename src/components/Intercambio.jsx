@@ -8,6 +8,8 @@ function Producto({ it, puedeActuar, s }) {
   const [n, setN] = useState(1);
   const total = it.precio * n;
   const mi = s.jugadores[s.yo];
+  // Jorge (10 de noviembre): siempre se dice por qué no puedes comprar
+  const motivo = !it.puede ? it.motivo : mi.dinares < total ? (n > 1 ? `No te alcanza para ${n}: cuestan ${total} dinares` : 'No te alcanza') : null;
   return (
     <li>
       <div className="prod"><b>{it.nombre}</b> <span className="chip">{it.tipo}</span><br /><small>{it.texto}</small></div>
@@ -15,7 +17,8 @@ function Producto({ it, puedeActuar, s }) {
         <span className="chip">{it.precio} din.</span>
         {it.stock != null && <span className="chip">quedan {it.stock}</span>}
         {it.cantidad && <span className="cant"><button className="btn mini sec" onClick={() => setN((x) => Math.max(1, x - 1))} aria-label="Menos">−</button><b>{n}</b><button className="btn mini sec" onClick={() => setN((x) => Math.min(10, x + 1))} aria-label="Más">+</button></span>}
-        <button className="btn mini" disabled={!puedeActuar || !it.puede || mi.dinares < total} onClick={() => enviar(ACCIONES.comprar(it.id ? { id: it.id } : { ref: it.ref, n }))}>Comprar{n > 1 ? ` (${total})` : ''}</button>
+        <button className="btn mini" disabled={!puedeActuar || !it.puede || mi.dinares < total} title={motivo || undefined} onClick={() => enviar(ACCIONES.comprar(it.id ? { id: it.id } : { ref: it.ref, n }))}>Comprar{n > 1 ? ` (${total})` : ''}</button>
+        {puedeActuar && motivo && <small className="motivo-no">{motivo}</small>}
       </div>
     </li>
   );
@@ -29,6 +32,8 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const esMiTurno = s.turno?.pid === s.yo;
   const solo = Object.values(s.jugadores).filter((j) => j.pj && !j.npc && !j.eliminado).length <= 1;   // en solitario también se compra en el propio turno
   const puedeComprar = s.fase === 'juego' && !!s.turno && (!esMiTurno || solo) && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
+  // por qué no se puede comprar ahora (Jorge, 10 de noviembre)
+  const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : s.pend ? 'Espera un momento: hay una decisión pendiente en la partida; al resolverse puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán y el bazar del genio, sí).' : 'Ahora no puedes comprar.';
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
   const [dinOfrece, setDinOfrece] = useState(0);
@@ -72,7 +77,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
         <button className="btn mini" onClick={onCerrar}>Cerrar</button>
       </div>
       <div className="desp-cuerpo">
-        <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El mercado te vende mientras juegan los demás.' : esMiTurno ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán y el bazar del genio, sí).' : 'Ahora no puedes comprar.') : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
+        <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El mercado te vende mientras juegan los demás.' : noCompra) : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
         {tab === 'comprar' && (
           <ul className="lista-merc">
             {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={it.ref === 'firman' || it.ref === 'ifrit' ? miTurno : puedeComprar} s={s} />)}
@@ -85,8 +90,8 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
             <ul className="lista-merc">
               {vendibles.map((c) => (
                 <li key={c.uid}><div className="prod"><b>{c.datos?.titulo}</b> <small>{c.datos?.sub}</small>{c.donde && <small className="donde-venta">{c.donde}</small>}</div>
-                  <div className="der">{c.venta != null ? <span className="chip">≈ {c.venta} din. netos</span> : <span className="chip mal">no se vende aquí</span>}
-                    <button className="btn mini sec" disabled={!miTurno || c.venta == null} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender</button></div></li>
+                  <div className="der">{c.venta === 0 ? <span className="chip">sin precio: se regala al mercado</span> : c.venta != null ? <span className="chip">≈ {c.venta} din. netos</span> : <span className="chip mal">no se vende aquí</span>}
+                    <button className="btn mini sec" disabled={!miTurno || c.venta == null} onClick={() => enviar(ACCIONES.vender(c.uid))}>{c.venta === 0 ? 'Regalar' : 'Vender'}</button></div></li>
               ))}
             </ul>
             <p className="it nota">El vendedor paga al banco el impuesto de la ciudad (Bagdad 0 %, Samarcanda 50 %). Las ventas de varias cartas iguales (buza) se resuelven con dados.</p>

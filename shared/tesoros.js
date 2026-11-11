@@ -35,6 +35,15 @@ export function accion(data, e, pid, a) {
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
   if (a.sub === 'salir') { if (!j.perdido) return err('No estás perdido.'); t.principal = true; return salirJorasan(data, e, pid); }
+  // Jorge (10 de noviembre): la alfombra mágica te saca del Jorasán sin tirar dados: eliges a qué ciudad vuela (no a Bagdad).
+  if (a.sub === 'alfombra') {
+    if (!j.perdido) return err('No estás perdido.');
+    if (!tieneItem(j, 'alfombra')) return err('No tienes alfombra mágica.');
+    t.principal = true;
+    const dests = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== 'Bagdad' && q !== j.ciudad);
+    pedir(e, { tipo: 'tesoro', para: [pid], titulo: 'La alfombra mágica', texto: 'Tu alfombra te saca del Jorasán. ¿A qué ciudad vuelas?', opciones: dests.map((q) => ({ id: q, texto: q })), porDefecto: dests[0], limiteMs: 60000, cont: { fn: 'tes.alfombra', args: {} } });
+    return ok();
+  }
   if (j.perdido || j.transito) return err('Estás perdido o de camino.');
   if (a.sub === 'jorasan') {
     if (a.via === 'transporte') {
@@ -66,6 +75,14 @@ export function accion(data, e, pid, a) {
   }
   return err('Acción de tesoro desconocida.');
 }
+registrar('tes.alfombra', (data, e, args, resp) => {
+  const j = e.jugadores[resp.pid];
+  if (!j || !j.perdido || !tieneItem(j, 'alfombra')) return;
+  const origen = j.ciudad; j.perdido = false; j.extra.enRumbo = false; j.extra.destinoA = null; j.ciudad = resp.opcion;
+  log(e, `${j.nombre} sale del Jorasán volando en su alfombra mágica hasta ${resp.opcion}.`, { pid: resp.pid, aviso: true });
+  if (e.turno?.pid === resp.pid) { e.turno.movio = true; e.turno.fin = true; }
+  HOOK.llegada(data, e, resp.pid, origen);
+});
 registrar('tes.union', (data, e, args, resp) => {
   const votos = resp.opcion !== undefined && resp.pid ? { [resp.pid]: resp } : resp;
   const aliados = Object.entries(votos).filter(([, v]) => v.opcion === 'si').map(([k]) => k).slice(0, 2);

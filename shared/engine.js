@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, } from './base.js';
+apurosZein, enPartida, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -239,7 +239,7 @@ function traicionJerusalen(data, e) {
   const s = data.objetos.especiales.find((x) => x.id === 'S4'); if (!s) return;
   e.traicion = { ronda: e.ronda };
   publicarCarta(e, { id: 'S4', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
-  for (const id of activos(e)) {
+  for (const id of enPartida(e)) {
     const j = e.jugadores[id], q = j.npc ? TRAICION.npc : TRAICION.jugador;
     j.dinares -= q.dinares; j.noches = Math.max(0, j.noches - q.noches);
   }
@@ -252,7 +252,7 @@ function empezarRonda(data, e) {
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
-  const act = activos(e);
+  const act = enPartida(e);
   let evId = robar(e, 'eventos');
   // R 13.4: E1 no sale antes de la ronda 3. Regla de la casa: tampoco antes de que algún jugador (que no sea Yafar) haya ido a Samarcanda.
   const conocen = (x) => Object.values(e.jugadores).some((j) => j.pj && j.pj !== 'B' && !j.npc && (j.visitadas || []).includes('Samarcanda'));
@@ -442,7 +442,7 @@ function saladino(data, e) {
   if (!s) return;
   e.saladino = { ronda: e.ronda };
   publicarCarta(e, { id: 'S1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
-  const quienes = activos(e).filter((id) => !e.jugadores[id].npc);   // Jorge (punto 3): Saladino no beneficia a Yafar NPC
+  const quienes = enPartida(e).filter((id) => !e.jugadores[id].npc);   // Jorge (punto 3): Saladino no beneficia a Yafar NPC
   for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
   log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
 }
@@ -472,7 +472,8 @@ export function carreraFinTurno(data, e) {
   const t = e.turno, j = e.jugadores[t.pid];
   if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
   t.carreraContada = true;
-  const hospedado = !t.movio && !j.perdido && !t.omitido && !j.transito;
+  // Jorge (10 de noviembre): cuenta cada noche que pasas en la ciudad, también la del turno en que llegaste
+  const hospedado = !j.perdido && !t.omitido && !j.transito;
   for (const c of e.carrerasActivas.slice()) {
     if (hospedado && j.ciudad === c.ciudad) c.prog[j.id] = (c.prog[j.id] || 0) + 1; else delete c.prog[j.id];
     if ((c.prog[j.id] || 0) >= 2) {
@@ -1089,7 +1090,7 @@ function responderTrato(data, e, pid, a) {
   const imp = (de, din) => (sinImp || din <= 0 ? 0 : Math.floor(din * tasa / 100));
   const impA = tr.pide.objetos.length || tr.ofrece.objetos.length ? imp(A, tr.pide.dinares) : 0, impB = tr.ofrece.objetos.length || tr.pide.objetos.length ? imp(B, tr.ofrece.dinares) : 0;
   A.dinares += tr.pide.dinares - impA - tr.ofrece.dinares; B.dinares += tr.ofrece.dinares - impB - tr.pide.dinares;
-  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público
+  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; if (['caballo', 'burro', 'camello'].includes(c.ref)) c.extra = { ...(c.extra || {}), usados: 0 }; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público; un animal llega con toda su vida (Jorge, 10 de noviembre)   // lo que pasa por un trato ya no es público
   const movA = tr.ofrece.objetos.map((u) => A.mano.find((c) => c.uid === u)).filter(Boolean), movB = tr.pide.objetos.map((u) => B.mano.find((c) => c.uid === u)).filter(Boolean);
   mover(A, B, tr.ofrece.objetos); mover(B, A, tr.pide.objetos);
   for (const c of movA) apurosZein(e, A, c.ref); for (const c of movB) apurosZein(e, B, c.ref);   // Zein vendió sus Dados del Cairo
@@ -1157,7 +1158,7 @@ export function acciones(data, e, pid) {
   const r = [];
   if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la carta de Cuentos' });
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
-  if (j.perdido) { r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán' }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
+  if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán' }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));

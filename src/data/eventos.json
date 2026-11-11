@@ -113,7 +113,7 @@
    "tipo": "evento",
    "nombre": "Dos noches en El Cairo",
    "detalle": "Dos noches en El Cairo",
-   "efecto": "El primero que pase dos noches seguidas en El Cairo (cerrando dos turnos seguidos allí sin moverse y pagando el alojamiento) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
+   "efecto": "El primero que pase dos noches seguidas en El Cairo (terminando allí dos turnos seguidos; cuenta también la noche en que llegas) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
    "arte": "ev",
    "refReglamento": "17.1",
    "carrera": "El Cairo"
@@ -123,7 +123,7 @@
    "tipo": "evento",
    "nombre": "Dos noches en Aleppo",
    "detalle": "Dos noches en Aleppo",
-   "efecto": "El primero que pase dos noches seguidas en Aleppo (cerrando dos turnos seguidos allí sin moverse y pagando el alojamiento) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
+   "efecto": "El primero que pase dos noches seguidas en Aleppo (terminando allí dos turnos seguidos; cuenta también la noche en que llegas) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
    "arte": "ev",
    "refReglamento": "17.1",
    "carrera": "Aleppo"
@@ -133,7 +133,7 @@
    "tipo": "evento",
    "nombre": "Dos noches en Damasco",
    "detalle": "Dos noches en Damasco",
-   "efecto": "El primero que pase dos noches seguidas en Damasco (cerrando dos turnos seguidos allí sin moverse y pagando el alojamiento) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
+   "efecto": "El primero que pase dos noches seguidas en Damasco (terminando allí dos turnos seguidos; cuenta también la noche en que llegas) gana 60 dinares y 50 noches. La carta queda en la mesa hasta que alguien lo logre.",
    "arte": "ev",
    "refReglamento": "17.1",
    "carrera": "Damasco"

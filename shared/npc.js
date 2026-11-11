@@ -3,8 +3,9 @@ import {
   ok, err, rnd, dado, dados, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
   puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio, info, quitarPrimero,
 marcarBuscado,
-} from './base.js';
+enPartida, cargaExcedida, objDe, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
+import { vender } from './objetos.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
 
@@ -49,14 +50,25 @@ export function turnoNPC(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
   if (t.omitido || j.perdido) { t.fin = true; return; }
+  aligerar(data, e, pid);
   movimiento(data, e, pid);
   if (j.eliminado) { t.fin = true; return; }
   accionPrincipal(data, e, pid);
 }
 
+// Jorge (10 de noviembre): en fácil y normal Yafar NPC carga hasta 10 objetos sin animal; si lleva más, antes de moverse vende al mercado
+// (o regala, si no tienen precio) los de menos valor hasta quedar en 10. Así nunca se queda atorado en una ciudad.
+export function aligerar(data, e, pid) {
+  const j = e.jugadores[pid];
+  for (let k = 0; k < 60 && cargaExcedida(j, e); k++) {
+    const objs = j.mano.filter((c) => c.tipo === 'objeto').sort((a, b) => (objDe(data, a.ref)?.valor || 0) - (objDe(data, b.ref)?.valor || 0));
+    if (!objs.length || !vender(data, e, pid, { uid: objs[0].uid }).ok) break;
+  }
+}
+
 function elegirDestino(data, e, pid) {
   const j = e.jugadores[pid];
-  const otros = activos(e).filter((x) => x !== pid && !e.jugadores[x].transito);
+  const otros = enPartida(e).filter((x) => x !== pid && !e.jugadores[x].transito);
   const primero = (f) => { let mejor = null; for (const x of otros) if (mejor === null || f(e.jugadores[x]) > f(e.jugadores[mejor])) mejor = x; return mejor; };   // empate: primero en orden
   const d = dado(e);
   const { dist, prev } = dijkstra(data, e, j, j.ciudad);
@@ -169,7 +181,7 @@ export function entraNPC(data, e) {
 }
 
 // ---------------------------------------------------------------- Los Asesinos (R 13)
-const objetivosValidos = (e, pid) => activos(e).filter((x) => x !== pid);
+const objetivosValidos = (e, pid) => enPartida(e).filter((x) => x !== pid);
 
 // Regla de la casa (contratar en Samarcanda): hace falta tener 500 noches; quien contrata lanza un dado y el precio es
 // dado × rondas jugadas × 35 dinares (Zubayda, la mitad). Si le alcanza, paga y firma; si no, los Asesinos lo dejan herido

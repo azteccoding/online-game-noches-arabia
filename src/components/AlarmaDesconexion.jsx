@@ -5,7 +5,7 @@ import { ACCIONES } from '../game/protocol.js';
 // Alerta de jugadores desconectados: se puede minimizar y volver a abrir; si se va alguien más, se vuelve a abrir sola.
 export default function AlarmaDesconexion({ s }) {
   const [minimizadaCon, setMinimizadaCon] = useState(null);   // lista de ids cuando se minimizó
-  const fuera = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.npc && !j.eliminado && j.conectado === false && j.id !== s.yo);
+  const fuera = s.orden.map((id) => s.jugadores[id]).filter((j) => j && j.pj && !j.npc && !j.eliminado && !j.sacado && j.conectado === false && j.id !== s.yo);
   if (!fuera.length) return null;
   const clave = fuera.map((j) => j.id).join();
   if (minimizadaCon === clave) return <button className="alarma-mini" onClick={() => setMinimizadaCon(null)} aria-label="Ver quién se desconectó">⚠ {fuera.length} {fuera.length === 1 ? 'desconectado' : 'desconectados'} ▾</button>;

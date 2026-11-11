@@ -3,12 +3,12 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, } from './base.js';
+apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
-const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 70 };
-const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'], burro: ['Basra'] };   // regla de la casa: el burro solo en Basra (70 dinares y 20 noches de regalo)
+const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 35 };   // Jorge (10 de noviembre): el burro vale 35 y vive 3 turnos
+const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'], burro: ['Basra'] };   // regla de la casa: el burro solo en Basra (35 dinares y 20 noches de regalo)
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 
 // Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
@@ -44,7 +44,13 @@ const dobleCairo = (e, ciudad) => (e.mods.oroMali && ciudad === 'El Cairo' ? 2 :
 export const precioFirman = (j) => (j.extra.joyaVisir ? 45 : 55);
 // Establo de Bagdad (Jorge, punto 13): caballo, burro y camello se venden en Bagdad por 60, 20 y 50 dinares; quien esté en Bagdad
 // los compra después por 10 dinares más. El animal conserva su edad. Yafar no compra burros.
-export const VENTA_ANIMAL_BAGDAD = { caballo: 60, burro: 20, camello: 50 }, RECARGO_ESTABLO = 10;
+// Jorge (10 de noviembre): caballo, burro o camello se venden en el mercado de cualquier ciudad a 10 dinares y ahí se revenden a 10;
+// quien lo compra lo recibe con todos sus turnos de vida (como recién comprado).
+// Jorge (10 de noviembre): el burro se vende al mercado por 15 («por desnutrido») y otro lo compra por 35 con su vida completa;
+// caballo y camello se venden a 10 y se revenden a 10 (no tienen precio de compra: son premios de reto).
+export const VENTA_ANIMAL_BAGDAD = { caballo: 10, burro: 15, camello: 10 }, REVENTA_ANIMAL = { caballo: 10, burro: 35, camello: 10 };
+// Jorge (10 de noviembre): la alfombra mágica solo se vende en Samarcanda o Isfahán (precio por confirmar con Jorge).
+export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 50 };
 // Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
 // revende (Cairo 35 → 75, Persia 30 → 60) y a todos les sale el aviso de dónde está. Entre jugadores, en un trato, al precio que quieran.
 export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
@@ -72,15 +78,15 @@ export function comprar(data, e, pid, a) {
     return ok();
   }
   if (typeof a.ref === 'string' && a.ref.startsWith('establo:')) {
-    if (j.ciudad !== 'Bagdad') return err('El establo está en Bagdad.');
+    { const x0 = (e.establo || []).find((x) => x.carta.uid === a.ref.slice(8)); if (x0 && (x0.ciudad || 'Bagdad') !== j.ciudad) return err(`Ese animal está a la venta en ${x0.ciudad || 'Bagdad'}.`); }
     const k = (e.establo || []).findIndex((x) => x.carta.uid === a.ref.slice(8));
     if (k < 0) return err('Ese animal ya se vendió.');
     const x = e.establo[k];
     if (x.carta.ref === 'burro' && j.pj === 'B' && j.npc) return err('Yafar no compra burros: dice que es indigno de su posición.');
     if (['caballo', 'camello', 'burro'].some((r) => tieneItem(j, r))) return err('Ya tienes un animal: solo puedes llevar uno a la vez.');
     if (j.dinares < x.precio) return err(`Cuesta ${x.precio} dinares.`);
-    j.dinares -= x.precio; e.establo.splice(k, 1); x.carta.priv = false; x.carta.pub = true; j.mano.push(x.carta);
-    log(e, `${j.nombre} compra un ${ITEMS[x.carta.ref].nombre.toLowerCase()} en el establo de Bagdad por ${x.precio} dinares.`, { pid });
+    j.dinares -= x.precio; e.establo.splice(k, 1); x.carta.priv = false; x.carta.pub = true; x.carta.extra = { ...(x.carta.extra || {}), usados: 0 }; j.mano.push(x.carta);   // con toda su vida
+    log(e, `${j.nombre} compra un ${ITEMS[x.carta.ref].nombre.toLowerCase()} en el mercado de ${j.ciudad} por ${x.precio} dinares (con todos sus turnos de vida).`, { pid });
     return ok();
   }
   if (a.ref === 'ifrit') {
@@ -122,7 +128,7 @@ export function comprar(data, e, pid, a) {
   if ((e.stock[a.id] || 0) <= 0) return err('Agotado.');
   const p = o.valor * dobleCairo(e, j.ciudad);
   if (j.dinares < p) return err('No te alcanzan los dinares.');
-  if (nObjetos(j) >= data.objetos.limiteManoObjetos) return err('Mano llena (límite 5): vende o descarta uno.');
+  if (!tieneCarga(j) && nObjetos(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // Jorge (10 de noviembre)
   j.dinares -= p; e.stock[a.id]--;
   const c = { uid: uid(e), tipo: 'objeto', ref: a.id, pub: true }; j.mano.push(c);
   publicarCarta(e, cartaDatos(data, 'objeto', a.id), pid, [pid]);
@@ -162,7 +168,9 @@ export function vender(data, e, pid, a) {
     else if (c.ref === 'OB24' ) { precio = 40; sinImp = true; }                                           // Botella de genio: 40 al banco (R 15.2)
     else precio = o.valor;
     if (o.tipo === 'Lujo/Comercio' && tieneObj(j, 'OB12') && (e.turno.gastos.balanza || 0) < 3) { precio += 2; e.turno.gastos.balanza = (e.turno.gastos.balanza || 0) + 1; }
-    if (precio <= 0) return err('Nadie lo compra.');
+    if (precio <= 0) {   // Jorge (10 de noviembre): un objeto siempre se puede dar al mercado; si no tiene precio, se regala
+      quitarCarta(j, c.uid); devolverObjeto(data, e, c.ref); log(e, `${j.nombre} regala «${texto}» al mercado.`, { pid }); return ok();
+    }
     const imp = sinImp ? 0 : impuesto(data, e, ciudad, precio);
     j.dinares += precio - imp; quitarCarta(j, c.uid); devolverObjeto(data, e, c.ref);
     log(e, `${j.nombre} vende «${texto}» por ${precio - imp} dinares.`, { pid });
@@ -194,10 +202,9 @@ export function vender(data, e, pid, a) {
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return err('El papel del escondite no lo compra el banco: véndelo a otro jugador en un trato.');
   if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; precio = t ? Math.floor(t.valor / 2) : 5; const imp = impuesto(data, e, ciudad, precio); quitarCarta(j, c.uid); j.dinares += precio - imp; log(e, `${j.nombre} vende un mapa.`, { pid }); return ok(); }
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) {
-    if (ciudad !== 'Bagdad') return err('Los animales se venden en el establo de Bagdad.');
     const v = VENTA_ANIMAL_BAGDAD[c.ref]; quitarCarta(j, c.uid); j.dinares += v;
-    (e.establo ||= []).push({ carta: c, precio: v + RECARGO_ESTABLO });
-    log(e, `${j.nombre} vende su ${ITEMS[c.ref].nombre.toLowerCase()} en el establo de Bagdad por ${v} dinares.`, { pid }); return ok();
+    (e.establo ||= []).push({ carta: c, precio: REVENTA_ANIMAL[c.ref], ciudad });
+    log(e, `${j.nombre} vende su ${ITEMS[c.ref].nombre.toLowerCase()} en el mercado de ${ciudad} por ${v} dinares${c.ref === 'burro' ? ' (por desnutrido)' : ''}.`, { pid }); return ok();
   }
   if (DADOS_VENTA[c.ref]) {
     const D = DADOS_VENTA[c.ref];
@@ -213,6 +220,10 @@ export function vender(data, e, pid, a) {
   if (c.ref === 'esclava' || c.ref === 'alfombraIsfahan' || c.ref === 'sal' || c.ref === 'cesta') {
     const p = { esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref]; quitarCarta(j, c.uid); j.dinares += Math.floor(p / 2); log(e, `${j.nombre} vende ${ITEMS[c.ref].nombre}.`, { pid }); return ok();
   }
+  if (c.ref === 'alfombra') {                                                                           // Jorge (10 de noviembre)
+    if (!ALFOMBRA_VENTA.ciudades.includes(ciudad)) return err('La alfombra mágica solo se vende en Samarcanda o Isfahán.');
+    quitarCarta(j, c.uid); j.dinares += ALFOMBRA_VENTA.precio; log(e, `${j.nombre} vende su alfombra mágica en ${ciudad} por ${ALFOMBRA_VENTA.precio} dinares.`, { pid }); return ok();
+  }
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
   if (!base) return err('Eso no se puede vender al mercado.');
   precio = Math.floor(base / 2); quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${ITEMS[c.ref]?.nombre || c.ref} por ${precio} dinares.`, { pid }); return ok();
@@ -222,12 +233,13 @@ export function vender(data, e, pid, a) {
 export function tienda(data, e, pid) {
   const j = e.jugadores[pid];
   if (!j || j.eliminado || !j.pj) return [];
-  const cai = dobleCairo(e, j.ciudad), lleno = nObjetos(j) >= data.objetos.limiteManoObjetos;
+  const cai = dobleCairo(e, j.ciudad), lleno = !tieneCarga(j) && nObjetos(j) >= limiteCarga(e, j);   // Jorge (10 de noviembre): 7 sin animal de carga
   const r = [];
   const orig = (ref, desde) => {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad)) return;
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
-    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : undefined, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && (['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) || !(e.burros > 0))), cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : undefined, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && (['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) || !(e.burros > 0))),
+      motivo: ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) ? 'Ya tienes un animal' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro'].forEach(orig);
   if (BAZAR_IFRIT.ciudades.includes(j.ciudad)) {
@@ -235,9 +247,9 @@ export function tienda(data, e, pid) {
     r.push({ ref: 'ifrit', nombre: 'Carta de Ifrit (genio de la lámpara)', tipo: 'Mágico', texto: `Concede un deseo: eliges 1 de los 4 que trae (viaje instantáneo, 60 dinares, 60 noches, Firmán, alfombra, +3 en 2 peleas, maldición…). Úsala cuando quieras o véndela al banco por 40. Solo se vende una por ronda en Samarcanda o India.${hay ? '' : ' Ya se vendió la de esta ronda.'}`, precio: BAZAR_IFRIT.precio, stock: hay ? 1 : 0, puede: hay && j.dinares >= BAZAR_IFRIT.precio });
   }
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
-  if (j.ciudad === 'Bagdad') for (const x of e.establo || []) {
+  for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     const ya = ['caballo', 'camello', 'burro'].some((r) => tieneItem(j, r));
-    r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (establo)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !ya && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc) });
+    r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !ya && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc) });
   }
   if (j.ciudad === 'Bagdad') {
     const p = precioFirman(j);
@@ -247,7 +259,9 @@ export function tienda(data, e, pid) {
     const cs = ciudadesDe(o);
     if (cs && !cs.includes(j.ciudad)) continue;
     const precio = o.valor * cai;
-    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: e.stock[o.id] || 0, puede: (e.stock[o.id] || 0) > 0 && j.dinares >= precio && !lleno });
+    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: e.stock[o.id] || 0, puede: (e.stock[o.id] || 0) > 0 && j.dinares >= precio && !lleno,
+      // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
+      motivo: !((e.stock[o.id] || 0) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
   }
   return r;
 }
@@ -259,7 +273,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.tipo === 'objeto') {
       const o = objDe(data, c.ref); let p = o.valor, sin = false;
       if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
-      return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : null;
+      return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : 0;   // 0: sin precio, se regala
     }
     if (c.tipo === 'ifrit') return 40;
     if (c.tipo !== 'item') return null;
@@ -268,7 +282,8 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'buza') return ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : null;
     if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return null;
     if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; const p = t ? Math.floor(t.valor / 2) : 5; return p - impuesto(data, e, ciudad, p); }
-    if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return ciudad === 'Bagdad' ? VENTA_ANIMAL_BAGDAD[c.ref] : null;
+    if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return VENTA_ANIMAL_BAGDAD[c.ref];
+    if (c.ref === 'alfombra') return ALFOMBRA_VENTA.ciudades.includes(ciudad) ? ALFOMBRA_VENTA.precio : null;
     if (c.ref === 'pergamino') return ciudad === 'Damasco' ? 30 : null;
     if (c.ref === 'especias') return ciudad === 'Bagdad' ? 30 : null;
     if (['esclava', 'alfombraIsfahan', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref] / 2);
@@ -306,7 +321,7 @@ export function dondeVender(data, e, pid, c) {
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
   if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
-  if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `Solo en el establo de Bagdad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares (luego se revende ahí por ${VENTA_ANIMAL_BAGDAD[c.ref] + RECARGO_ESTABLO}).`;
+  if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `En el mercado de cualquier ciudad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares ${c.ref === 'burro' ? ', por desnutrido' : ''} (ahí se revende a ${REVENTA_ANIMAL[c.ref]}, con todos sus turnos de vida).`;
   if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
@@ -314,6 +329,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
   if (c.ref === 'alfombraIsfahan') return `Mejor venta: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches. En el mercado de cualquier ciudad, ${MITAD.alfombraIsfahan}.`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
+  if (c.ref === 'alfombra') return `Solo en Samarcanda o Isfahán, por ${ALFOMBRA_VENTA.precio} dinares. También te saca del Jorasán.`;
   if (USO[c.ref]) return `No se vende. ${USO[c.ref]}`;
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
   return base ? `En cualquier ciudad por ${Math.floor(base / 2)} dinares (la mitad de su precio).` : `No se vende.${ITEMS[c.ref]?.texto ? ' ' + ITEMS[c.ref].texto : ''}`;
@@ -517,7 +533,7 @@ export function usar(data, e, pid, a) {
 // Regla de la casa (noviembre de 2026): los animales comen y envejecen. En cada turno de su dueño se paga el albéitar y la comida
 // (pago obligatorio: si no alcanza, queda como deuda) y, cumplidos sus turnos, el animal muere al cerrar el turno. El burro se
 // repone en el mercado de Basra (siguen siendo N − 1); al morir el caballo o el camello se reactiva el reto que los da (R1 o R5).
-const ANIMAL_DEF = { burro: { vida: 4, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' } };
+const ANIMAL_DEF = { burro: { vida: 3, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' } };
 export const animalDe = (data, ref) => (ANIMAL_DEF[ref] ? { ...ANIMAL_DEF[ref], ...(data.config.animales?.[ref] || {}) } : null);
 export const turnosAnimal = (data, c) => Math.max(0, animalDe(data, c.ref).vida - (c.extra?.usados || 0));   // turnos que le quedan después del actual
 const animalesDe = (j) => j.mano.filter((c) => c.tipo === 'item' && ANIMAL_DEF[c.ref]);
@@ -543,4 +559,5 @@ function morirAnimal(data, e, pid, c) {
   if (c.ref === 'burro') { e.burros = (e.burros || 0) + 1; mas = ' Llega otro burro al mercado de Basra.'; }
   else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
   log(e, `Muere de viejo el ${c.ref} de ${j.nombre}.${mas}`, { pid, aviso: true });
+  if (!j.npc && cargaExcedida(j, e)) { log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid }); info(e, pid, 'Vas muy cargado', sobrecarga(j, e)); }   // Jorge (10 de noviembre)
 }

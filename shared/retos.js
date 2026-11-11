@@ -3,7 +3,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-} from './base.js';
+itemDatos, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -28,7 +28,11 @@ const ANIMALES = ['caballo', 'camello', 'burro'], VALOR_ANIMAL = { caballo: 30, 
 export function darTransporte(data, e, pid, ref) {
   const j = e.jugadores[pid];
   if (ANIMALES.some((a) => tieneItem(j, a))) { j.dinares += VALOR_ANIMAL[ref]; log(e, `${j.nombre} ya tiene transporte: en lugar del ${ref} recibe ${VALOR_ANIMAL[ref]} dinares.`, { pid }); return null; }
-  return darItem(e, j, ref);
+  // Jorge (10 de noviembre): al ganar un animal sale su carta (solo para quien lo gana) y queda en el registro.
+  const c = darItem(e, j, ref);
+  publicarCarta(e, { ...itemDatos(data, ref), sub: `Ganaste un ${ITEMS[ref]?.nombre?.toLowerCase() || ref}` }, pid, [pid]);
+  log(e, `${j.nombre} gana un ${ITEMS[ref]?.nombre?.toLowerCase() || ref}.`, { pid });
+  return c;
 }
 const libroNuevo = (e) => ({ valor: nProb(e) * 4, ronda: e.ronda });
 export function darLibro(e, pid, ref = 'libro') { return darItem(e, e.jugadores[pid], ref, libroNuevo(e)); }
