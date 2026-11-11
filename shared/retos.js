@@ -215,7 +215,7 @@ export function alEliminar(data, e, victima, por) {
   if (!por) return;
   const j = e.jugadores[por];
   const m = j?.misiones.find((x) => x.id === 'R2' && x.objetivo === victima);
-  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); if (!tieneItem(j, 'alfanje')) darItem(e, j, 'alfanje'); premio(data, e, por, { dinares: 100 }, `${j.nombre} cumple el encargo de Yafar (R2):`); }
+  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); if (!tieneItem(j, 'alfanje')) darItem(e, j, 'alfanje'); premio(data, e, por, { dinares: 50 }, `${j.nombre} cumple el encargo de Yafar (R2):`); }   // Jorge (10 de noviembre): 50 dinares (antes 100)
 }
 HOOK.alEliminar = alEliminar;
 

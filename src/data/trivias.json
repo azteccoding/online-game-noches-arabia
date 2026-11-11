@@ -129,22 +129,6 @@
    "premio": 5
   },
   {
-   "id": "CC-11",
-   "n": 11,
-   "ciudad": "Bagdad",
-   "categoria": "Cultura y tradiciones",
-   "gancho": "Pregunta con aroma: contesta sin babear.",
-   "pregunta": "¿Qué plato de arroz, especias y carne o verduras es muy popular en Pakistán y en el sur de Asia?",
-   "opciones": [
-    "La paella",
-    "El risotto",
-    "La biryani"
-   ],
-   "correcta": 2,
-   "nota": "Se prepara en capas de arroz y especias, y cada región tiene su propia receta.",
-   "premio": 5
-  },
-  {
    "id": "CC-13",
    "n": 13,
    "ciudad": "Bagdad",

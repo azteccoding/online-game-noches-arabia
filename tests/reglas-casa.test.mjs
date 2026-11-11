@@ -1035,7 +1035,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(A.mano.some((c) => c.tipo === 'ifrit') || A.dinares === 75, 'con 6: carta de Ifrit (o 40 dinares)'); assert.ok(A.retosHechos.includes('R40'));
 }
 
-// R41 El ídolo de Toledo: uno por partida; destruirlo da 150 noches
+// R41 El ídolo de Toledo: uno por partida; destruirlo da 100 noches (Jorge, 10 de noviembre: antes 150)
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
@@ -1045,7 +1045,7 @@ for (let k = 0; k < 6; k++) {
   turnoDe(e, b, 'Andalucía'); e.jugadores[b].ciudad = 'Andalucía'; e.turno.fase = 'acciones';
   assert.ok(!g.act(b, { t: 'reto', id: 'R41' }).ok, 'solo hay un ídolo');
   turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; const n0 = A.noches;
-  assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 150); assert.ok(!e.turno.principal, 'acción libre');
+  assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 100); assert.ok(!e.turno.principal, 'acción libre');
 }
 
 // Libros de la India y de Córdoba: en Bagdad se subastan (par 150, impar 100 cada uno; una tirada para todas las copias)
@@ -2300,6 +2300,19 @@ for (let k = 0; k < 6; k++) {
     assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: fuera.id }).ok);
     assert.ok(!tieneItem(A, 'burro'), 'huir fuera de su zona mata al burro');
   }
+}
+
+// Jorge (10 de noviembre): el ídolo de Toledo da 100 (venderlo en Estambul: 100 dinares; destruirlo: 100 noches); R2 da 50 dinares
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const c = darItem(e, A, 'idolo'); A.ciudad = 'Estambul'; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones'; forzar(e, 5);
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'venecianos' }).ok); assert.equal(A.dinares, d0 + 100, 'venta: 100 dinares');
+  const { alEliminar } = await import('../shared/retos.js');
+  A.misiones.push({ id: 'R2', objetivo: b, limite: 99 }); const d1 = A.dinares;
+  alEliminar(data, e, b, a); assert.equal(A.dinares, d1 + 50, 'R2: 50 dinares'); assert.ok(tieneItem(A, 'astrolabio') && tieneItem(A, 'alfanje'), 'R2: astrolabio y alfanje');
+  assert.match(data.retos.retos.find((r) => r.id === 'R2').premio, /50 dinares/);
+  assert.match(data.retos.retos.find((r) => r.id === 'R41').premio, /100 noches.*100 dinares/);
 }
 
 console.log('reglas de la casa OK');
