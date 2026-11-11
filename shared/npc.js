@@ -3,7 +3,7 @@ import {
   ok, err, rnd, dado, dados, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
   puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio, info, quitarPrimero,
 marcarBuscado,
-enPartida, cargaExcedida, objDe, } from './base.js';
+enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
 import { vender } from './objetos.js';
 
@@ -60,9 +60,12 @@ export function turnoNPC(data, e, pid) {
 // (o regala, si no tienen precio) los de menos valor hasta quedar en 10. Así nunca se queda atorado en una ciudad.
 export function aligerar(data, e, pid) {
   const j = e.jugadores[pid];
+  const valor = (c) => (c.tipo === 'objeto' ? objDe(data, c.ref)?.valor : ITEMS[c.ref]?.precio) || 0;
+  const intentados = new Set();
   for (let k = 0; k < 60 && cargaExcedida(j, e); k++) {
-    const objs = j.mano.filter((c) => c.tipo === 'objeto').sort((a, b) => (objDe(data, a.ref)?.valor || 0) - (objDe(data, b.ref)?.valor || 0));
-    if (!objs.length || !vender(data, e, pid, { uid: objs[0].uid }).ok) break;
+    const c = j.mano.filter((x) => !intentados.has(x.uid) && (x.tipo === 'objeto' || (x.tipo === 'item' && CARGA_ITEMS.includes(x.ref)))).sort((a, b) => valor(a) - valor(b))[0];
+    if (!c) break;
+    intentados.add(c.uid); vender(data, e, pid, { uid: c.uid });
   }
 }
 

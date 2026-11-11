@@ -227,12 +227,16 @@ export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c
 // Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
 export const LIMITE_NPC = 10;
 export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS);
-export const cargaExcedida = (j, e) => !tieneCarga(j) && nObjetos(j) > limiteCarga(e, j);
+// Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
+// mapas y papeles amate, arco, jambiya, flechas, alfombra, dados, Firmán, Kanmakán ni premios de retos.
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino'];
+export const nCarga = (j) => j.mano.filter((c) => c.tipo === 'objeto' || (c.tipo === 'item' && CARGA_ITEMS.includes(c.ref))).length;
+export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;
 export const MSJ_COMPRA_LLENO = 'Ya cargas 7 objetos y sin animal no puedes llevar más, así que el mercado ya no te vende. Compra un caballo, burro o camello, o vende algo para hacer espacio.';   // Jorge (10 de noviembre): decir que por eso el mercado ya no te vende
 // Jorge (10 de noviembre): premios, robos, tratos y cartas del banco sí te dan los objetos aunque pases de 7; quedas sobrecargado y no
 // puedes salir de la ciudad (motivoNoSalir) hasta conseguir un animal de carga o vender lo que sobra. Ya no se vende nada solo.
-export const sobrecarga = (j, e) => `Vas muy cargado: llevas ${nObjetos(j)} objetos y sin animal solo puedes con ${limiteCarga(e, j)}. No podrás salir de esta ciudad hasta conseguir un caballo, burro o camello, o vender lo que te sobra.`;
+export const sobrecarga = (j, e) => `Vas muy cargado: llevas ${nCarga(j)} objetos y sin animal solo puedes con ${limiteCarga(e, j)}. No podrás salir de esta ciudad hasta conseguir un caballo, burro o camello, o vender lo que te sobra.`;
 export function recortarMano(data, e, pid) {
   const j = e.jugadores[pid];
   if (!j || j.npc || !cargaExcedida(j, e)) return;   // Yafar NPC lo resuelve solo en su turno (npc.js, aligerar)

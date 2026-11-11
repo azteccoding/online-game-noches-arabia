@@ -249,6 +249,7 @@ function empezarRonda(data, e) {
   e.orden = yafarAlFinal(e, e.orden);                                                             // también en partidas guardadas con el orden viejo
   e.ronda++;
   if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
+  OBJ.caducarDados(data, e);   // Jorge (10 de noviembre): los dados duran 3 rondas
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
@@ -323,7 +324,7 @@ function volver(e, pid) {
 }
 
 function siguienteTurno(data, e, desde) {
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); hazanasFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -602,6 +603,7 @@ function postAccion(data, e) {
   const t = e.turno;
   if (t && !t.npc) { const j = e.jugadores[t.pid]; if (j && !j.eliminado) RET.revisarKanmakan(data, e, t.pid); }
   for (const id of activos(e)) RET.revisarKanmakan(data, e, id);
+  if (e.fase === 'juego') OBJ.anotarDuenos(e);   // dados y Kanmakán: el contador de caducidad arranca con su dueño actual
 }
 
 function despachar(data, e, pid, j, a, ahora) {
@@ -1185,11 +1187,12 @@ export function acciones(data, e, pid) {
 const manoPublica = (j) => j.mano.reduce((m, c) => { m[c.tipo] = (m[c.tipo] || 0) + 1; return m; }, {});   // casa: el NÚMERO de cartas por tipo es público
 
 function datosMano(data, e, c) {
-  if (c.tipo === 'especial') { const s = data.objetos.especiales.find((x) => x.id === c.ref); return { id: c.ref, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: c.ref === 'F1' ? 'Permite portar y usar arco y jambiya en Bagdad, desafiar y robar allí (R 15.3).' : c.ref === 'K1' ? '+2 a tus dados en cualquier pelea y no te pueden desafiar a duelo (R 15.5). Se disuelve al pelear si no has pasado por Isfahán en tus últimos 2 turnos.' : s.nombre, arte: s.arte, ref: s.refReglamento }; }
+  if (c.tipo === 'especial') { const s = data.objetos.especiales.find((x) => x.id === c.ref); return { id: c.ref, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: c.ref === 'F1' ? 'Permite portar y usar arco y jambiya en Bagdad, desafiar y robar allí (R 15.3).' : c.ref === 'K1' ? '+2 a tus dados en cualquier pelea y no te pueden desafiar a duelo (R 15.5). Dura 2 turnos tuyos; pasar por Isfahán lo renueva por otros 2. Se disuelve al acabarse o al pelear si no has pasado por Isfahán en tus últimos 2 turnos.' + (e.jugadores[c.extra?.dueno] ? ` Le quedan ${OBJ.turnosKanmakan(e.jugadores[c.extra.dueno], c)} turno(s) después del actual.` : '') : s.nombre, arte: s.arte, ref: s.refReglamento }; }
   if (c.tipo === 'item') {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
+    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.rondasDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.RONDAS_DADOS} rondas: ${n > 1 ? `les quedan ${n} rondas, contando esta` : 'esta es su última ronda'}.`; }
     if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }

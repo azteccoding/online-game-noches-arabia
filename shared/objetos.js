@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, } from './base.js';
+apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
@@ -50,7 +50,7 @@ export const precioFirman = (j) => (j.extra.joyaVisir ? 45 : 55);
 // caballo y camello se venden a 10 y se revenden a 10 (no tienen precio de compra: son premios de reto).
 export const VENTA_ANIMAL_BAGDAD = { caballo: 10, burro: 15, camello: 10 }, REVENTA_ANIMAL = { caballo: 10, burro: 35, camello: 10 };
 // Jorge (10 de noviembre): la alfombra mágica solo se vende en Samarcanda o Isfahán (precio por confirmar con Jorge).
-export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 50 };
+export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 20 };   // Jorge (10 de noviembre): 20 dinares y se deshace (nadie la revende)
 // Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
 // revende (Cairo 35 → 75, Persia 30 → 60) y a todos les sale el aviso de dónde está. Entre jugadores, en un trato, al precio que quieran.
 export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
@@ -114,6 +114,7 @@ export function comprar(data, e, pid, a) {
     if (a.ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x))) return err('Ya tienes un animal: solo puedes llevar uno a la vez.');
     if (a.ref === 'burro' && n > 1) return err('Solo un burro.');
     if (a.ref === 'burro' && !(e.burros > 0)) return err('No quedan burros en Basra.');
+    if (CARGA_ITEMS.includes(a.ref) && !tieneCarga(j) && nCarga(j) + n > limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // alfanje, cimitarra y vino también cargan
     j.dinares -= p;
     if (a.ref === 'burro') { e.burros--; j.noches += 20; log(e, `${j.nombre} compra un burro en Basra y recibe 20 noches de regalo.`, { pid }); darItem(e, j, 'burro'); return ok(); }
     for (let i = 0; i < n; i++) darItem(e, j, a.ref, a.ref === 'vino' ? { ronda: e.ronda } : undefined);
@@ -128,7 +129,7 @@ export function comprar(data, e, pid, a) {
   if ((e.stock[a.id] || 0) <= 0) return err('Agotado.');
   const p = o.valor * dobleCairo(e, j.ciudad);
   if (j.dinares < p) return err('No te alcanzan los dinares.');
-  if (!tieneCarga(j) && nObjetos(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // Jorge (10 de noviembre)
+  if (!tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // Jorge (10 de noviembre)
   j.dinares -= p; e.stock[a.id]--;
   const c = { uid: uid(e), tipo: 'objeto', ref: a.id, pub: true }; j.mano.push(c);
   publicarCarta(e, cartaDatos(data, 'objeto', a.id), pid, [pid]);
@@ -222,7 +223,7 @@ export function vender(data, e, pid, a) {
   }
   if (c.ref === 'alfombra') {                                                                           // Jorge (10 de noviembre)
     if (!ALFOMBRA_VENTA.ciudades.includes(ciudad)) return err('La alfombra mágica solo se vende en Samarcanda o Isfahán.');
-    quitarCarta(j, c.uid); j.dinares += ALFOMBRA_VENTA.precio; log(e, `${j.nombre} vende su alfombra mágica en ${ciudad} por ${ALFOMBRA_VENTA.precio} dinares.`, { pid }); return ok();
+    quitarCarta(j, c.uid); j.dinares += ALFOMBRA_VENTA.precio; log(e, `${j.nombre} vende su alfombra mágica en ${ciudad} por ${ALFOMBRA_VENTA.precio} dinares; la alfombra se deshace y nadie la puede comprar.`, { pid }); return ok();
   }
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
   if (!base) return err('Eso no se puede vender al mercado.');
@@ -233,13 +234,13 @@ export function vender(data, e, pid, a) {
 export function tienda(data, e, pid) {
   const j = e.jugadores[pid];
   if (!j || j.eliminado || !j.pj) return [];
-  const cai = dobleCairo(e, j.ciudad), lleno = !tieneCarga(j) && nObjetos(j) >= limiteCarga(e, j);   // Jorge (10 de noviembre): 7 sin animal de carga
+  const cai = dobleCairo(e, j.ciudad), lleno = !tieneCarga(j) && nCarga(j) >= limiteCarga(e, j);   // Jorge (10 de noviembre): 7 sin animal de carga
   const r = [];
   const orig = (ref, desde) => {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad)) return;
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
-    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : undefined, puede: j.dinares >= precio && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && (['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) || !(e.burros > 0))),
-      motivo: ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) ? 'Ya tienes un animal' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : undefined, puede: j.dinares >= precio && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && (['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) || !(e.burros > 0))),
+      motivo: ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'burro' && ['caballo', 'camello', 'burro'].some((x) => tieneItem(j, x)) ? 'Ya tienes un animal' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro'].forEach(orig);
   if (BAZAR_IFRIT.ciudades.includes(j.ciudad)) {
@@ -329,7 +330,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
   if (c.ref === 'alfombraIsfahan') return `Mejor venta: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches. En el mercado de cualquier ciudad, ${MITAD.alfombraIsfahan}.`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
-  if (c.ref === 'alfombra') return `Solo en Samarcanda o Isfahán, por ${ALFOMBRA_VENTA.precio} dinares. También te saca del Jorasán.`;
+  if (c.ref === 'alfombra') return `Solo en Samarcanda o Isfahán, por ${ALFOMBRA_VENTA.precio} dinares (se deshace: el mercado no la revende). También te saca del Jorasán.`;
   if (USO[c.ref]) return `No se vende. ${USO[c.ref]}`;
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
   return base ? `En cualquier ciudad por ${Math.floor(base / 2)} dinares (la mitad de su precio).` : `No se vende.${ITEMS[c.ref]?.texto ? ' ' + ITEMS[c.ref].texto : ''}`;
@@ -560,4 +561,49 @@ function morirAnimal(data, e, pid, c) {
   else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
   log(e, `Muere de viejo el ${c.ref} de ${j.nombre}.${mas}`, { pid, aviso: true });
   if (!j.npc && cargaExcedida(j, e)) { log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid }); info(e, pid, 'Vas muy cargado', sobrecarga(j, e)); }   // Jorge (10 de noviembre)
+}
+
+// ---------------------------------------------------------------- caducidades (Jorge, 10 de noviembre)
+// Dados del Cairo y Dados de Persia: duran 3 rondas desde que su dueño actual los recibe (si cambian de dueño, el contador vuelve a
+// empezar); al caducar, «Un ifrit se robó tus dados» y salen de la partida. Ejército de Kanmakán: dura 2 turnos de su dueño; pasar por
+// Isfahán lo renueva por otros 2; si no, se disuelve al acabarse (además de disolverse al pelear, como antes).
+export const DADOS_CADUCAN = ['dadosCairo', 'dadosPersia'], RONDAS_DADOS = 3, TURNOS_KANMAKAN = 2;
+function marcarDueno(c, j, ahora) { if (c.extra?.dueno !== j.id) c.extra = { ...(c.extra || {}), dueno: j.id, desde: ahora }; }
+export const rondasDados = (e, j, c) => Math.max(0, (c.extra?.dueno === j.id ? c.extra.desde : e.ronda) + RONDAS_DADOS - e.ronda);   // rondas que le quedan, contando la actual
+export const turnosKanmakan = (j, c) => {
+  const desde = c.extra?.dueno === j.id ? c.extra.desde : j.turnos;
+  const base = Math.max(desde, j.extra?.isfahanTurno ?? -Infinity);
+  return Math.max(0, base + TURNOS_KANMAKAN - j.turnos);   // turnos suyos que le quedan después del actual
+};
+// Anota quién tiene cada carta con caducidad (al cambiar de dueño por venta, trato, robo o herencia, el contador reinicia).
+export function anotarDuenos(e) {
+  for (const j of Object.values(e.jugadores)) {
+    if (!j?.mano) continue;
+    for (const c of j.mano) {
+      if (c.tipo === 'item' && DADOS_CADUCAN.includes(c.ref)) marcarDueno(c, j, e.ronda);
+      else if (c.tipo === 'especial' && c.ref === 'K1') marcarDueno(c, j, j.turnos);
+    }
+  }
+}
+export function caducarDados(data, e) {   // al empezar cada ronda
+  anotarDuenos(e);
+  for (const j of Object.values(e.jugadores)) {
+    if (!j?.mano || j.eliminado) continue;
+    for (const c of j.mano.filter((x) => x.tipo === 'item' && DADOS_CADUCAN.includes(x.ref))) {
+      if (rondasDados(e, j, c) > 0) continue;
+      quitarCarta(j, c.uid);
+      const nom = ITEMS[c.ref].nombre;
+      publicarCarta(e, { id: 'caduca:' + c.ref, deck: 'objeto', titulo: 'Un ifrit se robó tus dados', sub: nom, texto: `Un ifrit se robó tus ${nom}: pasaron ${RONDAS_DADOS} rondas desde que los recibiste y desaparecen de la partida.`, arte: 'ob-magico' }, j.id, [j.id]);
+      log(e, `Un ifrit se robó los ${nom} de ${j.nombre}: desaparecen de la partida.`, { pid: j.id, aviso: true });
+    }
+  }
+}
+export function caducarKanmakan(data, e, pid) {   // al terminar cada turno de su dueño
+  anotarDuenos(e);
+  const j = e.jugadores[pid]; if (!j?.mano) return;
+  const c = j.mano.find((x) => x.tipo === 'especial' && x.ref === 'K1');
+  if (!c || turnosKanmakan(j, c) > 0) return;
+  quitarCarta(j, c.uid); e.kanmakan = { dueno: null, usada: true };
+  publicarCarta(e, { id: 'caduca:K1', deck: 'especial', titulo: 'Se disuelve el Ejército de Kanmakán', sub: 'Carta especial', texto: `Pasaron ${TURNOS_KANMAKAN} turnos sin que volvieras a Isfahán: el Ejército de Kanmakán se disuelve.`, arte: 'es' }, j.id, [j.id]);
+  log(e, `El Ejército de Kanmakán de ${j.nombre} se disuelve: pasaron ${TURNOS_KANMAKAN} turnos sin que volviera a Isfahán.`, { pid: j.id, aviso: true });
 }

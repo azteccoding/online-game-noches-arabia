@@ -1912,7 +1912,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'Isfahán' }).ok);
   assert.ok(!A.perdido && A.ciudad === 'Isfahán', 'sale del Jorasán en su alfombra');
   turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones';
-  const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok); assert.equal(A.dinares, d0 + 50, 'en Isfahán sí se vende');
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok); assert.equal(A.dinares, d0 + 20, 'en Isfahán sí se vende, por 20'); assert.ok(!(e.establo || []).some((x) => x.carta.ref === 'alfombra'), 'se deshace: nadie la revende');
 }
 
 // Jorge (10 de noviembre): premio, robo, trato y banco sí dan objetos de más; quedas sobrecargado sin poder salir de la ciudad
@@ -2019,6 +2019,57 @@ for (let k = 0; k < 6; k++) {
   for (let k = 0; k < 3; k++) darItem(e, A, 'mapa', { tesoro: 'jugador', dueno: a, id: 'x' + k, ciudad: 'Damasco', monto: 5 });
   for (let k = 0; k < 4; k++) darItem(e, A, 'amate');
   assert.equal(nObjetos(A), 7, 'mapas y papeles amate no cuentan como carga'); assert.equal(motivoNoSalir(e, A), null, 'con 7 objetos y 10 mapas/amates sí sale');
+}
+
+// Jorge (10 de noviembre): alfanje, cimitarra y cada botella de vino también cuentan para el límite de 7; arco, jambiya, flechas no.
+{
+  const { motivoNoSalir, nCarga, darItem } = await import('../shared/base.js');
+  const { tienda } = await import('../shared/objetos.js');
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  assert.equal(nCarga(A), 1, 'Nur al Din empieza con su cimitarra: cuenta 1'); assert.equal(motivoNoSalir(e, A), null, 'nadie queda bloqueado al iniciar');
+  A.ciudad = 'Damasco'; A.dinares = 500; A.mano = A.mano.filter((c) => c.tipo !== 'objeto' && !['caballo', 'camello', 'burro'].includes(c.ref));
+  darItem(e, A, 'alfanje'); darItem(e, A, 'vino', { ronda: 1 }); darItem(e, A, 'vino', { ronda: 1 });
+  darItem(e, A, 'arco'); darItem(e, A, 'jambiya'); darItem(e, A, 'flechas');
+  assert.equal(nCarga(A), 4, 'cimitarra + alfanje + 2 vinos = 4; arco, jambiya y flechas no cuentan');
+  for (let k = 0; k < 3; k++) A.mano.push({ uid: 9900 + k, tipo: 'objeto', ref: 'OB34' });
+  assert.equal(nCarga(A), 7); assert.equal(motivoNoSalir(e, A), null);
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  const v = tienda(data, e, a).find((x) => x.ref === 'vino'); if (v) assert.ok(!v.puede && /Ya cargas 7/.test(v.motivo), 'con 7 no compras vino');
+  assert.match(g.act(a, { t: 'comprar', ref: 'vino' }).error || '', /Ya cargas 7|Solo se vende/);
+  darItem(e, A, 'vino', { ronda: 1 }); assert.match(motivoNoSalir(e, A) || '', /llevas 8 objetos/, 'el 8.º (vino) bloquea');
+}
+
+// Jorge (10 de noviembre): Dados del Cairo y de Persia duran 3 rondas desde que su dueño actual los recibe; luego «Un ifrit se robó tus
+// dados» y desaparecen. Ejército de Kanmakán: 2 turnos del dueño, renovables pasando por Isfahán; al acabarse se disuelve.
+{
+  const OBJ = await import('../shared/objetos.js');
+  const g = partida(['2', '3', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, an, ad] = g.ids, Z = e.jugadores[z], AN = e.jugadores[an], AD = e.jugadores[ad];
+  OBJ.anotarDuenos(e);
+  const dc = Z.mano.find((c) => c.ref === 'dadosCairo'), dp = AN.mano.find((c) => c.ref === 'dadosPersia');
+  const r0 = e.ronda; assert.equal(OBJ.rondasDados(e, Z, dc), 3, '3 rondas, contando la actual');
+  e.ronda = r0 + 1; OBJ.caducarDados(data, e); assert.ok(Z.mano.includes(dc)); assert.equal(OBJ.rondasDados(e, Z, dc), 2);
+  // Anís vende (pasa) sus dados a Adí en la ronda r0+1: el contador vuelve a empezar para Adí
+  AN.mano.splice(AN.mano.indexOf(dp), 1); AD.mano.push(dp); OBJ.anotarDuenos(e);
+  assert.equal(OBJ.rondasDados(e, AD, dp), 3, 'nuevo dueño: 3 rondas otra vez');
+  e.ronda = r0 + 3; const h0 = e.historial.length; OBJ.caducarDados(data, e);
+  assert.ok(!Z.mano.some((c) => c.ref === 'dadosCairo'), 'a las 3 rondas caducan');
+  assert.ok(e.historial.slice(h0).some((h) => h.titulo === 'Un ifrit se robó tus dados' && h.para?.includes(z)), 'carta para Zein');
+  assert.ok(AD.mano.includes(dp), 'los de Adí todavía no');
+  assert.ok(!Object.values(e.jugadores).some((j) => j.mano.some((c) => c.ref === 'dadosCairo')) && !e.mercadoDados?.dadosCairo, 'desaparecen de la partida');
+  e.ronda = r0 + 4; OBJ.caducarDados(data, e); assert.ok(!AD.mano.includes(dp), 'y los de Adí, a sus 3 rondas');
+  // Kanmakán
+  const { darKanmakan } = await import('../shared/retos.js');
+  e.kanmakan = { dueno: null, usada: false }; darKanmakan(data, e, ad, 'prueba'); OBJ.anotarDuenos(e);
+  const k = AD.mano.find((c) => c.ref === 'K1'); const t0 = AD.turnos; delete AD.extra.isfahanTurno;
+  assert.equal(OBJ.turnosKanmakan(AD, k), 2);
+  AD.turnos = t0 + 1; OBJ.caducarKanmakan(data, e, ad); assert.ok(AD.mano.includes(k), 'dura su primer turno');
+  AD.extra.isfahanTurno = t0 + 1; assert.equal(OBJ.turnosKanmakan(AD, k), 2, 'pasar por Isfahán lo renueva por 2');
+  AD.turnos = t0 + 2; OBJ.caducarKanmakan(data, e, ad); assert.ok(AD.mano.includes(k));
+  AD.turnos = t0 + 3; const h1 = e.historial.length; OBJ.caducarKanmakan(data, e, ad);
+  assert.ok(!AD.mano.includes(k), 'sin volver a Isfahán, se disuelve'); assert.ok(e.kanmakan.usada);
+  assert.ok(e.historial.slice(h1).some((h) => /Kanmakán/.test(h.titulo)), 'aviso al disolverse');
 }
 
 console.log('reglas de la casa OK');
