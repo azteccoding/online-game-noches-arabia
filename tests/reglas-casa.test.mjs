@@ -2321,7 +2321,7 @@ for (let k = 0; k < 6; k++) {
   assert.match(data.retos.retos.find((r) => r.id === 'R41').premio, /100 noches.*100 dinares/);
 }
 
-// Jorge (10 de noviembre): R8 Shams al Din: gana 50 dinares y 20 noches; pierde solo 15 noches (sin pagar ni quedar herido); repetible.
+// Jorge (10 de noviembre): R8 Shams al Din: gana 50 dinares y 20 noches; si pierde, 15 noches y queda herido (sin pagar dinares); repetible.
 // Tesoro de Mansa Musa: 20 dinares como máximo (se reparte con socios).
 {
   const { TESOROS } = await import('../shared/base.js');
@@ -2336,7 +2336,7 @@ for (let k = 0; k < 6; k++) {
     const r = g.act(a, { t: 'reto', id: 'R8' }); assert.ok(r.ok, r.error);
     for (let k = 0; k < 10 && e.pend; k++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id });
     if (A.dinares === d0 + 50) { gano = true; assert.equal(A.noches, n0 + 20, 'gana 20 noches'); }
-    else { perdio = true; assert.equal(A.dinares, d0, 'al perder no paga dinares'); assert.equal(A.noches, n0 - 15, 'pierde 15 noches'); assert.ok(!A.herido, 'no queda herido'); }
+    else { perdio = true; assert.equal(A.dinares, d0, 'al perder no paga dinares'); assert.equal(A.noches, n0 - 15, 'pierde 15 noches'); assert.ok(A.herido, 'y queda herido'); }
     assert.ok(!g.act(a, { t: 'reto', id: 'R8' }).ok || true);
   }
   assert.ok(gano && perdio, 'se probaron las dos salidas');

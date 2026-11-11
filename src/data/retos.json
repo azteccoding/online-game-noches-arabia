@@ -98,7 +98,7 @@
    "tipo": "C",
    "requisito": "Tener un arma",
    "resolucion": "Shams al Din, campeón de El Cairo, te reta. Pelea como \"armas y destreza\" (11.4) contra Shams (destreza, cimitarra y 1 punto de ventaja fija). Si no tienes destreza juegas como \"armas sin destreza\". Se puede repetir si sales de la ciudad y vuelves",
-   "premio": "Ganas: 50 dinares y 20 noches. Pierdes: 15 noches (no pagas dinares ni quedas herido)",
+   "premio": "Ganas: 50 dinares y 20 noches. Pierdes: 15 noches y quedas herido (no mueres)",
    "riesgo": "",
    "objetos": "",
    "refReglamento": "14.4",
