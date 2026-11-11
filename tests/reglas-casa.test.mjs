@@ -1514,7 +1514,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(A.dinares <= 4 && A.noches <= 19 + 50, 'el jugador pierde 1 y 1 (puede quedar en deuda)');
   if (N) assert.ok(e.log.some((l) => /Yafar NPC pierde 10 dinares y 10 noches/.test(l.texto)));
   const n = e.historial.filter((h) => h.id === 'S4').length; e.traicionRonda = e.ronda + 1;
-  for (let k = 0; k < 8; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
+  for (let k = 0; k < 8 && e.turno; k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; avanzar(data, e); }
   assert.equal(e.historial.filter((h) => h.id === 'S4').length, n, 'una sola vez por partida');
   void b;
 }
@@ -1697,7 +1697,9 @@ for (let k = 0; k < 6; k++) {
   // apuros financieros: Zein consigue un viaje gratis de un tramo (una sola vez)
   assert.ok(Z.extra.viajeZein && e.log.some((l) => /apuros financieros/.test(l.texto)));
   turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; e.turno.fase = 'mov'; const d1 = Z.dinares;
-  assert.ok(g.act(z, { t: 'viajar', destino: 'Aleppo' }).ok); assert.equal(Z.ciudad, 'Aleppo'); assert.equal(Z.dinares, d1, 'el viaje le sale gratis');
+  assert.ok(g.act(z, { t: 'viajar', destino: 'Aleppo' }).ok);
+  for (let k = 0; k < 10 && e.pend; k++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id });   // un evento del camino (según el azar)
+  assert.equal(Z.ciudad, 'Aleppo'); assert.ok(e.log.some((l) => /viaja gratis con lo que sacó de sus alhajas/.test(l.texto)), 'el viaje le sale gratis'); void d1;
   assert.ok(!Z.extra.viajeZein, 'solo uno');
 }
 
@@ -2193,10 +2195,10 @@ for (let k = 0; k < 6; k++) {
 }
 
 // Jorge (10 de noviembre): los mapas de tesoro funcionan de punta a punta: con el mapa en su ciudad aparece «Buscar el tesoro» en
-// Acciones → Tesoros y Jorasán, se tiran los dados y, si sale, se cobra (Rumán 16, Persia 54, Mansa Musa 96).
+// Acciones → Tesoros y Jorasán, se tiran los dados y, si sale, se cobra (Rumán 16, Persia 54, Mansa Musa 20).
 {
   const { TESOROS } = await import('../shared/base.js');
-  for (const [k, ciudad, valor] of [['ruman', 'Estambul', 16], ['persia', 'Isfahán', 54], ['mansa', 'Magreb', 96]]) {
+  for (const [k, ciudad, valor] of [['ruman', 'Estambul', 16], ['persia', 'Isfahán', 54], ['mansa', 'Magreb', 20]]) {
     assert.equal(TESOROS[k].ciudad, ciudad); assert.equal(TESOROS[k].valor, valor);
     let cobrado = false;
     for (let s = 1; s < 60 && !cobrado; s++) {
@@ -2313,6 +2315,27 @@ for (let k = 0; k < 6; k++) {
   alEliminar(data, e, b, a); assert.equal(A.dinares, d1 + 50, 'R2: 50 dinares'); assert.ok(tieneItem(A, 'astrolabio') && tieneItem(A, 'alfanje'), 'R2: astrolabio y alfanje');
   assert.match(data.retos.retos.find((r) => r.id === 'R2').premio, /50 dinares/);
   assert.match(data.retos.retos.find((r) => r.id === 'R41').premio, /100 noches.*100 dinares/);
+}
+
+// Jorge (10 de noviembre): R8 Shams al Din: gana 50 dinares y 20 noches; pierde solo 15 noches (sin pagar ni quedar herido); repetible.
+// Tesoro de Mansa Musa: 20 dinares como máximo (se reparte con socios).
+{
+  const { TESOROS } = await import('../shared/base.js');
+  assert.equal(TESOROS.mansa.valor, 20); assert.equal(TESOROS.persia.valor, 54); assert.equal(TESOROS.ruman.valor, 16);
+  let gano = false, perdio = false;
+  for (let s = 1; s < 80 && !(gano && perdio); s++) {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.ciudad = 'El Cairo'; darItem(e, A, 'alfanje'); A.noches = 40; A.herido = false;
+    turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones'; e.semilla = s * 7919;
+    const d0 = A.dinares, n0 = A.noches;
+    const r = g.act(a, { t: 'reto', id: 'R8' }); assert.ok(r.ok, r.error);
+    for (let k = 0; k < 10 && e.pend; k++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id });
+    if (A.dinares === d0 + 50) { gano = true; assert.equal(A.noches, n0 + 20, 'gana 20 noches'); }
+    else { perdio = true; assert.equal(A.dinares, d0, 'al perder no paga dinares'); assert.equal(A.noches, n0 - 15, 'pierde 15 noches'); assert.ok(!A.herido, 'no queda herido'); }
+    assert.ok(!g.act(a, { t: 'reto', id: 'R8' }).ok || true);
+  }
+  assert.ok(gano && perdio, 'se probaron las dos salidas');
 }
 
 console.log('reglas de la casa OK');

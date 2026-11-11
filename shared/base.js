@@ -108,7 +108,7 @@ export function itemDatos(data, ref, extra = {}) {
   return { id: 'it:' + ref, deck: 'objeto', titulo: it.nombre, sub: 'Objeto original · R 15.1', texto: it.texto, valor: it.precio ?? null, duracion: null, arte: it.arma ? 'ob-arma' : ref === 'libro' ? 'ob-docum' : 'ob-herr', ref: '15.1' };
 }
 export const TESOROS = {
-  mansa: { nombre: 'Mansa Musa', ciudad: 'Magreb', valor: 96 },
+  mansa: { nombre: 'Mansa Musa', ciudad: 'Magreb', valor: 20 },   // Jorge (10 de noviembre): 20 como máximo (antes 96); se reparte con socios
   persia: { nombre: 'Persia', ciudad: 'Isfahán', valor: 54 },
   ruman: { nombre: 'Rumán', ciudad: 'Estambul', valor: 16 },
 };

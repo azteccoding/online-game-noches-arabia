@@ -342,8 +342,9 @@ registrar('r17.n', (data, e, args, resp) => {
 T.R8 = { ciudad: 'El Cairo', req: (data, e, pid) => (tieneArma(data, e, e.jugadores[pid]) ? null : 'Necesitas un arma.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.extra.rep ||= {}; j.extra.rep.R8 = true; hacer(e, pid, 'R8');
   const gana = peleaNPC(data, e, pid, { etq: 'Shams al Din', dados: 2, bono: 1 + bonoCim(data) + 1 });
-  if (gana) premio(data, e, pid, { dinares: 100, noches: 30 }, `${j.nombre} vence a Shams al Din:`);
-  else { pagar(data, e, pid, 20); j.herido = true; log(e, `${j.nombre} pierde ante Shams al Din: paga 20 dinares y queda herido.`, { pid }); }
+  // Jorge (10 de noviembre): gana 50 dinares y 20 noches (antes 100 y 30); si pierde, solo pierde 15 noches (ya no paga ni queda herido)
+  if (gana) premio(data, e, pid, { dinares: 50, noches: 20 }, `${j.nombre} vence a Shams al Din:`);
+  else { j.noches = Math.max(0, j.noches - 15); log(e, `${j.nombre} pierde ante Shams al Din: pierde 15 noches.`, { pid }); }
 } };
 T.R9 = { ciudad: 'El Cairo', req: (data, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Necesitas 5 dinares para el guía.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 5; j.extra.rep ||= {}; j.extra.rep.R9 = true; hacer(e, pid, 'R9');
