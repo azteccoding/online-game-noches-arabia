@@ -45,7 +45,7 @@ export function perfil(data, e, pid, ciudad) {
 function objetoDeCombate(data, e, pid, rol, { contraNPC = false } = {}) {
   const j = e.jugadores[pid];
   const opciones = [];
-  if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: 2, texto: 'Escudo de cuero +2', gasta: false });
+  if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: 1, texto: 'Escudo de cuero +1', gasta: false });   // Jorge (10 de noviembre): +1 como defensor en todas las peleas
   if (tieneObj(j, 'OB01')) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1', gasta: false });
   if (contraNPC && tieneObj(j, 'OB02')) opciones.push({ id: 'OB02', bono: 2, texto: 'Honda de pastor +2', gasta: true });
   if (rol === 'def' && tieneObj(j, 'OB03') && !j.extra.usaPolvo) opciones.push({ id: 'OB03', bono: 2, texto: 'Polvo de pimienta (el atacante resta 2)', gasta: true });

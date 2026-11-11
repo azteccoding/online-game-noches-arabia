@@ -269,7 +269,8 @@
     "R11",
     "R12",
     "R13",
-    "R14"
+    "R14",
+    "R45"
    ],
    "notas": "Puerto de Sindbad",
    "impuestoVenta": 20

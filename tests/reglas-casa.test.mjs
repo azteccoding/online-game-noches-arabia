@@ -2214,4 +2214,42 @@ for (let k = 0; k < 6; k++) {
   }
 }
 
+// Jorge (10 de noviembre): Escudo de cuero +1 como defensor en todas las peleas; 2 copias
+{
+  const o = data.objetos.mazo.find((x) => x.id === 'OB04');
+  assert.equal(o.copias, 2); assert.match(o.efecto, /^\+1 a tu puntaje final como defensor/);
+  const { bonos, bonosCombate, perfil } = await import('../shared/pelea.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano = A.mano.filter((c) => c.tipo !== 'objeto' && !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); A.destreza = false; A.herido = false;
+  const sin = bonos(data, e, a, perfil(data, e, a), 'def', null).total, sinN = bonosCombate(data, e, a, 'def', A.ciudad).total;
+  A.mano.push({ uid: 9995, tipo: 'objeto', ref: 'OB04' });
+  assert.equal(bonos(data, e, a, perfil(data, e, a), 'def', null).total - sin, 1, 'duelos y NPC: +1');
+  assert.equal(bonosCombate(data, e, a, 'def', A.ciudad).total - sinN, 1, 'robos y ataques a muerte: +1');
+  assert.equal(bonos(data, e, a, perfil(data, e, a), 'atk', null).total, bonos(data, e, a, perfil(data, e, a), 'atk', null).total, 'al atacar no da nada');
+}
+
+// Jorge (10 de noviembre): R45 «Trabajar para el Nizam de Hyderabad» (India): cobras 10 + 5 por punto; pierdes tu siguiente turno
+// y, en el que sigue, tu acción principal. Una vez por jugador (como R41).
+{
+  const r = data.retos.retos.find((x) => x.id === 'R45'); assert.equal(r.nombre, 'Trabajar para el Nizam de Hyderabad'); assert.equal(r.ciudad, 'India');
+  assert.ok(data.ciudades.ciudades.find((c) => c.id === 'India').retos.includes('R45'));
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'India'; turnoDe(e, a, 'India'); e.turno.fase = 'acciones'; forzar(e, 4);
+  const d0 = A.dinares, h0 = e.historial.length;
+  const rr = g.act(a, { t: 'reto', id: 'R45' }); assert.ok(rr.ok, rr.error);
+  assert.equal(A.dinares, d0 + 30, 'dado 4: 10 + 20 = 30 dinares');
+  assert.ok(A.retosHechos.includes('R45'));
+  assert.ok(!g.act(a, { t: 'reto', id: 'R45' }).ok, 'no se repite');
+  assert.equal(A.pierdeTurno, 1);
+  // siguiente turno: perdido; el que sigue: sin acción principal
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  for (let k = 0; k < 20 && !(e.turno.pid === a && e.turno.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; g.tickear(100); }
+  assert.ok(e.turno.pid === a && e.turno.omitido, 'pierde su siguiente turno');
+  for (let k = 0; k < 20 && !(e.turno.pid === a && !e.turno.omitido); k++) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.turno.fin = true; g.tickear(100); }
+  assert.ok(e.turno.pid === a && e.turno.principal && e.turno.heridoAhora, 'en el que sigue no tiene acción principal');
+  void b; void h0;
+}
+
 console.log('reglas de la casa OK');

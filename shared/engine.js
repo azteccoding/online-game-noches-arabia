@@ -372,7 +372,10 @@ function iniciarTurno(data, e, id, idx) {
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
-  if (j.pierdeTurno > 0) { j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true; }
+  if (j.pierdeTurno > 0) {
+    j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true;
+    if (j.extra.nizam) { j.extra.nizam = false; j.herido = true; log(e, `${j.nombre} trabaja para el Nizam y pierde este turno; en el siguiente, rendido, no tendrá acción principal.`, { pid: id }); }   // R45
+  }
   let ing = p.inicio.ingreso + (data.config.equilibrio?.ingresoExtra?.[j.pj] || 0);   // equilibrio: config.json
   if (e.mods.sinIngreso?.[id]) ing = 0;
   j.dinares += ing;

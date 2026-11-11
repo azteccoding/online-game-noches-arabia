@@ -647,6 +647,18 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
 // (o 40 dinares), 4–5 vuelves a Moca, 1–3 tormenta y quedas herido. Se gana una vez por partida; herido no se intenta.
 // R44 «Visitar Timbuktú» (Jorge, 7 de noviembre): desde el Magreb, 10 dinares de caravana y 30 noches; una vez por jugador. Mientras dure la
 // carta S2 «Mansa Musa despertó generoso», además se tira 1 dado (con su botón): 6, 50 dinares y 60 noches; 4–5, 35 y 40; 1–3, 30 noches.
+// R45 «Trabajar para el Nizam de Hyderabad» (Jorge, 10 de noviembre), con la estructura de R41: se inicia desde Acciones en India con
+// la acción principal y queda hecho (una vez por jugador). Tiras 1 dado (con botón): cobras 10 + 5 por punto, al momento. Pierdes tu
+// siguiente turno y, en el que sigue, no tienes acción principal (quedas herido por tanto trabajo: engine.iniciarTurno).
+T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NPC no trabaja para el Nizam.' : null),
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid]; hacer(e, pid, 'R45');
+    const [x] = ctx.t(`${j.nombre}: trabajo para el Nizam (10 dinares + 5 por punto)`, 1);
+    const pago = 10 + 5 * x; j.dinares += pago;
+    j.pierdeTurno = (j.pierdeTurno || 0) + 1; j.extra.nizam = true;
+    ctx.say(`El Nizam te paga ${pago} dinares. Pierdes tu siguiente turno y, en el que sigue, tu acción principal.`);
+    log(e, `${j.nombre} trabaja para el Nizam de Hyderabad y cobra ${pago} dinares: pierde su siguiente turno y, en el que sigue, su acción principal.`, { pid });
+  } };
 T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'La caravana a Timbuktú cuesta 10 dinares.'),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= 10; j.noches += 30; hacer(e, pid, 'R44');
