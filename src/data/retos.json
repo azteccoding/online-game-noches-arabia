@@ -19,7 +19,7 @@
    "ciudad": "Bagdad",
    "tipo": "C",
    "requisito": "Haber jugado 5 turnos, y que alguien ya haya cobrado una carrera «Dos noches» en Damasco o Aleppo (en ese alojamiento se presenció un crimen).",
-   "resolucion": "Yafar te encarga matar al testigo: el último jugador que visitó Damasco o Aleppo. Tienes 3 turnos.",
+   "resolucion": "Yafar te encarga matar al testigo: quien pasó dos noches en Damasco o Aleppo, o el último que pasó por ahí. Tienes 3 turnos.",
    "premio": "Astrolabio, 50 dinares y un caballo.",
    "riesgo": "",
    "objetos": "",

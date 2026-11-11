@@ -277,14 +277,18 @@ registrar('r1.ayudantes', (data, e, args, resp) => {
 T.R1.sinSalir = true;
 
 // ---------------------------------------------------------------- R2 / R3
+// Testigo de R2 (Jorge, 10 de noviembre): primero quien cobró las «Dos noches» en Damasco o Aleppo (el más reciente); si no vale
+// (eres tú, o ya no está en la partida), el último que pasó por Damasco o Aleppo.
+const valeTestigo = (e, x, pid) => !!x && x !== pid && !!e.jugadores[x] && !e.jugadores[x].eliminado && !e.jugadores[x].sacado;
+export const testigoR2 = (e, pid) => [e.testigoCarrera, e.ultimoDamasco].find((x) => valeTestigo(e, x, pid)) || null;
 T.R2 = { ciudad: 'Bagdad', req: (data, e, pid) => {
   const j = e.jugadores[pid];
   if (j.turnos < 5) return 'Necesitas haber jugado 5 turnos.';
   if (!e.crimenPresenciado) return 'Todavía nadie ha presenciado el crimen: alguien debe cobrar antes una carrera «Dos noches» en Damasco o Aleppo.';   // Jorge (10 de noviembre)
-  const o = e.ultimoDamasco; if (!o || o === pid || e.jugadores[o].eliminado) return 'No hay testigo al que matar.';
+  if (!testigoR2(e, pid)) return 'No hay testigo al que matar.';
   return null;
 }, run(data, e, pid, ctx) {
-  const o = e.ultimoDamasco;
+  const o = testigoR2(e, pid);
   nuevaMision(e, pid, { id: 'R2', objetivo: o, texto: `Mata al testigo ${nombre(e, o)} en 3 turnos.` }, 3);
   ctx.say(`Yafar te encarga matar a ${nombre(e, o)} (tienes 3 turnos).`);
 } };

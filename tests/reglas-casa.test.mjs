@@ -2356,7 +2356,13 @@ for (let k = 0; k < 6; k++) {
   e.carrerasActivas = [{ id: 'E14', ciudad: 'Aleppo', prog: { [b]: 1 } }]; turnoDe(e, b, 'Aleppo'); cft(data, e);
   assert.ok(e.crimenPresenciado, 'cobrar la carrera en Aleppo abre el reto');
   turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
-  const r = g.act(a, { t: 'reto', id: 'R2' }); assert.ok(r.ok, r.error); assert.ok(A.misiones.some((m) => m.id === 'R2' && m.objetivo === b), 'el objetivo es el último que visitó Aleppo');
+  const r = g.act(a, { t: 'reto', id: 'R2' }); assert.ok(r.ok, r.error); assert.ok(A.misiones.some((m) => m.id === 'R2' && m.objetivo === b), 'el objetivo es quien cobró las dos noches');
+  // prioridad: quien cobró las dos noches; si eres tú, el último que pasó por Damasco o Aleppo
+  const { testigoR2 } = await import('../shared/retos.js');
+  e.testigoCarrera = b; e.ultimoDamasco = a; assert.equal(testigoR2(e, a), b, 'primero quien cobró la carrera');
+  e.testigoCarrera = a; e.ultimoDamasco = b; assert.equal(testigoR2(e, a), b, 'si la cobraste tú, el último que pasó por ahí');
+  e.testigoCarrera = a; e.ultimoDamasco = a; assert.equal(testigoR2(e, a), null, 'sin testigo válido no se puede');
+  e.testigoCarrera = b; B.eliminado = true; e.ultimoDamasco = null; assert.equal(testigoR2(e, a), null, 'un eliminado no es testigo');
 }
 
 console.log('reglas de la casa OK');
