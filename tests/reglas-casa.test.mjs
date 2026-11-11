@@ -2365,4 +2365,33 @@ for (let k = 0; k < 6; k++) {
   e.testigoCarrera = b; B.eliminado = true; e.ultimoDamasco = null; assert.equal(testigoR2(e, a), null, 'un eliminado no es testigo');
 }
 
+// Jorge (10 de noviembre): el mapa de Mansa Musa se consigue en R9 (pirámides, con un 6) y en el deseo de ifrit «Mapa de tesoro»;
+// de punta a punta: R9 → mapa de Mansa Musa → Magreb → buscar → 20 dinares.
+{
+  let listo = false;
+  for (let s = 1; s < 80 && !listo; s++) {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Bagdad';
+    A.ciudad = 'El Cairo'; A.dinares = 50; A.mano = A.mano.filter((c) => c.ref !== 'mapa');
+    turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones'; forzar(e, 6);
+    assert.ok(g.act(a, { t: 'reto', id: 'R9' }).ok);
+    assert.equal(e.pend?.titulo, 'R9 · Mapa de tesoro');
+    assert.ok(e.pend.opciones.some((o) => o.id === 'mansa' && /Mansa Musa \(Magreb\)/.test(o.texto)), 'R9 ofrece Mansa Musa');
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'mansa' }).ok);
+    const mapa = A.mano.find((c) => c.ref === 'mapa' && c.extra?.tesoro === 'mansa'); assert.ok(mapa, 'recibe el mapa de Mansa Musa');
+    A.ciudad = 'Magreb'; turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones';
+    const acc = vistaDe(e, a).acciones.find((x) => x.k === 'tesoro' && x.sub === 'buscar' && x.uid === mapa.uid);
+    assert.ok(acc && /Mansa Musa/.test(acc.titulo), 'aparece «Buscar el tesoro de Mansa Musa»');
+    e.semilla = s * 613; const d0 = A.dinares;
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'buscar', uid: mapa.uid }).ok);
+    for (let q = 0; q < 10 && e.pend; q++) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones?.find((o) => o.id === 'no') || e.pend.opciones?.[0] || {}).id });
+    if (A.dinares === d0 + 20) listo = true; else assert.equal(A.dinares, d0, 'si no sale, no cobra');
+  }
+  assert.ok(listo, 'se consigue el mapa por R9 y se cobran los 20 dinares');
+  // el deseo de ifrit también lo ofrece
+  const { cartaDatos } = await import('../shared/engine.js'); void cartaDatos;
+  assert.match(data.objetos.ifrit.deseos.I, /Mansa Musa/);
+}
+
 console.log('reglas de la casa OK');

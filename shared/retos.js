@@ -359,7 +359,7 @@ T.R9 = { ciudad: 'El Cairo', req: (data, e, pid) => (e.jugadores[pid].dinares >=
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Saqueadores', texto: 'Pelea (2 dados cada uno) o paga 15 dinares.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'pagar', texto: 'Pagar 15 dinares' }], porDefecto: 'pagar', cont: { fn: 'r9.saqueo', args: {} } });
   } else {
     premio(data, e, pid, { dinares: 25 }, `${j.nombre} encuentra un cofre en las pirámides:`);
-    if (x === 6) pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Mapa de tesoro', texto: 'Hallas un mapa. ¿Qué tesoro?', opciones: [{ id: 'persia', texto: 'Persia (Isfahán)' }, { id: 'ruman', texto: 'Rumán (Estambul)' }], porDefecto: 'persia', cont: { fn: 'r9.mapa', args: {} } });
+    if (x === 6) pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Mapa de tesoro', texto: 'Hallas un mapa. ¿Qué tesoro?', opciones: [{ id: 'persia', texto: 'Persia (Isfahán)' }, { id: 'ruman', texto: 'Rumán (Estambul)' }, { id: 'mansa', texto: 'Mansa Musa (Magreb)' }], porDefecto: 'persia', cont: { fn: 'r9.mapa', args: {} } });
   }
 } };
 registrar('r9.saqueo', (data, e, args, resp) => {

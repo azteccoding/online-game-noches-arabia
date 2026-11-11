@@ -111,7 +111,7 @@
    "tipo": "A, C",
    "requisito": "Pagar 5 dinares al guía",
    "resolucion": "Tira un dado. 1 o 2: saqueadores te atacan; pelea contra ellos (2 dados cada uno) o paga 15 dinares. 3 a 5: encuentras un cofre. 6: encuentras un cofre y un mapa. Se puede repetir si sales y vuelves",
-   "premio": "Cofre: 25 dinares. Con 6: además un mapa de tesoro (Persia o Rumán)",
+   "premio": "Cofre: 25 dinares. Con 6: además un mapa de tesoro (Persia, Rumán o Mansa Musa)",
    "riesgo": "",
    "objetos": "",
    "refReglamento": "14.4",
