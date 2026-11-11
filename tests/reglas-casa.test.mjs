@@ -2504,6 +2504,8 @@ for (let k = 0; k < 6; k++) {
   // vender en cualquier ciudad: vuelve a la venta en un mercado que se quedó sin ella
   A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
   const alf = A.mano.find((c) => c.ref === 'alfanje'); assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok, 'se vende en Bagdad');
+  assert.ok(e.log.some((l) => l.aviso && !l.pid && l.texto === `${A.nombre} vendió su alfanje en Bagdad.`), 'anuncio para todos');
+  { const cim = darItem(e, A, 'cimitarra'); A.ciudad = 'Magreb'; turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'vender', uid: cim.uid }).ok); assert.ok(e.log.some((l) => l.aviso && l.texto === `${A.nombre} vendió su cimitarra en el Magreb.`), 'con artículo: el Magreb'); A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; }
   assert.equal(ver('Estambul', 'alfanje').motivo, 'Agotado', 'no vuelve a Estambul');
   const enB = ver('Bagdad', 'alfanje'); assert.ok(enB && enB.puede && enB.precio === 25, 'queda a la venta en Bagdad, al momento y a su precio');
   B.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; B.mano = B.mano.filter((c) => c.ref !== 'alfanje');

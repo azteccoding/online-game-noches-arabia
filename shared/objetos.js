@@ -236,7 +236,8 @@ export function vender(data, e, pid, a) {
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
   if (!base) return err('Eso no se puede vender al mercado.');
   precio = Math.floor(base / 2); quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${ITEMS[c.ref]?.nombre || c.ref} por ${precio} dinares.`, { pid });
-  { const c2 = devolverArma(e, c.ref, ciudad); if (c2) log(e, `Un${c.ref === 'cimitarra' ? 'a' : ''} ${ITEMS[c.ref].nombre.toLowerCase()} vuelve a la venta en ${c2}.`, { aviso: true }); }
+  if (ARMAS_ORIG.includes(c.ref)) log(e, `${j.nombre} vendió su ${ITEMS[c.ref].nombre.toLowerCase()} en ${ciudad === 'Magreb' ? 'el Magreb' : ciudad}.`, { aviso: true });   // anuncio para todos (Jorge, 10 de noviembre)
+  { const c2 = devolverArma(e, c.ref, ciudad); if (c2) log(e, `Un${c.ref === 'cimitarra' ? 'a' : ''} ${ITEMS[c.ref].nombre.toLowerCase()} queda a la venta en ${c2}.`); }
   return ok();
 }
 
