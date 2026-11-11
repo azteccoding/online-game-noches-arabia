@@ -18,7 +18,8 @@
    "retos": [
     "R26",
     "R41",
-    "R43"
+    "R43",
+    "R49"
    ],
    "notas": "Zein NPC se reclama aquí",
    "impuestoVenta": 20
@@ -84,7 +85,8 @@
    "alojamiento": 5,
    "mazoCC": "Bagdad",
    "retos": [
-    "R25"
+    "R25",
+    "R48"
    ],
    "notas": "Entrenamiento; destino de R3; esclavas de los Balcanes",
    "impuestoVenta": 20
@@ -152,7 +154,8 @@
    "mazoCC": "Bagdad",
    "retos": [
     "R19",
-    "R40"
+    "R40",
+    "R47"
    ],
    "notas": "Sede de los piratas (viaje al Jorasán); prostitución con impuesto del 10% y sin castigo",
    "impuestoVenta": 20
@@ -200,7 +203,8 @@
     "R4",
     "R5",
     "R6",
-    "R7"
+    "R7",
+    "R48"
    ],
    "notas": "Sin impuesto de venta. Armas prohibidas salvo Firmán. Sede de la mayoría de las cartas y de los objetos. Soborno a guardias si hay delito",
    "impuestoVenta": 0
@@ -223,7 +227,8 @@
    "retos": [
     "R16",
     "R17",
-    "R18"
+    "R18",
+    "R46"
    ],
    "notas": "Puerta de Oriente; bazar de alfombras y campos de entrenamiento",
    "impuestoVenta": 20

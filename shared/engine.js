@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, ponerExistencia, sacarExistencia, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -126,7 +126,7 @@ function prepararMazos(data, e) {
   const botin = [], guardadas = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (o.copias <= 1) { e.stock[o.id] = 1; continue; }   // copia única (pala y linterna, Jorge 10 de noviembre): solo en el mercado
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (POR_CIUDAD[o.id]) { e.stock[o.id] = POR_CIUDAD[o.id].length; (e.stockCiudad ||= {})[o.id] = Object.fromEntries(POR_CIUDAD[o.id].map((c) => [c, 1])); continue; }   // pala y linterna: una en cada mercado, sin Botín (Jorge, 10 de noviembre)
     else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
   }
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
@@ -143,7 +143,7 @@ function prepararMazos(data, e) {
 function reponerMercado(data, e) {
   const n = data.objetos.escasez?.reposicionPorRonda ?? 2;
   const vuelven = (e.reposicion ||= []).splice(0, n);
-  for (const id of vuelven) e.stock[id] = (e.stock[id] || 0) + 1;
+  for (const id of vuelven) ponerExistencia(e, id);
   if (vuelven.length) log(e, `Vuelven al mercado: ${vuelven.map((id) => objDe(data, id)?.nombre || id).join(', ')}.`);
 }
 
@@ -267,7 +267,7 @@ function empezarRonda(data, e) {
     const def = data.eventos.eventos.find((x) => x.id === id);
     (e.carrerasActivas ||= []).push({ id, ciudad: def.carrera, prog: {} });
     publicarCarta(e, cartaDatos(data, 'evento', id), null);
-    log(e, `Carrera en la mesa: el primero que pase dos noches seguidas en ${def.carrera} gana 60 dinares y 50 noches.`, { aviso: true });
+    log(e, `Carrera en la mesa: el primero que pase dos noches seguidas en ${def.carrera} gana ${premioCarrera(def.carrera).dinares} dinares y ${premioCarrera(def.carrera).noches} noches.`, { aviso: true });
   }
   if (evId) {
     if (evId !== 'E1') e.mazos.descarte.eventos.push(evId);
@@ -325,7 +325,7 @@ function volver(e, pid) {
 }
 
 function siguienteTurno(data, e, desde) {
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -373,6 +373,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
+  RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   if (j.pierdeTurno > 0) {
     j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true;
     if (j.extra.nizam) { j.extra.nizam = false; j.herido = true; log(e, `${j.nombre} trabaja para el Nizam y pierde este turno; en el siguiente, rendido, no tendrá acción principal.`, { pid: id }); }   // R45
@@ -473,6 +474,9 @@ function mansaMusa(data, e) {
     log(e, `Mansa Musa odia el nepotismo: ${yafar.nombre} pierde ${quita} noches.`, { aviso: true, pid: yafar.id });
   }
 }
+// Premio de las carreras «Dos noches» (Jorge, 10 de noviembre; antes 60 dinares y 50 noches en las tres)
+export const PREMIO_CARRERA = { 'El Cairo': { dinares: 25, noches: 20 }, Aleppo: { dinares: 20, noches: 15 }, Damasco: { dinares: 20, noches: 15 } };
+const premioCarrera = (ciudad) => PREMIO_CARRERA[ciudad] || { dinares: 20, noches: 15 };
 export function carreraFinTurno(data, e) {
   const t = e.turno, j = e.jugadores[t.pid];
   if (!e.carrerasActivas?.length || t.carreraContada || !j || j.npc || j.eliminado) return;
@@ -482,10 +486,10 @@ export function carreraFinTurno(data, e) {
   for (const c of e.carrerasActivas.slice()) {
     if (hospedado && j.ciudad === c.ciudad) c.prog[j.id] = (c.prog[j.id] || 0) + 1; else delete c.prog[j.id];
     if ((c.prog[j.id] || 0) >= 2) {
-      j.dinares += 60; j.noches += 50;
+      const pc = premioCarrera(c.ciudad); j.dinares += pc.dinares; j.noches += pc.noches;
       if (['Damasco', 'Aleppo'].includes(c.ciudad)) { e.crimenPresenciado = true; e.testigoCarrera = j.id; }   // el más reciente es el testigo de R2   // R2: en ese alojamiento se presenció un crimen (Jorge, 10 de noviembre)
       e.carrerasActivas.splice(e.carrerasActivas.indexOf(c), 1);
-      log(e, `${j.nombre} es el primero en pasar dos noches seguidas en ${c.ciudad}: gana 60 dinares y 50 noches.`, { pid: j.id, aviso: true });
+      log(e, `${j.nombre} es el primero en pasar dos noches seguidas en ${c.ciudad}: gana ${pc.dinares} dinares y ${pc.noches} noches.`, { pid: j.id, aviso: true });
     } else if (c.prog[j.id] === 1) log(e, `${j.nombre} lleva una noche en ${c.ciudad} (carrera: 1 de 2).`, { pid: j.id });
   }
 }
@@ -1160,7 +1164,7 @@ function hostRepartir(data, e, a) {
   const j = e.jugadores[a.pid]; if (!j) return err('Jugador inexistente.');
   if (a.mazo === 'objeto') {
     if (!(e.stock[a.id] > 0)) return err('Sin existencias.');
-    e.stock[a.id]--; j.mano.push({ uid: uid(e), tipo: 'objeto', ref: a.id });
+    sacarExistencia(e, a.id, j.ciudad); j.mano.push({ uid: uid(e), tipo: 'objeto', ref: a.id });
     publicarCarta(e, cartaDatos(data, 'objeto', a.id), a.pid, [a.pid]); recortarMano(data, e, a.pid);
   } else if (a.mazo === 'botin') {
     const c = OBJ.robarBotinPublico(data, e, a.pid); if (!c) return err('El Botín está vacío.');
@@ -1273,7 +1277,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }
@@ -1301,7 +1305,7 @@ export function vista(data, e, pid) {
     sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo?.extra?.jambiyaOculta,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),

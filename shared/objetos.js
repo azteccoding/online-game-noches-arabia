@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, } from './base.js';
+apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
@@ -113,11 +113,11 @@ export function comprar(data, e, pid, a) {
   if (!o) return err('Objeto inexistente.');
   const cs = ciudadesDe(o);
   if (cs && !cs.includes(j.ciudad)) return err(`Aquí no se vende (${o.seConsigueEn}).`);
-  if ((e.stock[a.id] || 0) <= 0) return err('Agotado.');
+  if (existencia(e, a.id, j.ciudad) <= 0) return err('Agotado.');
   const p = o.valor * dobleCairo(e, j.ciudad);
   if (j.dinares < p) return err('No te alcanzan los dinares.');
   if (!tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // Jorge (10 de noviembre)
-  j.dinares -= p; e.stock[a.id]--;
+  j.dinares -= p; sacarExistencia(e, a.id, j.ciudad);
   const c = { uid: uid(e), tipo: 'objeto', ref: a.id, pub: true }; j.mano.push(c);
   publicarCarta(e, cartaDatos(data, 'objeto', a.id), pid, [pid]);
   log(e, `${j.nombre} compra un objeto.`, { pid });
@@ -246,9 +246,9 @@ export function tienda(data, e, pid) {
     const cs = ciudadesDe(o);
     if (cs && !cs.includes(j.ciudad)) continue;
     const precio = o.valor * cai;
-    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: e.stock[o.id] || 0, puede: (e.stock[o.id] || 0) > 0 && j.dinares >= precio && !lleno,
+    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: existencia(e, o.id, j.ciudad), puede: existencia(e, o.id, j.ciudad) > 0 && j.dinares >= precio && !lleno,
       // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
-      motivo: !((e.stock[o.id] || 0) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
+      motivo: !(existencia(e, o.id, j.ciudad) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
   }
   return r;
 }

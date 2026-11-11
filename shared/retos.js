@@ -259,7 +259,7 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  // Regla de la casa: cada sirviente cuesta 12 dinares (máximo 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
+  // Regla de la casa: cada sirviente cuesta 17 dinares (Jorge, 10 de noviembre: antes 12; máximo 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
   const cA = data.config.r1?.costoAyudante ?? 12, mA = data.config.r1?.maxAyudantes ?? 3, alcanza = Math.min(mA, Math.floor(Math.max(0, j.dinares) / cA));
   if (!alcanza) { log(e, `${j.nombre} no tiene ${cA} dinares para contratar sirvientes: busca solo.`, { pid }); return CONT['r1.ayudantes'](data, e, {}, { pid, numero: 0 }); }
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Sirvientes', texto: `Cada sirviente añade un dado de búsqueda y cuesta ${cA} dinares, que se pagan ahora (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, nota: `Te alcanza para contratar hasta ${alcanza} ${alcanza === 1 ? 'sirviente' : 'sirvientes'}.`, modo: 'numero', min: 0, max: alcanza, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
@@ -664,6 +664,42 @@ T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NP
     ctx.say(`El Nizam te paga ${pago} dinares y ganas 10 noches. Pierdes tu siguiente turno y, en el que sigue, tu acción principal.`);
     log(e, `${j.nombre} trabaja para el Nizam de Hyderabad y cobra ${pago} dinares y 10 noches: pierde su siguiente turno y, en el que sigue, su acción principal.`, { pid });
   } };
+// R46 «Aprender persa» (Isfahán) y R47 «Aprender árabe» (Yemen), Jorge (10 de noviembre): pagas 5 dinares y tiras 1 dado (con botón);
+// par: te quedas 1 turno, impar: 2. Esos turnos no puedes salir de la ciudad y tu acción principal se va en las clases (sí cobras
+// ingreso, compras y haces acciones libres). Al terminar, «Habla persa» o «Habla árabe» para siempre. Una vez por jugador.
+// R48 «Enseñar persa» (Estambul o Bagdad) y R49 «Enseñar árabe» (Andalucía): con tu acción principal, 4 dinares por noche; cada turno.
+const IDIOMAS = { R46: { idioma: 'persa', ciudad: 'Isfahán' }, R47: { idioma: 'árabe', ciudad: 'Yemen' } };
+export const hablaIdioma = (j, idioma) => (j.extra?.idiomas || []).includes(idioma);
+for (const [id, I] of Object.entries(IDIOMAS)) {
+  T[id] = { ciudad: I.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no toma clases.' : hablaIdioma(j, I.idioma) ? `Ya hablas ${I.idioma}.` : j.dinares < 5 ? 'Las clases cuestan 5 dinares: sin dinero no hay trato.' : null; },
+    run(data, e, pid, ctx) {
+      const j = e.jugadores[pid]; j.dinares -= 5; hacer(e, pid, id);
+      const [x] = ctx.t(`${j.nombre}: clases de ${I.idioma} (par, 1 turno; impar, 2)`, 1);
+      const n = x % 2 === 0 ? 1 : 2;
+      j.extra.estudio = { idioma: I.idioma, ciudad: I.ciudad, desde: j.turnos, hasta: j.turnos + n };
+      ctx.say(`Pagas 5 dinares de clases. Te quedas ${n === 1 ? '1 turno' : '2 turnos'} en ${I.ciudad} estudiando ${I.idioma}: no puedes salir y tu acción principal se va en las clases.`);
+      log(e, `${j.nombre} se inscribe a clases de ${I.idioma} en ${I.ciudad}: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
+    } };
+}
+export function turnoEstudio(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno, s = j?.extra?.estudio;
+  if (!s || !t) return;
+  if (j.ciudad !== s.ciudad) { j.extra.estudio = null; return; }   // si un evento lo sacó de la ciudad, pierde las clases
+  t.principal = true; t.estudiando = true;
+  log(e, `${j.nombre} pasa este turno en clases de ${s.idioma} (${j.turnos - s.desde} de ${s.hasta - s.desde}).`, { pid });
+}
+export function finEstudio(data, e, pid) {
+  const j = e.jugadores[pid], s = j?.extra?.estudio;
+  if (!s || j.turnos < s.hasta) return;
+  j.extra.estudio = null; (j.extra.idiomas ||= []).push(s.idioma);
+  publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
+  log(e, `${j.nombre} termina sus clases: ya habla ${s.idioma}.`, { pid, aviso: true });
+}
+const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
+for (const [id, I] of Object.entries(ENSENAR)) {
+  T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),
+    run(data, e, pid, ctx) { const j = e.jugadores[pid]; j.dinares += 4; ctx.say(`Enseñas ${I.idioma} esta noche: te pagan 4 dinares.`); log(e, `${j.nombre} enseña ${I.idioma} en ${j.ciudad} y cobra 4 dinares.`, { pid }); } };   // no queda hecho: se repite cada turno
+}
 T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'La caravana a Timbuktú cuesta 10 dinares.'),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= 10; j.noches += 30; hacer(e, pid, 'R44');

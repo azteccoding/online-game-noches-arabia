@@ -185,12 +185,13 @@ function forzar(e, ...valores) {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
   const enRepo = (id) => e.reposicion.filter((x) => x === id).length;
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.copias === 1)) { assert.equal(e.stock[o.id] + enRepo(o.id), 1, 'copia única en el mercado: ' + o.id); assert.ok(!e.mazos.botin.includes(o.id), 'y no en el Botín: ' + o.id); }   // pala y linterna (Jorge, 10 de noviembre)
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.copias > 1)) {
+  const { POR_CIUDAD } = await import('../shared/base.js');
+  for (const id of Object.keys(POR_CIUDAD)) { assert.equal(e.stock[id], 2); for (const c of POR_CIUDAD[id]) assert.equal(e.stockCiudad[id][c], 1, `una ${id} en ${c}`); assert.ok(!e.mazos.botin.includes(id), 'y no en el Botín: ' + id); }   // pala y linterna (Jorge, 10 de noviembre)
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && !POR_CIUDAD[x.id])) {
     assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
     assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
   }
-  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 57 + 2, 'empieza con 57 (con los libros de la India y de Córdoba) y en la ronda 1 ya vuelven 2');
+  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 59 + 2, 'empieza con 59 (con los libros de la India y de Córdoba, y la pala y la linterna en dos mercados) y en la ronda 1 ya vuelven 2');
   const seda = data.objetos.mazo.find((o) => o.id === 'OB34');
   assert.ok(seda.reventa.Bagdad && seda.reventa['Andalucía'] > seda.reventa.Bagdad, 'la seda se vende más cara lejos');
   turnoDe(e, pid, 'Andalucía'); j.ciudad = 'Andalucía'; e.turno.fase = 'acciones';
@@ -201,7 +202,7 @@ function forzar(e, ...valores) {
   assert.equal(e.stock.OB34, stock, 'lo vendido no vuelve al instante al mercado');
   assert.equal(e.reposicion[e.reposicion.length - 1], 'OB34', 'lo vendido espera en la reposición');
   const total = (id) => (e.stock[id] || 0) + e.reposicion.filter((x) => x === id).length;
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.copias === 1 ? 1 : o.copias - 1, 'ninguna copia desaparece: ' + o.id);
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.id === 'OB09' || o.id === 'OB11' ? 2 : o.copias - 1, 'ninguna copia desaparece: ' + o.id);
   j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco'; e.mods = {};   // sin feria ni otros eventos que quiten el impuesto
   const a2 = j.dinares; assert.ok(vender(data, e, pid, { uid: 9101 }).ok);
   assert.equal(j.dinares, a2 + seda.valor - Math.floor(seda.valor * 20 / 100), 'en otra ciudad vale lo normal menos impuesto');
@@ -645,12 +646,12 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(destinosTransporte(data, 'alfombra', 'Bagdad').includes('Andalucía'), 'la alfombra sigue llegando a Andalucía');
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, j = e.jugadores[a];
-  // R1: 12 por sirviente, máximo 3, se pagan al contratar; sin dinero se busca solo
-  turnoDe(e, a, 'Bagdad'); j.ciudad = 'Bagdad'; j.dinares = 30;
+  // R1: 17 por sirviente (Jorge, 10 de noviembre: antes 12), máximo 3, se pagan al contratar; sin dinero se busca solo
+  turnoDe(e, a, 'Bagdad'); j.ciudad = 'Bagdad'; j.dinares = 40;
   assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
-  assert.equal(e.pend.max, 2, 'con 30 dinares alcanzan 2 sirvientes');
+  assert.equal(e.pend.max, 2, 'con 40 dinares alcanzan 2 sirvientes');
   g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 });
-  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 24 dinares')), 'paga 24 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
+  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 34 dinares')), 'paga 34 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
   // no puede salir: sin destinos y con motivo
   if (j.misiones.some((m) => m.id === 'R1')) { turnoDe(e, a, 'Bagdad'); e.turno.fase = 'mov'; const v = vistaDe(e, a); assert.ok(!v.acciones.some((x) => x.k === 'viajar') && /deuda con Bagdad/.test(v.noSalir)); }
   // entrenamientos: hay que tener el arma; entrenado suma +1
@@ -1009,7 +1010,7 @@ for (let k = 0; k < 6; k++) {
   // Jorge (10 de noviembre): la noche del turno en que llegas también cuenta
   A.ciudad = 'El Cairo'; turnoDe(e, a, 'Aleppo'); e.turno.movio = true; carreraFinTurno(data, e); assert.equal(e.carrerasActivas[0].prog[a], 1, 'llegar y quedarse cuenta como la primera noche');
   turnoDe(e, a, 'El Cairo'); carreraFinTurno(data, e);
-  assert.equal(A.dinares, d0 + 60); assert.equal(A.noches, n0 + 50); assert.equal(e.carrerasActivas.length, 0, 'la carrera se retira');
+  assert.equal(A.dinares, d0 + 25, 'El Cairo: 25 dinares (Jorge, 10 de noviembre)'); assert.equal(A.noches, n0 + 20, 'y 20 noches'); assert.equal(e.carrerasActivas.length, 0, 'la carrera se retira');
 }
 
 // Burro: solo en el mercado de Basra (35 dinares + 20 noches), fuera de tu turno; se puede comprar otro
@@ -2413,6 +2414,66 @@ for (let k = 0; k < 6; k++) {
   };
   prueba([], 1); prueba(['brujula'], 2); prueba(['astrolabio'], 3); prueba(['brujula', 'astrolabio'], 3);
   const { ITEMS: IT2 } = await import('../shared/base.js'); assert.match(IT2.astrolabio.texto, /2 intentos extra/);
+}
+
+// Jorge (10 de noviembre): R46 «Aprender persa» (Isfahán) y R47 «Aprender árabe» (Yemen): 5 dinares, dado par 1 turno / impar 2;
+// esos turnos no sales y no tienes acción principal; luego «Habla …». R48/R49: enseñar por 4 dinares cada noche, repetible.
+{
+  const { motivoNoSalir } = await import('../shared/base.js');
+  const { turnoEstudio, finEstudio } = await import('../shared/retos.js');
+  for (const [id, ciudad, idioma, valor, turnos] of [['R46', 'Isfahán', 'persa', 4, 1], ['R47', 'Yemen', 'árabe', 3, 2]]) {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.ciudad = ciudad; A.dinares = 4; turnoDe(e, a, ciudad); e.turno.fase = 'acciones';
+    assert.match(g.act(a, { t: 'reto', id }).error || '', /sin dinero no hay trato/, 'sin 5 dinares no hay clases');
+    A.dinares = 20; turnoDe(e, a, ciudad); e.turno.fase = 'acciones'; forzar(e, valor);
+    const r = g.act(a, { t: 'reto', id }); assert.ok(r.ok, r.error); assert.equal(A.dinares, 15, 'paga 5');
+    assert.match(motivoNoSalir(e, A) || '', /Estás estudiando/, 'no puede salir');
+    for (let k = 1; k <= turnos; k++) {
+      A.turnos++; turnoDe(e, a, ciudad); turnoEstudio(data, e, a);
+      assert.ok(e.turno.principal, `turno ${k}: sin acción principal`); assert.match(motivoNoSalir(e, A) || '', /Estás estudiando/);
+      finEstudio(data, e, a);
+    }
+    assert.ok((A.extra.idiomas || []).includes(idioma), 'al terminar habla ' + idioma); assert.equal(motivoNoSalir(e, A), null, 'ya puede salir');
+    assert.ok(!g.act(a, { t: 'reto', id }).ok, 'una vez por jugador');
+    assert.ok(vistaDe(e, a).jugadores[a].idiomas.includes(idioma), 'se ve en su hoja');
+  }
+  // enseñar
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'reto', id: 'R48' }).error || '', /Necesitas hablar persa/);
+  A.extra.idiomas = ['persa', 'árabe']; const d0 = A.dinares;
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'reto', id: 'R48' }).ok); assert.equal(A.dinares, d0 + 4, 'Bagdad: 4 dinares');
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'reto', id: 'R48' }).ok, 'se repite el turno siguiente'); assert.equal(A.dinares, d0 + 8);
+  A.ciudad = 'Estambul'; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'reto', id: 'R48' }).ok, 'también en Estambul');
+  A.ciudad = 'Andalucía'; turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'reto', id: 'R49' }).ok, 'árabe en Andalucía'); assert.equal(A.dinares, d0 + 16);
+  assert.ok(!g.act(a, { t: 'reto', id: 'R49' }).ok, 'una vez por turno (gasta la acción principal)');
+}
+
+// Jorge (10 de noviembre): una pala en Damasco y otra en El Cairo; una linterna en Damasco y otra en Isfahán; cada mercado con su existencia
+{
+  const { tienda } = await import('../shared/objetos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.dinares = 100; A.ciudad = 'Damasco'; turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'comprar', id: 'OB11' }).ok, 'compra la pala en Damasco');
+  assert.equal(tienda(data, e, a).find((x) => x.id === 'OB11').motivo, 'Agotado', 'en Damasco ya no hay');
+  A.ciudad = 'El Cairo'; assert.ok(tienda(data, e, a).find((x) => x.id === 'OB11').puede, 'en El Cairo sigue la suya');
+  assert.ok(g.act(a, { t: 'comprar', id: 'OB11' }).ok); assert.ok(!g.act(a, { t: 'comprar', id: 'OB11' }).ok, 'solo hay dos');
+  A.ciudad = 'Isfahán'; assert.ok(g.act(a, { t: 'comprar', id: 'OB09' }).ok, 'linterna en Isfahán');
+  A.ciudad = 'Damasco'; assert.ok(g.act(a, { t: 'comprar', id: 'OB09' }).ok, 'y otra en Damasco');
+}
+
+// Jorge (10 de noviembre): carreras «Dos noches»: Aleppo y Damasco 20 dinares y 15 noches; El Cairo 25 y 20
+{
+  const { PREMIO_CARRERA, carreraFinTurno: cft } = await import('../shared/engine.js');
+  assert.deepEqual(PREMIO_CARRERA, { 'El Cairo': { dinares: 25, noches: 20 }, Aleppo: { dinares: 20, noches: 15 }, Damasco: { dinares: 20, noches: 15 } });
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; e.carrerasActivas = [{ id: 'E15', ciudad: 'Damasco', prog: { [a]: 1 } }]; const d0 = A.dinares, n0 = A.noches;
+  turnoDe(e, a, 'Damasco'); cft(data, e); assert.equal(A.dinares, d0 + 20); assert.equal(A.noches, n0 + 15);
+  for (const id of ['E13', 'E14', 'E15']) assert.doesNotMatch(data.eventos.eventos.find((x) => x.id === id).efecto, /60 dinares/);
 }
 
 console.log('reglas de la casa OK');

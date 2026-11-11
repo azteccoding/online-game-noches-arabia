@@ -248,6 +248,19 @@ export function recortarMano(data, e, pid) {
   log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid });
   info(e, pid, 'Vas muy cargado', sobrecarga(j, e));
 }
+// Pala de zapador y Linterna de aceite (Jorge, 10 de noviembre): una copia en cada mercado que la vende, con su propia existencia.
+export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'] };
+export const existencia = (e, id, ciudad) => (POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
+export function sacarExistencia(e, id, ciudad) {
+  e.stock[id] = Math.max(0, (e.stock[id] || 0) - 1);
+  const m = POR_CIUDAD[id] && e.stockCiudad?.[id]; if (!m) return;
+  const c = (m[ciudad] || 0) > 0 ? ciudad : POR_CIUDAD[id].find((x) => (m[x] || 0) > 0); if (c) m[c]--;
+}
+export function ponerExistencia(e, id) {
+  e.stock[id] = (e.stock[id] || 0) + 1;
+  const m = POR_CIUDAD[id] && e.stockCiudad?.[id]; if (!m) return;
+  const c = POR_CIUDAD[id].find((x) => !(m[x] > 0)) || POR_CIUDAD[id][0]; m[c] = (m[c] || 0) + 1;   // vuelve al mercado que se quedó sin ella
+}
 export function darObjeto(data, e, pid, id) {
   const j = e.jugadores[pid];
   const c = { uid: uid(e), tipo: 'objeto', ref: id }; j.mano.push(c);
@@ -427,6 +440,7 @@ export function textoBuscado(data, e, j) {
 export function motivoNoSalir(e, j, enCaravana = true) {
   if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return 'Tienes una deuda con Bagdad (reto R1, el cofre del Éufrates): págala antes de salir de la ciudad.';
   if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
+  if (j.extra?.estudio && j.ciudad === j.extra.estudio.ciudad) return `Estás estudiando ${j.extra.estudio.idioma} en ${j.extra.estudio.ciudad}: no puedes salir hasta terminar las clases.`;   // Jorge (10 de noviembre)
   if (cargaExcedida(j, e)) return sobrecarga(j, e);
   if (e.mods?.varado?.[j.id]) return 'Estás varado en India por los vientos del monzón: esta ronda no puedes moverte.';
   if (enCaravana && e.sinCaravanasBagdad && j.ciudad === 'Bagdad') return 'Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).';
