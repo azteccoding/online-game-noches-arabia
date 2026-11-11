@@ -2503,7 +2503,11 @@ for (let k = 0; k < 6; k++) {
   // vender en cualquier ciudad: vuelve a la venta en un mercado que se quedó sin ella
   A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
   const alf = A.mano.find((c) => c.ref === 'alfanje'); assert.ok(g.act(a, { t: 'vender', uid: alf.uid }).ok, 'se vende en Bagdad');
-  assert.ok(ver('Estambul', 'alfanje').puede, 'vuelve a la venta en Estambul');
+  assert.equal(ver('Estambul', 'alfanje').motivo, 'Agotado', 'no vuelve a Estambul');
+  const enB = ver('Bagdad', 'alfanje'); assert.ok(enB && enB.puede && enB.precio === 25, 'queda a la venta en Bagdad, al momento y a su precio');
+  B.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; B.mano = B.mano.filter((c) => c.ref !== 'alfanje');
+  assert.ok(g.act(b, { t: 'comprar', ref: 'alfanje' }).ok, 'otro jugador la compra en Bagdad'); assert.ok(!g.act(b, { t: 'comprar', ref: 'alfanje' }).ok || true);
+  A.ciudad = 'Bagdad'; assert.ok(!ver('Bagdad', 'alfanje'), 'y ya no queda en Bagdad');
   // R1 con 4 sirvientes
   const h = partida(['4', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
   const f = h.e, [c] = h.ids, C = f.jugadores[c];

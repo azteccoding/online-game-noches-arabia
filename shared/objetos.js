@@ -11,19 +11,18 @@ const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flec
 const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'], burro: ['Basra'] };   // regla de la casa: el burro solo en Basra (35 dinares y 20 noches de regalo)
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (10 de noviembre): el alfanje solo en Yemen, Estambul, Isfahán y Samarcanda, y la cimitarra solo en Andalucía y El Cairo, con
-// 1 en cada mercado (la jambiya y el arco, en todas las ciudades, sin límite). Venderlas se puede en cualquier ciudad; la vendida
-// vuelve a un mercado que maneja esa arma y se quedó sin ella.
+// 1 en cada mercado (la jambiya, en todas las ciudades, sin límite). Venderlas se puede en cualquier ciudad; la vendida queda a la
+// venta en el mercado de esa ciudad, al momento.
 export const ARMAS_CIUDAD = { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul'] };
 export const RECARGO_ARMA = { cimitarra: { Estambul: 5 } };   // en Estambul la cimitarra cuesta 5 dinares más
 for (const [r, cs] of Object.entries(ARMAS_CIUDAD)) CIUDAD_ORIGINAL[r] = cs;
 CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
 const stockArmas = (e) => (e.stockArmas ||= Object.fromEntries(Object.entries(ARMAS_CIUDAD).map(([r, cs]) => [r, Object.fromEntries(cs.map((c) => [c, 1]))])));
-export const existenciaArma = (e, ref, ciudad) => (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : Infinity);
+export const existenciaArma = (e, ref, ciudad) => (ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
 export const quitarArma = (e, ref, ciudad) => { if (ARMAS_CIUDAD[ref]) stockArmas(e)[ref][ciudad] = Math.max(0, (stockArmas(e)[ref][ciudad] || 0) - 1); };
-function devolverArma(e, ref) {
+function devolverArma(e, ref, ciudad) {   // Jorge (10 de noviembre): queda a la venta en la ciudad donde la vendiste, sea cual sea
   if (!ARMAS_CIUDAD[ref]) return null;
-  const m = stockArmas(e), c = ARMAS_CIUDAD[ref].find((x) => !(m[ref][x] > 0)); if (!c) return null;
-  m[ref][c] = 1; return c;
+  const m = stockArmas(e); m[ref][ciudad] = (m[ref][ciudad] || 0) + 1; return ciudad;
 }
 
 // Bazar del genio (regla de la casa): en Samarcanda e India se vende una carta de Ifrit por ronda (en toda la partida, no por ciudad).
@@ -108,7 +107,7 @@ export function comprar(data, e, pid, a) {
   if (a.ref) {                                                                                           // objetos originales
     const base = VENTA_ORIGINAL[a.ref];
     if (base === undefined) return err('Eso no se vende.');
-    const cs = CIUDAD_ORIGINAL[a.ref]; if (cs && !cs.includes(j.ciudad)) return err(`Solo se vende en ${cs.join(' o ')}.`);
+    const cs = CIUDAD_ORIGINAL[a.ref]; if (cs && !cs.includes(j.ciudad) && !(existenciaArma(e, a.ref, j.ciudad) > 0)) return err(`Solo se vende en ${cs.join(' o ')}.`);
     const n = Math.max(1, Math.min(10, Math.floor(a.n || 1)));
     if (existenciaArma(e, a.ref, j.ciudad) < n) return err(`Agotado: ya no hay ${ITEMS[a.ref].nombre.toLowerCase()} en ${j.ciudad}.`);
     let p = ARMAS_ORIG.includes(a.ref) || a.ref === 'flechas' ? precioArma(data, e, a.ref, j) : base;
@@ -237,7 +236,7 @@ export function vender(data, e, pid, a) {
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
   if (!base) return err('Eso no se puede vender al mercado.');
   precio = Math.floor(base / 2); quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${ITEMS[c.ref]?.nombre || c.ref} por ${precio} dinares.`, { pid });
-  { const c2 = devolverArma(e, c.ref); if (c2) log(e, `Un${c.ref === 'cimitarra' ? 'a' : ''} ${ITEMS[c.ref].nombre.toLowerCase()} vuelve a la venta en ${c2}.`, { aviso: true }); }
+  { const c2 = devolverArma(e, c.ref, ciudad); if (c2) log(e, `Un${c.ref === 'cimitarra' ? 'a' : ''} ${ITEMS[c.ref].nombre.toLowerCase()} vuelve a la venta en ${c2}.`, { aviso: true }); }
   return ok();
 }
 
@@ -248,7 +247,7 @@ export function tienda(data, e, pid) {
   const cai = dobleCairo(e, j.ciudad), lleno = !tieneCarga(j) && nCarga(j) >= limiteCarga(e, j);   // Jorge (10 de noviembre): 7 sin animal de carga
   const r = [];
   const orig = (ref, desde) => {
-    if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad)) return;
+    if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad) && !(ARMAS_CIUDAD[ref] && existenciaArma(e, ref, j.ciudad) > 0)) return;   // una vendida queda a la venta ahí
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
     r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : ARMAS_CIUDAD[ref] ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(e.burros > 0)),
       motivo: !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
