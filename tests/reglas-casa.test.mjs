@@ -2706,4 +2706,46 @@ for (let k = 0; k < 6; k++) {
   assert.deepEqual(vistaDe(e, jam).jugadores[jam].entrenado, [], 'Jamil sin entrenamientos');
 }
 
+// Jorge (11 de noviembre): salir juntos del Jorasán: basta un par de los dos dados de rumbo; genio y ghul para los dos.
+{
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  const prep = () => {
+    const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b, c] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const x of [A, B]) { x.perdido = true; x.ciudad = 'Jorasán'; x.extra.enRumbo = false; x.dinares = 40; x.extra.clienteWeb = true; }
+    e.jugadores[c].ciudad = 'Bagdad';
+    turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+    return { g, e, a, b, A, B };
+  };
+  // rechazada: no cuesta nada
+  { const { g, e, a, b } = prep();
+    const op = vistaDe(e, a).acciones.find((x) => x.sub === 'juntos' && x.con === b); assert.ok(op && !op.bloqueado, 'aparece «Salir juntos»');
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'juntos', con: b }).ok); assert.equal(e.pend?.para[0], b);
+    assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok); assert.ok(!e.turno.principal, 'rechazar no le cuesta la acción'); }
+  // aceptada: rumbo con un solo par (impar, par) → los dos van por buen rumbo; genio de lámpara (par, impar) → una carta para cada uno
+  for (let s = 1; s < 400; s++) {
+    const { g, e, a, b, A, B } = prep();
+    const v0 = vistaDe(e, a), v0b = vistaDe(e, b);
+    forzar(e, 1, 2, 2, 1);
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'juntos', con: b }).ok); assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    const pend = dadosPendientes(e);
+    assert.ok(pend.size >= 3, 'dos dados de rumbo (uno cada quien), el del genio y los de los ghul');
+    for (const [q, v] of [[a, v0], [b, v0b]]) { const vf = vistaCongelada(v, vistaDe(e, q), pend); assert.equal(JSON.stringify(vf.mano), JSON.stringify(v.mano), 'nada se ve antes de tirar'); }
+    assert.equal(A.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'carta de Ifrit para A'); assert.equal(B.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'y para B');
+    assert.ok(A.perdido === B.perdido, 'los ghul les tocan a los dos por igual');
+    assert.equal(B.extra.salioJuntosRonda, e.ronda, 'cuenta como el intento de B en esta ronda');
+    turnoDe(e, b, 'Jorasán'); e.turno.fase = 'acciones';
+    if (B.perdido) assert.match(g.act(b, { t: 'tesoro', sub: 'salir' }).error || '', /Ya intentaste salir esta ronda/);
+    break;
+  }
+  // genio malo (impar, impar): los dos pierden sus dinares
+  { const { g, e, a, b, A, B } = prep(); A.extra.enRumbo = true; B.extra.enRumbo = true; forzar(e, 1, 3);
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'juntos', con: b }).ok); assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    assert.ok(e.log.some((l) => /Genio malo: J0 y J1 pierden todos sus dinares/.test(l.texto))); assert.ok(A.dinares <= 10 && B.dinares <= 10, 'la desventaja es de los dos (luego solo su ingreso)'); }
+  // ningún par en el rumbo: siguen perdidos los dos
+  { const { g, e, a, b, A, B } = prep(); forzar(e, 1, 3);
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'juntos', con: b }).ok); assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    assert.ok(A.perdido && B.perdido && !A.extra.enRumbo && !B.extra.enRumbo, 'sin par, siguen perdidos'); }
+}
+
 console.log('reglas de la casa OK');

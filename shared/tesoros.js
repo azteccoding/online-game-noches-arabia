@@ -35,7 +35,8 @@ export function accion(data, e, pid, a) {
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
-  if (a.sub === 'salir') { if (!j.perdido) return err('No estás perdido.'); t.principal = true; return salirJorasan(data, e, pid); }
+  if (a.sub === 'salir') { if (!j.perdido) return err('No estás perdido.'); if (j.extra.salioJuntosRonda === e.ronda) return err('Ya intentaste salir esta ronda junto con otro jugador.'); t.principal = true; return salirJorasan(data, e, pid); }
+  if (a.sub === 'juntos') return proponerSalirJuntos(data, e, pid, a.con);
   // Jorge (10 de noviembre): la alfombra mágica te saca del Jorasán sin tirar dados: eliges a qué ciudad vuela (no a Bagdad).
   if (a.sub === 'alfombra') {
     if (!j.perdido) return err('No estás perdido.');
@@ -160,6 +161,71 @@ export function recuperar(data, e, pid, a = {}) {
 }
 
 // ---------------------------------------------------------------- Jorasán (R 16.4)
+// Salir juntos (Jorge, 11 de noviembre): dos jugadores perdidos en el Jorasán pueden intentar salir juntos. El que está en turno lo
+// propone y el otro acepta o rechaza (Yafar NPC siempre acepta). Buscar el rumbo: cada uno tira su dado y basta con que uno saque par
+// para que los dos vayan por buen rumbo. Ante el genio se tira una sola vez y el resultado es de los dos: genio de lámpara, una carta
+// de Ifrit para cada uno (se guarda en la mano); genio malo, los dos pierden sus dinares; si los ignora, los dos siguen perdidos.
+// Después, los ghul buscan a los dos con una sola tirada: si los encuentran, a los dos. Cuenta como el intento de ambos en esa ronda.
+export const compañerosJorasan = (e, pid) => Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.sacado && x.extra?.salioJuntosRonda !== e.ronda).map((x) => x.id);
+function proponerSalirJuntos(data, e, pid, con) {
+  const j = e.jugadores[pid], k = e.jugadores[con], t = e.turno;
+  if (!j.perdido) return err('No estás perdido.');
+  if (j.extra.salioJuntosRonda === e.ronda) return err('Ya intentaste salir esta ronda junto con otro jugador.');
+  if (!k || !compañerosJorasan(e, pid).includes(con)) return err('No hay otro jugador perdido en el Jorasán con quien salir.');
+  t.principal = true;
+  if (k.npc) { log(e, `${k.nombre} acepta salir junto con ${j.nombre} del Jorasán.`, { pid }); return salirJuntos(data, e, pid, con); }
+  pedir(e, { tipo: 'trato', para: [con], titulo: 'Salir juntos del Jorasán', texto: `${j.nombre} te propone intentar salir juntos: cada uno tira su dado para buscar el rumbo y basta con que uno saque par. Lo que traiga el genio (una carta de Ifrit para cada uno, o perder los dinares) y los ghul les toca a los dos. Cuenta como tu intento de esta ronda.`,
+    opciones: [{ id: 'si', texto: 'Salir juntos' }, { id: 'no', texto: 'No, gracias' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'tes.juntos', args: { a: pid, b: con } } });
+  return ok();
+}
+registrar('tes.juntos', (data, e, args, resp) => {
+  const A = e.jugadores[args.a], B = e.jugadores[args.b];
+  if ((resp?.opcion ?? resp) !== 'si') { log(e, `${B.nombre} prefiere no salir junto con ${A.nombre}.`, { pid: args.a }); info(e, args.a, 'Salir juntos', `${B.nombre} no quiso. Todavía puedes intentar salir solo o terminar tu turno.`); e.turno.principal = false; return; }
+  salirJuntos(data, e, args.a, args.b);
+});
+function salirJuntos(data, e, a, b) {
+  const A = e.jugadores[a], B = e.jugadores[b], t = e.turno, ambos = [A, B];
+  A.extra.salioJuntosRonda = e.ronda; B.extra.salioJuntosRonda = e.ronda;
+  if (!A.extra.enRumbo || !B.extra.enRumbo) {
+    const va = dado(e), vb = dado(e), bien = par(va) || par(vb);
+    mostrarDados(e, { por: a, npc: !!A.npc, motivo: 'jorasan', grupos: [{ etq: `${A.nombre}: buscando el rumbo (juntos)`, valores: [va] }], resumen: [] });
+    mostrarDados(e, { por: b, npc: !!B.npc, motivo: 'jorasan', grupos: [{ etq: `${B.nombre}: buscando el rumbo (juntos)`, valores: [vb] }], resumen: [bien ? 'Al menos un par: los dos van por buen rumbo.' : 'Ningún par: los dos siguen perdidos.'] });
+    if (!bien) { t.fin = true; return ok(); }
+    A.extra.enRumbo = true; B.extra.enRumbo = true;
+  }
+  let veces = 0, genio, v;
+  for (;;) {
+    v = [dado(e), dado(e)];
+    const impares = v.filter((q) => q % 2).length;
+    genio = impares === 2 ? 'malo' : impares === 0 ? 'ignora' : 'lampara';
+    const conVelo = ambos.find((x) => tieneItem(x, 'velo'));
+    if ((genio === 'malo' || genio === 'ignora') && veces === 0 && conVelo) { quitarPrimero(conVelo, 'item', 'velo'); log(e, `${conVelo.nombre} descarta su velo quemado y vuelven a tirar.`, { pid: conVelo.id }); veces++; continue; }
+    break;
+  }
+  const res = genio === 'ignora' ? 'El genio los ignora a los dos: siguen perdidos.' : genio === 'malo' ? `Genio malo: ${A.nombre} y ${B.nombre} pierden todos sus dinares.` : 'Genio de lámpara: cada uno recibe una carta de Ifrit.';
+  mostrarDados(e, { por: a, npc: !!A.npc, motivo: 'jorasan', grupos: [{ etq: `${A.nombre} y ${B.nombre} ante el genio`, valores: v }], resumen: [res] });
+  if (genio === 'ignora') { t.fin = true; return ok(); }
+  if (genio === 'malo') for (const x of ambos) x.dinares = Math.min(x.dinares, 0);
+  else for (const x of ambos) {
+    const id = robar(e, 'ifrit');
+    if (id) { x.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id }); publicarCarta(e, cartaDatos(data, 'ifrit', id), x.id, [x.id]); log(e, `${x.nombre} encuentra un genio de lámpara: guarda su carta de Ifrit.`, { pid: x.id }); }
+    else { x.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${x.nombre}.`, { pid: x.id }); }
+  }
+  return ghulJuntos(data, e, ambos);
+}
+function ghulJuntos(data, e, ambos) {
+  const act = activos(e), v = act.map(() => dado(e)), prom = Math.round(suma(v) / act.length), nom = ambos.map((x) => x.nombre).join(' y ');
+  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }],
+    resumen: i < act.length - 1 ? [] : [`Dados: ${v.join(', ')}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${nom}` : `los ghul encuentran a ${nom}`}.`] }));
+  for (const j of ambos) {
+    if (prom < 3) { log(e, `Los ghul encuentran a ${j.nombre} en el Jorasán.`, { pid: j.id }); eliminar(data, e, j.id, { causa: 'devorado por los ghul' }); continue; }
+    const dest = j.extra.destinoA || 'Bagdad';
+    j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
+    log(e, `${j.nombre} escapa del Jorasán hacia ${dest}.`, { pid: j.id });
+  }
+  if (e.turno) { e.turno.movio = true; e.turno.fin = true; }
+  return ok();
+}
 function salirJorasan(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   const ctx = { grupos: [], res: [] };
