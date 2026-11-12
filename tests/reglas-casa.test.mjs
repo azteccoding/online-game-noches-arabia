@@ -2717,6 +2717,14 @@ for (let k = 0; k < 6; k++) {
     turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
     return { g, e, a, b, A, B };
   };
+  // Yafar NPC nunca sale juntos: no se le ofrece
+  { const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a], N = e.jugadores.npc;
+    if (N) { for (const x of [A, N]) { x.perdido = true; x.ciudad = 'Jorasán'; } turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+      assert.ok(!vistaDe(e, a).acciones.some((x) => x.sub === 'juntos'), 'con Yafar NPC no hay «Salir juntos»'); } }
+  // entrar a ayudar: el viaje al Jorasán dice a quién ayudas y avisa que quedarás perdido
+  { const { g, e, b, B } = prep(); B.perdido = false; B.ciudad = 'Yemen'; B.dinares = 100; turnoDe(e, b, 'Yemen'); e.turno.fase = 'acciones';
+    const op = vistaDe(e, b).acciones.find((x) => x.sub === 'jorasan' && x.via === 'piratas');
+    assert.ok(op && /entrar a ayudar a J0/.test(op.titulo) && /Al entrar quedarás perdido en el Jorasán/.test(op.aviso), 'entrar a ayudar, con aviso'); void g; }
   // rechazada: no cuesta nada
   { const { g, e, a, b } = prep();
     const op = vistaDe(e, a).acciones.find((x) => x.sub === 'juntos' && x.con === b); assert.ok(op && !op.bloqueado, 'aparece «Salir juntos»');
@@ -2731,7 +2739,13 @@ for (let k = 0; k < 6; k++) {
     const pend = dadosPendientes(e);
     assert.ok(pend.size >= 3, 'dos dados de rumbo (uno cada quien), el del genio y los de los ghul');
     for (const [q, v] of [[a, v0], [b, v0b]]) { const vf = vistaCongelada(v, vistaDe(e, q), pend); assert.equal(JSON.stringify(vf.mano), JSON.stringify(v.mano), 'nada se ve antes de tirar'); }
-    assert.equal(A.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'carta de Ifrit para A'); assert.equal(B.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'y para B');
+    // cada uno decide su genio por su cuenta (como solo): A guarda la carta y B pide 60 dinares al momento
+    const pa = e.pend?.para[0] === a ? e.pend : (e.colaPend || []).find((p) => p.para[0] === a);
+    assert.ok(pa && pa.titulo === 'Genio de la lámpara', 'A recibe su genio'); assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && p.para[0] === b && p.titulo === 'Genio de la lámpara'), 'y B el suyo');
+    const dB = B.dinares;
+    for (let k = 0; k < 4 && e.pend; k++) { const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: p.para[0] === a ? 'guardar' : (p.opciones.find((o) => o.id === 'C') ? 'C' : 'guardar') }); }
+    assert.equal(A.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'A guardó su carta de Ifrit');
+    assert.ok(B.mano.some((x) => x.tipo === 'ifrit') || B.dinares >= dB + 60 || B.eliminado, 'B pidió su deseo o guardó la suya');
     assert.ok(A.perdido === B.perdido, 'los ghul les tocan a los dos por igual');
     assert.equal(B.extra.salioJuntosRonda, e.ronda, 'cuenta como el intento de B en esta ronda');
     turnoDe(e, b, 'Jorasán'); e.turno.fase = 'acciones';

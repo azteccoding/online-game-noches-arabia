@@ -25,8 +25,11 @@ export function disponibles(data, e, pid) {
     if (c.extra?.tesoro !== 'jugador' && ciu && ciu === j.ciudad && !(c.extra.tesoro in e.tesoros && e.tesoros[c.extra.tesoro].encontrado)) r.push({ k: 'tesoro', sub: 'buscar', uid: c.uid, titulo: 'Buscar el tesoro' + (TESOROS[c.extra.tesoro] ? ' de ' + TESOROS[c.extra.tesoro].nombre : ' escondido') });
   }
   const transp = ['caballo', 'camello', 'burro'].find((x) => tieneItem(j, x) && !(j.ciudad === 'India' && x !== 'burro') && !(x === 'burro' && j.pj === 'B' && j.npc));   // caballo y camello no salen de India
-  if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: 'Viajar al Jorasán con ' + ITEMS[transp].nombre });
-  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: 'Pagar a los piratas de Yemen para ir al Jorasán' });
+  // Entrar a ayudar (Jorge, 11 de noviembre): si alguien está perdido, se dice a quién puedes ayudar; al entrar quedas perdido tú también
+  const perdidos = j.npc ? [] : Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.npc).map((x) => x.nombre);
+  const ayuda = perdidos.length ? { texto: `Puedes entrar a ayudar a ${perdidos.join(' y ')}: al llegar, intenten salir juntos.`, aviso: `Al entrar quedarás perdido en el Jorasán. Desde ahí podrás intentar salir junto con ${perdidos.join(' o ')}. ¿Entrar?` } : {};
+  if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: (perdidos.length ? `Entrar al Jorasán a ayudar a ${perdidos.join(' y ')} con ` : 'Viajar al Jorasán con ') + ITEMS[transp].nombre, ...ayuda });
+  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: perdidos.length ? `Pagar a los piratas de Yemen para entrar a ayudar a ${perdidos.join(' y ')}` : 'Pagar a los piratas de Yemen para ir al Jorasán', ...ayuda });
   return r;
 }
 
@@ -166,14 +169,14 @@ export function recuperar(data, e, pid, a = {}) {
 // para que los dos vayan por buen rumbo. Ante el genio se tira una sola vez y el resultado es de los dos: genio de lámpara, una carta
 // de Ifrit para cada uno (se guarda en la mano); genio malo, los dos pierden sus dinares; si los ignora, los dos siguen perdidos.
 // Después, los ghul buscan a los dos con una sola tirada: si los encuentran, a los dos. Cuenta como el intento de ambos en esa ronda.
-export const compañerosJorasan = (e, pid) => Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.sacado && x.extra?.salioJuntosRonda !== e.ronda).map((x) => x.id);
+export const compañerosJorasan = (e, pid) => (e.jugadores[pid]?.npc ? [] : Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.sacado && !x.npc && x.extra?.salioJuntosRonda !== e.ronda).map((x) => x.id));   // Yafar NPC siempre rechaza: ni propone ni se le ofrece (Jorge, 11 de noviembre)
 function proponerSalirJuntos(data, e, pid, con) {
   const j = e.jugadores[pid], k = e.jugadores[con], t = e.turno;
   if (!j.perdido) return err('No estás perdido.');
   if (j.extra.salioJuntosRonda === e.ronda) return err('Ya intentaste salir esta ronda junto con otro jugador.');
   if (!k || !compañerosJorasan(e, pid).includes(con)) return err('No hay otro jugador perdido en el Jorasán con quien salir.');
   t.principal = true;
-  if (k.npc) { log(e, `${k.nombre} acepta salir junto con ${j.nombre} del Jorasán.`, { pid }); return salirJuntos(data, e, pid, con); }
+  if (k.npc) return err(`${k.nombre} no quiere salir junto con nadie.`);
   pedir(e, { tipo: 'trato', para: [con], titulo: 'Salir juntos del Jorasán', texto: `${j.nombre} te propone intentar salir juntos: cada uno tira su dado para buscar el rumbo y basta con que uno saque par. Lo que traiga el genio (una carta de Ifrit para cada uno, o perder los dinares) y los ghul les toca a los dos. Cuenta como tu intento de esta ronda.`,
     opciones: [{ id: 'si', texto: 'Salir juntos' }, { id: 'no', texto: 'No, gracias' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'tes.juntos', args: { a: pid, b: con } } });
   return ok();
@@ -205,14 +208,32 @@ function salirJuntos(data, e, a, b) {
   const res = genio === 'ignora' ? 'El genio los ignora a los dos: siguen perdidos.' : genio === 'malo' ? `Genio malo: ${A.nombre} y ${B.nombre} pierden todos sus dinares.` : 'Genio de lámpara: cada uno recibe una carta de Ifrit.';
   mostrarDados(e, { por: a, npc: !!A.npc, motivo: 'jorasan', grupos: [{ etq: `${A.nombre} y ${B.nombre} ante el genio`, valores: v }], resumen: [res] });
   if (genio === 'ignora') { t.fin = true; return ok(); }
-  if (genio === 'malo') for (const x of ambos) x.dinares = Math.min(x.dinares, 0);
-  else for (const x of ambos) {
+  if (genio === 'malo') { for (const x of ambos) x.dinares = Math.min(x.dinares, 0); return ghulJuntos(data, e, ambos); }
+  // genio de lámpara para cada uno: cada quien elige su deseo o guarda la carta, como cuando va solo; los ghul, al terminar los dos
+  e.jorJunto = { ids: [a, b], faltan: 2 };
+  for (const x of ambos) {
     const id = robar(e, 'ifrit');
-    if (id) { x.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id }); publicarCarta(e, cartaDatos(data, 'ifrit', id), x.id, [x.id]); log(e, `${x.nombre} encuentra un genio de lámpara: guarda su carta de Ifrit.`, { pid: x.id }); }
-    else { x.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${x.nombre}.`, { pid: x.id }); }
+    if (!id) { x.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${x.nombre}.`, { pid: x.id }); juntoListo(data, e); continue; }
+    const card = data.objetos.ifrit.cartas.find((q) => q.id === id);
+    pedir(e, { tipo: 'ifrit', para: [x.id], titulo: 'Genio de la lámpara', texto: 'Elige un deseo (se usa ya) o conserva la carta para usarla más tarde o venderla (40 dinares).',
+      opciones: [...card.deseos.map((d) => ({ id: d, texto: d + '. ' + data.objetos.ifrit.deseos[d] })), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseoJ', args: { carta: id } } });
   }
-  return ghulJuntos(data, e, ambos);
+  return ok();
 }
+// Un jugador de la pareja terminó con su genio; cuando terminan los dos, los ghul buscan a los que sigan en el Jorasán.
+function juntoListo(data, e) {
+  const g = e.jorJunto; if (!g) return;
+  if (--g.faltan > 0) return;
+  e.jorJunto = null;
+  const quedan = g.ids.map((x) => e.jugadores[x]).filter((x) => x && x.perdido && !x.eliminado);
+  if (quedan.length) ghulJuntos(data, e, quedan); else if (e.turno) e.turno.fin = true;
+}
+registrar('tes.eligeDeseoJ', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  if (resp.opcion === 'guardar') { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: args.carta }); log(e, `${j.nombre} conserva una carta de Ifrit.`, { pid }); return juntoListo(data, e); }
+  e.mazos.descarte.ifrit.push(args.carta);
+  deseo(data, e, pid, resp.opcion, { alTerminar: 'juntos' });
+});
 function ghulJuntos(data, e, ambos) {
   const act = activos(e), v = act.map(() => dado(e)), prom = Math.round(suma(v) / act.length), nom = ambos.map((x) => x.nombre).join(' y ');
   act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }],
@@ -321,7 +342,7 @@ function ghul(data, e, pid) {
 // ---------------------------------------------------------------- deseos de ifrit (R 15.4)
 export function deseo(data, e, pid, letra, { alTerminar = null }) {
   const j = e.jugadores[pid];
-  const fin = () => { if (alTerminar === 'ghul') ghul(data, e, pid); };
+  const fin = () => { if (alTerminar === 'ghul') ghul(data, e, pid); else if (alTerminar === 'juntos') juntoListo(data, e); };
   log(e, `${j.nombre} pide el deseo ${letra}: ${data.objetos.ifrit.deseos[letra]}.`, { pid });
   switch (letra) {
     case 'C': j.dinares += 60; break;
@@ -347,10 +368,11 @@ export function deseo(data, e, pid, letra, { alTerminar = null }) {
   }
   fin();
 }
-const retoma = (data, e, pid, args) => { if (args.alTerminar === 'ghul') ghul(data, e, pid); };
+const retoma = (data, e, pid, args) => { if (args.alTerminar === 'ghul') ghul(data, e, pid); else if (args.alTerminar === 'juntos') juntoListo(data, e); };
 registrar('tes.A', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], t = e.turno;
   if (args.alTerminar === 'ghul') { j.extra.destinoA = resp.opcion; return ghul(data, e, pid); }
+  if (args.alTerminar === 'juntos') { j.extra.destinoA = resp.opcion; return juntoListo(data, e); }   // en pareja: el viaje del genio es su destino al escapar de los ghul
   if (j.ciudad === resp.opcion) return;
   const origen = j.ciudad; j.ciudad = resp.opcion; if (t && t.pid === pid) { t.movio = true; HOOK.llegada(data, e, pid, origen); }
 });
