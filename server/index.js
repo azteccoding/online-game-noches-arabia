@@ -158,6 +158,8 @@ function confirmacion(a, pid) {
 // Abrir o cerrar la caja del banco se anuncia a todos los jugadores (aviso visible) además de quedar en el registro.
 // Mientras haya dados por tirar o en pantalla, los anuncios esperan: primero los dados, después las consecuencias (Jorge, 11 de noviembre).
 const avisosDiferidos = [];
+// solo esperan los anuncios de una acción (o del reloj) que dejó dados nuevos en la mesa: son consecuencia de esos dados
+const dadosNuevos = (seq0) => [estado.dados, ...(estado.colaDados || [])].some((d) => d && d.id > seq0);
 function avisarCaja(nAntes, diferir = false) {   // diferir: anuncios que salen de una acción o del reloj (pueden ser consecuencia de dados)
   for (const l of estado.log) if ((l.caja || l.aviso) && (l.n || 0) > nAntes) {
     if (diferir && estado.dados && !l.caja) avisosDiferidos.push(l.texto);
@@ -221,11 +223,11 @@ wss.on('connection', (ws, req) => {
         if (!pinOk(String(m.a.pin ?? ''))) { fallo(ws.ip); return enviar(ws, { t: 'error', msg: 'PIN incorrecto.', n: m.n }); }
         m.a = { t: 'reclamarAnfitrion', pin: estado.pinHost };
       }
-      let r; const copia = serializar(estado); const antesLog = estado.logN || 0;
+      let r; const copia = serializar(estado); const antesLog = estado.logN || 0, antesSeq = estado.seq || 0;
       try { r = reducir(data, estado, pid, m.a, ahora); } catch (x) { estado = restaurar(copia); console.error('Error del motor en', m.a.t, x.stack); r = { ok: false, error: 'Error interno del servidor (anotado en la consola). Prueba de nuevo.' }; }
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
       else { const msg = confirmacion(m.a, pid); if (msg) enviar(ws, { t: 'hecho', msg, n: m.n }); }
-      if (r.ok) avisarCaja(antesLog, true);
+      if (r.ok) avisarCaja(antesLog, dadosNuevos(antesSeq));
       archivarTerminada();
       marcar(); difundir();
     }
@@ -238,7 +240,7 @@ function archivarTerminada() {
   try { fs.writeFileSync(path.join(DIR_DATOS, `partida-terminada-${Date.now()}.json`), estado.archivoPendiente, { mode: 0o600 }); } catch (x) { console.error('No se pudo archivar la partida terminada:', x.message); }
   delete estado.archivoPendiente;
 }
-setInterval(() => { try { const nAntes = estado.logN || 0; if (tick(data, estado, Date.now())) { avisarCaja(nAntes, true); archivarTerminada(); marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
+setInterval(() => { try { const nAntes = estado.logN || 0, sAntes = estado.seq || 0; if (tick(data, estado, Date.now())) { avisarCaja(nAntes, dadosNuevos(sAntes)); archivarTerminada(); marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
 setInterval(() => { for (const ws of wss.clients) { if (!ws.vivo) { ws.terminate(); continue; } ws.vivo = false; ws.ping(); } }, 25000);
 
 // ---------------------------------------------------------------- arranque
