@@ -3077,3 +3077,15 @@ console.log('reglas de la casa OK');
     assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok); assert.ok(e.pend.opciones.find((o) => o.id === 'sobornar').desactivada, 'sin 36 no hay soborno');
     assert.match(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'sobornar' }).error || '', /no válida/); }
 }
+
+// Jorge (12 de noviembre): la destreza máxima en arco vale contra todos: contra los rivales de retos y eventos (bandoleros, piratas…)
+// la flecha acierta sin dado y el rival pelea con −1.
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Basra'; A.extra.arcoMaximo = true; darItem(e, A, 'arco'); darItem(e, A, 'flechas'); turnoDe(e, a, 'Basra');
+  const n0 = e.logN || 0; forzar(e, 6, 6, 1, 1);
+  assert.equal(peleaNPC(data, e, a, { etq: 'Bandoleros', dados: 2, bono: 0 }), true, 'gana la pelea');
+  assert.ok(e.log.some((h) => h.n > n0 && /destreza máxima en arco: la flecha acierta y Bandoleros pelea con −1/.test(h.texto)), 'la flecha acierta sin dado');
+  assert.ok(!tieneItem(A, 'flechas'), 'gasta la flecha');
+}

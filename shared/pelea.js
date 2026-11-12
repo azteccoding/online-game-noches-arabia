@@ -698,8 +698,11 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
   const n0 = nombre(e, pid);
-  const arco = tiroDeArco(data, e, pid);                                       // regla de la casa: el arco dispara antes de la pelea
-  if (arco) mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) });
+  // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.
+  const maxArco = !!e.jugadores[pid].extra?.arcoMaximo && armasUsables(data, e, e.jugadores[pid], e.jugadores[pid].ciudad).includes('arco');
+  if (maxArco) { quitarPrimero(e.jugadores[pid], 'item', 'flechas'); log(e, `${n0} dispara con destreza máxima en arco: la flecha acierta y ${npc.etq} pelea con −1.`, { pid }); }
+  const arco = maxArco ? { acierta: false, cubre: true } : tiroDeArco(data, e, pid);   // regla de la casa: el arco dispara antes de la pelea
+  if (arco && !maxArco) mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) });
   if (arco?.acierta) return true;
   // El jugador lanza sus 2 dados con su botón; el NPC lanza solo, a la vista, y entonces sale el desglose.
   let gana = false, usoDado = false, primero = !arco;
