@@ -1247,7 +1247,9 @@ function datosMano(data, e, c) {
     return d;
   }
   if (c.tipo === 'ifrit') return cartaDatos(data, 'ifrit', c.ref);
-  return cartaDatos(data, c.tipo, c.ref);
+  const d = cartaDatos(data, c.tipo, c.ref);
+  if (c.tipo === 'objeto' && d?.duracion === '2 usos') d.texto += ` ${c.usos ? 'Le queda 1 uso.' : 'Le quedan 2 usos.'}`;   // sopa del mesón, ganzúa
+  return d;
 }
 
 // ---------------------------------------------------------------- mensajes privados entre jugadores (Jorge, 7 de noviembre)

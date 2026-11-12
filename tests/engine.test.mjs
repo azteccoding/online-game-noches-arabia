@@ -175,7 +175,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   const npc = e.jugadores.npc, din0 = npc.dinares;
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]); g.cerrar(p);
   assert.ok(npc.dinares >= din0 + 5, 'el NPC cobra su ingreso y la bolsa de sus parientes');
-  if (!(npc.noches > 0 || npc.ciudad !== 'Bagdad')) { const q = g.turno(); g.entrar(q); sinMensaje(e.jugadores[q]); g.cerrar(q); }   // su primer turno llega ebrio y no hace nada (punto 1)
+  for (let k = 0; k < 4 && !(npc.noches > 0 || npc.ciudad !== 'Bagdad'); k++) { const q = g.turno(); g.entrar(q); sinMensaje(e.jugadores[q]); g.cerrar(q); }   // su primer turno llega ebrio y no hace nada (punto 1); el resto depende del azar
   assert.ok(npc.noches > 0 || npc.ciudad !== 'Bagdad', 'el NPC se mueve');
   // derrota inmediata al morir
   e.jugadores[p].eliminado = true; g.tickear();

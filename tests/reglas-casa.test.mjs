@@ -187,12 +187,12 @@ function forzar(e, ...valores) {
   const e = g.e, pid = g.ids[0], j = e.jugadores[pid];
   const enRepo = (id) => e.reposicion.filter((x) => x === id).length;
   const { POR_CIUDAD } = await import('../shared/base.js');
-  for (const id of Object.keys(POR_CIUDAD)) { assert.equal(e.stock[id], 2); for (const c of POR_CIUDAD[id]) assert.equal(e.stockCiudad[id][c], 1, `una ${id} en ${c}`); assert.ok(!e.mazos.botin.includes(id), 'y no en el Botín: ' + id); }   // pala y linterna (Jorge, 10 de noviembre)
+  for (const id of Object.keys(POR_CIUDAD)) { assert.equal(e.stock[id], POR_CIUDAD[id].length); for (const c of POR_CIUDAD[id]) assert.equal(e.stockCiudad[id][c], 1, `una ${id} en ${c}`); assert.ok(!e.mazos.botin.includes(id), 'y no en el Botín: ' + id); }   // pala y linterna (Jorge, 10 de noviembre)
   for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && !POR_CIUDAD[x.id])) {
     assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
     assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
   }
-  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 59 + 2, 'empieza con 59 (con los libros de la India y de Córdoba, y la pala y la linterna en dos mercados) y en la ronda 1 ya vuelven 2');
+  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 62 + 2, 'empieza con 62 (con los libros de la India y de Córdoba, la pala y la linterna en dos mercados y la sopa en cuatro) y en la ronda 1 ya vuelven 2');
   const seda = data.objetos.mazo.find((o) => o.id === 'OB34');
   assert.ok(seda.reventa.Bagdad && seda.reventa['Andalucía'] > seda.reventa.Bagdad, 'la seda se vende más cara lejos');
   turnoDe(e, pid, 'Andalucía'); j.ciudad = 'Andalucía'; e.turno.fase = 'acciones';
@@ -203,7 +203,7 @@ function forzar(e, ...valores) {
   assert.equal(e.stock.OB34, stock, 'lo vendido no vuelve al instante al mercado');
   assert.equal(e.reposicion[e.reposicion.length - 1], 'OB34', 'lo vendido espera en la reposición');
   const total = (id) => (e.stock[id] || 0) + e.reposicion.filter((x) => x === id).length;
-  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), o.id === 'OB09' || o.id === 'OB11' ? 2 : o.copias - 1, 'ninguna copia desaparece: ' + o.id);
+  for (const o of data.objetos.mazo.filter((x) => !x.sinVenta && x.id !== 'OB34')) assert.equal(total(o.id), POR_CIUDAD[o.id] ? POR_CIUDAD[o.id].length : o.copias - 1, 'ninguna copia desaparece: ' + o.id);
   j.mano.push({ uid: 9101, tipo: 'objeto', ref: 'OB34' }); j.ciudad = 'Damasco'; e.mods = {};   // sin feria ni otros eventos que quiten el impuesto
   const a2 = j.dinares; assert.ok(vender(data, e, pid, { uid: 9101 }).ok);
   assert.equal(j.dinares, a2 + seda.valor - Math.floor(seda.valor * 20 / 100), 'en otra ciudad vale lo normal menos impuesto');
@@ -2610,6 +2610,31 @@ for (let k = 0; k < 6; k++) {
   const n0 = A.noches; assert.match(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /Te faltan 5 dinares/); assert.equal(A.noches, n0, 'sin dinero no se cobra nada');
   A.dinares = 15; assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok, 'con 15 sí'); assert.equal(A.dinares, 0);
   void RET;
+}
+
+// Jorge (11 de noviembre): Sopa del mesón: 2 usos (dos turnos de alojamiento a mitad); solo en Bagdad, Andalucía, Damasco y Aleppo, 1 en
+// cada mercado; cuando se gasta vuelve al mercado que tenga 0.
+{
+  const { tienda } = await import('../shared/objetos.js');
+  const { POR_CIUDAD } = await import('../shared/base.js');
+  const o = data.objetos.mazo.find((x) => x.id === 'OB22');
+  assert.equal(o.duracion, '2 usos'); assert.equal(o.copias, 4); assert.deepEqual(POR_CIUDAD.OB22, ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo']);
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  assert.ok(!e.mazos.botin.includes('OB22'), 'no está en el Botín');
+  for (const c of POR_CIUDAD.OB22) assert.equal(e.stockCiudad.OB22[c], 1, '1 en ' + c);
+  A.dinares = 100; turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
+  A.ciudad = 'Isfahán'; assert.ok(!tienda(data, e, a).some((x) => x.id === 'OB22'), 'en Isfahán no se vende');
+  A.ciudad = 'Damasco'; assert.ok(g.act(a, { t: 'comprar', id: 'OB22' }).ok);
+  assert.equal(tienda(data, e, a).find((x) => x.id === 'OB22').motivo, 'Agotado', 'solo había 1 en Damasco');
+  // 2 usos: dos alojamientos a mitad
+  const sopa = () => A.mano.find((c) => c.ref === 'OB22');
+  assert.match(vistaDe(e, a).mano.find((c) => c.ref === 'OB22').datos.texto, /Le quedan 2 usos/);
+  const { sopa: fn } = await import('../shared/objetos.js');
+  assert.equal(fn(data, e, a, 10), 5, 'primer turno: mitad'); assert.ok(sopa(), 'sigue en la mano');
+  assert.match(vistaDe(e, a).mano.find((c) => c.ref === 'OB22').datos.texto, /Le queda 1 uso/);
+  assert.equal(fn(data, e, a, 10), 5, 'segundo turno: mitad'); assert.ok(!sopa(), 'se gasta al segundo uso');
+  assert.equal(e.stockCiudad.OB22.Damasco, 1, 'vuelve al mercado que tenía 0 (Damasco)');
 }
 
 console.log('reglas de la casa OK');

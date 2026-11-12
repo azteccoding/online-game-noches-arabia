@@ -222,6 +222,7 @@ export function quitarPrimero(j, tipo, ref) { const c = j.mano.find((x) => x.tip
 
 // Devuelve un objeto de mazo a su pila (mercado) o al descarte del botín.
 export function devolverObjeto(data, e, id) {
+  if (POR_CIUDAD[id] && e.stockCiudad?.[id]) { ponerExistencia(e, id); return; }   // vuelve de inmediato al mercado que se quedó sin ella (Jorge, 11 de noviembre)
   const o = objDe(data, id);
   if (o.sinVenta) (e.mazos.descarte.botin ||= []).push(id); else (e.reposicion ||= []).push(id);   // escasez: vuelve al mercado al empezar una ronda (engine.reponerMercado)
 }
@@ -249,7 +250,7 @@ export function recortarMano(data, e, pid) {
   info(e, pid, 'Vas muy cargado', sobrecarga(j, e));
 }
 // Pala de zapador y Linterna de aceite (Jorge, 10 de noviembre): una copia en cada mercado que la vende, con su propia existencia.
-export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'] };
+export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'] };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
 export const existencia = (e, id, ciudad) => (POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
 export function sacarExistencia(e, id, ciudad) {
   e.stock[id] = Math.max(0, (e.stock[id] || 0) - 1);
