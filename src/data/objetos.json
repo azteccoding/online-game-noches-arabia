@@ -108,7 +108,7 @@
    "valor": 12,
    "duracion": "2 usos",
    "momento": "Tu turno",
-   "efecto": "Abre cerraduras y cancela a un guardia o vigilante en un reto (como una Llave de bronce, pero también sirve contra puertas de guardia).",
+   "efecto": "Neutraliza al guardia en «La ventana del tesorero» (R28, Estambul) o al capitán en «La cámara del emir» (R31, Isfahán): te saltas esa tirada. No abre cerraduras. Tiene 2 usos.",
    "sirvePara": "R28, R31",
    "seConsigueEn": "Bagdad, El Cairo",
    "humor": "El oficio más antiguo del que nadie presume.",
