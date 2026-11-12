@@ -287,7 +287,7 @@
    "copias": 4,
    "valor": 3,
    "duracion": "1 vez",
-   "momento": "Tu turno",
+   "momento": "Cuando quieras",
    "efecto": "Quitas tu marcador \"herido\".",
    "sirvePara": "Cualquier pelea",
    "seConsigueEn": "Todas",

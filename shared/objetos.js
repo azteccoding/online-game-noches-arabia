@@ -366,7 +366,7 @@ export function disponibles(data, e, pid) {
   for (const c of j.mano) {
     if (c.tipo === 'objeto' && USOS[c.ref]) {
       const u = USOS[c.ref];
-      if (c.ref === 'OB19' && !(j.herido || t.bloqueoPrincipal)) continue;
+      if (c.ref === 'OB19') continue;   // los dátiles tienen su propio botón en la mano y se usan en cualquier momento (comerDatiles)
       if (c.ref === 'OB42' && !(j.buscado > 0)) continue;
       if (c.ref === 'OB27' && t.maxTramos >= 3) continue;
       if (c.ref === 'OB33' && !(t.ccActual && t.ccActual.tipo === 'trivia' && t.ccActual.descartada == null)) continue;
@@ -638,3 +638,18 @@ export function burroFueraDeZona(data, e, pid) {
 // En las decisiones que te mueven (huir por un evento, deseo de ifrit): aviso en cada opción y, si tu burro llega, «Huir en tu burro».
 export const etiquetaBurro = (j, ciudad) => (conBurro(j?.mano) && !ZONA_BURRO.includes(ciudad) ? ' — tu burro morirá: sale de su zona' : '');
 export const destinosBurro = (data, j) => (conBurro(j?.mano) ? destinosTransporte(data, 'burro', j.ciudad) : []);
+
+// Dátiles y pan de viaje (Jorge, 11 de noviembre): en cualquier momento, también fuera de tu turno y en cuanto te los venden en un trato,
+// te quitan el marcador «herido»; si ya estás en el turno en que te recuperas, recuperas tu acción principal. O los guardas para otra vez.
+export const puedeComerDatiles = (e, j) => !!tieneObj(j, 'OB19') && (j.herido || (e.turno?.pid === j.id && e.turno.heridoAhora && e.turno.principal && !e.turno.fin));
+export function comerDatiles(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (!j || e.fase !== 'juego' || j.eliminado) return err('Ahora no.');
+  if (!tieneObj(j, 'OB19')) return err('No tienes dátiles.');
+  if (!puedeComerDatiles(e, j)) return err('No estás herido.');
+  consumirObj(data, e, pid, 'OB19');
+  if (j.herido) j.herido = false;
+  else { t.principal = false; t.heridoAhora = false; }
+  log(e, `${j.nombre} come dátiles y pan de viaje: ya no está herido.`, { pid });
+  return ok();
+}

@@ -542,7 +542,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['chat', 'jambiya', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['chat', 'jambiya', 'datiles', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -697,6 +697,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'comprar': return OBJ.comprar(data, e, pid, a);
     case 'vender': return OBJ.vender(data, e, pid, a);
     case 'usar': return OBJ.usar(data, e, pid, a);
+    case 'datiles': return OBJ.comerDatiles(data, e, pid);
     case 'proponerTrato': return proponerTrato(data, e, pid, a);
     case 'responderTrato': return responderTrato(data, e, pid, a);
     case 'cancelarTrato': { const tr = e.tratos[a.id]; if (tr && tr.de === pid) delete e.tratos[a.id]; return ok(); }

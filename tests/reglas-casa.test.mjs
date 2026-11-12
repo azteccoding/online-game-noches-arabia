@@ -2637,4 +2637,27 @@ for (let k = 0; k < 6; k++) {
   assert.equal(e.stockCiudad.OB22.Damasco, 1, 'vuelve al mercado que tenía 0 (Damasco)');
 }
 
+// Jorge (11 de noviembre): Dátiles y pan de viaje: se usan cuando quieras (también fuera de tu turno y en cuanto te los venden) y te
+// quitan «herido»; en el turno en que te recuperas, te devuelven la acción principal. Si no estás herido, no se usan.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  const dat = () => A.mano.push({ uid: 9800 + A.mano.length, tipo: 'objeto', ref: 'OB19' });
+  // sin herida: no
+  dat(); turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; A.herido = false;
+  assert.match(g.act(a, { t: 'datiles' }).error || '', /No estás herido/); assert.ok(A.mano.some((c) => c.ref === 'OB19'), 'se conserva');
+  // herido en su propio turno
+  A.herido = true; assert.ok(g.act(a, { t: 'datiles' }).ok); assert.ok(!A.herido); assert.ok(!A.mano.some((c) => c.ref === 'OB19'), 'un solo uso');
+  // herido en turno ajeno, con dátiles en mano: en su turno de recuperación los usa y vuelve la acción principal
+  dat(); A.herido = true; turnoDe(e, b, 'Bagdad');
+  e.turno = { ...e.turno, pid: a, heridoAhora: true, principal: true, fase: 'acciones', fin: false }; A.herido = false;
+  assert.ok(g.act(a, { t: 'datiles' }).ok); assert.ok(!e.turno.principal && !e.turno.heridoAhora, 'recupera la acción principal');
+  // se los venden fuera de su turno estando herido: los usa en ese momento
+  A.herido = true; B.ciudad = A.ciudad; B.mano.push({ uid: 9900, tipo: 'objeto', ref: 'OB19' }); A.dinares = 50;
+  turnoDe(e, b, A.ciudad); e.turno.fase = 'acciones';
+  assert.ok(g.act(b, { t: 'proponerTrato', con: a, ofrece: { dinares: 0, objetos: [9900] }, pide: { dinares: 3, objetos: [] } }).ok);
+  const id = Object.keys(e.tratos)[0]; assert.ok(g.act(a, { t: 'responderTrato', id, ok: true }).ok);
+  assert.ok(g.act(a, { t: 'datiles' }).ok, 'fuera de su turno'); assert.ok(!A.herido, 'ya no está herido');
+}
+
 console.log('reglas de la casa OK');

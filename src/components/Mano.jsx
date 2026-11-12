@@ -27,6 +27,11 @@ export default function Mano({ s, onAbrir, onCerrar }) {
           {mano.map((c) => (
             <div key={c.uid} className="mano-item">
               <button className="mano-carta" onClick={() => onAbrir({ ...c.datos, nro: 'mano-' + c.uid, uid: c.uid })} aria-label={`Abrir ${c.datos?.titulo}`}><Carta datos={c.datos} tam="mini" /></button>
+              {c.tipo === 'objeto' && c.ref === 'OB19' && (() => {   // Jorge (11 de noviembre): en cualquier momento, también fuera de tu turno
+                const yo = s.jugadores[s.yo], recupera = s.turno?.pid === s.yo && s.turno.heridoAhora && s.turno.principal && !s.turno.fin;
+                const motivo = yo?.herido || recupera ? null : 'No estás herido';
+                return <button className="btn mini mano-vender" disabled={!!motivo || !!s.dados} title={motivo || 'Te quitan el marcador «herido»'} onClick={() => enviar({ t: 'datiles' })}>{motivo ? 'Comer (no estás herido)' : 'Comer: quitar «herido»'}</button>;
+              })()}
               {c.tipo === 'item' && c.ref === 'jambiya' && <button className="btn mini sec mano-vender" onClick={() => enviar({ t: 'jambiya', ocultar: !s.jambiyaOculta })} title={s.jambiyaOculta ? 'Escondida: no te la pueden robar, pero no cuenta en las peleas.' : 'Sacada: cuenta en las peleas, pero te la pueden robar.'}>{s.jambiyaOculta ? 'Sacar la jambiya' : 'Esconder la jambiya'}</button>}
               {c.venta != null ? <button className="btn mini sec mano-vender" disabled={!mt} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender ≈{c.venta}</button>
                 : c.donde && <small className="donde-venta" title={c.donde}>{c.donde}</small>}
