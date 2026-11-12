@@ -453,14 +453,31 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   return { total, resta, partes };
 }
 export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en ? '; con 3 o 4 (arco entrenado), con −1' : ''}; si lleva escudo, no le hace nada`;
+// Escudo de cuero (Jorge, 12 de noviembre): aguanta 3 flechazos; al tercero se rompe al terminar la pelea y vuelve al mercado
+// (Estambul y Yemen, por la reposición normal). En Isfahán lo reparan por 5 dinares (objetos.js).
+export const ESCUDO_FLECHAZOS = 3;
+export const flechazosEscudo = (c) => Math.max(0, ESCUDO_FLECHAZOS - (c?.extra?.flechazos || 0));   // los que aguanta todavía
+function flechazoAlEscudo(data, e, B) {
+  const c = B.mano.find((x) => x.tipo === 'objeto' && x.ref === 'OB04'); if (!c) return '';
+  c.extra = { ...(c.extra || {}), flechazos: (c.extra?.flechazos || 0) + 1 };
+  log(e, `El escudo de ${B.nombre} recibe un flechazo (${c.extra.flechazos} de ${ESCUDO_FLECHAZOS}).`, { pid: B.id, aviso: true });
+  if (flechazosEscudo(c) > 0) return ` Al escudo le quedan ${flechazosEscudo(c)} flechazo${flechazosEscudo(c) === 1 ? '' : 's'}.`;
+  if (e.pelea) (e.pelea.escudosRotos ||= []).push({ pid: B.id, uid: c.uid }); else romperEscudo(data, e, B.id, c.uid);
+  return ' Era su tercer flechazo: el escudo se rompe al terminar la pelea.';
+}
+function romperEscudo(data, e, pid, u) {
+  const B = e.jugadores[pid]; if (!B || !B.mano.some((x) => x.uid === u)) return;
+  B.mano = B.mano.filter((x) => x.uid !== u); devolverObjeto(data, e, 'OB04');
+  log(e, `El escudo de ${B.nombre} se rompió.`, { pid, aviso: true });
+}
 // Disparo a distancia (antes del choque): devuelve los efectos sobre el blanco; se muestra con su dado y botón.
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
   quitarPrimero(T, 'item', 'flechas');
   const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = !!T.extra?.entrenado?.arco;   // regla de Jorge: 5–6 le da; entrenado (R43), además 3–4 lo obliga a cubrirse
   const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : en && x >= 3 ? { flecha: 1 } : {};
-  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.` : x >= 5 ? `¡Le da! ${B.nombre} pelea con −1 y sin su destreza en esta pelea.` : en && x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
-  mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre}: ${textoFlecha(en)}`, valores: [x] }], resumen: [texto] });
+  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.${flechazoAlEscudo(data, e, B)}` : x >= 5 ? `¡Le da! ${B.nombre} pelea con −1 y sin su destreza en esta pelea.` : en && x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
+  mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre}: ${textoFlecha(en)}${escudo ? ` (su escudo lleva ${ESCUDO_FLECHAZOS - flechazosEscudo(B.mano.find((q) => q.tipo === 'objeto' && q.ref === 'OB04'))} de ${ESCUDO_FLECHAZOS} flechazos)` : ''}`, valores: [x] }], resumen: [texto] });
   return efecto;
 }
 function resolverNuevo(data, e) {
@@ -636,6 +653,7 @@ function robar(data, e, atk, def) {
 function terminarPelea(data, e, res) {
   const P = e.pelea;
   e.pelea = null;
+  for (const x of P?.escudosRotos || []) romperEscudo(data, e, x.pid, x.uid);   // el tercer flechazo rompe el escudo
   if (res.cancelada && P) { /* la acción principal ya se consumió */ }
   if (P?.cont) { const f = CONT[P.cont.fn]; if (f) f(data, e, P.cont.args || {}, { res, pelea: P }); }
   return ok();

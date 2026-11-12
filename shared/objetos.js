@@ -21,6 +21,7 @@ export function motivoNoMongol(e, j) {
   if (j.dinares < MONGOL.precio) return 'No te alcanza';
   return null;
 }
+export const REPARA_ESCUDO = { ciudad: 'Isfahán', costo: 5 };   // Jorge (12 de noviembre): reparar el escudo de cuero, sin gastar la acción principal
 export const mapasJorasanVenta = (e) => e.mapasJorasan ?? MAPA_JORASAN.stock;
 // Los escribas de Bagdad hacen otro mapa del Jorasán: vuelve a la venta 2 rondas después de venderse a un mercado o de gastarse.
 export function reponerMapaJorasanLuego(e) { (e.mapasRepone ||= []).push(e.ronda + MAPA_JORASAN.reponeRondas); }
@@ -446,6 +447,10 @@ export function disponibles(data, e, pid) {
       r.push({ k: 'usar', uid: c.uid, titulo: 'Destruir el Ídolo de Toledo (100 noches, acción libre)', via: 'destruir' });
       if (j.ciudad === 'Estambul') r.push({ k: 'usar', uid: c.uid, titulo: 'Vender el ídolo a los venecianos (100 dinares; con 1–2 te acusan de herejía)', via: 'venecianos' });
     }
+    if (c.tipo === 'objeto' && c.ref === 'OB04' && j.ciudad === REPARA_ESCUDO.ciudad) {   // Jorge (12 de noviembre): reparar el escudo en Isfahán
+      const sano = !(c.extra?.flechazos > 0);
+      r.push({ k: 'usar', uid: c.uid, via: 'reparar', titulo: `Reparar el escudo (${REPARA_ESCUDO.costo} dinares, no gasta tu acción principal)`, bloqueado: sano ? 'Tu escudo no necesita reparación.' : j.dinares < REPARA_ESCUDO.costo ? `Te faltan ${REPARA_ESCUDO.costo - j.dinares} dinares.` : undefined });
+    }
     if (c.tipo === 'item' && c.ref === 'recetaAverroes' && (j.herido || t.heridoAhora)) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar la Receta de Averroes (cura tu herida)' });
     if (c.tipo === 'item' && c.ref === 'veneno') {
       const vic = activos(e).filter((q) => q !== pid && !e.jugadores[q].npc);
@@ -564,6 +569,13 @@ export function usar(data, e, pid, a) {
     log(e, `${j.nombre} sigue la receta de Averroes y se cura de su herida.`, { pid }); return ok();
   }
   if (c.tipo !== 'objeto') return err('Eso no se usa así.');
+  if (c.ref === 'OB04' && a.via === 'reparar') {
+    if (j.ciudad !== REPARA_ESCUDO.ciudad) return err('Los escudos se reparan en Isfahán.');
+    if (!(c.extra?.flechazos > 0)) return err('Tu escudo no necesita reparación.');
+    if (j.dinares < REPARA_ESCUDO.costo) return err(`Te faltan ${REPARA_ESCUDO.costo - j.dinares} dinares.`);
+    j.dinares -= REPARA_ESCUDO.costo; c.extra = { ...(c.extra || {}), flechazos: 0 };
+    log(e, `${j.nombre} repara su escudo en Isfahán por ${REPARA_ESCUDO.costo} dinares: vuelve a aguantar 3 flechazos.`, { pid }); return ok();
+  }
   switch (c.ref) {
     case 'OB05': {
       const o = e.jugadores[a.objetivo];

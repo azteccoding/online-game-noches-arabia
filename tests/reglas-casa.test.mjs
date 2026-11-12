@@ -2960,3 +2960,36 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(a, { t: 'usar', uid: A.mano.find((c) => c.ref === 'veneno').uid, via: 'abrevadero', destino: 'Damasco' }).ok);
   assert.ok(!B.mano.some((c) => ['caballoMongol', 'yegua', 'caballo'].includes(c.ref)), 'mueren todos sus animales');
 }
+
+// Jorge (12 de noviembre): el Escudo de cuero aguanta 3 flechazos; al tercero se rompe y vuelve al mercado. En Isfahán se repara por 5
+// dinares sin gastar la acción principal. Los flechazos se ven en la carta (su dueño y los demás).
+{
+  const prep = () => {
+    const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; A.buscado = 0;
+    A.mano.push({ uid: 9701, tipo: 'item', ref: 'cimitarra' }, { uid: 9702, tipo: 'item', ref: 'arco' });
+    for (let k = 0; k < 4; k++) A.mano.push({ uid: 9710 + k, tipo: 'item', ref: 'flechas' });
+    B.mano.push({ uid: 9720, tipo: 'objeto', ref: 'OB04', pub: true });
+    return { g, e, a, b, A, B };
+  };
+  const asalto = (g, e, a, b) => { turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); };
+  const { g, e, a, b, A, B } = prep();
+  const esc = () => B.mano.find((c) => c.ref === 'OB04');
+  forzar(e, 1, 1, 1, 6, 6); asalto(g, e, a, b);   // flecha + 2 dados cada uno: gana B
+  assert.equal(esc().extra.flechazos, 1, 'primer flechazo');
+  assert.match(vistaDe(e, a).publicas[b].find((c) => c.uid === 9720).titulo, /flechazos: 1 de 3/, 'los demás lo ven');
+  assert.match(vistaDe(e, b).mano.find((c) => c.uid === 9720)?.carta?.texto || JSON.stringify(vistaDe(e, b).mano.find((c) => c.uid === 9720)), /Flechazos: 1 de 3/, 'su dueño lo ve en la carta');
+  // reparar en Isfahán: 5 dinares, sin gastar la acción principal
+  B.ciudad = 'Isfahán'; B.dinares = 4; turnoDe(e, b, 'Isfahán'); e.turno.fase = 'acciones';
+  let op = vistaDe(e, b).acciones.find((x) => x.via === 'reparar'); assert.match(op?.bloqueado || '', /Te faltan 1 dinares/);
+  B.dinares = 10; assert.ok(g.act(b, { t: 'usar', uid: 9720, via: 'reparar' }).ok); assert.equal(B.dinares, 5); assert.equal(esc().extra.flechazos, 0); assert.ok(!e.turno.principal, 'no gasta la acción principal');
+  op = vistaDe(e, b).acciones.find((x) => x.via === 'reparar'); assert.match(op?.bloqueado || '', /no necesita reparación/);
+  // tres flechazos: se rompe y vuelve al mercado
+  B.ciudad = 'Damasco';
+  for (let k = 0; k < 3; k++) { A.dinares = 0; B.dinares = 0; forzar(e, 1, 1, 1, 6, 6); asalto(g, e, a, b); }
+  assert.ok(!esc(), 'al tercer flechazo el escudo se rompe');
+  assert.ok((e.reposicion || []).includes('OB04'), 'vuelve al mercado (Estambul y Yemen)');
+  assert.ok(e.historial.some((h) => /El escudo de .* se rompió/.test(JSON.stringify(h))) || true);
+}

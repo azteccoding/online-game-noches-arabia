@@ -1253,6 +1253,7 @@ function datosMano(data, e, c) {
   if (c.tipo === 'ifrit') return cartaDatos(data, 'ifrit', c.ref);
   const d = cartaDatos(data, c.tipo, c.ref);
   if (c.tipo === 'objeto' && d?.duracion === '2 usos') d.texto += ` ${c.usos ? 'Le queda 1 uso.' : 'Le quedan 2 usos.'}`;   // sopa del mesón, ganzúa
+  if (c.tipo === 'objeto' && c.ref === 'OB04' && d) { const f = c.extra?.flechazos || 0; d.texto += ` Flechazos: ${f} de 3.`; if (f) d.titulo += ` (flechazos: ${f} de 3)`; }   // escudo de cuero: lo ven su dueño y los demás (Jorge, 12 de noviembre)
   return d;
 }
 

@@ -63,7 +63,7 @@
    "valor": 22,
    "duracion": "Permanente",
    "momento": "Pelea",
-   "efecto": "+1 a tu puntaje final como defensor. Además, cuando te asaltan o te atacan a muerte (jugadores, Yafar o los ladrones de Alí Babá), tiras un dado: con 5 o 6 el escudo para el golpe y el ataque fracasa; con 1 se rompe y lo pierdes. Objeto de combate.",
+   "efecto": "+1 a tu puntaje final como defensor. Además, cuando te asaltan o te atacan a muerte (jugadores, Yafar o los ladrones de Alí Babá), tiras un dado: con 5 o 6 el escudo para el golpe y el ataque fracasa; con 1 se rompe y lo pierdes. Aguanta 3 flechazos: al tercero se rompe y vuelve al mercado. En Isfahán lo reparan por 5 dinares (no gasta tu acción principal). Objeto de combate.",
    "sirvePara": "R8, R36, E8",
    "seConsigueEn": "Estambul, Yemen",
    "humor": "Pesa, pero te quedas con el cuerpo en una pieza.",

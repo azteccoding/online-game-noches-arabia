@@ -5,7 +5,7 @@ import { ACCIONES } from '../game/protocol.js';
 import { consejosVenta } from '../game/ventas.js';
 
 import { entrenamientosEn } from '../../shared/retos.js';
-import { objetosRaros } from '../../shared/objetos.js';
+import { objetosRaros, REPARA_ESCUDO } from '../../shared/objetos.js';
 const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
 const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
@@ -32,6 +32,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {c.notas && <p className="it">{c.notas}</p>}
         {c.retos.length > 0 && <p><b>Retos aquí:</b> {c.retos.join(', ')}</p>}
         <p><b>Entrenamiento:</b> {entrenamientos(c, yo).join(' · ') || 'ninguno'}</p>
+        {id === REPARA_ESCUDO.ciudad && <p><b>Reparación de escudos:</b> {REPARA_ESCUDO.costo} dinares (no gasta tu acción principal).</p>}
         {(() => {   // Jorge (12 de noviembre): solo lo que se vende únicamente en esta ciudad (de los mismos datos del mercado), con su precio
           const solo = objetosRaros(DATA, id).filter((x) => x.soloAqui);
           return solo.length > 0 ? <p><b>Solo aquí:</b> {solo.map(rotulo).join(', ')}</p> : null;
