@@ -234,8 +234,9 @@ export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c
 export const LIMITE_NPC = 10;
 export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS);
 // Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
-// mapas y papeles amate, arco, jambiya, flechas, alfombra, dados, Firmán, Kanmakán ni premios de retos.
-export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino'];
+// mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.
+// Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra'];
 export const nCarga = (j) => j.mano.filter((c) => c.tipo === 'objeto' || (c.tipo === 'item' && CARGA_ITEMS.includes(c.ref))).length;
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;

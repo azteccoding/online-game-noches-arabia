@@ -1885,7 +1885,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(lleno.puede && !lleno.motivo, 'no hay límite de compras: con 5 objetos se sigue comprando');
 }
 
-// Jorge (10 de noviembre): sin animal de carga, máximo 7 objetos (con caballo, burro o camello, sin límite; la alfombra no carga); con
+// Jorge (10 de noviembre): sin animal de carga, máximo 7 objetos (con caballo, burro o camello, sin límite; la alfombra no carga y además cuenta como objeto); con
 // más de 7 y sin animal no sales de la ciudad. La alfombra mágica solo se vende en Samarcanda o Isfahán y te saca del Jorasán.
 {
   const { tienda } = await import('../shared/objetos.js');
@@ -1900,17 +1900,20 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!t1.puede && /Ya cargas 7 objetos/.test(t1.motivo), 'con 7 y sin animal no compras más');
   assert.match(g.act(a, { t: 'comprar', id: obj.id }).error || '', /Ya cargas 7 objetos/);
   darItem(e, A, 'alfombra'); assert.ok(!tienda(data, e, a).find((x) => x.id === obj.id).puede, 'la alfombra no carga');
-  darItem(e, A, 'camello'); assert.ok(tienda(data, e, a).find((x) => x.id === obj.id).puede, 'con camello, sin límite');
+  assert.match(motivoNoSalir(e, A) || '', /llevas 8 objetos/, 'la alfombra cuenta como objeto: 7 + alfombra = 8, sobrecargado');
+  darItem(e, A, 'camello'); assert.equal(motivoNoSalir(e, A), null, 'con camello, 7 + alfombra sí sale'); assert.ok(tienda(data, e, a).find((x) => x.id === obj.id).puede, 'con camello, sin límite');
   assert.ok(g.act(a, { t: 'comprar', id: obj.id }).ok);
   A.mano = A.mano.filter((c) => c.ref !== 'camello');   // se le muere el camello con 8 objetos
-  assert.match(motivoNoSalir(e, A) || '', /llevas 8 objetos/, 'no puede salir de la ciudad');
+  assert.match(motivoNoSalir(e, A) || '', /llevas 9 objetos/, 'no puede salir de la ciudad (8 objetos + alfombra)');
   A.mano.splice(A.mano.findIndex((c) => c.tipo === 'objeto'), 1);
-  assert.equal(motivoNoSalir(e, A), null, 'con 7 ya puede salir');
+  A.mano.splice(A.mano.findIndex((c) => c.tipo === 'objeto'), 1);
+  assert.equal(motivoNoSalir(e, A), null, 'con 6 objetos + alfombra ya puede salir');
   // alfombra: venta solo en Samarcanda o Isfahán
   turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
   const alf = A.mano.find((c) => c.ref === 'alfombra');
   assert.match(g.act(a, { t: 'vender', uid: alf.uid }).error || '', /Samarcanda o Isfahán/);
-  // y te saca del Jorasán
+  // y te saca del Jorasán (aunque vayas sobrecargado: la alfombra no necesita animal)
+  A.mano = A.mano.filter((c) => c.ref !== 'camello'); for (let k = 0; k < 3; k++) A.mano.push({ uid: 9200 + k, tipo: 'objeto', ref: obj.id });
   A.perdido = true; A.ciudad = 'Jorasán'; turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
   assert.ok(g.act(a, { t: 'tesoro', sub: 'alfombra' }).ok);
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'Isfahán' }).ok);
