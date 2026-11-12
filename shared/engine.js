@@ -1144,7 +1144,7 @@ function responderTrato(data, e, pid, a) {
   const imp = (de, din) => (sinImp || din <= 0 ? 0 : Math.floor(din * tasa / 100));
   const impA = tr.pide.objetos.length || tr.ofrece.objetos.length ? imp(A, tr.pide.dinares) : 0, impB = tr.ofrece.objetos.length || tr.pide.objetos.length ? imp(B, tr.ofrece.dinares) : 0;
   A.dinares += tr.pide.dinares - impA - tr.ofrece.dinares; B.dinares += tr.ofrece.dinares - impB - tr.pide.dinares;
-  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; if (['caballo', 'burro', 'camello'].includes(c.ref)) c.extra = { ...(c.extra || {}), usados: 0 }; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público; un animal llega con toda su vida (Jorge, 10 de noviembre)   // lo que pasa por un trato ya no es público
+  const mover = (de, a2, uids) => { for (const u of uids) { const c = quitarCarta(de, u); if (c) { c.priv = true; if (['caballo', 'burro', 'camello', 'caballoMongol'].includes(c.ref)) c.extra = { ...(c.extra || {}), usados: 0 }; a2.mano.push(c); } } };   // lo que pasa por un trato ya no es público; un animal llega con toda su vida (Jorge, 10 de noviembre)   // lo que pasa por un trato ya no es público
   const movA = tr.ofrece.objetos.map((u) => A.mano.find((c) => c.uid === u)).filter(Boolean), movB = tr.pide.objetos.map((u) => B.mano.find((c) => c.uid === u)).filter(Boolean);
   mover(A, B, tr.ofrece.objetos); mover(B, A, tr.pide.objetos);
   for (const c of movA) apurosZein(e, A, c.ref); for (const c of movB) apurosZein(e, B, c.ref);   // Zein vendió sus Dados del Cairo

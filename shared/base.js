@@ -78,6 +78,8 @@ export const ITEMS = {
   velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
   veneno: { nombre: 'Veneno', texto: 'Caduca a los 3 turnos. Cuesta 20 dinares y el viaje desde Bagdad usarlo.' },
   mapaJorasan: { nombre: 'Mapa del Jorasán', precio: 20, texto: 'Se compra en el mercado de Bagdad por 20 dinares y no pesa. Si estás perdido en el Jorasán, úsalo en tu turno: tiras un dado y sales con cualquier resultado: impar, a Basra; par, a Samarcanda. Desde Yemen, los piratas se lo llevan por 5 dinares a un jugador perdido en el Jorasán: le llega en su próximo turno.' },
+  yegua: { nombre: 'Yegua de la estepa', texto: 'Del reto R50 (Samarcanda). El mercado de Estambul paga 150 dinares por cada una, o véndesela a otro jugador en un trato, en cualquier ciudad, al precio que acuerden. No pesa ni carga nada y no sirve de transporte; te la pueden robar. Cada turno pagas albéitar y comida.' },
+  caballoMongol: { nombre: 'Caballo mongol', transporte: 1, texto: 'Se compra en Estambul por 32 dinares (hay uno por cada yegua de la estepa que llegó a su mercado). Te lleva sin tarifa, en el mismo turno y sin terminarlo, solo entre Estambul, Bagdad, Isfahán, Aleppo y Damasco; si sales de esas ciudades, muere. Es animal de carga. Vive 2 turnos y cada turno pagas albéitar y comida. Solo lo compra el mercado de Estambul, por 2 dinares, y ahí vuelve a la venta.' },
   brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
   astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
@@ -229,7 +231,7 @@ export function devolverObjeto(data, e, id) {
 }
 // Jorge (10 de noviembre): sin animal de carga se llevan hasta 7 objetos del mazo; con caballo, burro o camello, los que quieras
 // (la alfombra mágica no carga). Si ganas, robas o recibes de más sin animal, el sobrante se vende al banco (mitad del valor).
-export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello'];
+export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello', 'caballoMongol'];   // el caballo mongol también carga; la yegua, no (Jorge, 12 de noviembre)
 export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
 // Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
 export const LIMITE_NPC = 10;

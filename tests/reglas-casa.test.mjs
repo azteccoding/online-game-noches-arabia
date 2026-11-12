@@ -2680,7 +2680,7 @@ for (let k = 0; k < 6; k++) {
     // objetos raros: cada uno está en la tienda de esa ciudad, con ese precio; los «solo aquí» no están en ninguna otra
     turnoDe(e, b, c.id); e.turno.fase = 'acciones';
     const t = tienda(data, e, a).map((x) => ({ nombre: nombreDe(x), precio: x.precio }));
-    for (const r of objetosRaros(data, c.id).filter((x) => x.precio != null)) {
+    for (const r of objetosRaros(data, c.id).filter((x) => x.precio != null && !x.condicional)) {
       const en = t.find((x) => x.nombre === r.nombre);
       assert.ok(en, `${r.nombre} se vende en ${c.id}`); assert.equal(en.precio, r.precio, `precio de ${r.nombre} en ${c.id}`);
       if (r.soloAqui) for (const otra of data.ciudades.ciudades.filter((x) => x.id !== c.id)) {
@@ -2842,4 +2842,83 @@ console.log('reglas de la casa OK');
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('../src/components/HojaCiudad.jsx', import.meta.url), 'utf8');
   assert.ok(src.includes('Solo aquí:') && !src.includes('Raros (') && !src.includes('Se venden:'), 'ficha: solo lo exclusivo');
+}
+
+// Jorge (12 de noviembre): R50 «Llevar yeguas de la estepa» y caballos mongoles.
+{
+  const { nCarga, tieneCarga } = await import('../shared/base.js');
+  const { motivoNoSalir } = await import('../shared/base.js');
+  const prep = (pjs = ['4', '7']) => {
+    const g = partida(pjs); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    return { g, e, a, b, A, B };
+  };
+  const yeguas = (j) => j.mano.filter((c) => c.ref === 'yegua');
+  { const { g, e, a, b, A, B } = prep();
+    // sin dinero no hay trato (ni se gasta la acción)
+    A.ciudad = 'Samarcanda'; A.dinares = 60; turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+    let op = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.id === 'R50'); assert.match(op?.bloqueado || '', /sin dinero no hay trato/);
+    assert.match(g.act(a, { t: 'reto', id: 'R50' }).error || '', /sin dinero/); assert.ok(!e.turno.principal);
+    // compra 3 por 210
+    A.dinares = 250;
+    assert.ok(g.act(a, { t: 'reto', id: 'R50' }).ok); assert.equal(e.pend.opciones.length, 3);
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: '3' }).ok);
+    assert.equal(A.dinares, 40); assert.equal(yeguas(A).length, 3);
+    // no pesan, no cargan
+    assert.ok(!tieneCarga(A), 'las yeguas no son animal de carga');
+    const n0 = nCarga(A); assert.equal(n0, A.mano.filter((c) => c.tipo === 'objeto').length, 'las yeguas no cuentan para el límite');
+    // una sola vez
+    turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones'; A.dinares = 300;
+    assert.match(g.act(a, { t: 'reto', id: 'R50' }).error || '', /Ya completaste/);
+    // albéitar por yegua al empezar el turno
+    const d0 = A.dinares; animalesInicioTurno(data, e, a); assert.equal(A.dinares, d0 - 9, 'cada yegua paga como el caballo (3): tres yeguas, 9'); assert.equal(yeguas(A).length, 3, 'no mueren de viejas');
+    animalesFinTurno(data, e, a); assert.equal(yeguas(A).length, 3);
+    // solo Estambul las compra; ahí se habilitan los caballos mongoles
+    turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+    assert.match(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).error || '', /solo las compra el mercado de Estambul/);
+    A.ciudad = 'Estambul'; B.ciudad = 'Estambul'; B.dinares = 100; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
+    assert.ok(!tienda(data, e, b).find((x) => x.ref === 'caballoMongol'), 'antes de las yeguas no hay caballos mongoles');
+    assert.match(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).error || '', /Todavía no se venden/);
+    const d1 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(A.dinares, d1 + 150, '150 por yegua');
+    assert.ok(e.historial.some((h) => /Ya se venden caballos mongoles en Estambul/.test(JSON.stringify(h))) || e.log?.some?.((h) => /Ya se venden caballos mongoles/.test(h.texto)), 'anuncio');
+    assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(e.mongoles.stock, 2, 'uno por cada yegua que llegó');
+    // comprar caballo mongol a 32; carga
+    const t1 = tienda(data, e, b).find((x) => x.ref === 'caballoMongol'); assert.ok(t1 && t1.puede && t1.precio === 32 && t1.stock === 2);
+    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok); assert.equal(B.dinares, 68); assert.equal(e.mongoles.stock, 1);
+    assert.ok(tieneCarga(B), 'el caballo mongol es animal de carga');
+    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok, 'se pueden tener varios'); assert.equal(e.mongoles.stock, 0);
+    assert.match(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).error || '', /Agotado/);
+    // viajar: solo entre sus ciudades, sin terminar el turno
+    turnoDe(e, b, 'Estambul'); e.turno.fase = 'acciones';
+    const v = vistaDe(e, b).acciones.find((x) => x.k === 'usar' && /Caballo mongol/.test(x.titulo));
+    assert.deepEqual([...v.destinos].sort(), ['Aleppo', 'Bagdad', 'Damasco', 'Isfahán']);
+    const cm = B.mano.find((c) => c.ref === 'caballoMongol');
+    assert.ok(g.act(b, { t: 'usar', uid: cm.uid, destino: 'Bagdad' }).ok); assert.equal(B.ciudad, 'Bagdad'); assert.ok(!e.turno.fin, 'no termina el turno');
+    turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
+    assert.match(g.act(b, { t: 'usar', uid: cm.uid, destino: 'Basra' }).error || '', /solo viaja entre/);
+    // vive 2 turnos
+    { const d = B.dinares; animalesInicioTurno(data, e, b); assert.equal(B.dinares, d - 6, 'cada caballo mongol paga 3, como el caballo'); } animalesFinTurno(data, e, b); assert.equal(B.mano.filter((c) => c.ref === 'caballoMongol').length, 2);
+    animalesInicioTurno(data, e, b); animalesFinTurno(data, e, b); assert.equal(B.mano.filter((c) => c.ref === 'caballoMongol').length, 0, 'mueren a los 2 turnos');
+  }
+  // fuera de su zona muere; venta a 2 solo en Estambul y ahí vuelve a la venta
+  { const { g, e, a, b, A, B } = prep();
+    e.mongoles = { habilitado: true, stock: 0 };
+    darItem(e, B, 'caballoMongol'); darItem(e, B, 'caballoMongol'); B.ciudad = 'Damasco'; B.dinares = 50;
+    turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+    assert.match(g.act(b, { t: 'vender', uid: B.mano.find((c) => c.ref === 'caballoMongol').uid }).error || '', /Aquí nadie quiere caballos mongoles; solo en Estambul/);
+    B.ciudad = 'Estambul';
+    assert.ok(g.act(b, { t: 'vender', uid: B.mano.find((c) => c.ref === 'caballoMongol').uid }).ok); assert.equal(B.dinares, 52); assert.equal(e.mongoles.stock, 1, 'vuelve a la venta en Estambul');
+    B.ciudad = 'Damasco'; const { avisoBurro, burroFueraDeZona } = await import('../shared/objetos.js');
+    assert.match(avisoBurro(B, 'El Cairo') || '', /caballo mongol no aguantará/); assert.equal(avisoBurro(B, 'Aleppo'), null);
+    B.ciudad = 'El Cairo'; burroFueraDeZona(data, e, b); assert.ok(!tieneItem(B, 'caballoMongol'), 'fuera de su zona muere'); }
+  // Yafar: no hace el reto; Yafar NPC fácil no compra caballos mongoles, normal hasta 1
+  { const { g, e, a, b, A, B } = prep(['B', '7']);
+    A.ciudad = 'Samarcanda'; A.dinares = 300; turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+    assert.match(g.act(a, { t: 'reto', id: 'R50' }).error || '', /Yafar no puede/);
+    const { motivoNoMongol } = await import('../shared/objetos.js');
+    e.mongoles = { habilitado: true, stock: 5 }; A.npc = true; A.ciudad = 'Estambul';
+    e.opciones.dificultad = 'facil'; assert.match(motivoNoMongol(e, A) || '', /fácil/);
+    e.opciones.dificultad = 'normal'; assert.equal(motivoNoMongol(e, A), null); darItem(e, A, 'caballoMongol'); assert.match(motivoNoMongol(e, A) || '', /solo puede tener 1/);
+    e.opciones.dificultad = 'dificil'; assert.equal(motivoNoMongol(e, A), null);
+    A.npc = false; e.opciones.dificultad = 'facil'; assert.equal(motivoNoMongol(e, A), null, 'Yafar jugador, como cualquiera'); }
 }

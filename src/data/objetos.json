@@ -1167,6 +1167,16 @@
     "Bagdad"
    ],
    "terminaTurno": true
+  },
+  "caballoMongol": {
+   "zona": [
+    "Estambul",
+    "Bagdad",
+    "Isfahán",
+    "Aleppo",
+    "Damasco"
+   ],
+   "terminaTurno": false
   }
  }
 }

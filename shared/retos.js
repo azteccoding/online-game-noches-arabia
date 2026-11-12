@@ -57,7 +57,7 @@ const OBJS = {
 };
 const hecho = (j, id) => j.retosHechos.includes(id);
 // «Sirve para»: retos (y mensajes) donde se usa o se entrega cada carta, para mostrarlo en la mano y en el mercado.
-const ITEM_RETO = { alfombraIsfahan: ['R7'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
+const ITEM_RETO = { yegua: ['R50'], alfombraIsfahan: ['R7'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
   alfanje: ['R8', 'R32', 'R36', 'R42'], cimitarra: ['R8', 'R32', 'R36', 'R18'], jambiya: ['R8', 'R32', 'R36', 'R19'], arco: ['R8', 'R32', 'R36', 'R43'] };
 export function sirvePara(data, c) {
   let ids = c.tipo === 'item' ? (ITEM_RETO[c.ref] || []) : Object.entries(OBJS).filter(([, l]) => l.includes(c.ref)).map(([r]) => r);
@@ -680,6 +680,23 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
 // R45 «Trabajar para el Nizam de Hyderabad» (Jorge, 10 de noviembre), con la estructura de R41: se inicia desde Acciones en India con
 // la acción principal y queda hecho (una vez por jugador). Tiras 1 dado (con botón): cobras 10 + 5 por punto y 10 noches, al momento. Pierdes tu
 // siguiente turno y, en el que sigue, no tienes acción principal (quedas herido por tanto trabajo: engine.iniciarTurno).
+// R50 «Llevar yeguas de la estepa» (Jorge, 12 de noviembre): en Samarcanda compras de 1 a 3 yeguas a 70 dinares cada una; una sola vez por
+// jugador y Yafar (NPC o jugador) no puede. Las yeguas se venden en Estambul (objetos.js) y ahí ponen a la venta caballos mongoles.
+const PRECIO_YEGUA = 70, MAX_YEGUAS = 3;
+T.R50 = { ciudad: 'Samarcanda', req: (d, e, pid) => { const j = e.jugadores[pid]; return j.pj === 'B' ? 'Yafar no puede llevar yeguas de la estepa.' : j.dinares < PRECIO_YEGUA ? `Cada yegua cuesta ${PRECIO_YEGUA} dinares: sin dinero no hay trato.` : null; },
+  run(data, e, pid) {
+    const j = e.jugadores[pid], n = Math.min(MAX_YEGUAS, Math.floor(j.dinares / PRECIO_YEGUA));
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R50 · Llevar yeguas de la estepa', texto: `¿Cuántas yeguas compras? ${PRECIO_YEGUA} dinares cada una; el mercado de Estambul paga 150 por cada una.`,
+      opciones: Array.from({ length: n }, (_, i) => ({ id: String(i + 1), texto: `${i + 1} yegua${i ? 's' : ''} (${PRECIO_YEGUA * (i + 1)} dinares)` })), porDefecto: '1', limiteMs: 60000, cont: { fn: 'reto.yeguas', args: {} } });
+  } };
+registrar('reto.yeguas', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  const n = Math.max(1, Math.min(MAX_YEGUAS, parseInt(resp.opcion, 10) || 1));
+  if (j.dinares < PRECIO_YEGUA * n) return;
+  j.dinares -= PRECIO_YEGUA * n; hacer(e, pid, 'R50');
+  for (let i = 0; i < n; i++) darItem(e, j, 'yegua');
+  log(e, `${j.nombre} compra ${n} yegua${n > 1 ? 's' : ''} de la estepa en Samarcanda por ${PRECIO_YEGUA * n} dinares: el mercado de Estambul paga 150 por cada una.`, { pid });
+});
 T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NPC no trabaja para el Nizam.' : null),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; hacer(e, pid, 'R45');

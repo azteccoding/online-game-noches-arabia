@@ -250,7 +250,8 @@
    "mazoCC": "Bagdad",
    "retos": [
     "R15",
-    "R18"
+    "R18",
+    "R50"
    ],
    "notas": "Impuesto de venta del 50%; Gremio de los Asesinos",
    "impuestoVenta": 50

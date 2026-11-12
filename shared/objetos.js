@@ -4,6 +4,23 @@ import {
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
 apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, } from './base.js';
+// Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
+// Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
+// solo entre sus 5 ciudades (fuera de ellas muere), no termina el turno, carga, vive 2 turnos y solo lo compra el mercado de Estambul,
+// por 2 dinares (ahí vuelve a la venta a 32). Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los que quiera.
+// Albéitar y comida: cada yegua y cada caballo mongol pagan por turno lo mismo que el caballo normal (Jorge, 12 de noviembre).
+export const YEGUAS = { precio: 70, max: 3, venta: 150, ciudadVenta: 'Estambul' };
+export const MONGOL = { precio: 32, ciudad: 'Estambul', venta: 2, ciudadesVenta: ['Estambul'] };   // Jorge: a Samarcanda nunca llega (muere fuera de su zona)
+export const ZONA_MONGOL = ['Estambul', 'Bagdad', 'Isfahán', 'Aleppo', 'Damasco'];
+const limiteMongolNPC = (e) => ({ facil: 0, normal: 1, dificil: Infinity }[e.opciones?.dificultad] ?? 1);
+const nMongoles = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'caballoMongol').length;
+export function motivoNoMongol(e, j) {
+  if (!e.mongoles?.habilitado) return 'Todavía no se venden: llegan cuando alguien trae yeguas de la estepa (reto R50) al mercado de Estambul.';
+  if (!(e.mongoles.stock > 0)) return 'Agotado: no quedan caballos mongoles en Estambul.';
+  if (j.pj === 'B' && j.npc && nMongoles(j) >= limiteMongolNPC(e)) return limiteMongolNPC(e) ? 'Yafar NPC solo puede tener 1 caballo mongol en dificultad normal.' : 'Yafar NPC no compra caballos mongoles en dificultad fácil.';
+  if (j.dinares < MONGOL.precio) return 'No te alcanza';
+  return null;
+}
 export const mapasJorasanVenta = (e) => e.mapasJorasan ?? MAPA_JORASAN.stock;
 // Los escribas de Bagdad hacen otro mapa del Jorasán: vuelve a la venta 2 rondas después de venderse a un mercado o de gastarse.
 export function reponerMapaJorasanLuego(e) { (e.mapasRepone ||= []).push(e.ronda + MAPA_JORASAN.reponeRondas); }
@@ -115,6 +132,12 @@ export function comprar(data, e, pid, a) {
     log(e, `${j.nombre} compra un ${ITEMS[x.carta.ref].nombre.toLowerCase()} en el mercado de ${j.ciudad} por ${x.precio} dinares (con todos sus turnos de vida).`, { pid });
     return ok();
   }
+  if (a.ref === 'caballoMongol') {
+    if (j.ciudad !== MONGOL.ciudad) return err('Los caballos mongoles solo se venden en Estambul.');
+    const no = motivoNoMongol(e, j); if (no) return err(no === 'No te alcanza' ? `Cuesta ${MONGOL.precio} dinares.` : no);
+    j.dinares -= MONGOL.precio; e.mongoles.stock--; darItem(e, j, 'caballoMongol');
+    log(e, `${j.nombre} compra un caballo mongol en Estambul por ${MONGOL.precio} dinares.`, { pid }); return ok();
+  }
   if (a.ref === 'ifrit') return err('El bazar del genio ya no existe: las cartas de Ifrit salen del Jorasán, de la lámpara mágica y de R40.');   // Jorge (10 de noviembre)
   if (a.ref) {                                                                                           // objetos originales
     const base = VENTA_ORIGINAL[a.ref];
@@ -225,6 +248,19 @@ export function vender(data, e, pid, a) {
   }
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return err('El papel del escondite no lo compra el banco: véndelo a otro jugador en un trato.');
   if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; precio = t ? Math.floor(t.valor / 2) : 5; const imp = impuesto(data, e, ciudad, precio); quitarCarta(j, c.uid); j.dinares += precio - imp; log(e, `${j.nombre} vende un mapa.`, { pid }); return ok(); }
+  if (c.ref === 'yegua') {
+    if (ciudad !== YEGUAS.ciudadVenta) return err('Las yeguas solo las compra el mercado de Estambul (150 dinares cada una). También puedes vendérselas a otro jugador en un trato.');
+    quitarCarta(j, c.uid); j.dinares += YEGUAS.venta;
+    const nuevo = !e.mongoles?.habilitado; e.mongoles = { habilitado: true, stock: (e.mongoles?.stock || 0) + 1 };
+    log(e, `${j.nombre} vende una yegua de la estepa al mercado de Estambul por ${YEGUAS.venta} dinares.`, { pid });
+    log(e, nuevo ? 'Ya se venden caballos mongoles en Estambul.' : `Llega otro caballo mongol al mercado de Estambul (hay ${e.mongoles.stock}).`, { aviso: true });
+    return ok();
+  }
+  if (c.ref === 'caballoMongol') {
+    if (!MONGOL.ciudadesVenta.includes(ciudad)) return err('Aquí nadie quiere caballos mongoles; solo en Estambul (2 dinares).');
+    quitarCarta(j, c.uid); j.dinares += MONGOL.venta; e.mongoles = { habilitado: true, stock: (e.mongoles?.stock || 0) + 1 };
+    log(e, `${j.nombre} vende su caballo mongol en Estambul por ${MONGOL.venta} dinares: vuelve a la venta ahí.`, { pid }); return ok();
+  }
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) {
     const v = VENTA_ANIMAL_BAGDAD[c.ref]; quitarCarta(j, c.uid); j.dinares += v;
     (e.establo ||= []).push({ carta: c, precio: REVENTA_ANIMAL[c.ref], ciudad });
@@ -280,6 +316,10 @@ export function tienda(data, e, pid) {
   for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc), motivo: j.dinares < x.precio ? 'No te alcanza' : undefined });
   }
+  if (j.ciudad === MONGOL.ciudad && e.mongoles?.habilitado) {
+    const no = motivoNoMongol(e, j);
+    r.push({ ref: 'caballoMongol', nombre: ITEMS.caballoMongol.nombre, tipo: 'Transporte', texto: ITEMS.caballoMongol.texto, precio: MONGOL.precio, stock: e.mongoles.stock, puede: !no, motivo: no || undefined });
+  }
   if (j.ciudad === 'Bagdad') {
     const p = precioFirman(j);
     if (j.pj !== 'B') r.push({ ref: 'firman', nombre: 'Firmán del Califa', tipo: 'Especial', texto: 'Permite portar arco y jambiya en Bagdad, desafiar y robar allí.', precio: p, stock: e.firmanes, puede: e.firmanes > 0 && !tieneEsp(j, 'F1') && j.dinares >= p });
@@ -311,6 +351,8 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'buza') return ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : null;
     if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return null;
     if (c.ref === 'mapa') { const t = TESOROS[c.extra?.tesoro]; const p = t ? Math.floor(t.valor / 2) : 5; return p - impuesto(data, e, ciudad, p); }
+    if (c.ref === 'yegua') return ciudad === YEGUAS.ciudadVenta ? YEGUAS.venta : null;
+    if (c.ref === 'caballoMongol') return MONGOL.ciudadesVenta.includes(ciudad) ? MONGOL.venta : null;
     if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return VENTA_ANIMAL_BAGDAD[c.ref];
     if (c.ref === 'alfombra') return ALFOMBRA_VENTA.ciudades.includes(ciudad) ? ALFOMBRA_VENTA.precio : null;
     if (c.ref === 'pergamino') return ciudad === 'Damasco' ? 30 : null;
@@ -350,6 +392,8 @@ export function dondeVender(data, e, pid, c) {
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
   if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
+  if (c.ref === 'yegua') return 'Solo el mercado de Estambul: 150 dinares por yegua. O a otro jugador en un trato, en cualquier ciudad, al precio que acuerden.';
+  if (c.ref === 'caballoMongol') return 'Solo en Estambul, por 2 dinares (ahí vuelve a la venta): en las demás ciudades nadie lo quiere.';
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `En el mercado de cualquier ciudad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares ${c.ref === 'burro' ? ', por desnutrido' : ''} (ahí se revende a ${REVENTA_ANIMAL[c.ref]}, con todos sus turnos de vida).`;
   if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
   if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (en Bagdad queda a la venta de inmediato; en otra ciudad desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
@@ -381,7 +425,7 @@ const USOS = {
   OB05: { titulo: 'Lazo de camellero', obj: true }, OB15: { titulo: 'Joya para el visir' }, OB16: { titulo: 'Regalo para Masrur' }, OB19: { titulo: 'Dátiles y pan de viaje', si: (j) => j.herido || false },
   OB24: { titulo: 'Botella de genio' }, OB27: { titulo: 'Pluma de roc' }, OB31: { titulo: 'Cuaderno de ruta' }, OB33: { titulo: 'Cuaderno de refranes' }, OB42: { titulo: 'Disfraz de mendigo', si: (j) => j.buscado > 0 },
 };
-const TRANSPORTE = { caballo: 1, camello: 2, burro: 3, alfombra: 1 };
+const TRANSPORTE = { caballo: 1, camello: 2, burro: 3, alfombra: 1, caballoMongol: 1 };
 
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
@@ -413,6 +457,7 @@ export function disponibles(data, e, pid) {
       if (c.ref === 'burro' && j.pj === 'B' && j.npc) continue;                       // Jorge (punto 9): Yafar no usa burro
       const vida = ANIMAL_DEF[c.ref] ? ` · le quedan ${turnosAnimal(data, c)} turno(s)` : '';   // con dos del mismo tipo, se distinguen por su vida
       if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : '') + vida, destinos: dest });
+      else if (c.ref === 'caballoMongol') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Caballo mongol' + vida, bloqueado: `El caballo mongol solo viaja entre ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.` });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
     if (c.tipo === 'ifrit') r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: data.objetos.ifrit.cartas.find((q) => q.id === c.ref).deseos });
@@ -431,10 +476,11 @@ export function destinosTransporte(data, ref, desde) {
     const extra = (r.rutas || []).filter((p) => p.includes(desde)).map((p) => p.find((q) => q !== desde));
     return [...new Set([...(desde === 'Bagdad' ? r.cercanas : r.cercanas.includes(desde) ? ['Bagdad'] : []), ...extra])];
   }
+  if (r.zona) return r.zona.includes(desde) ? todas.filter((q) => r.zona.includes(q)) : [];   // caballo mongol: solo entre sus ciudades
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas, y entre El Cairo y Damasco.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ caballoMongol: 'el caballo mongol solo viaja entre Estambul, Bagdad, Isfahán, Aleppo y Damasco.', burro: 'el burro solo hace viajes cortos entre Bagdad y las ciudades cercanas, y entre El Cairo y Damasco.', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 function usarVeneno(data, e, pid, c, a) {
@@ -564,8 +610,9 @@ export function usar(data, e, pid, a) {
 // Regla de la casa (noviembre de 2026): los animales comen y envejecen. En cada turno de su dueño se paga el albéitar y la comida
 // (pago obligatorio: si no alcanza, queda como deuda) y, cumplidos sus turnos, el animal muere al cerrar el turno. El burro se
 // repone en el mercado de Basra (siguen siendo N − 1); al morir el caballo o el camello se reactiva el reto que los da (R1 o R5).
-const ANIMAL_DEF = { burro: { vida: 3, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' } };
-export const animalDe = (data, ref) => (ANIMAL_DEF[ref] ? { ...ANIMAL_DEF[ref], ...(data.config.animales?.[ref] || {}) } : null);
+const ANIMAL_DEF = { burro: { vida: 3, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' },
+  caballoMongol: { vida: 2, costoComo: 'caballo' }, yegua: { vida: Infinity, costoComo: 'caballo' } };   // la yegua no muere de vieja; pagan como el caballo
+export const animalDe = (data, ref) => { const d = ANIMAL_DEF[ref]; if (!d) return null; const a = { ...d, ...(data.config.animales?.[ref] || {}) }; if (d.costoComo) a.costo = animalDe(data, d.costoComo).costo; return a; };
 export const turnosAnimal = (data, c) => Math.max(0, animalDe(data, c.ref).vida - (c.extra?.usados || 0));   // turnos que le quedan después del actual
 const animalesDe = (j) => j.mano.filter((c) => c.tipo === 'item' && ANIMAL_DEF[c.ref]);
 export function animalesInicioTurno(data, e, pid) {
@@ -575,7 +622,7 @@ export function animalesInicioTurno(data, e, pid) {
     c.extra = { ...(c.extra || {}), usados: (c.extra?.usados || 0) + 1 };
     pagar(data, e, pid, a.costo);
     const n = turnosAnimal(data, c);
-    log(e, `${j.nombre} paga ${a.costo} dinar${a.costo === 1 ? '' : 'es'} de albéitar y comida para su ${c.ref}${n ? ` (le quedan ${n} turno${n === 1 ? '' : 's'} más)` : ': es su último turno'}.`, { pid });
+    log(e, `${j.nombre} paga ${a.costo} dinar${a.costo === 1 ? '' : 'es'} de albéitar y comida para su ${ITEMS[c.ref].nombre.toLowerCase()}${!Number.isFinite(n) ? '' : n ? ` (le quedan ${n} turno${n === 1 ? '' : 's'} más)` : ': es su último turno'}.`, { pid });
   }
 }
 export function animalesFinTurno(data, e, pid) {
@@ -589,7 +636,7 @@ function morirAnimal(data, e, pid, c) {
   let mas = '';
   if (c.ref === 'burro') { e.burros = (e.burros || 0) + 1; mas = ' Llega otro burro al mercado de Basra.'; }
   else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
-  log(e, `Muere de viejo el ${c.ref} de ${j.nombre}.${mas}`, { pid, aviso: true });
+  log(e, `Muere de viejo el ${ITEMS[c.ref].nombre.toLowerCase()} de ${j.nombre}.${mas}`, { pid, aviso: true });
   if (!j.npc && cargaExcedida(j, e)) { log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid }); info(e, pid, 'Vas muy cargado', sobrecarga(j, e)); }   // Jorge (10 de noviembre)
 }
 
@@ -645,18 +692,30 @@ export function caducarKanmakan(data, e, pid) {   // al terminar cada turno de s
 export const ZONA_BURRO = ['Bagdad', 'Damasco', 'Aleppo', 'Basra', 'El Cairo'];
 const conBurro = (mano) => (mano || []).some((c) => c.tipo === 'item' && c.ref === 'burro');
 export function avisoBurro(j, destino) {
+  const mongol = j && (j.mano || []).some((c) => c.tipo === 'item' && c.ref === 'caballoMongol') && !ZONA_MONGOL.includes(destino);
+  if (mongol && !(conBurro(j.mano) && !ZONA_BURRO.includes(destino))) return `Tu caballo mongol no aguantará este viaje: morirá si sales de ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}. ¿Viajar de todos modos?`;
   if (!j || !conBurro(j.mano) || ZONA_BURRO.includes(destino)) return null;
-  let txt = `Tu burro no aguantará este viaje: morirá si sales de su zona (${ZONA_BURRO.slice(0, -1).join(', ')} y ${ZONA_BURRO.at(-1)}). ¿Viajar de todos modos?`;
+  let txt = `Tu burro no aguantará este viaje: morirá si sales de su zona (${ZONA_BURRO.slice(0, -1).join(', ')} y ${ZONA_BURRO.at(-1)}).${mongol ? ' Tu caballo mongol también morirá.' : ''} ¿Viajar de todos modos?`;
   const otro = (j.mano || []).some((c) => c.tipo === 'item' && ['caballo', 'camello'].includes(c.ref)), n = nCarga(j);
   if (!otro && n > LIMITE_OBJETOS) txt += ` Ojo: sin el burro llevarías ${n} objetos y sin animal; en ${destino} no podrás salir hasta vender lo que te sobra o conseguir otro animal.`;
   return txt;
 }
 export function burroFueraDeZona(data, e, pid) {
+  mongolFueraDeZona(data, e, pid);
   const j = e.jugadores[pid]; if (!j || ZONA_BURRO.includes(j.ciudad)) return;
   const c = j.mano.find((x) => x.tipo === 'item' && x.ref === 'burro'); if (!c) return;
   quitarCarta(j, c.uid); e.burros = (e.burros || 0) + 1;
   log(e, `El burro de ${j.nombre} no aguantó el viaje a ${j.ciudad} y murió. Llega otro burro al mercado de Basra.`, { pid, aviso: true });
   info(e, pid, 'Tu burro murió', `Tu burro no aguantó el viaje a ${j.ciudad}: solo vive en su zona (${ZONA_BURRO.join(', ')}).${cargaExcedida(j, e) ? ' ' + sobrecarga(j, e) : ''}`);
+}
+// El caballo mongol (Jorge, 12 de noviembre) muere si sales de sus ciudades, como el burro.
+function mongolFueraDeZona(data, e, pid) {
+  const j = e.jugadores[pid]; if (!j || ZONA_MONGOL.includes(j.ciudad)) return;
+  const cs = j.mano.filter((x) => x.tipo === 'item' && x.ref === 'caballoMongol'); if (!cs.length) return;
+  for (const c of cs) quitarCarta(j, c.uid);
+  const uno = cs.length === 1;
+  log(e, `${uno ? 'El caballo mongol' : 'Los caballos mongoles'} de ${j.nombre} no ${uno ? 'aguantó' : 'aguantaron'} el viaje a ${j.ciudad} y ${uno ? 'murió' : 'murieron'}.`, { pid, aviso: true });
+  info(e, pid, uno ? 'Tu caballo mongol murió' : 'Tus caballos mongoles murieron', `No aguantan fuera de ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.${cargaExcedida(j, e) ? ' ' + sobrecarga(j, e) : ''}`);
 }
 // En las decisiones que te mueven (huir por un evento, deseo de ifrit): aviso en cada opción y, si tu burro llega, «Huir en tu burro».
 export const etiquetaBurro = (j, ciudad) => (conBurro(j?.mano) && !ZONA_BURRO.includes(ciudad) ? ' — tu burro morirá: sale de su zona' : '');
@@ -690,5 +749,6 @@ export function objetosRaros(data, ciudad) {
     agrega(ITEMS[ref].nombre, CIUDAD_ORIGINAL[ref] || null, base + (RECARGO_ARMA[ref]?.[ciudad] || 0));
   }
   if (ciudad === 'Bagdad') r.push({ nombre: 'Firmán del Califa', precio: null, soloAqui: true, n: 1 });
+  if (ciudad === MONGOL.ciudad) r.push({ nombre: 'Caballo mongol (cuando llegan yeguas de la estepa)', precio: MONGOL.precio, soloAqui: true, n: 1, condicional: true });   // solo después de R50
   return r.sort((a, b) => a.n - b.n || a.nombre.localeCompare(b.nombre, 'es'));
 }
