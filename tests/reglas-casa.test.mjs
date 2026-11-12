@@ -2977,7 +2977,7 @@ console.log('reglas de la casa OK');
   const asalto = (g, e, a, b) => { turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); };
   const { g, e, a, b, A, B } = prep();
   const esc = () => B.mano.find((c) => c.ref === 'OB04');
-  forzar(e, 1, 1, 1, 6, 6); asalto(g, e, a, b);   // flecha + 2 dados cada uno: gana B
+  forzar(e, 1, 3, 1, 1, 6, 6); asalto(g, e, a, b);   // flecha, dado del escudo (3: solo su +1) y 2 dados cada uno: gana B
   assert.equal(esc().extra.flechazos, 1, 'primer flechazo');
   assert.match(vistaDe(e, a).publicas[b].find((c) => c.uid === 9720).titulo, /flechazos: 1 de 3/, 'los demás lo ven');
   assert.match(vistaDe(e, b).mano.find((c) => c.uid === 9720)?.carta?.texto || JSON.stringify(vistaDe(e, b).mano.find((c) => c.uid === 9720)), /Flechazos: 1 de 3/, 'su dueño lo ve en la carta');
@@ -2988,8 +2988,47 @@ console.log('reglas de la casa OK');
   op = vistaDe(e, b).acciones.find((x) => x.via === 'reparar'); assert.match(op?.bloqueado || '', /no necesita reparación/);
   // tres flechazos: se rompe y vuelve al mercado
   B.ciudad = 'Damasco';
-  for (let k = 0; k < 3; k++) { A.dinares = 0; B.dinares = 0; forzar(e, 1, 1, 1, 6, 6); asalto(g, e, a, b); }
+  for (let k = 0; k < 3; k++) { A.dinares = 0; B.dinares = 0; forzar(e, 1, 3, 1, 1, 6, 6); asalto(g, e, a, b); }
   assert.ok(!esc(), 'al tercer flechazo el escudo se rompe');
   assert.ok((e.reposicion || []).includes('OB04'), 'vuelve al mercado (Estambul y Yemen)');
   assert.ok(e.historial.some((h) => /El escudo de .* se rompió/.test(JSON.stringify(h))) || true);
+}
+
+// Jorge (12 de noviembre): en un ataque a muerte con arma de cuerpo a cuerpo, el escudo tira un dado: 5 o 6 para el golpe (el atacante
+// pelea con −1); 1 se rompe y la pelea sigue sin él (ni su +1); 2 a 4 solo su +1. Igual en los robos; en duelo no se tira.
+// La daga de manga no cuenta en duelos.
+{
+  const prep = () => {
+    const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; A.buscado = 0; A.destreza = true; A.mano.push({ uid: 9801, tipo: 'item', ref: 'cimitarra' }); B.mano.push({ uid: 9802, tipo: 'objeto', ref: 'OB04' });
+    turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    return { g, e, a, b, A, B };
+  };
+  const pelea = (g, e, a, b, tipo) => {
+    const vistos = [];
+    const r = g.act(a, { t: 'atacar', tipo, objetivo: b }); assert.ok(r.ok, r.error);
+    for (let k = 0; k < 40 && (e.pend || e.dados || e.colaDados?.length); k++) {
+      if (e.dados) vistos.push(JSON.stringify(e.dados));
+      if (e.pend) { g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.tipo === 'defensa' ? 'luchar' : (e.pend.porDefecto ?? e.pend.opciones?.[0]?.id) }); continue; }
+      if (e.dados) { const d = e.dados; e.dados = null; if (e.colaDados?.length) e.dados = e.colaDados.shift(); if (d === e.dados) break; }
+    }
+    return vistos.join(' ') + JSON.stringify(e.historial || []);
+  };
+  { const { g, e, a, b } = prep(); forzar(e, 6, 3, 3, 3, 3); const t = pelea(g, e, a, b, 'matar');
+    assert.match(t, /paró el golpe −1/, 'con 5 o 6 el atacante pelea con −1'); assert.match(t, /escudo \+1/, 'y el defensor conserva su +1'); }
+  { const { g, e, a, b, A, B } = prep(); forzar(e, 1, 3, 3, 3, 3); const t = pelea(g, e, a, b, 'matar');
+    assert.ok(!B.mano.some((c) => c.ref === 'OB04') && !A.mano.some((c) => c.ref === 'OB04'), 'con 1 el escudo se rompe'); assert.ok((e.reposicion || []).includes('OB04'), 'vuelve al mercado');
+    assert.doesNotMatch(t, /escudo \+1/, 'y ya no suma su +1'); }
+  { const { g, e, a, b } = prep(); forzar(e, 3, 3, 3, 3, 3); const t = pelea(g, e, a, b, 'matar');
+    assert.doesNotMatch(t, /paró el golpe/); assert.match(t, /escudo \+1/, 'con 2 a 4 solo su +1'); }
+  { const { g, e, a, b } = prep(); forzar(e, 6, 3, 3, 3, 3); const t = pelea(g, e, a, b, 'robo'); assert.match(t, /paró el golpe −1/, 'en los robos, igual'); }
+  { const { g, e, a, b, A, B } = prep(); forzar(e, 1, 3, 3, 3, 3); pelea(g, e, a, b, 'robo'); assert.ok((e.reposicion || []).includes('OB04'), 'en un robo con 1 también se rompe'); }
+  { const { g, e, a, b } = prep(); const t = pelea(g, e, a, b, 'duelo'); assert.doesNotMatch(t, /Levantar el escudo|levanta su Escudo/, 'en duelo no hay dado del escudo'); }
+  // daga de manga: cuenta en robo y ataque a muerte, no en duelo
+  const { bonos, bonosCombate, perfil } = await import('../shared/pelea.js');
+  { const { e, a, A } = prep(); A.mano.push({ uid: 9803, tipo: 'objeto', ref: 'OB01' });
+    assert.ok(bonosCombate(data, e, a, 'atk', 'Damasco').partes.some((x) => /Daga/.test(x)), 'la daga cuenta en robo y ataque a muerte');
+    assert.ok(!bonos(data, e, a, perfil(data, e, a), 'atk', null, { duelo: true }).partes.some((x) => /Daga/.test(x)), 'en duelo no'); }
 }

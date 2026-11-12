@@ -42,11 +42,11 @@ export function perfil(data, e, pid, ciudad) {
 }
 
 // Objeto de tipo Arma del mazo: máximo 1 por bando en cada pelea (R 15.2). Elige el mejor para ese bando.
-function objetoDeCombate(data, e, pid, rol, { contraNPC = false } = {}) {
+function objetoDeCombate(data, e, pid, rol, { contraNPC = false, duelo = false } = {}) {
   const j = e.jugadores[pid];
   const opciones = [];
   if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: 1, texto: 'Escudo de cuero +1', gasta: false });   // Jorge (10 de noviembre): +1 como defensor en todas las peleas
-  if (tieneObj(j, 'OB01')) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1', gasta: false });
+  if (tieneObj(j, 'OB01') && !duelo) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1', gasta: false });   // Jorge (12 de noviembre): la daga escondida no cuenta en duelos
   if (contraNPC && tieneObj(j, 'OB02')) opciones.push({ id: 'OB02', bono: 2, texto: 'Honda de pastor +2', gasta: true });
   if (rol === 'def' && tieneObj(j, 'OB03') && !j.extra.usaPolvo) opciones.push({ id: 'OB03', bono: 2, texto: 'Polvo de pimienta (el atacante resta 2)', gasta: true });
   opciones.sort((a, b) => b.bono - a.bono || (a.gasta ? 1 : 0) - (b.gasta ? 1 : 0));
@@ -62,7 +62,7 @@ export function consumir(data, e, pid, id) {
 }
 
 // Suma de bonos de un bando. Lanza el dado de sorpresa de la jambiya UNA vez al empezar la pelea (R 11.1). Registra las líneas del desglose.
-export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false } = {}) {
+export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false } = {}) {
   const j = e.jugadores[pid];
   let total = 0; const partes = [];
   for (const ref of perf.armas) {
@@ -78,7 +78,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false } = {
   }
   if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
-  const ob = objetoDeCombate(data, e, pid, rol, { contraNPC });
+  const ob = objetoDeCombate(data, e, pid, rol, { contraNPC, duelo });
   let resta = 0;
   if (ob) {
     if (ob.id === 'OB03') { resta = 2; partes.push('Polvo de pimienta (rival −2)'); } else { total += ob.bono; partes.push(ob.texto); }
@@ -445,6 +445,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (j.destreza && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
   if (j.destreza && mods.sinDestreza) partes.push('destreza perdida por la flecha');
   if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
+  if (mods.golpeEscudo) { partes.push('el escudo del rival paró el golpe −1'); total -= 1; }
   if (j.herido) { partes.push('herido −1'); total -= 1; }
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
   if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; usarKanmakan(e, j); }
@@ -456,6 +457,11 @@ export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en 
 // Escudo de cuero (Jorge, 12 de noviembre): aguanta 3 flechazos; al tercero se rompe al terminar la pelea y vuelve al mercado
 // (Estambul y Yemen, por la reposición normal). En Isfahán lo reparan por 5 dinares (objetos.js).
 export const ESCUDO_FLECHAZOS = 3;
+// Escudo contra las demás armas (Jorge, 12 de noviembre): en un robo o un ataque a muerte con arma de cuerpo a cuerpo, después de las flechas, el
+// defensor levanta el escudo y tira un dado con su botón: con 5 o 6 para el golpe (el atacante pelea con −1); con 1 se rompe (vuelve al
+// mercado) y la pelea sigue como si nunca lo hubiera tenido, sin su +1; con 2 a 4 solo cuenta su +1 de siempre.
+// En los duelos no se tira: el escudo solo da +1 al que se defiende.
+export const ESCUDO_GOLPE = { para: 5, rompe: 1, tipos: ['matar', 'robo'] };
 export const flechazosEscudo = (c) => Math.max(0, ESCUDO_FLECHAZOS - (c?.extra?.flechazos || 0));   // los que aguanta todavía
 function flechazoAlEscudo(data, e, B) {
   const c = B.mano.find((x) => x.tipo === 'objeto' && x.ref === 'OB04'); if (!c) return '';
@@ -480,6 +486,18 @@ function disparo(data, e, tirador, blanco, titulo) {
   mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre}: ${textoFlecha(en)}${escudo ? ` (su escudo lleva ${ESCUDO_FLECHAZOS - flechazosEscudo(B.mano.find((q) => q.tipo === 'objeto' && q.ref === 'OB04'))} de ${ESCUDO_FLECHAZOS} flechazos)` : ''}`, valores: [x] }], resumen: [texto] });
   return efecto;
 }
+// Devuelve los efectos sobre el atacante ({ golpeEscudo: 1 } si el escudo paró el golpe).
+function escudoContraGolpe(data, e, P, atk, def, titulo) {
+  const D = e.jugadores[def], A = e.jugadores[atk];
+  if (!ESCUDO_GOLPE.tipos.includes(P.tipo)) return {};
+  const c = D.mano.find((x) => x.tipo === 'objeto' && x.ref === 'OB04');
+  if (!c || !armasUsables(data, e, A, P.ciudad).some((r) => BONO_MELEE[r])) return {};   // contra flechas no tira: las para siempre
+  const x = dado(e), para = x >= ESCUDO_GOLPE.para, rompe = x === ESCUDO_GOLPE.rompe;
+  const res = para ? `El escudo de ${D.nombre} para el golpe: ${A.nombre} pelea con −1.` : rompe ? `El escudo de ${D.nombre} se rompe: la pelea sigue como si nunca lo hubiera tenido.` : `El golpe pasa el escudo: ${D.nombre} conserva su +1 del escudo.`;
+  mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'defensa', titulo, boton: 'Levantar el escudo', grupos: [{ etq: `${D.nombre} levanta su Escudo de cuero (5 o 6 para el golpe y ${A.nombre} pelea con −1; 1 lo rompe)`, valores: [x] }], resumen: [res] });
+  if (rompe) romperEscudo(data, e, def, c.uid);
+  return para ? { golpeEscudo: 1 } : {};
+}
 function resolverNuevo(data, e) {
   const P = e.pelea; if (!P) return;
   const atk = P.atk, def = P.ayudante || P.def, nA = nombre(e, atk), nD = nombre(e, def);
@@ -487,6 +505,7 @@ function resolverNuevo(data, e) {
   const modA = {}, modD = {};
   if (conArco(data, e, atk, P.ciudad)) Object.assign(modD, disparo(data, e, atk, def, titulo));
   if (conArco(data, e, def, P.ciudad)) Object.assign(modA, disparo(data, e, def, atk, titulo));
+  Object.assign(modA, escudoContraGolpe(data, e, P, atk, def, titulo));
   const bA = bonosCombate(data, e, atk, 'atk', P.ciudad, modA), bD = bonosCombate(data, e, def, 'def', P.ciudad, modD);
   const inicio = [`Cada uno lanza 2 dados y suma sus bonos.${P.tipo === 'robo' ? ' Si empatan, gana el defensor.' : ' Golpe de gracia: 3 o más mata, 1 o 2 hiere, empate hiere a los dos.'}`];
   if (P.ayudante) inicio.push(`${nD} pelea en nombre de ${nombre(e, P.def)}.`);
@@ -560,7 +579,7 @@ function resolver(data, e, { numeros }) {
       } else mostrarDados(e, { por: P.def, npc: esNPC(e, P.def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD} lanza (dijo ${dicho})`, valores: [x] }], resumen: [...inicio, regla, tirada, consecuencia(e, P, ganaAtk, numeroOk, cat)] });
     }
   } else {
-    const bA = bonos(data, e, atk, pA, 'atk', null), bD = bonos(data, e, def, pD, 'def', null);
+    const bA = bonos(data, e, atk, pA, 'atk', null, { duelo: P.tipo === 'duelo' }), bD = bonos(data, e, def, pD, 'def', null, { duelo: P.tipo === 'duelo' });
     for (const [b, m] of [[bA, P.mods?.atk], [bD, P.mods?.def]]) if (m?.flecha) { b.total -= m.flecha; b.partes.push(`flecha −${m.flecha}`); }
     if (P.polvo && !P.ayudante) { bD.resta = Math.max(bD.resta, 2); const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nD} usa Polvo de pimienta: el atacante resta 2.`); }
     const matar = P.tipo === 'matar', op = { empateTermina: matar };     // a muerte, el empate no se repite: deja heridos a los dos
