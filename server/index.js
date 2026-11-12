@@ -127,12 +127,15 @@ function difundir() {
     difusionPendiente = false;
     if (estado.dados && !congelada && estado.fase === 'juego') congelada = new Map(ultimaVista);
     if (!estado.dados && congelada) congelada = null;
+    const pendientes = new Set([estado.dados, ...(estado.colaDados || [])].filter(Boolean).map((d) => d.id));
+    if (!estado.dados && avisosDiferidos.length) { const xs = avisosDiferidos.splice(0); for (const msg of xs) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg }); }
     for (const [ws, pid] of clientes) {
       let v = vista(data, estado, pid);
       if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
       const antes = congelada?.get(pid);
+      if (pendientes.size) v = { ...v, historial: (v.historial || []).filter((h) => !pendientes.has(h.trasDados)) };   // cartas que son consecuencia de unos dados: después de tirarlos
       if (antes && antes.fase === v.fase) v = { ...antes, turno: v.turno, acciones: v.acciones, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
       else ultimaVista.set(pid, v);
       if (!memorias.has(ws)) memorias.set(ws, nuevaMemoria());
@@ -153,8 +156,13 @@ function confirmacion(a, pid) {
   }
 }
 // Abrir o cerrar la caja del banco se anuncia a todos los jugadores (aviso visible) además de quedar en el registro.
+// Mientras haya dados por tirar o en pantalla, los anuncios esperan: primero los dados, después las consecuencias (Jorge, 11 de noviembre).
+const avisosDiferidos = [];
 function avisarCaja(nAntes) {
-  for (const l of estado.log) if ((l.caja || l.aviso) && (l.n || 0) > nAntes) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
+  for (const l of estado.log) if ((l.caja || l.aviso) && (l.n || 0) > nAntes) {
+    if (estado.dados && !l.caja) avisosDiferidos.push(l.texto);
+    else for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
+  }
 }
 function desconectar(ws) {
   const pid = clientes.get(ws);

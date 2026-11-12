@@ -9,7 +9,10 @@ import { peleaNPC, perfil, armasUsables } from './pelea.js';
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
 
 // ---------------------------------------------------------------- utilidades
-function nuevoCtx(e, pid, id) { return { grupos: [], res: [], t(etq, n = 1) { const v = dados(e, n); this.grupos.push({ etq, valores: v }); return v; }, say(x) { this.res.push(x); }, fin() { if (this.grupos.length) mostrarDados(e, { por: pid, motivo: 'reto:' + id, grupos: this.grupos, resumen: [`Reto ${id}:`, ...this.res] }); else { for (const r of this.res) log(e, r, { pid }); if (this.res.length) info(e, pid, `Reto ${id}`, this.res.join(' ')); } } }; }
+// Las cartas que el reto publica antes de mostrar sus dados (un caballo, un camello, una carta de Ifrit…) son consecuencias: se marcan
+// con trasDados para que el servidor no las muestre hasta que el jugador tire y se cierren los dados (Jorge, 11 de noviembre).
+function marcarTrasDados(e, nro0, d) { if (d) for (const h of e.historial) if (h.nro > nro0 && h.nro < d.id) h.trasDados = d.id; }
+function nuevoCtx(e, pid, id) { const nro0 = e.seq; return { grupos: [], res: [], t(etq, n = 1) { const v = dados(e, n); this.grupos.push({ etq, valores: v }); return v; }, say(x) { this.res.push(x); }, fin() { if (this.grupos.length) marcarTrasDados(e, nro0, mostrarDados(e, { por: pid, motivo: 'reto:' + id, grupos: this.grupos, resumen: [`Reto ${id}:`, ...this.res] })); else { for (const r of this.res) log(e, r, { pid }); if (this.res.length) info(e, pid, `Reto ${id}`, this.res.join(' ')); } } }; }
 const nProb = (e) => activos(e).length;
 export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
   const j = e.jugadores[pid];

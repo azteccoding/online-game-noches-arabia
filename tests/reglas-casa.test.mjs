@@ -2520,4 +2520,23 @@ for (let k = 0; k < 6; k++) {
   h.act(c, { t: 'decidir', id: f.pend.id, numero: 4 }); assert.ok(f.log.some((l) => l.texto.includes('contrata 4 sirviente(s) por 68 dinares')));
 }
 
+// Jorge (11 de noviembre): en los retos, las cartas de consecuencia (un camello en R5, caballo y camello en R1, una carta de Ifrit en R40)
+// se publican marcadas con los dados que las causan: el servidor no las muestra hasta que el jugador tira y se cierran los dados.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.extra.clienteWeb = true;   // como un jugador real: sus dados esperan su botón
+  A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; forzar(e, 6);
+  const h0 = e.historial.length;
+  assert.ok(g.act(a, { t: 'reto', id: 'R5' }).ok);
+  const d = [e.dados, ...(e.colaDados || [])].find((x) => x && x.motivo === 'reto:R5');
+  assert.ok(d && !d.lanzado, 'el dado de R5 espera el botón del jugador');
+  const nuevas = e.historial.slice(h0);
+  const camello = nuevas.find((h) => /Ganaste un camello/.test(h.sub || ''));
+  assert.ok(camello, 'gana el camello'); assert.equal(camello.trasDados, d.id, 'su carta va después de los dados');
+  // así filtra el servidor mientras haya dados pendientes
+  const pend = new Set([e.dados, ...(e.colaDados || [])].filter(Boolean).map((x) => x.id));
+  assert.ok(!e.historial.filter((h) => !pend.has(h.trasDados)).some((h) => h === camello), 'antes de tirar, la carta no se ve');
+}
+
 console.log('reglas de la casa OK');
