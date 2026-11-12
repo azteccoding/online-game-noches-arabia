@@ -354,7 +354,7 @@
    "tipo": "historico",
    "nombre": "Sequía en los pozos del camino",
    "ciudades": "Yemen, Basra",
-   "efecto": "Cada jugador en Yemen o Basra con objeto de transporte animal (camello, burro, caballo) debe pagar el agua o pierde ese animal",
+   "efecto": "Cada jugador en Yemen o Basra con objeto de transporte animal (camello, burro, caballo) o con yeguas de la estepa debe pagar el agua o pierde ese animal",
    "costo": "5 dinares por animal. Quien se vaya de la ciudad antes de que se resuelva no paga",
    "fomenta": "M, P",
    "arte": "hi",

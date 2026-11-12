@@ -465,7 +465,7 @@ export function disponibles(data, e, pid) {
   return r;
 }
 
-const ANIMALES = ['caballo', 'camello', 'burro'];
+const ANIMALES = ['caballo', 'camello', 'burro', 'caballoMongol', 'yegua'];   // el abrevadero envenenado también mata yeguas y caballos mongoles (Jorge, 12 de noviembre)
 
 // Destinos de cada transporte propio (objetos.json, «transportes»). India solo se alcanza en caravana o en alfombra.
 export function destinosTransporte(data, ref, desde) {
@@ -493,7 +493,7 @@ function usarVeneno(data, e, pid, c, a) {
     j.dinares -= precio; quitarCarta(j, c.uid);
     let muertos = 0;
     for (const q of enCiudad(e, a.destino)) { const x = e.jugadores[q]; const n = x.mano.length; x.mano = x.mano.filter((k) => !(k.tipo === 'item' && ANIMALES.includes(k.ref))); muertos += n - x.mano.length; }
-    log(e, `Alguien envenena el abrevadero de ${a.destino}: mueren ${muertos} animal(es) de transporte.`);
+    log(e, `Alguien envenena el abrevadero de ${a.destino}: mueren ${muertos} animal(es).`);
     return ok();
   }
   const v = e.jugadores[a.objetivo];

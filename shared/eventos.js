@@ -147,10 +147,12 @@ function aplicarHistorico0(data, e, id) {
     case 'H20': {
       for (const pid of humanosEn(e, ['Yemen', 'Basra'])) {
         const j = jug(e, pid);
-        for (const animal of ['caballo', 'camello', 'burro']) {
-          while (tieneItem(j, animal)) {
-            if (tieneObj(j, 'OB18') && !j.extra.odreH20) { j.extra.odreH20 = true; consumirObj(data, e, pid, 'OB18'); log(e, `${j.nombre} paga el agua con su Odre.`, { pid }); quitarSoloMarca(j, animal); continue; }
-            if (j.dinares >= 5) { j.dinares -= 5; quitarSoloMarca(j, animal); log(e, `${j.nombre} paga 5 dinares por el agua de su ${animal}.`, { pid }); } else { quitarPrimero(j, 'item', animal); if (animal === 'burro') e.burros = (e.burros || 0) + 1; log(e, `${j.nombre} pierde su ${animal} por la sequía.`, { pid }); }
+        for (const animal of ['caballo', 'camello', 'burro', 'caballoMongol', 'yegua']) {   // Jorge (12 de noviembre): también yeguas y caballos mongoles
+          const nom = ITEMS[animal].nombre.toLowerCase();
+          // una sola vez por animal (antes el bucle seguía cobrando hasta dejarte sin dinares y perdías el animal igual)
+          for (const c of j.mano.filter((x) => x.tipo === 'item' && x.ref === animal)) {
+            if (tieneObj(j, 'OB18') && !j.extra.odreH20) { j.extra.odreH20 = true; consumirObj(data, e, pid, 'OB18'); log(e, `${j.nombre} paga el agua con su Odre.`, { pid }); continue; }
+            if (j.dinares >= 5) { j.dinares -= 5; log(e, `${j.nombre} paga 5 dinares por el agua de su ${nom}.`, { pid }); } else { quitarCarta(j, c.uid); if (animal === 'burro') e.burros = (e.burros || 0) + 1; log(e, `${j.nombre} pierde su ${nom} por la sequía.`, { pid }); }
           }
         }
         for (const c of j.mano) if (c.extra?.h20) delete c.extra.h20;

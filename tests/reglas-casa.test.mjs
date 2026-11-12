@@ -2942,3 +2942,21 @@ console.log('reglas de la casa OK');
   { const { g, e, a, b, A, B } = prep(); B.mano.push({ uid: 9603, tipo: 'objeto', ref: 'OB45' }); forzar(e, 6, 6, 1, 1); asalto(g, e, a, b);
     assert.equal(A.buscado, data.config.buscadoRondas, 'la máscara que acaba de robar no le sirve en ese robo'); }
 }
+
+// Jorge (12 de noviembre): el agua de H20 y el abrevadero envenenado también afectan a yeguas y caballos mongoles.
+// H20 cobra 5 dinares una sola vez por animal (antes seguía cobrando hasta dejarte sin dinares y perdías el animal igual).
+{
+  const { aplicarHistorico } = await import('../shared/eventos.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.ciudad = 'Yemen'; A.dinares = 12; darItem(e, A, 'camello'); darItem(e, A, 'yegua'); darItem(e, A, 'yegua');
+  aplicarHistorico(data, e, 'H20');
+  assert.equal(A.dinares, 2, 'paga 5 por el camello y 5 por una yegua');
+  assert.equal(A.mano.filter((c) => c.ref === 'camello').length, 1, 'conserva el camello que pagó');
+  assert.equal(A.mano.filter((c) => c.ref === 'yegua').length, 1, 'pierde la yegua que no pudo pagar');
+  // abrevadero envenenado (Masrur, Bagdad): mueren caballos mongoles y yeguas de esa ciudad
+  B.ciudad = 'Damasco'; darItem(e, B, 'caballoMongol'); darItem(e, B, 'yegua'); darItem(e, B, 'caballo');
+  A.ciudad = 'Bagdad'; A.dinares = 100; darItem(e, A, 'veneno'); turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'usar', uid: A.mano.find((c) => c.ref === 'veneno').uid, via: 'abrevadero', destino: 'Damasco' }).ok);
+  assert.ok(!B.mano.some((c) => ['caballoMongol', 'yegua', 'caballo'].includes(c.ref)), 'mueren todos sus animales');
+}
