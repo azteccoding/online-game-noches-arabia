@@ -11,6 +11,7 @@ import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
 import crypto from 'node:crypto';
+import { vistaCongelada, dadosPendientes } from '../shared/congelar.js';
 import { nuevaMemoria, reducirVista } from '../shared/delta.js';
 import { fileURLToPath } from 'node:url';
 import { armarReaccion } from '../shared/reacciones.js';
@@ -127,7 +128,7 @@ function difundir() {
     difusionPendiente = false;
     if (estado.dados && !congelada && estado.fase === 'juego') congelada = new Map(ultimaVista);
     if (!estado.dados && congelada) congelada = null;
-    const pendientes = new Set([estado.dados, ...(estado.colaDados || [])].filter(Boolean).map((d) => d.id));
+    const pendientes = dadosPendientes(estado);
     if (!estado.dados && avisosDiferidos.length) { const xs = avisosDiferidos.splice(0); for (const msg of xs) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg }); }
     for (const [ws, pid] of clientes) {
       let v = vista(data, estado, pid);
@@ -135,9 +136,8 @@ function difundir() {
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
       const antes = congelada?.get(pid);
-      if (pendientes.size) v = { ...v, historial: (v.historial || []).filter((h) => !pendientes.has(h.trasDados)) };   // cartas que son consecuencia de unos dados: después de tirarlos
-      if (antes && antes.fase === v.fase) v = { ...antes, turno: v.turno, acciones: v.acciones, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan a que se cierren los dados
-      else ultimaVista.set(pid, v);
+      if (antes && antes.fase === v.fase) v = vistaCongelada(antes, v, pendientes);   // shared/congelar.js
+      else { if (!estado.dados) ultimaVista.set(pid, v); v = vistaCongelada(null, v, pendientes); }
       if (!memorias.has(ws)) memorias.set(ws, nuevaMemoria());
       enviar(ws, { t: 'estado', s: reducirVista({ ...v, urls: direcciones() }, memorias.get(ws)) });   // solo lo nuevo del historial y del registro
     }
@@ -158,9 +158,9 @@ function confirmacion(a, pid) {
 // Abrir o cerrar la caja del banco se anuncia a todos los jugadores (aviso visible) además de quedar en el registro.
 // Mientras haya dados por tirar o en pantalla, los anuncios esperan: primero los dados, después las consecuencias (Jorge, 11 de noviembre).
 const avisosDiferidos = [];
-function avisarCaja(nAntes) {
+function avisarCaja(nAntes, diferir = false) {   // diferir: anuncios que salen de una acción o del reloj (pueden ser consecuencia de dados)
   for (const l of estado.log) if ((l.caja || l.aviso) && (l.n || 0) > nAntes) {
-    if (estado.dados && !l.caja) avisosDiferidos.push(l.texto);
+    if (diferir && estado.dados && !l.caja) avisosDiferidos.push(l.texto);
     else for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg: l.texto });
   }
 }
@@ -225,7 +225,7 @@ wss.on('connection', (ws, req) => {
       try { r = reducir(data, estado, pid, m.a, ahora); } catch (x) { estado = restaurar(copia); console.error('Error del motor en', m.a.t, x.stack); r = { ok: false, error: 'Error interno del servidor (anotado en la consola). Prueba de nuevo.' }; }
       if (!r.ok) enviar(ws, { t: 'error', msg: r.error, n: m.n });
       else { const msg = confirmacion(m.a, pid); if (msg) enviar(ws, { t: 'hecho', msg, n: m.n }); }
-      if (r.ok) avisarCaja(antesLog);
+      if (r.ok) avisarCaja(antesLog, true);
       archivarTerminada();
       marcar(); difundir();
     }
@@ -238,7 +238,7 @@ function archivarTerminada() {
   try { fs.writeFileSync(path.join(DIR_DATOS, `partida-terminada-${Date.now()}.json`), estado.archivoPendiente, { mode: 0o600 }); } catch (x) { console.error('No se pudo archivar la partida terminada:', x.message); }
   delete estado.archivoPendiente;
 }
-setInterval(() => { try { const nAntes = estado.logN || 0; if (tick(data, estado, Date.now())) { avisarCaja(nAntes); archivarTerminada(); marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
+setInterval(() => { try { const nAntes = estado.logN || 0; if (tick(data, estado, Date.now())) { avisarCaja(nAntes, true); archivarTerminada(); marcar(); difundir(); } } catch (x) { console.error('Error en el reloj del motor', x.stack); } }, 1000);
 setInterval(() => { for (const ws of wss.clients) { if (!ws.vivo) { ws.terminate(); continue; } ws.vivo = false; ws.ping(); } }, 25000);
 
 // ---------------------------------------------------------------- arranque

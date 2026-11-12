@@ -83,9 +83,15 @@ export function disponibles(data, e, pid) {
     const msg = T[id].req ? T[id].req(data, e, pid) : null;
     r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || msg || undefined });
   }
-  const deuda = j.misiones.find((m) => m.id === 'R1' && m.deuda > 0 && j.ciudad === 'Bagdad');
-  if (deuda) r.push({ k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)`, texto: j.dinares >= deuda.deuda ? 'Pagas con dinares y quedas libre para salir de Bagdad.' : 'No te alcanzan los dinares: pagas con TODAS tus noches y quedas libre para salir.' });
   return r;
+}
+// Pagar la deuda con Bagdad (Jorge, 11 de noviembre): voluntario, en cualquier momento de tu turno mientras exista (también el mismo turno
+// en que la adquieres), sin gastar la acción principal; solo si te alcanzan los dinares. Si no la pagas a tiempo, se cobra sola como antes.
+export function opcionPagoDeuda(e, j) {
+  const deuda = j.misiones.find((m) => m.id === 'R1' && m.deuda > 0);
+  if (!deuda || j.ciudad !== 'Bagdad' || j.transito || j.perdido) return null;
+  const falta = deuda.deuda - j.dinares;
+  return { k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)`, texto: 'Pagas con dinares y quedas libre para salir de Bagdad. No gasta tu acción principal.', bloqueado: falta > 0 ? `Te faltan ${falta} dinares para pagar tu deuda.` : undefined };
 }
 
 export function iniciarReto(data, e, pid, a) {
@@ -95,6 +101,7 @@ export function iniciarReto(data, e, pid, a) {
   if (a.sub === 'pagar') {
     const m = j.misiones.find((x) => x.id === 'R1' && x.deuda > 0);
     if (!m) return err('No debes nada.');
+    if (j.dinares < m.deuda) return err(`Te faltan ${m.deuda - j.dinares} dinares para pagar tu deuda.`);   // sin dinero no hay trato
     pagarDeudaR1(e, j, m); return ok();
   }
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
@@ -275,7 +282,9 @@ registrar('r1.ayudantes', (data, e, args, resp) => {
   const ctx = nuevoCtx(e, pid, 'R1');
   const v = ctx.t(`${j.nombre} y ${n} sirviente(s)`, 1 + n);
   if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; }
-  ctx.fin(); e.turno.fin = true; e.turno.movio = true;
+  ctx.fin(); e.turno.movio = true;
+  // Con deuda, el turno queda abierto para que puedas pagarla antes de terminarlo (Jorge, 11 de noviembre); sin más viajes ni acción principal.
+  if (j.misiones.some((x) => x.id === 'R1' && x.deuda > 0)) { e.turno.principal = true; e.turno.maxTramos = e.turno.tramos; } else e.turno.fin = true;
 });
 T.R1.sinSalir = true;
 

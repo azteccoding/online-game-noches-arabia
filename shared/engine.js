@@ -603,11 +603,21 @@ function reducir0(data, e, pid, a, ahora) {
   if (e.fase === 'fin' && !String(a.t).startsWith('host.')) return err('La partida terminó.');
   if (e.pend && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Hay una decisión pendiente: respóndela primero.');
   let r;
+  const seq0 = e.seq || 0;
   try { r = despachar(data, e, pid, j, a, ahora); } catch (x) { if (x?.message?.startsWith('pend')) throw x; throw x; }
+  marcarConsecuencias(e, seq0);
   if (r && r.ok) { postAccion(data, e); avanzar(data, e); }
   return r;
 }
 
+// REGLA de Jorge (11 de noviembre): si la acción dejó dados esperando el botón de un jugador, las cartas que esa misma acción publicó son
+// consecuencias: se marcan con esos dados y no se muestran hasta que se tiren y se cierren (server/index.js, shared/congelar.js).
+function marcarConsecuencias(e, seq0) {
+  const nuevos = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.id > seq0 && !d.lanzado);
+  if (!nuevos.length) return;
+  const ultimo = Math.max(...nuevos.map((d) => d.id));
+  for (const h of e.historial) if (h.nro > seq0 && !h.trasDados) h.trasDados = ultimo;
+}
 function postAccion(data, e) {
   const t = e.turno;
   if (t && !t.npc) { const j = e.jugadores[t.pid]; if (j && !j.eliminado) RET.revisarKanmakan(data, e, t.pid); }
@@ -1198,6 +1208,7 @@ export function acciones(data, e, pid) {
   if (t.fase === 'ingreso') return [{ k: 'tirarDados', titulo: 'Tirar el dado de ingreso' }];
   const r = [];
   if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la carta de Cuentos' });
+  { const pd = RET.opcionPagoDeuda(e, j); if (pd && !t.omitido) r.push(pd); }   // la deuda con Bagdad se paga en cualquier momento de tu turno
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán' }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {

@@ -90,9 +90,10 @@ function partida(pjs, opciones = {}, semilla = 5) {
   const r = g.act(pid, { t: 'viajar', destino: 'Damasco' });
   assert.ok(!r.ok && /deuda con Bagdad/.test(r.error), 'con deuda no puedes salir de Bagdad');
   j.dinares = 3; j.noches = 140;
-  assert.ok(g.act(pid, { t: 'reto', id: 'R1', sub: 'pagar' }).ok);
-  assert.equal(j.noches, 0, 'sin dinares, la deuda se paga con todas las noches'); assert.equal(j.dinares, 3);
-  assert.ok(!j.misiones.some((m) => m.id === 'R1'), 'queda libre');
+  // Jorge (11 de noviembre): pagarla es voluntario y solo si te alcanza; sin dinero no hay trato (antes se cobraba con las noches)
+  assert.match(g.act(pid, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /Te faltan 18 dinares/);
+  assert.equal(j.noches, 140, 'sin dinares no se cobra nada'); assert.equal(j.dinares, 3);
+  j.misiones = j.misiones.filter((m) => m.id !== 'R1');
 }
 // 13) Dado de Ibn Arabi: lo regalan sus mensajes y repite una pelea perdida
 {
@@ -2537,6 +2538,78 @@ for (let k = 0; k < 6; k++) {
   // así filtra el servidor mientras haya dados pendientes
   const pend = new Set([e.dados, ...(e.colaDados || [])].filter(Boolean).map((x) => x.id));
   assert.ok(!e.historial.filter((h) => !pend.has(h.trasDados)).some((h) => h === camello), 'antes de tirar, la carta no se ve');
+}
+
+// REGLA de Jorge (11 de noviembre): nunca salen las consecuencias antes de tirar los dados y de mostrar lo que sucedió; cada una, una vez.
+// Recorre TODOS los retos: con el jugador como persona real (sus dados esperan su botón), la vista que reciben los navegadores mientras
+// hay dados pendientes (shared/congelar.js) no cambia dinares, noches, mano, registro ni cartas; después de tirar y cerrar, el premio
+// queda aplicado y volver a lanzar o cerrar no paga otra vez.
+{
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  const { T: _t } = await import('../shared/retos.js').catch(() => ({}));
+  void _t;
+  const ids = data.retos.retos.map((r) => r.id);
+  let conDados = 0; const cubiertos = [];
+  const huella = (v, p) => JSON.stringify({ din: v.jugadores[p].dinares, noc: v.jugadores[p].noches, mano: (v.mano || []).map((c) => c.uid), log: (v.log || []).map((l) => l.n), hist: (v.historial || []).map((h) => h.nro) });
+  for (const id of ids) {
+    const r = data.retos.retos.find((x) => x.id === id);
+    const ciudades = data.ciudades.ciudades.filter((c) => (c.retos || []).includes(id)).map((c) => c.id);
+    for (const ciudad of ciudades.slice(0, 1)) {
+      const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+      const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+      for (const x of Object.values(e.jugadores)) { x.extra.clienteWeb = true; x.ciudad = ciudad; }
+      A.dinares = 300; A.turnos = 8; A.destreza = true; A.extra.idiomas = ['persa', 'árabe'];
+      for (const it of ['cimitarra', 'camello', 'alfombraIsfahan', 'alfombraIsfahan']) darItem(e, A, it);
+      e.crimenPresenciado = true; e.ultimoDamasco = b; e.ronda = 5;
+      turnoDe(e, a, ciudad); e.turno.fase = 'acciones'; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+      const v0 = vistaDe(e, a), v0b = vistaDe(e, b);
+      const res = g.act(a, { t: 'reto', id });
+      if (!res.ok) continue;   // requisitos que esta preparación no cumple (se revisan a mano)
+      for (let k = 0; k < 6 && e.pend && !dadosPendientes(e).size; k++) {
+        const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: (p.opciones?.find((o) => o.id === 'si') || p.opciones?.[0] || {}).id, numero: p.min ?? 1, valores: [] });
+      }
+      const pend = dadosPendientes(e);
+      if (!pend.size || !e.dados || e.dados.lanzado) continue;
+      conDados++; cubiertos.push(id);
+      for (const [quien, v0x] of [[a, v0], [b, v0b]]) {
+        const vf = vistaCongelada(v0x, vistaDe(e, quien), pend);
+        assert.equal(huella(vf, a), huella(v0x, a), `${id} (${r.nombre}): antes de tirar, ${quien === a ? 'quien juega' : 'los demás'} no ven ninguna consecuencia`);
+      }
+      // tirar y cerrar todos los dados
+      const real = () => JSON.stringify({ d: A.dinares, n: A.noches, m: A.mano.length, h: A.herido });
+      for (let k = 0; k < 12 && e.dados; k++) { g.act(e.dados.por, { t: 'lanzarDados' }); g.tickear(5000); g.act(e.dados?.por ?? a, { t: 'cerrarDados' }); for (const x of [a, b]) g.act(x, { t: 'cerrarDados' }); }
+      const despues = real();
+      g.act(a, { t: 'lanzarDados' }); g.act(a, { t: 'cerrarDados' }); g.act(b, { t: 'cerrarDados' });
+      if (!e.dados && !e.pend) assert.equal(real(), despues, `${id}: volver a lanzar o cerrar no paga otra vez`);
+    }
+  }
+  assert.ok(conDados >= 14, 'la prueba recorrió los retos con dados: ' + conDados);
+  if (process.env.VER_RETOS) console.log('retos con dados cubiertos:', cubiertos.join(' '));
+}
+
+// Deuda con Bagdad (Jorge, 11 de noviembre): se paga en el mismo turno en que la adquieres o en cualquier turno, sin gastar la acción
+// principal y aunque hayas fallado la búsqueda; sin dinero suficiente no se cobra y el botón dice cuánto falta.
+{
+  const RET = await import('../shared/retos.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Bagdad'; A.dinares = 20; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  forzar(e, 6, 6);   // sin cofre
+  assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
+  if (e.pend) g.act(a, { t: 'decidir', id: e.pend.id, numero: 0 });
+  e.dados = null; e.colaDados = [];
+  assert.ok(A.misiones.some((m) => m.id === 'R1' && m.deuda === 15), 'adquiere la deuda');
+  assert.ok(!e.turno.fin, 'el turno sigue abierto para poder pagar');
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.sub === 'pagar'); assert.ok(op && !op.bloqueado, 'el botón de pagar aparece en el mismo turno');
+  assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok); assert.equal(A.dinares, 5); assert.ok(!A.misiones.some((m) => m.id === 'R1'), 'pagada');
+  // otra vez: deuda y turno siguiente, ya con la acción principal gastada
+  A.misiones.push({ id: 'R1', deuda: 15, ayudantes: 0, busca: false, vence: A.turnos + 3 }); A.dinares = 10;
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; e.turno.principal = true;
+  const op2 = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.sub === 'pagar');
+  assert.ok(op2, 'aparece aunque ya usaste la acción principal'); assert.equal(op2.bloqueado, 'Te faltan 5 dinares para pagar tu deuda.');
+  const n0 = A.noches; assert.match(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /Te faltan 5 dinares/); assert.equal(A.noches, n0, 'sin dinero no se cobra nada');
+  A.dinares = 15; assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok, 'con 15 sí'); assert.equal(A.dinares, 0);
+  void RET;
 }
 
 console.log('reglas de la casa OK');
