@@ -2833,3 +2833,10 @@ console.log('reglas de la casa OK');
     e.opciones.dificultad = 'dificil'; assert.ok(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).ok, 'en difícil, los 2');
     A.npc = false; e.mapasJorasan = 1; e.opciones.dificultad = 'facil'; assert.ok(puede().puede, 'Yafar jugador, como cualquiera'); }
 }
+
+// Jorge (12 de noviembre): la ficha de la ciudad solo dice lo que se vende únicamente ahí («Solo aquí»), sin «Raros» ni la lista completa.
+{
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/components/HojaCiudad.jsx', import.meta.url), 'utf8');
+  assert.ok(src.includes('Solo aquí:') && !src.includes('Raros (') && !src.includes('Se venden:'), 'ficha: solo lo exclusivo');
+}

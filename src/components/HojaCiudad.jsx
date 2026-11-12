@@ -5,7 +5,7 @@ import { ACCIONES } from '../game/protocol.js';
 import { consejosVenta } from '../game/ventas.js';
 
 import { entrenamientosEn } from '../../shared/retos.js';
-import { objetosRaros, RAROS_MAX } from '../../shared/objetos.js';
+import { objetosRaros } from '../../shared/objetos.js';
 const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
 const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
@@ -23,7 +23,6 @@ export default function HojaCiudad({ s, id, onCerrar }) {
   const puedeViajar = !!viaje && !s.dados && !s.pend;
   const mult = s.mult;
   const presentes = Object.values(s.jugadores).filter((j) => j.ciudad === id && j.pj && !j.eliminado);
-  const vende = DATA.objetos.mazo.filter((o) => o.seConsigueEn.split(/,| y /).map((x) => x.trim()).includes(id));
   return (
     <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}`}>
       <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
@@ -33,16 +32,11 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {c.notas && <p className="it">{c.notas}</p>}
         {c.retos.length > 0 && <p><b>Retos aquí:</b> {c.retos.join(', ')}</p>}
         <p><b>Entrenamiento:</b> {entrenamientos(c, yo).join(' · ') || 'ninguno'}</p>
-        {(() => {   // Jorge (11 de noviembre): objetos raros de este mercado (de los mismos datos del mercado), con su precio en dinares
-          const r = objetosRaros(DATA, id), solo = r.filter((x) => x.soloAqui), pocas = r.filter((x) => !x.soloAqui);
-          if (!r.length) return null;
-          return <>
-            {solo.length > 0 && <p><b>Solo aquí:</b> {solo.map(rotulo).join(', ')}</p>}
-            {pocas.length > 0 && <p><b>Raros (en {RAROS_MAX} ciudades o menos):</b> {pocas.map(rotulo).join(', ')}</p>}
-          </>;
+        {(() => {   // Jorge (12 de noviembre): solo lo que se vende únicamente en esta ciudad (de los mismos datos del mercado), con su precio
+          const solo = objetosRaros(DATA, id).filter((x) => x.soloAqui);
+          return solo.length > 0 ? <p><b>Solo aquí:</b> {solo.map(rotulo).join(', ')}</p> : null;
         })()}
         <p><b>Aquí:</b> {presentes.length ? presentes.map((j) => j.nombre).join(', ') : 'nadie'}</p>
-        {vende.length > 0 && <p><b>Se venden:</b> {vende.map((o) => o.nombre).join(', ')}</p>}
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}
         <button className="btn mini sec" aria-expanded={verVentas} onClick={() => setVerVentas((v) => !v)}>{verVentas ? 'Ocultar consejos de venta' : 'Consejos para ganar dinares aquí'}</button>
         {verVentas && <ul className="consejos-venta">{consejosVenta(id).map((x) => <li key={x}>{x}</li>)}</ul>}
