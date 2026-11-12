@@ -2792,7 +2792,10 @@ console.log('reglas de la casa OK');
     const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: A.mano.find((c) => c.ref === 'mapaJorasan').uid }).ok); assert.equal(A.dinares, d0 + 10);
     assert.ok(!(e.establo || []).length && !tienda(data, e, a).find((x) => x.ref === 'mapaJorasan'), 'desaparece de ese mercado');
     const r0 = e.ronda; e.ronda = r0 + 1; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 0, 'todavía no');
-    e.ronda = r0 + 2; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 1, 'a las 2 rondas vuelve a Bagdad'); }
+    e.ronda = r0 + 2; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 1, 'a las 2 rondas vuelve a Bagdad');
+    // vendido en Bagdad: queda a la venta ahí de inmediato
+    darItem(e, A, 'mapaJorasan'); A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'vender', uid: A.mano.find((c) => c.ref === 'mapaJorasan').uid }).ok); assert.equal(e.mapasJorasan, 2, 'en Bagdad, de inmediato'); assert.equal(e.mapasRepone.length, 0); }
   // perdido con el mapa: un dado, impar Basra, par Samarcanda; gasta la acción principal y se desvanece (y vuelve a Bagdad en 2 rondas)
   for (const [v, dest] of [[3, 'Basra'], [4, 'Samarcanda']]) {
     const { g, e, a, A } = prep();

@@ -241,8 +241,8 @@ export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra'];
 // Mapa del Jorasán (Jorge, 12 de noviembre): hay 2 en toda la partida, a la venta en Bagdad por 20 dinares; no pesa. Perdido en el
 // Jorasán, usarlo gasta tu acción principal: un dado, impar sales a Basra, par a Samarcanda; el mapa se desgasta y se desvanece. Los
 // piratas de Yemen lo llevan por 5 dinares (sin gastar la acción principal) a un jugador perdido: le llega en su próximo turno. Se vende y
-// se pasa en tratos como cualquier objeto; vendido a un mercado (o gastado), desaparece y los escribas de Bagdad hacen otro: vuelve a la
-// venta allí 2 rondas después. Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los 2.
+// se pasa en tratos como cualquier objeto; vendido en Bagdad queda a la venta ahí de inmediato; vendido en otro mercado (o gastado),
+// desaparece y los escribas de Bagdad hacen otro: vuelve a la venta allí 2 rondas después. Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los 2.
 export const MAPA_JORASAN = { precio: 20, ciudad: 'Bagdad', envio: 5, impar: 'Basra', par: 'Samarcanda', seGasta: true, stock: 2, envioPrincipal: false, reponeRondas: 2, usadoRepone: true, npc: { facil: 0, normal: 1, dificil: 2 } };
 export const nCarga = (j) => j.mano.filter((c) => c.tipo === 'objeto' || (c.tipo === 'item' && CARGA_ITEMS.includes(c.ref))).length;
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);

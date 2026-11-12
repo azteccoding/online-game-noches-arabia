@@ -250,7 +250,9 @@ export function vender(data, e, pid, a) {
     quitarCarta(j, c.uid); j.dinares += ALFOMBRA_VENTA.precio; log(e, `${j.nombre} vende su alfombra mágica en ${ciudad} por ${ALFOMBRA_VENTA.precio} dinares; la alfombra se deshace y nadie la puede comprar.`, { pid }); return ok();
   }
   if (c.ref === 'mapaJorasan') {   // como cualquier objeto original: la mitad de su precio; desaparece y los escribas hacen otro
-    precio = Math.floor(MAPA_JORASAN.precio / 2); quitarCarta(j, c.uid); j.dinares += precio; reponerMapaJorasanLuego(e);
+    precio = Math.floor(MAPA_JORASAN.precio / 2); quitarCarta(j, c.uid); j.dinares += precio;
+    if (ciudad === MAPA_JORASAN.ciudad) { e.mapasJorasan = mapasJorasanVenta(e) + 1; log(e, `${j.nombre} vende un mapa del Jorasán por ${precio} dinares; queda a la venta en Bagdad.`, { pid }); return ok(); }   // Jorge: en Bagdad, de inmediato
+    reponerMapaJorasanLuego(e);
     log(e, `${j.nombre} vende un mapa del Jorasán por ${precio} dinares; el mapa desaparece y los escribas de Bagdad hacen otro (en 2 rondas).`, { pid }); return ok();
   }
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
@@ -350,7 +352,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `En el mercado de cualquier ciudad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares ${c.ref === 'burro' ? ', por desnutrido' : ''} (ahí se revende a ${REVENTA_ANIMAL[c.ref]}, con todos sus turnos de vida).`;
   if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
-  if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
+  if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (en Bagdad queda a la venta de inmediato; en otra ciudad desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
