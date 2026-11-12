@@ -480,6 +480,11 @@ function romperEscudo(data, e, pid, u) {
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
   quitarPrimero(T, 'item', 'flechas');
+  if (T.extra?.arcoMaximo) {   // R51 Torneo de Murcia: siempre acierta, el rival pelea con −1 (un escudo la sigue parando)
+    const escudo = !!tieneObj(B, 'OB04');
+    log(e, escudo ? `${T.nombre} dispara con destreza máxima en arco, pero la flecha se clava en el escudo de ${B.nombre}.${flechazoAlEscudo(data, e, B)}` : `${T.nombre} dispara con destreza máxima en arco: la flecha acierta y ${B.nombre} pelea con −1.`, { pid: tirador });
+    return escudo ? {} : { flecha: 1 };
+  }
   const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = !!T.extra?.entrenado?.arco;   // regla de Jorge: 5–6 le da; entrenado (R43), además 3–4 lo obliga a cubrirse
   const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : en && x >= 3 ? { flecha: 1 } : {};
   const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.${flechazoAlEscudo(data, e, B)}` : x >= 5 ? `¡Le da! ${B.nombre} pelea con −1 y sin su destreza en esta pelea.` : en && x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';

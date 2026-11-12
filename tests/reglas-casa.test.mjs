@@ -3032,3 +3032,48 @@ console.log('reglas de la casa OK');
     assert.ok(bonosCombate(data, e, a, 'atk', 'Damasco').partes.some((x) => /Daga/.test(x)), 'la daga cuenta en robo y ataque a muerte');
     assert.ok(!bonos(data, e, a, perfil(data, e, a), 'atk', null, { duelo: true }).partes.some((x) => /Daga/.test(x)), 'en duelo no'); }
 }
+
+// Jorge (12 de noviembre): R51 «Torneo de Murcia» (Andalucía): 16 dinares, arco y 1 flecha (se gasta), una vez cada dos turnos; 1 o 6 da la
+// destreza máxima en arco (sus flechas siempre aciertan: rival −1; el escudo las para) y el torneo deja de aparecer; 2 a 5, 20 noches.
+// Yafar puede sobornar a los jueces: 16 + 20 y gana sin tirar (Yafar NPC siempre soborna).
+{
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  const prep = (pjs = ['4', '7']) => {
+    const g = partida(pjs); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    A.ciudad = 'Andalucía'; A.dinares = 50; A.extra.clienteWeb = true;
+    turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones';
+    return { g, e, a, b, A, B };
+  };
+  const op = (e, a) => vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.id === 'R51');
+  { const { e, a, A } = prep();
+    assert.match(op(e, a)?.bloqueado || '', /Necesitas tener un arco/);
+    darItem(e, A, 'arco'); assert.match(op(e, a)?.bloqueado || '', /al menos una flecha/);
+    darItem(e, A, 'flechas'); A.dinares = 10; assert.match(op(e, a)?.bloqueado || '', /Cuesta 16 dinares/); }
+  // pierde (2 a 5): 20 noches; gasta 16 y una flecha; no puede volver hasta dentro de 2 turnos
+  { const { g, e, a, A } = prep(); darItem(e, A, 'arco'); darItem(e, A, 'flechas'); darItem(e, A, 'flechas');
+    const v0 = vistaDe(e, a), n0 = A.noches; forzar(e, 3);
+    assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok);
+    const vf = vistaCongelada(v0, vistaDe(e, a), dadosPendientes(e)); assert.equal(vf.jugadores[a].noches, v0.jugadores[a].noches, 'nada antes del dado');
+    assert.equal(A.dinares, 34); assert.equal(A.noches, n0 + 20); assert.equal(A.mano.filter((c) => c.ref === 'flechas').length, 1); assert.ok(!A.extra.arcoMaximo);
+    A.turnos++; turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; assert.match(op(e, a)?.bloqueado || '', /próximo turno/);
+    A.turnos++; turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; assert.ok(op(e, a) && !op(e, a).bloqueado, 'a los dos turnos, otra vez');
+    forzar(e, 6); assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok); assert.ok(A.extra.arcoMaximo, 'con 6 gana');
+    A.turnos += 2; turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; assert.ok(!op(e, a), 'al lograrla deja de aparecer');
+    assert.match(vistaDe(e, a).jugadores[a].arcoMaximo ? 'si' : '', /si/, 'se ve en la lista de entrenamiento'); }
+  // con destreza máxima la flecha siempre acierta (−1 al rival) y el escudo la sigue parando
+  { const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco'; e.ronda = 5;
+    A.extra.arcoMaximo = true; A.mano.push({ uid: 9901, tipo: 'item', ref: 'arco' }, { uid: 9902, tipo: 'item', ref: 'flechas' }, { uid: 9903, tipo: 'item', ref: 'flechas' });
+    const asalto = () => { turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; const m0 = e.logN || 0; assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); return JSON.stringify(e.log.filter((h) => h.n > m0)); };
+    forzar(e, 1, 1, 6, 6); let t = asalto(); assert.match(t, /destreza máxima en arco: la flecha acierta/); A.buscado = 0;
+    B.mano.push({ uid: 9904, tipo: 'objeto', ref: 'OB04' }); forzar(e, 1, 1, 6, 6); t = asalto(); assert.match(t, /se clava en el escudo/, 'el escudo la para'); }
+  // Yafar jugador puede sobornar: 16 + 20
+  { const { g, e, a, A } = prep(['B', '7']); darItem(e, A, 'arco'); darItem(e, A, 'flechas'); A.dinares = 40;
+    assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok); assert.equal(e.pend?.titulo, 'R51 · Torneo de Murcia');
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'sobornar' }).ok); assert.equal(A.dinares, 4); assert.ok(A.extra.arcoMaximo, 'gana sin tirar'); }
+  { const { g, e, a, A } = prep(['B', '7']); darItem(e, A, 'arco'); darItem(e, A, 'flechas'); A.dinares = 30;
+    assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok); assert.ok(e.pend.opciones.find((o) => o.id === 'sobornar').desactivada, 'sin 36 no hay soborno');
+    assert.match(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'sobornar' }).error || '', /no válida/); }
+}

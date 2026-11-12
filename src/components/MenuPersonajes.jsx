@@ -24,7 +24,7 @@ export default function MenuPersonajes({ s, onCerrar }) {
               {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{j.buscadoInfo && <span className="chip mal" title={j.buscadoInfo}>B</span>}
             </button>
             {abierto === j.id && j.buscadoInfo && <p className="aviso-mal aviso-buscado">{j.id === s.yo ? 'Estás' : `${j.nombre} está`} {j.buscadoInfo}</p>}
-            {abierto === j.id && <p className="it entrenamiento-pj"><b>Entrenamiento:</b> {[['Destreza', j.destreza], ...['cimitarra', 'alfanje', 'jambiya', 'arco'].map((a) => [a[0].toUpperCase() + a.slice(1), (j.entrenado || []).includes(a)])].map(([n, si]) => `${n} ${si ? '✓' : '✗'}`).join(' · ')}</p>}   {/* Jorge (11 de noviembre) */}
+            {abierto === j.id && <p className="it entrenamiento-pj"><b>Entrenamiento:</b> {[['Destreza', j.destreza], ...['cimitarra', 'alfanje', 'jambiya', 'arco'].map((a) => [a[0].toUpperCase() + a.slice(1), (j.entrenado || []).includes(a)])].map(([n, si]) => (n === 'Arco' && j.arcoMaximo ? 'Arco ✓ (máxima)' : `${n} ${si ? '✓' : '✗'}`)).join(' · ')}</p>}   {/* Jorge (11 de noviembre) */}
             {abierto === j.id && <HojaPersonaje pj={j.pj} jugador={j} esYo={j.id === s.yo} />}
             {abierto === j.id && j.id === s.yo && s.miGuia && <GuiaPersonaje g={s.miGuia} />}
           </section>

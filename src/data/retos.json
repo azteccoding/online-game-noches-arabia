@@ -691,6 +691,21 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R51",
+   "nombre": "Torneo de Murcia",
+   "ciudad": "Andalucía",
+   "tipo": "C",
+   "requisito": "Tener un arco y al menos 1 flecha, y pagar 16 dinares. Se puede participar una vez cada dos turnos.",
+   "resolucion": "Ibn Mardanish convoca a los musulmanes a disparar con arco en Murcia. Disparas una flecha (se gasta) y tiras 1 dado: con 1 o 6 ganas el torneo. Yafar puede sobornar a los jueces con 20 dinares más y gana sin tirar.",
+   "premio": "Destreza máxima en arco para toda la partida: tus flechas siempre aciertan y el rival pelea con −1 (un escudo las sigue parando). Si pierdes (2 a 5), ganas 20 noches.",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

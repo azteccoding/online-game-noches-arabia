@@ -697,6 +697,50 @@ registrar('reto.yeguas', (data, e, args, resp) => {
   for (let i = 0; i < n; i++) darItem(e, j, 'yegua');
   log(e, `${j.nombre} compra ${n} yegua${n > 1 ? 's' : ''} de la estepa en Samarcanda por ${PRECIO_YEGUA * n} dinares: el mercado de Estambul paga 150 por cada una.`, { pid });
 });
+// R51 «Torneo de Murcia» (Jorge, 12 de noviembre): en Andalucía, Ibn Mardanish convoca a disparar con arco. Hay que traer arco y una flecha
+// (se gasta); cuesta 16 dinares; una vez cada dos turnos propios. Un dado con su botón: con 1 o 6, destreza máxima en arco para toda la
+// partida (pelea.js: tus flechas siempre aciertan y el rival pelea con −1) y el torneo deja de aparecerte; con 2 a 5 pierdes y ganas 20 noches.
+// Yafar (NPC o jugador) puede además sobornar a los jueces: 20 dinares más y gana sin tirar.
+// Yafar NPC, si llega a elegir este reto, siempre soborna (Jorge): solo puede hacerlo si le alcanzan los 36 dinares.
+export const TORNEO = { costo: 16, soborno: 20, gana: [1, 6], noches: 20, cadaTurnos: 2 };
+const motivoTorneo = (e, j) => !tieneItem(j, 'arco') ? 'Necesitas tener un arco para participar.' : !tieneItem(j, 'flechas') ? 'Necesitas al menos una flecha.'
+  : j.extra.murciaTurno != null && j.turnos < j.extra.murciaTurno + TORNEO.cadaTurnos ? 'Podrás volver a participar en tu próximo turno.'
+  : j.npc && j.dinares < TORNEO.costo + TORNEO.soborno ? `Yafar NPC soborna a los jueces: necesita ${TORNEO.costo + TORNEO.soborno} dinares.`
+  : j.dinares < TORNEO.costo ? `Cuesta ${TORNEO.costo} dinares: sin dinero no hay trato.` : null;
+T.R51 = { ciudad: 'Andalucía', req: (d, e, pid) => motivoTorneo(e, e.jugadores[pid]),
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid];
+    if (j.npc) return torneoSoborno(e, pid);   // Yafar NPC siempre soborna
+    if (j.pj === 'B') {   // Yafar jugador decide: tirar o sobornar
+      const total = TORNEO.costo + TORNEO.soborno, falta = total - j.dinares;
+      pedir(e, { tipo: 'reto', para: [pid], titulo: 'R51 · Torneo de Murcia', texto: `Entrada: ${TORNEO.costo} dinares. Puedes tirar tu dado (1 o 6 ganas) o sobornar a los jueces con ${TORNEO.soborno} dinares más y ganar sin tirar.`,
+        opciones: [{ id: 'tirar', texto: `Tirar el dado (${TORNEO.costo} dinares)` }, { id: 'sobornar', texto: `Sobornar a los jueces (${total} dinares en total)${falta > 0 ? ` — te faltan ${falta} dinares` : ''}`, desactivada: falta > 0 }],
+        porDefecto: 'tirar', limiteMs: 60000, cont: { fn: 'reto.murcia', args: {} } });
+      return;
+    }
+    torneoTirar(data, e, pid, ctx);
+  } };
+function torneoEntrar(e, j) { j.dinares -= TORNEO.costo; quitarPrimero(j, 'item', 'flechas'); j.extra.murciaTurno = j.turnos; }
+function torneoGana(e, pid, como) {
+  const j = e.jugadores[pid]; j.extra.arcoMaximo = true; hacer(e, pid, 'R51');
+  log(e, `${j.nombre} gana el Torneo de Murcia${como}: desde ahora tiene la destreza máxima en arco (sus flechas siempre aciertan).`, { pid, aviso: true });
+}
+function torneoSoborno(e, pid) {
+  const j = e.jugadores[pid]; torneoEntrar(e, j); j.dinares -= TORNEO.soborno;
+  if (!j.npc) info(e, pid, 'Torneo de Murcia', `Pagas ${TORNEO.costo} de entrada y ${TORNEO.soborno} de soborno a los jueces: ganas el torneo y la destreza máxima en arco.`);
+  torneoGana(e, pid, ` sobornando a los jueces (${TORNEO.costo + TORNEO.soborno} dinares)`);
+}
+function torneoTirar(data, e, pid, ctx) {
+  const j = e.jugadores[pid]; torneoEntrar(e, j);
+  const [x] = ctx.t(`${j.nombre}: Torneo de Murcia (1 o 6 gana)`, 1);
+  if (TORNEO.gana.includes(x)) { ctx.say('¡Ganas el torneo! Destreza máxima en arco: tus flechas siempre aciertan y el rival pelea con −1.'); torneoGana(e, pid, ''); }
+  else { j.noches += TORNEO.noches; ctx.say(`No ganas esta vez, pero te llevas ${TORNEO.noches} noches por la historia. Podrás volver a participar dentro de ${TORNEO.cadaTurnos} turnos.`); log(e, `${j.nombre} pierde el Torneo de Murcia y gana ${TORNEO.noches} noches.`, { pid }); }
+}
+registrar('reto.murcia', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  if (resp.opcion === 'sobornar' && j.dinares >= TORNEO.costo + TORNEO.soborno) return torneoSoborno(e, pid);
+  const ctx = nuevoCtx(e, pid, 'R51'); torneoTirar(data, e, pid, ctx); ctx.fin();
+});
 T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NPC no trabaja para el Nizam.' : null),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; hacer(e, pid, 'R45');
