@@ -3089,3 +3089,49 @@ console.log('reglas de la casa OK');
   assert.ok(e.log.some((h) => h.n > n0 && /destreza máxima en arco: la flecha acierta y Bandoleros pelea con −1/.test(h.texto)), 'la flecha acierta sin dado');
   assert.ok(!tieneItem(A, 'flechas'), 'gasta la flecha');
 }
+
+// Jorge (12 de noviembre): Yafar NPC hace un reto en Bagdad y uno en Estambul (solo de dados, si no hay a quién atacar), saca la destreza
+// según la dificultad, entra al Torneo de Murcia en normal y difícil sobornando, compra animal (nunca burro) y armas (dos en difícil).
+{
+  const prep = (dific = 'normal') => {
+    const g = partida(['4', '7'], { dificultad: dific }); assert.ok(g.iniciar().ok);
+    const e = g.e, Y = e.jugadores.npc, [a, b] = g.ids;
+    for (const id of [a, b]) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, 'npc', 'Bagdad'); e.turno.fase = 'acciones';
+    return { g, e, Y };
+  };
+  { const { Y } = prep(); assert.ok(!Y.destreza, 'Yafar NPC empieza sin destreza'); assert.ok(Y.extra.entrenado?.cimitarra, 'solo entrenado en cimitarra'); }
+  // reto en Bagdad cuando no hay a quién atacar; uno solo en la partida
+  { const { e, Y } = prep(); Y.ciudad = 'Bagdad'; Y.dinares = 50;
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(['R5', 'R6'].includes(Y.extra.retosNPC?.Bagdad), 'hace R5 o R6');
+    const hecho = Y.extra.retosNPC.Bagdad; turnoDe(e, 'npc', 'Bagdad'); e.turno.fase = 'acciones'; NPC.accionPrincipal(data, e, 'npc');
+    assert.equal(Y.extra.retosNPC.Bagdad, hecho, 'no hace otro en Bagdad'); }
+  // destreza: en normal gasta la acción principal; en difícil con Firmán, además de su acción; en fácil es su reto de Estambul
+  { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 60;
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(Y.destreza, 'normal: saca la destreza'); assert.ok(!Y.extra.retosNPC?.Estambul, 'y no cuenta como su reto de Estambul'); }
+  { const { e, Y } = prep('dificil'); Y.ciudad = 'Estambul'; Y.dinares = 80; Y.mano.push({ uid: 9951, tipo: 'especial', ref: 'F1' });
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(Y.destreza, 'difícil: destreza'); assert.equal(Y.extra.retosNPC?.Estambul, 'R28', 'y además hace su reto (R28)'); }
+  { const { e, Y } = prep('facil'); Y.ciudad = 'Estambul'; Y.dinares = 55;
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(['R25', 'R28'].includes(Y.extra.retosNPC?.Estambul), 'fácil: R25 cuenta como su reto de Estambul'); }
+  // Torneo de Murcia: normal y difícil, sobornando con 36; en fácil no
+  { const { e, Y } = prep('normal'); Y.ciudad = 'Andalucía'; Y.dinares = 40; darItem(e, Y, 'arco'); darItem(e, Y, 'flechas');
+    const n0 = e.logN; NPC.accionPrincipal(data, e, 'npc'); assert.ok(Y.extra.arcoMaximo, 'gana el torneo'); assert.ok(e.log.some((h) => h.n > n0 && /sobornando a los jueces \(36 dinares\)/.test(h.texto)), 'soborna por 36'); }
+  { const { e, Y } = prep('facil'); Y.ciudad = 'Andalucía'; Y.dinares = 40; darItem(e, Y, 'arco'); darItem(e, Y, 'flechas');
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(!Y.extra.arcoMaximo, 'en fácil no va al torneo'); }
+  // compras al cerrar: animal (caballo de segunda mano, nunca burro) y armas (dos en difícil)
+  { const { e, Y } = prep('dificil'); Y.ciudad = 'Estambul'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.tipo !== 'item');
+    e.establo = [{ carta: { uid: 'u-burro', tipo: 'item', ref: 'burro' }, precio: 35, ciudad: 'Estambul' }, { carta: { uid: 'u-cab', tipo: 'item', ref: 'caballo' }, precio: 10, ciudad: 'Estambul' }];
+    e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    assert.ok(tieneItem(Y, 'caballo') && !tieneItem(Y, 'burro'), 'compra el caballo, nunca el burro');
+    turnoDe(e, 'npc', 'Estambul'); e.turno.fase = 'acciones'; e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');   // una por turno
+    assert.equal(['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(Y, r)).length, 2, 'en difícil, dos armas');
+    turnoDe(e, 'npc', 'Estambul'); e.turno.fase = 'acciones'; e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    assert.equal(['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(Y, r)).length, 2, 'y no más'); }
+  { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    turnoDe(e, 'npc', 'Estambul'); e.turno.fase = 'acciones'; e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    assert.equal(['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(Y, r)).length, 1, 'en normal, una'); }
+  { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 40; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    assert.ok(tieneItem(Y, 'cimitarra'), 'en normal compra armas desde 40'); }
+  { const { e, Y } = prep('facil'); Y.ciudad = 'Estambul'; Y.dinares = 50; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+    assert.ok(!tieneItem(Y, 'cimitarra'), 'en fácil, solo con más de 60'); }
+}

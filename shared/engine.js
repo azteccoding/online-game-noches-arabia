@@ -216,6 +216,7 @@ function iniciar(data, e) {
     const j = e.jugadores[id], p = pjDe(data, j.pj);
     j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
     if (e.solitario && !j.npc && e.opciones.dificultad === 'facil') j.dinares = 30;                                   // R 21.5
+    if (j.npc) { j.destreza = false; j.extra.entrenado = { cimitarra: true }; }   // Jorge (12 de noviembre): Yafar NPC empieza sin destreza, solo entrenado en cimitarra
     for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true }); }
     for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });
   }

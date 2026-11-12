@@ -5,7 +5,8 @@ import {
 marcarBuscado,
 enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
-import { vender, existenciaArma, quitarArma, RECARGO_ARMA } from './objetos.js';
+import { vender, existenciaArma, quitarArma, RECARGO_ARMA, comprar, motivoNoMongol, destinosTransporte } from './objetos.js';
+import { retoNPC, puedeRetoNPC } from './retos.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
 
@@ -80,6 +81,10 @@ function elegirDestino(data, e, pid) {
   const porJugador = (x, txt) => { if (!x) return null; const c = e.jugadores[x].ciudad; return c !== j.ciudad && dist[c] !== undefined ? c : null; };
   if (d <= 2) { destino = porJugador(primero((q) => q.dinares)); motivo = 'va tras el jugador con más dinares'; }
   else if (d >= 5) { destino = porJugador(primero((q) => q.noches)); motivo = 'va tras el jugador con más noches'; }
+  if (!destino && d >= 3 && d <= 4 && dif(e) !== 'facil') {   // Jorge (12 de noviembre): en normal y difícil, con 3 o 4 va a hacer su reto pendiente
+    const c = ciudadReto(data, e, pid);
+    if (c && c !== j.ciudad && dist[c] !== undefined) { destino = c; motivo = 'va a hacer un reto'; }
+  }
   if (!destino) {
     motivo = 'busca la ciudad que da más noches';
     let mejor = null;
@@ -95,6 +100,56 @@ function elegirDestino(data, e, pid) {
   return { d, destino, motivo, prev };
 }
 
+// ---------------------------------------------------------------- retos, destreza, animales y armas de Yafar NPC (Jorge, 12 de noviembre)
+// Un reto en Bagdad (R5 o R6) y uno en Estambul (R28; en fácil también R25) en toda la partida, al azar entre los que pueda pagar, solo cuando
+// no hay a quién atacar. India, no. R25 (destreza): en fácil es su reto de Estambul; en normal gasta su acción principal; en difícil es una
+// prerrogativa además de su acción, mientras tenga el Firmán. En normal y difícil también el Torneo de Murcia (R51), siempre sobornando.
+const dif = (e) => (['facil', 'normal', 'dificil'].includes(e.opciones?.dificultad) ? e.opciones.dificultad : 'normal');
+export const RETOS_NPC = { Bagdad: ['R5', 'R6'], Estambul: ['R28'] };
+const tieneFirman = (j) => j.mano.some((c) => c.tipo === 'especial' && c.ref === 'F1');
+function retosPosibles(data, e, pid, ciudad) {
+  const j = e.jugadores[pid], hechos = (j.extra.retosNPC ||= {});
+  const r = [];
+  if (ciudad === 'Andalucía' && dif(e) !== 'facil') { if (puedeRetoNPC(data, e, pid, 'R51')) r.push('R51'); return r; }
+  if (hechos[ciudad]) return r;
+  for (const id of RETOS_NPC[ciudad] || []) if (puedeRetoNPC(data, e, pid, id)) r.push(id);
+  if (ciudad === 'Estambul' && dif(e) === 'facil' && puedeRetoNPC(data, e, pid, 'R25')) r.push('R25');
+  return r;
+}
+function ciudadReto(data, e, pid) {   // la primera ciudad con un reto que ya pueda pagar (o la destreza que le falta)
+  const j = e.jugadores[pid];
+  if (!j.destreza && dif(e) !== 'facil' && puedeRetoNPC(data, e, pid, 'R25')) return 'Estambul';
+  return ['Bagdad', 'Estambul', 'Andalucía'].find((c) => retosPosibles(data, e, pid, c).length) || null;
+}
+function destrezaNPC(data, e, pid, libre) {   // R25 fuera de su reto de Estambul (normal: con la acción principal; difícil: además, con Firmán)
+  const j = e.jugadores[pid];
+  if (dif(e) === 'facil' || j.destreza || j.ciudad !== 'Estambul') return false;
+  if (libre !== (dif(e) === 'dificil' && tieneFirman(j))) return false;
+  return retoNPC(data, e, pid, 'R25', { libre });
+}
+function hacerRetoNPC(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (destrezaNPC(data, e, pid, false)) return true;
+  const ops = retosPosibles(data, e, pid, j.ciudad);
+  if (!ops.length) return false;
+  const id = ops[Math.floor(rnd(e) * ops.length)];
+  if (id !== 'R51') j.extra.retosNPC[j.ciudad] = id;
+  return retoNPC(data, e, pid, id);
+}
+const ANIMALES_NPC = ['caballo', 'camello', 'caballoMongol'];   // nunca burro (Jorge, punto 9)
+function comprasNPC(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (j.dinares > 60 && !j.mano.some((c) => c.tipo === 'item' && ANIMALES_NPC.includes(c.ref))) {
+    const est = (e.establo || []).find((x) => (x.ciudad || 'Bagdad') === j.ciudad && ['caballo', 'camello'].includes(x.carta.ref) && j.dinares >= x.precio);
+    if (est) comprar(data, e, pid, { ref: 'establo:' + est.carta.uid });
+    else if (j.ciudad === 'Estambul' && !motivoNoMongol(e, j)) comprar(data, e, pid, { ref: 'caballoMongol' });
+  }
+}
+// Viaje en su animal: si alguno lo lleva directo al siguiente paso de su ruta (con las reglas de siempre de cada animal).
+function animalPara(data, j, destino) {
+  return j.mano.find((c) => c.tipo === 'item' && ANIMALES_NPC.includes(c.ref) && destinosTransporte(data, c.ref, j.ciudad).includes(destino)) || null;
+}
+
 function movimiento(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   const { d, destino, motivo, prev } = elegirDestino(data, e, pid);
@@ -104,15 +159,18 @@ function movimiento(data, e, pid) {
   if (!ruta) return;
   log(e, `Yafar NPC (dado ${d}) ${motivo}: rumbo a ${destino}.`, { pid });
   for (const paso of ruta.slice(1, 3)) {
-    if (j.eliminado) return;
+    if (j.eliminado || t.fin) return;
+    const an = animalPara(data, j, destino) || animalPara(data, j, paso);
+    if (an) { const dst = destinosTransporte(data, an.ref, j.ciudad).includes(destino) ? destino : paso; HOOK.viajarPropio(data, e, pid, { destino: dst, motivo: ITEMS[an.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[an.ref]?.terminaTurno }); if (dst === destino) return; continue; }
     HOOK.partir(data, e, pid, { destino: paso, precio: 0, servicios: false, hilo: false });
   }
   void t;
 }
 
-function accionPrincipal(data, e, pid) {
+export function accionPrincipal(data, e, pid) {   // exportada para las pruebas
   const j = e.jugadores[pid], t = e.turno;
   const cont = { fn: 'npc.cierre', args: { pid } };
+  destrezaNPC(data, e, pid, true);   // difícil, con Firmán: la destreza no gasta su acción principal
   if (!t.principal && !t.bloqueoPrincipal) {
     // (a) ataque
     if (e.ronda > data.config.primerosTurnosSinMatar) {
@@ -132,6 +190,8 @@ function accionPrincipal(data, e, pid) {
       }
     }
     // (b) Yafar NPC ya no contrata a los Asesinos (regla de la casa del juego en línea)
+    // (b2) Jorge (12 de noviembre): si no hay a quién atacar, hace un reto (o saca la destreza)
+    if (hacerRetoNPC(data, e, pid)) return cierreTrasReto(data, e, pid);
     // (c) una carta de Cuentos respondida con un dado
     const x = dado(e);
     const premio = data.config.premioTrivia;
@@ -142,13 +202,17 @@ function accionPrincipal(data, e, pid) {
   cierre(data, e, pid);
 }
 
+function cierreTrasReto(data, e, pid) { if (e.pend || e.pelea) return; cierre(data, e, pid); }
 function cierre(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
   const precio = (ref) => data.config.armas?.[ref]?.precio ?? { cimitarra: 35, alfanje: 25, arco: 15 }[ref];
-  if (j.dinares > 60) {
+  const maxArmas = dif(e) === 'dificil' ? 2 : 1;   // Jorge (12 de noviembre): en difícil puede traer dos armas
+  const nArmas = () => ['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(j, r)).length;   // las que compra (la jambiya de inicio no cuenta, como antes)
+  const paraArmas = dif(e) === 'facil' ? j.dinares > 60 : j.dinares >= 40;   // Jorge (12 de noviembre): en normal y difícil, desde 40
+  if (paraArmas && nArmas() < maxArmas) {
     for (const ref of ['cimitarra', 'alfanje', 'arco']) {
-      if (tieneItem(j, ref)) break;
+      if (tieneItem(j, ref)) continue;
       const pr = precio(ref) + (RECARGO_ARMA[ref]?.[j.ciudad] || 0);
       if (j.dinares >= pr + (ref === 'arco' ? 5 : 0) && existenciaArma(e, ref, j.ciudad) > 0) {   // solo donde hay (Jorge, 10 de noviembre)
         j.dinares -= pr; quitarArma(e, ref, j.ciudad); j.mano.push({ uid: uid(e), tipo: 'item', ref });
@@ -158,6 +222,7 @@ function cierre(data, e, pid) {
       }
     }
   }
+  if (!j.eliminado) comprasNPC(data, e, pid);   // animal de carga y transporte
   if (!t.movio) { const c = ciudadDe(data, j.ciudad); pagar(data, e, pid, c.alojamiento * 2); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   t.fin = true;
@@ -177,7 +242,8 @@ export function entraNPC(data, e) {
   if (hv.length !== 1 || e.jugadores[hv[0]].pj === 'B' || e.jugadores.npc) return;
   const p = pjDe(data, 'B');
   const j = HOOK.nuevoJugador(e, 'npc', 'Yafar el Bermekí (NPC)', null);
-  Object.assign(j, { pj: 'B', listo: true, npc: true, dinares: p.inicio.dinares, ciudad: 'Bagdad', visitadas: ['Bagdad'], destreza: true, mano: [{ uid: uid(e), tipo: 'item', ref: 'jambiya' }] });
+  Object.assign(j, { pj: 'B', listo: true, npc: true, dinares: p.inicio.dinares, ciudad: 'Bagdad', visitadas: ['Bagdad'], destreza: false, mano: [{ uid: uid(e), tipo: 'item', ref: 'jambiya' }] });
+  j.extra.entrenado = { cimitarra: true };   // Jorge (12 de noviembre): Yafar NPC empieza sin destreza, solo entrenado en cimitarra
   e.jugadores.npc = j;
   const iAdi = e.orden.findIndex((i) => e.jugadores[i].pj === '7' && !e.jugadores[i].eliminado);
   if (iAdi >= 0) e.orden.splice(iAdi, 0, 'npc'); else e.orden.push('npc');

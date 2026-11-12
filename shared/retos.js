@@ -126,6 +126,17 @@ export function iniciarReto(data, e, pid, a) {
   else ejecutar(data, e, pid, a.id, []);
   return ok();
 }
+// Yafar NPC (Jorge, 12 de noviembre): hace el reto sin elegir objetos. libre = no gasta su acción principal (destreza en difícil).
+export function retoNPC(data, e, pid, id, { libre = false } = {}) {
+  const j = e.jugadores[pid], def = T[id], d = m1(data, id);
+  if (!def || !d || !(def.ciudades || [d.ciudad]).includes(j.ciudad) || hecho(j, id)) return false;
+  if (def.req && def.req(data, e, pid)) return false;
+  if (!libre) e.turno.principal = true;
+  log(e, `${j.nombre} intenta el reto ${id}: ${d.nombre}.`, { pid });
+  ejecutar(data, e, pid, id, []);
+  return true;
+}
+export const puedeRetoNPC = (data, e, pid, id) => { const j = e.jugadores[pid], def = T[id], d = m1(data, id); return !!(def && d && !hecho(j, id) && !(def.req && def.req(data, e, pid))); };
 registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.id, (resp.valores || []).map((u) => e.jugadores[resp.pid].mano.find((c) => c.uid === u)?.ref).filter(Boolean)));
 function ejecutar(data, e, pid, id, usados) {
   const ctx = nuevoCtx(e, pid, id);
