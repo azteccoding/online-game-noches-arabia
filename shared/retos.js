@@ -506,7 +506,7 @@ function entrenarArma(e, pid, id) {
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
-  if (!tieneItem(j, arma)) return `Necesitas tener ${arma === 'arco' ? 'un arco' : arma === 'jambiya' ? 'una jambiya' : 'un ' + arma} para entrenar con ${arma === 'jambiya' ? 'ella' : 'él'}.`;
+  if (!tieneItem(j, arma)) return `Necesitas tener ${{ arco: 'un arco', jambiya: 'una jambiya', cimitarra: 'una cimitarra', alfanje: 'un alfanje' }[arma] || arma} para entrenar con ${['jambiya', 'cimitarra'].includes(arma) ? 'ella' : 'él'}.`;
   if (entrenado(j, arma)) return `Ya entrenaste con ${arma}.`;
   return j.dinares >= costo ? null : `Cuesta ${costo} dinares.`;
 };

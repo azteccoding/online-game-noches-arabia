@@ -2700,7 +2700,7 @@ for (let k = 0; k < 6; k++) {
   assert.deepEqual(vistaDe(e, nur).jugadores[nur].entrenado, ['cimitarra'], 'su entrenamiento se ve');
   // Jamil sin cimitarra: se ve con su motivo; con cimitarra, se puede; con la acción principal usada, se ve con ese motivo
   turnoDe(e, jam, 'Isfahán'); e.turno.fase = 'acciones';
-  assert.match(vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado || '', /Necesitas tener un cimitarra|cimitarra/);
+  assert.match(vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado || '', /Necesitas tener una cimitarra para entrenar con ella/);
   darItem(e, J, 'cimitarra'); assert.ok(!vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado, 'con cimitarra puede entrenar');
   e.turno.principal = true; assert.equal(vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado, 'Ya usaste tu acción principal en este turno.');
   assert.deepEqual(vistaDe(e, jam).jugadores[jam].entrenado, [], 'Jamil sin entrenamientos');

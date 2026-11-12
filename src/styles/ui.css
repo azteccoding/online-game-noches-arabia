@@ -270,6 +270,7 @@ fieldset:disabled { opacity: .5; }
 .alarma-min { position: absolute; top: 2px; right: 4px; background: none; border: 0; color: #fff; font-size: 16px; line-height: 1; padding: 6px 8px; min-height: 0; }
 .aviso-espera { position: fixed; left: 50%; top: calc(var(--barra-alto, 56px) + 54px); transform: translateX(-50%); z-index: 96; width: min(430px, calc(100vw - 24px)); padding: 12px 14px; }
 .aviso-espera p { margin: 0 0 8px; }
+.chip-entrena { white-space: normal; flex-wrap: wrap; max-width: 100%; line-height: 1.3; }   /* tu entrenamiento, siempre visible; en celular salta de línea en vez de cortarse */
 .aviso-espera .alarma-min { color: var(--oro-claro); }
 /* ventana de esperar/sacar minimizada: pastilla pequeña arriba, sin tapar el tablero ni los botones de acción */
 .espera-mini { position: fixed; top: calc(var(--barra-alto, 56px) + 40px); left: 50%; transform: translateX(-50%); z-index: 96; max-width: calc(100vw - 24px); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #7a1d1d; color: #fff; border: 1px solid #efd08f; border-radius: 999px; padding: 6px 14px; font-size: 13px; min-height: 0; cursor: pointer; box-shadow: var(--sombra); }
