@@ -3,6 +3,12 @@ import { ciudadDe, DATA, tablero } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { consejosVenta } from '../game/ventas.js';
+
+import { entrenamientosEn } from '../../shared/retos.js';
+import { objetosRaros, RAROS_MAX } from '../../shared/objetos.js';
+const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
+// Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
+const entrenamientos = (c) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)`);
 import { confirmarViajeBurro } from '../game/burro.js';
 
 // Ficha de ciudad (al tocar un pin) con la acción de viajar si procede.
@@ -26,6 +32,15 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         <p><b>Llegada:</b> {c.nochesLlegada === c.nochesLuego ? `${c.nochesLlegada}` : `${c.nochesLlegada} la primera vez, luego ${c.nochesLuego}`} noches (×{mult} esta ronda) · <b>Alojamiento:</b> {c.alojamiento} dinares · <b>Impuesto de venta:</b> {c.impuestoVenta}%</p>
         {c.notas && <p className="it">{c.notas}</p>}
         {c.retos.length > 0 && <p><b>Retos aquí:</b> {c.retos.join(', ')}</p>}
+        <p><b>Entrenamiento:</b> {entrenamientos(c).join(' · ') || 'ninguno'}</p>
+        {(() => {   // Jorge (11 de noviembre): objetos raros de este mercado (de los mismos datos del mercado), con su precio en dinares
+          const r = objetosRaros(DATA, id), solo = r.filter((x) => x.soloAqui), pocas = r.filter((x) => !x.soloAqui);
+          if (!r.length) return null;
+          return <>
+            {solo.length > 0 && <p><b>Solo aquí:</b> {solo.map(rotulo).join(', ')}</p>}
+            {pocas.length > 0 && <p><b>Raros (en {RAROS_MAX} ciudades o menos):</b> {pocas.map(rotulo).join(', ')}</p>}
+          </>;
+        })()}
         <p><b>Aquí:</b> {presentes.length ? presentes.map((j) => j.nombre).join(', ') : 'nadie'}</p>
         {vende.length > 0 && <p><b>Se venden:</b> {vende.map((o) => o.nombre).join(', ')}</p>}
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}

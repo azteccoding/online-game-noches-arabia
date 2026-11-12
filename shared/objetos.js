@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, } from './base.js';
+apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, } from './base.js';
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
@@ -652,4 +652,20 @@ export function comerDatiles(data, e, pid) {
   else { t.principal = false; t.heridoAhora = false; }
   log(e, `${j.nombre} come dátiles y pan de viaje: ya no está herido.`, { pid });
   return ok();
+}
+
+// Objetos raros de cada ciudad para su ficha (Jorge, 11 de noviembre): lo que vende ese mercado y no se consigue en casi ninguna otra
+// parte. Sale de los mismos datos que usa el mercado (ciudades donde se vende cada objeto, armas por ciudad, sopa, pala, linterna…).
+// Raro = se vende en RAROS_MAX ciudades o menos; «solo aquí» si es la única. Precio de compra en esa ciudad (cimitarra en Estambul, +5).
+export const RAROS_MAX = 4;
+export function objetosRaros(data, ciudad) {
+  const todas = data.ciudades.ciudades.map((c) => c.id), r = [];
+  const agrega = (nombre, cs, precio) => { const n = cs ? cs.length : todas.length; if (cs && cs.includes(ciudad) && n <= RAROS_MAX) r.push({ nombre, precio, soloAqui: n === 1, n }); };
+  for (const o of data.objetos.mazo) if (!o.sinVenta) agrega(o.nombre, POR_CIUDAD[o.id] || ciudadesDe(o), o.valor);
+  for (const ref of ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro']) {
+    const base = ARMAS_ORIG.includes(ref) || ref === 'flechas' ? (ref === 'cimitarra' ? (data.config.armas?.cimitarra?.precio ?? ITEMS.cimitarra.precio) : ITEMS[ref].precio) : VENTA_ORIGINAL[ref];
+    agrega(ITEMS[ref].nombre, CIUDAD_ORIGINAL[ref] || null, base + (RECARGO_ARMA[ref]?.[ciudad] || 0));
+  }
+  if (ciudad === 'Bagdad') r.push({ nombre: 'Firmán del Califa', precio: null, soloAqui: true, n: 1 });
+  return r.sort((a, b) => a.n - b.n || a.nombre.localeCompare(b.nombre, 'es'));
 }

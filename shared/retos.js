@@ -484,6 +484,14 @@ function r16Tira(data, e, pid) {
 // ---------------------------------------------------------------- entrenamientos (regla de la casa, noviembre de 2026)
 // La destreza (+1 en toda pelea) se aprende solo en Estambul. Cada arma tiene su maestro: hay que llevar el arma, y quien entrena suma
 // +1 con ella (dentro del tope de armas); con el arco, también un 3 o 4 en la flecha deja al rival con −1.
+export const DESTREZA = { costo: 50 };   // R25, Estambul (Jorge, 10 de noviembre)
+// Entrenamientos que ofrece cada ciudad, de la misma fuente que usa el motor (para la ficha de la ciudad; Jorge, 11 de noviembre).
+export function entrenamientosEn(ciudad) {
+  const r = [];
+  if ((T.R25.ciudades || [T.R25.ciudad]).includes(ciudad)) r.push({ id: 'R25', que: 'destreza con armas', costo: DESTREZA.costo });
+  for (const [id, x] of Object.entries(ENTRENAMIENTOS)) if ((T[id].ciudades || [T[id].ciudad]).includes(ciudad)) r.push({ id, que: x.arma, costo: x.costo });
+  return r;
+}
 export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
 const entrenado = (j, arma) => !!j.extra.entrenado?.[arma];
 function entrenarArma(e, pid, id) {
@@ -501,8 +509,8 @@ T.R18 = { ciudad: 'Isfahán', ciudades: ['Isfahán', 'Samarcanda'], req: reqArma
 T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42'), run(data, e, pid) { entrenarArma(e, pid, 'R42'); } };
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
 T.R43 = { ciudad: 'Andalucía', req: reqArma('R43'), run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= 50 ? null : 'Cuesta 50 dinares.'), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= 50; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45)
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= DESTREZA.costo; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45)
   log(e, `${j.nombre} entrena en Estambul: obtiene destreza con armas (+1 en todas las peleas, robos, ataques y duelos) y gana 50 noches.`, { pid });
 } };
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };

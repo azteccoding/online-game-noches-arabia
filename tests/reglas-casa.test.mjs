@@ -2660,4 +2660,32 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'datiles' }).ok, 'fuera de su turno'); assert.ok(!A.herido, 'ya no está herido');
 }
 
+// Jorge (11 de noviembre): la ficha de cada ciudad dice qué entrenamiento ofrece y qué objetos raros vende; sale de los mismos datos que
+// usan el motor y el mercado, así que coincide con lo que de verdad se puede entrenar y comprar en las 12 ciudades.
+{
+  const { entrenamientosEn } = await import('../shared/retos.js');
+  const { objetosRaros, tienda } = await import('../shared/objetos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.dinares = 999; A.destreza = false; for (const it of ['cimitarra', 'alfanje', 'jambiya', 'arco']) darItem(e, A, it);
+  const nombreDe = (x) => x.nombre.split(' · ')[0];
+  for (const c of data.ciudades.ciudades) {
+    // entrenamiento: lo que muestra la ficha = los retos de entrenamiento que el motor deja hacer ahí
+    A.ciudad = c.id; turnoDe(e, a, c.id); e.turno.fase = 'acciones';
+    const motor = vistaDe(e, a).acciones.filter((x) => x.k === 'reto' && ['R18', 'R19', 'R25', 'R42', 'R43'].includes(x.id) && !x.bloqueado).map((x) => x.id).sort();
+    assert.deepEqual(entrenamientosEn(c.id).map((x) => x.id).sort(), motor, 'entrenamiento en ' + c.id);
+    // objetos raros: cada uno está en la tienda de esa ciudad, con ese precio; los «solo aquí» no están en ninguna otra
+    turnoDe(e, b, c.id); e.turno.fase = 'acciones';
+    const t = tienda(data, e, a).map((x) => ({ nombre: nombreDe(x), precio: x.precio }));
+    for (const r of objetosRaros(data, c.id).filter((x) => x.precio != null)) {
+      const en = t.find((x) => x.nombre === r.nombre);
+      assert.ok(en, `${r.nombre} se vende en ${c.id}`); assert.equal(en.precio, r.precio, `precio de ${r.nombre} en ${c.id}`);
+      if (r.soloAqui) for (const otra of data.ciudades.ciudades.filter((x) => x.id !== c.id)) {
+        A.ciudad = otra.id; assert.ok(!tienda(data, e, a).some((x) => nombreDe(x) === r.nombre), `${r.nombre} solo en ${c.id}, no en ${otra.id}`);
+      }
+      A.ciudad = c.id;
+    }
+  }
+}
+
 console.log('reglas de la casa OK');
