@@ -436,7 +436,7 @@ export const refDeUid = (j, u) => j.mano.find((c) => c.uid === u)?.ref;
 export function marcarBuscado(data, e, j, motivo) {
   j.buscado = data.config.buscadoRondas; j.extra.buscadoMotivo = { ...motivo, ronda: e.ronda };
 }
-const POR = { matar: (m) => `por matar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí', mujer: (m) => `por atacar a ${m.victima}, que iba sin armas` };
+const POR = { matar: (m) => `por matar a ${m.victima}`, robo: (m) => `por robar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí', mujer: (m) => `por atacar a ${m.victima}, que iba sin armas` };
 export function textoBuscado(data, e, j) {
   const r = [];
   if (j.buscado > 0) {

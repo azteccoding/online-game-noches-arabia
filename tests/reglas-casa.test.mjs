@@ -2922,3 +2922,23 @@ console.log('reglas de la casa OK');
     e.opciones.dificultad = 'dificil'; assert.equal(motivoNoMongol(e, A), null);
     A.npc = false; e.opciones.dificultad = 'facil'; assert.equal(motivoNoMongol(e, A), null, 'Yafar jugador, como cualquiera'); }
 }
+
+// Jorge (12 de noviembre): quien roba con éxito queda Buscado, como al matar; si empata o pierde, no. La Máscara del zoco lo evita.
+{
+  const prep = () => {
+    const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    A.mano.push({ uid: 9601, tipo: 'item', ref: 'cimitarra' }); A.buscado = 0; B.buscado = 0;
+    return { g, e, a, b, A, B };
+  };
+  const asalto = (g, e, a, b) => { assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); };
+  { const { g, e, a, b, A } = prep(); forzar(e, 6, 6, 1, 1); asalto(g, e, a, b);
+    assert.equal(A.buscado, data.config.buscadoRondas, 'robo con éxito: queda Buscado'); assert.equal(A.extra.buscadoMotivo.tipo, 'robo'); }
+  { const { g, e, a, b, A } = prep(); forzar(e, 1, 1, 6, 6); asalto(g, e, a, b); assert.ok(!(A.buscado > 0), 'si fracasa, no'); }
+  { const { g, e, a, b, A } = prep(); A.mano.push({ uid: 9602, tipo: 'objeto', ref: 'OB45' }); forzar(e, 6, 6, 1, 1); asalto(g, e, a, b);
+    assert.ok(!(A.buscado > 0), 'con la Máscara del zoco no queda Buscado'); assert.ok(!A.mano.some((c) => c.ref === 'OB45'), 'la máscara se gasta'); }
+  { const { g, e, a, b, A, B } = prep(); B.mano.push({ uid: 9603, tipo: 'objeto', ref: 'OB45' }); forzar(e, 6, 6, 1, 1); asalto(g, e, a, b);
+    assert.equal(A.buscado, data.config.buscadoRondas, 'la máscara que acaba de robar no le sirve en ese robo'); }
+}

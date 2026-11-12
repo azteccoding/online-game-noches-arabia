@@ -328,7 +328,7 @@ function enJuego(data, e, tipo, A, D, pedirNur) {
     const pierde = D.herido ? 'estás herido: si pierdes este duelo, mueres' : `si pierdes entregas ${mitad(D)} dinares y ${Math.min(n, D.noches)} noches y quedas herido`;
     return `${gana}; ${pierde}. Rechazar cuesta ${rechazo}. `;
   }
-  if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas; si fracasa no pierdes nada. `;
+  if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas (y ${A.nombre} queda Buscado); si fracasa no pierdes nada. `;
   return `Golpe de gracia: si gana por 3 o más mueres; por 1 o 2 quedas herido; empate, heridos los dos. Si ganas tú por 3 o más, muere ${A.nombre} y recibes su botín. `;
 }
 registrar('pelea.defensa', (data, e, args, resp) => elegirDefensa(data, e, resp));
@@ -567,7 +567,13 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
   const P = e.pelea, A = e.jugadores[P.atk], D = e.jugadores[P.def];
   const sinArmasDef = cat === 'A' || cat === 'B';
   if (P.tipo === 'robo') {
-    if (ganaAtk) robar(data, e, P.atk, P.def);
+    if (ganaAtk) {
+      const enmascarado = tieneObj(A, 'OB45');   // la máscara tiene que ser suya de antes, no la que acaba de robar
+      robar(data, e, P.atk, P.def);
+      // Jorge (12 de noviembre): quien roba con éxito queda Buscado, igual que al matar (la Máscara del zoco lo evita)
+      if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
+      else { marcarBuscado(data, e, A, { tipo: 'robo', victima: D.nombre }); log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
+    }
     else { log(e, `${A.nombre} no se lleva nada de ${D.nombre}.`, { pid: P.atk }); if (sinArmasDef && numeroOk) { A.herido = true; log(e, `${A.nombre} queda herido.`, { pid: P.atk }); } }
   } else if (P.tipo === 'matar' && P.golpe && P.golpe.r !== 'mata' && P.golpe.r !== 'muereAtk') {   // golpe de gracia: solo heridas
     if (P.golpe.r !== 'hiereAtk') { D.herido = true; log(e, `${D.nombre} queda herido.`, { pid: P.def }); }
