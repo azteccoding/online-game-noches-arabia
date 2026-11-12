@@ -12,7 +12,6 @@ const ROTULOS_NUEVOS = '<text x="1662" y="1716" text-anchor="middle" font-family
 const conRotulosNuevos = (t) => (t.includes('ABISINIA') ? t : t.replace(/<\/svg>\s*$/, ROTULOS_NUEVOS + '</svg>'));
 const cargarMapa = () => (mapaPromesa ||= fetch('/svg/tablero-mapa.svg').then((r) => r.text()).then((t) => conRotulosNuevos(t).replace(/id="g(\d+)"/g, 'id="mapa-g$1"').replace(/href="#g(\d+)"/g, 'href="#mapa-g$1"').replace('<svg ', `<svg x="0" y="0" width="${W}" height="${H}" `)));
 
-const Digitos = ({ g }) => g.map(([d, x], i) => <path key={i} d={tablero.glifos[d]} transform={`translate(${x},0)`} />);
 
 // Camino más corto (en tramos) entre dos ciudades por las rutas del tablero; devuelve las claves «a|b» de sus tramos.
 function caminoRutas(desde, hasta) {
@@ -43,11 +42,7 @@ const Rutas = memo(function Rutas({ vivas, animadas }) {
           </g>
         );
       })}
-      {tablero.routes.map((r) => Object.entries(r.fares).map(([k, f]) => (
-        <g key={r.a + r.b + k} className={`tarifa${vivas && vivas.has(k) ? ' viva' : ''}`} transform={`translate(${f.x},${f.y})`}>
-          <g className="escala-fare"><circle r="17" /><g className="num"><Digitos g={f.g} /></g></g>
-        </g>
-      )))}
+      {/* Jorge (11 de noviembre): sin los círculos con la tarifa encima de las rutas; la tarifa real se ve en la ficha de la ciudad y al viajar */}
     </g>
   );
 });
