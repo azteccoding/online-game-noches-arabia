@@ -1227,7 +1227,7 @@ export function acciones(data, e, pid) {
     for (const x of TES.disponibles(data, e, pid)) r.push(x);
     for (const x of NPC.disponibles(data, e, pid)) r.push(x);
     for (const x of PJ.disponibles(data, e, pid)) r.push(x);
-  }
+  } else if (!t.ccActual) for (const x of RET.disponibles(data, e, pid)) r.push(x);   // con la acción principal usada, los retos se ven apagados con su motivo (Jorge, 11 de noviembre)
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
   if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
   r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' });
@@ -1291,7 +1291,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }

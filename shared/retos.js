@@ -73,15 +73,20 @@ export const RECUPERANDO = 'Ya no estás herido, pero te estás recuperando: est
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
   const recupera = t?.heridoAhora && t.principal && !j.transito && !j.perdido ? RECUPERANDO : null;   // se ven, pero deshabilitados y con el motivo
-  if ((!puedePrincipal(t) && !recupera) || j.transito || j.perdido) return r;
+  const sinPrincipal = t && !recupera && !puedePrincipal(t) ? 'Ya usaste tu acción principal en este turno.' : null;   // se ven, apagados y con el motivo (Jorge, 11 de noviembre)
+  if (!t || j.transito || j.perdido) return r;
   for (const id of Object.keys(T)) {
     const d = m1(data, id);
     if (!d || !(T[id].ciudades || [d.ciudad]).includes(j.ciudad)) continue;
-    if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) continue;
+    if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) {
+      // los entrenamientos ya hechos se siguen viendo, apagados y con el motivo (Jorge, 11 de noviembre)
+      if (id === 'R25' || ENTRENAMIENTOS[id]) r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: id === 'R25' ? 'Ya tienes destreza con armas.' : `Ya entrenaste con ${ENTRENAMIENTOS[id].arma}.` });
+      continue;
+    }
     if (esperaVolver(j, id)) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = T[id].req ? T[id].req(data, e, pid) : null;
-    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || msg || undefined });
+    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined });
   }
   return r;
 }

@@ -612,7 +612,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   e.turno.heridoAhora = true; e.turno.principal = true;
   const rs = disponibles(data, e, a);
   assert.ok(rs.length && rs.every((r) => r.bloqueado === RECUPERANDO), 'cada reto dice por qué no se puede');
-  e.turno.heridoAhora = false; assert.equal(disponibles(data, e, a).length, 0, 'si ya usó su acción por otra razón, no aparecen');
+  e.turno.heridoAhora = false; { const xs = disponibles(data, e, a); assert.ok(xs.length && xs.every((r) => r.bloqueado), 'si ya usó su acción por otra razón, se ven apagados con su motivo (Jorge, 11 de noviembre)'); }
 }
 
 // Dificultad de los Asesinos, aparte de la de Yafar NPC; solo el banco la cambia
@@ -2686,6 +2686,24 @@ for (let k = 0; k < 6; k++) {
       A.ciudad = c.id;
     }
   }
+}
+
+// Jorge (11 de noviembre): entrenar no desaparece en silencio; se ve qué armas tiene entrenadas cada quien
+{
+  const g = partida(['1', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [nur, jam] = g.ids, N = e.jugadores[nur], J = e.jugadores[jam];
+  for (const x of [N, J]) { x.ciudad = 'Isfahán'; x.dinares = 100; }
+  // Nur al Din empieza con la cimitarra entrenada: en Isfahán R18 se ve, apagado con el motivo
+  turnoDe(e, nur, 'Isfahán'); e.turno.fase = 'acciones';
+  const r18 = vistaDe(e, nur).acciones.find((x) => x.k === 'reto' && x.id === 'R18');
+  assert.ok(r18 && r18.bloqueado === 'Ya entrenaste con cimitarra.', 'Nur ve R18 apagado: ya entrenado');
+  assert.deepEqual(vistaDe(e, nur).jugadores[nur].entrenado, ['cimitarra'], 'su entrenamiento se ve');
+  // Jamil sin cimitarra: se ve con su motivo; con cimitarra, se puede; con la acción principal usada, se ve con ese motivo
+  turnoDe(e, jam, 'Isfahán'); e.turno.fase = 'acciones';
+  assert.match(vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado || '', /Necesitas tener un cimitarra|cimitarra/);
+  darItem(e, J, 'cimitarra'); assert.ok(!vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado, 'con cimitarra puede entrenar');
+  e.turno.principal = true; assert.equal(vistaDe(e, jam).acciones.find((x) => x.id === 'R18').bloqueado, 'Ya usaste tu acción principal en este turno.');
+  assert.deepEqual(vistaDe(e, jam).jugadores[jam].entrenado, [], 'Jamil sin entrenamientos');
 }
 
 console.log('reglas de la casa OK');

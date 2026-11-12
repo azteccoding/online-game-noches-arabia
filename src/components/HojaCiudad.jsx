@@ -8,7 +8,7 @@ import { entrenamientosEn } from '../../shared/retos.js';
 import { objetosRaros, RAROS_MAX } from '../../shared/objetos.js';
 const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
-const entrenamientos = (c) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)`);
+const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
 import { confirmarViajeBurro } from '../game/burro.js';
 
 // Ficha de ciudad (al tocar un pin) con la acción de viajar si procede.
@@ -32,7 +32,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         <p><b>Llegada:</b> {c.nochesLlegada === c.nochesLuego ? `${c.nochesLlegada}` : `${c.nochesLlegada} la primera vez, luego ${c.nochesLuego}`} noches (×{mult} esta ronda) · <b>Alojamiento:</b> {c.alojamiento} dinares · <b>Impuesto de venta:</b> {c.impuestoVenta}%</p>
         {c.notas && <p className="it">{c.notas}</p>}
         {c.retos.length > 0 && <p><b>Retos aquí:</b> {c.retos.join(', ')}</p>}
-        <p><b>Entrenamiento:</b> {entrenamientos(c).join(' · ') || 'ninguno'}</p>
+        <p><b>Entrenamiento:</b> {entrenamientos(c, yo).join(' · ') || 'ninguno'}</p>
         {(() => {   // Jorge (11 de noviembre): objetos raros de este mercado (de los mismos datos del mercado), con su precio en dinares
           const r = objetosRaros(DATA, id), solo = r.filter((x) => x.soloAqui), pocas = r.filter((x) => !x.soloAqui);
           if (!r.length) return null;
