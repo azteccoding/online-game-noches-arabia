@@ -77,6 +77,7 @@ export const ITEMS = {
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
   velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
   veneno: { nombre: 'Veneno', texto: 'Caduca a los 3 turnos. Cuesta 20 dinares y el viaje desde Bagdad usarlo.' },
+  mapaJorasan: { nombre: 'Mapa del Jorasán', precio: 20, texto: 'Se compra en el mercado de Bagdad por 20 dinares y no pesa. Si estás perdido en el Jorasán, úsalo en tu turno: tiras un dado y sales con cualquier resultado: impar, a Basra; par, a Samarcanda. Desde Yemen, los piratas se lo llevan por 5 dinares a un jugador perdido en el Jorasán: le llega en su próximo turno.' },
   brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
   astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
@@ -237,6 +238,12 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 // mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.
 // Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.
 export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra'];
+// Mapa del Jorasán (Jorge, 12 de noviembre): hay 2 en toda la partida, a la venta en Bagdad por 20 dinares; no pesa. Perdido en el
+// Jorasán, usarlo gasta tu acción principal: un dado, impar sales a Basra, par a Samarcanda; el mapa se desgasta y se desvanece. Los
+// piratas de Yemen lo llevan por 5 dinares (sin gastar la acción principal) a un jugador perdido: le llega en su próximo turno. Se vende y
+// se pasa en tratos como cualquier objeto; vendido a un mercado (o gastado), desaparece y los escribas de Bagdad hacen otro: vuelve a la
+// venta allí 2 rondas después. Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los 2.
+export const MAPA_JORASAN = { precio: 20, ciudad: 'Bagdad', envio: 5, impar: 'Basra', par: 'Samarcanda', seGasta: true, stock: 2, envioPrincipal: false, reponeRondas: 2, usadoRepone: true, npc: { facil: 0, normal: 1, dificil: 2 } };
 export const nCarga = (j) => j.mano.filter((c) => c.tipo === 'objeto' || (c.tipo === 'item' && CARGA_ITEMS.includes(c.ref))).length;
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;

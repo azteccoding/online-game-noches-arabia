@@ -2766,3 +2766,70 @@ for (let k = 0; k < 6; k++) {
 }
 
 console.log('reglas de la casa OK');
+
+// Jorge (12 de noviembre): mapa del Jorasán: 2 en Bagdad a 20 dinares, no pesa; usarlo gasta la acción principal (impar Basra, par
+// Samarcanda) y se desvanece; los piratas de Yemen lo llevan por 5 dinares sin gastar la acción; vendido o gastado, vuelve en 2 rondas.
+{
+  const { nCarga } = await import('../shared/base.js');
+  const { reponerMapasJorasan } = await import('../shared/objetos.js');
+  const prep = (pjs = ['4', '7']) => {
+    const g = partida(pjs); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    return { g, e, a, b, A, B };
+  };
+  // hay 2 en Bagdad, a 20, no pesa; agotado con motivo
+  { const { g, e, a, b, A, B } = prep();
+    A.ciudad = 'Bagdad'; A.dinares = 100; B.ciudad = 'Bagdad'; B.dinares = 100; turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
+    const it = tienda(data, e, a).find((x) => x.ref === 'mapaJorasan'); assert.ok(it && it.precio === 20 && it.puede && it.stock === 2, '2 a la venta en Bagdad por 20');
+    const n0 = nCarga(A); assert.ok(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).ok); assert.equal(A.dinares, 80);
+    assert.ok(tieneItem(A, 'mapaJorasan')); assert.equal(nCarga(A), n0, 'el mapa no pesa');
+    assert.ok(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).ok);
+    const ag = tienda(data, e, a).find((x) => x.ref === 'mapaJorasan'); assert.ok(!ag.puede && /Agotado/.test(ag.motivo), 'agotado con motivo');
+    assert.match(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).error || '', /Agotado/);
+    A.ciudad = 'Damasco'; assert.ok(!tienda(data, e, a).find((x) => x.ref === 'mapaJorasan'), 'solo en Bagdad');
+    // vendido a cualquier mercado: 10 dinares, desaparece y vuelve a Bagdad 2 rondas después
+    turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: A.mano.find((c) => c.ref === 'mapaJorasan').uid }).ok); assert.equal(A.dinares, d0 + 10);
+    assert.ok(!(e.establo || []).length && !tienda(data, e, a).find((x) => x.ref === 'mapaJorasan'), 'desaparece de ese mercado');
+    const r0 = e.ronda; e.ronda = r0 + 1; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 0, 'todavía no');
+    e.ronda = r0 + 2; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 1, 'a las 2 rondas vuelve a Bagdad'); }
+  // perdido con el mapa: un dado, impar Basra, par Samarcanda; gasta la acción principal y se desvanece (y vuelve a Bagdad en 2 rondas)
+  for (const [v, dest] of [[3, 'Basra'], [4, 'Samarcanda']]) {
+    const { g, e, a, A } = prep();
+    e.mapasJorasan = 1; darItem(e, A, 'mapaJorasan'); A.perdido = true; A.ciudad = 'Jorasán'; A.extra.enRumbo = false; A.extra.clienteWeb = true;
+    turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+    const op = vistaDe(e, a).acciones.find((x) => x.sub === 'mapaJorasan'); assert.ok(op && !op.bloqueado, 'aparece salir con el mapa');
+    forzar(e, v);
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'mapaJorasan' }).ok);
+    assert.ok(!A.perdido && A.ciudad === dest, `con ${v} sale a ${dest}`);
+    assert.ok(e.turno.pid !== a || e.turno.principal, 'gasta la acción principal (y termina el turno)'); assert.ok(!tieneItem(A, 'mapaJorasan'), 'se desvanece');
+    e.ronda += 2; reponerMapasJorasan(e); assert.equal(e.mapasJorasan, 2, 'los escribas hacen otro');
+  }
+  // con la acción principal usada, el botón sale apagado con motivo
+  { const { e, a, A } = prep(); darItem(e, A, 'mapaJorasan'); A.perdido = true; A.ciudad = 'Jorasán'; turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones'; e.turno.principal = true;
+    assert.match(vistaDe(e, a).acciones.find((x) => x.sub === 'mapaJorasan')?.bloqueado || '', /acción principal/); }
+  // en Yemen: 5 dinares a los piratas, sin gastar la acción principal; le llega al perdido en su próximo turno
+  { const { g, e, a, b, A, B } = prep();
+    A.ciudad = 'Yemen'; A.dinares = 4; B.perdido = true; B.ciudad = 'Jorasán'; B.extra.enRumbo = false;
+    turnoDe(e, a, 'Yemen'); e.turno.fase = 'acciones';
+    let op = vistaDe(e, a).acciones.find((x) => x.sub === 'enviarMapa' && x.con === b); assert.match(op?.bloqueado || '', /No tienes un mapa del Jorasán/);
+    darItem(e, A, 'mapaJorasan');
+    op = vistaDe(e, a).acciones.find((x) => x.sub === 'enviarMapa' && x.con === b); assert.match(op?.bloqueado || '', /Te faltan 1 dinares/);
+    assert.match(g.act(a, { t: 'tesoro', sub: 'enviarMapa', con: b }).error || '', /Te faltan/);
+    A.dinares = 10;
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'enviarMapa', con: b }).ok); assert.equal(A.dinares, 5); assert.ok(!tieneItem(A, 'mapaJorasan'));
+    assert.ok(!e.turno.principal, 'no gasta la acción principal');
+    assert.ok(!tieneItem(B, 'mapaJorasan'), 'todavía no le llega');
+    assert.ok(g.act(a, { t: 'terminarTurno' }).ok);
+    assert.equal(e.turno.pid, b); assert.ok(tieneItem(B, 'mapaJorasan'), 'le llega en su próximo turno');
+    B.perdido = false; B.ciudad = 'Bagdad'; darItem(e, A, 'mapaJorasan'); turnoDe(e, a, 'Yemen'); e.turno.fase = 'acciones';
+    op = vistaDe(e, a).acciones.find((x) => x.sub === 'enviarMapa'); assert.match(op?.bloqueado || '', /No hay nadie perdido/); }
+  // Yafar NPC: fácil no compra, normal hasta 1, difícil los 2; Yafar jugador, como cualquiera
+  { const { g, e, a, b, A } = prep(['B', '7']);
+    A.ciudad = 'Bagdad'; A.dinares = 100; A.npc = true; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+    const puede = () => tienda(data, e, a).find((x) => x.ref === 'mapaJorasan');
+    e.opciones.dificultad = 'facil'; assert.ok(!puede().puede && /fácil/.test(puede().motivo));
+    e.opciones.dificultad = 'normal'; assert.ok(puede().puede); assert.ok(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).ok); assert.match(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).error || '', /solo puede tener 1/);
+    e.opciones.dificultad = 'dificil'; assert.ok(g.act(a, { t: 'comprar', ref: 'mapaJorasan' }).ok, 'en difícil, los 2');
+    A.npc = false; e.mapasJorasan = 1; e.opciones.dificultad = 'facil'; assert.ok(puede().puede, 'Yafar jugador, como cualquiera'); }
+}

@@ -3,11 +3,22 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, } from './base.js';
+apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, } from './base.js';
+export const mapasJorasanVenta = (e) => e.mapasJorasan ?? MAPA_JORASAN.stock;
+// Los escribas de Bagdad hacen otro mapa del Jorasán: vuelve a la venta 2 rondas después de venderse a un mercado o de gastarse.
+export function reponerMapaJorasanLuego(e) { (e.mapasRepone ||= []).push(e.ronda + MAPA_JORASAN.reponeRondas); }
+export function reponerMapasJorasan(e) {   // al empezar cada ronda
+  if (!e.mapasRepone?.length) return;
+  const ya = e.mapasRepone.filter((r) => r <= e.ronda); if (!ya.length) return;
+  e.mapasRepone = e.mapasRepone.filter((r) => r > e.ronda); e.mapasJorasan = mapasJorasanVenta(e) + ya.length;
+  log(e, `Los escribas de Bagdad terminaron ${ya.length === 1 ? 'un mapa del Jorasán: ya está' : ya.length + ' mapas del Jorasán: ya están'} a la venta en Bagdad.`, { aviso: true });
+}
+const nMapasJ = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapaJorasan').length;
+const motivoNPCMapa = (e, j) => { if (!(j.pj === 'B' && j.npc)) return null; const lim = MAPA_JORASAN.npc[e.opciones?.dificultad] ?? 1; return nMapasJ(j) >= lim ? (lim ? `Yafar NPC solo puede tener ${lim} mapa${lim > 1 ? 's' : ''} del Jorasán en esta dificultad.` : 'Yafar NPC no compra mapas del Jorasán en dificultad fácil.') : null; };
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
-const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 35 };   // Jorge (10 de noviembre): el burro vale 35 y vive 3 turnos
+const VENTA_ORIGINAL = { arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 35, mapaJorasan: 20 };   // Jorge (10 de noviembre): el burro vale 35 y vive 3 turnos
 const CIUDAD_ORIGINAL = { vino: ['Bagdad'], buza: ['Damasco'], cesta: ['Basra', 'Bagdad'], burro: ['Basra'] };   // regla de la casa: el burro solo en Basra (35 dinares y 20 noches de regalo)
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (10 de noviembre): el alfanje solo en Yemen, Estambul, Isfahán y Samarcanda, y la cimitarra solo en Andalucía y El Cairo, con
@@ -16,6 +27,7 @@ const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 export const ARMAS_CIUDAD = { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul', 'Samarcanda'] };   // Jorge (10 de noviembre): también 1 en Samarcanda
 export const RECARGO_ARMA = { cimitarra: { Estambul: 5 } };   // en Estambul la cimitarra cuesta 5 dinares más
 for (const [r, cs] of Object.entries(ARMAS_CIUDAD)) CIUDAD_ORIGINAL[r] = cs;
+CIUDAD_ORIGINAL.mapaJorasan = ['Bagdad'];   // Jorge (12 de noviembre)
 CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
 const stockArmas = (e) => (e.stockArmas ||= Object.fromEntries(Object.entries(ARMAS_CIUDAD).map(([r, cs]) => [r, Object.fromEntries(cs.map((c) => [c, 1]))])));
 export const existenciaArma = (e, ref, ciudad) => (ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
@@ -117,10 +129,14 @@ export function comprar(data, e, pid, a) {
     if (a.ref === 'burro' && j.pj === 'B' && j.npc) return err('Yafar no compra burros: dice que es indigno de su posición.');
     if (a.ref === 'burro' && n > 1) return err('Solo un burro.');
     if (a.ref === 'burro' && !(e.burros > 0)) return err('No quedan burros en Basra.');
+    if (a.ref === 'mapaJorasan' && n > mapasJorasanVenta(e)) return err('Agotado: no quedan mapas del Jorasán en Bagdad (los escribas tardan 2 rondas en hacer otro).');
+    if (a.ref === 'mapaJorasan' && motivoNPCMapa(e, j)) return err(motivoNPCMapa(e, j));
+    if (a.ref === 'mapaJorasan' && n > 1) return err('De uno en uno.');
     if (CARGA_ITEMS.includes(a.ref) && !tieneCarga(j) && nCarga(j) + n > limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // alfanje, cimitarra y vino también cargan
     j.dinares -= p;
     if (a.ref === 'burro') { e.burros--; j.noches += 20; log(e, `${j.nombre} compra un burro en Basra y recibe 20 noches de regalo.`, { pid }); darItem(e, j, 'burro'); return ok(); }
     quitarArma(e, a.ref, j.ciudad);
+    if (a.ref === 'mapaJorasan') e.mapasJorasan = mapasJorasanVenta(e) - n;
     for (let i = 0; i < n; i++) darItem(e, j, a.ref, a.ref === 'vino' ? { ronda: e.ronda } : undefined);
     log(e, `${j.nombre} compra ${n > 1 ? n + ' ' : ''}${ITEMS[a.ref].nombre}.`, { pid });
     if (a.ref === 'vino') { /* el vino gana 6 dinares por turno */ }
@@ -233,6 +249,10 @@ export function vender(data, e, pid, a) {
     if (!ALFOMBRA_VENTA.ciudades.includes(ciudad)) return err('La alfombra mágica solo se vende en Samarcanda o Isfahán.');
     quitarCarta(j, c.uid); j.dinares += ALFOMBRA_VENTA.precio; log(e, `${j.nombre} vende su alfombra mágica en ${ciudad} por ${ALFOMBRA_VENTA.precio} dinares; la alfombra se deshace y nadie la puede comprar.`, { pid }); return ok();
   }
+  if (c.ref === 'mapaJorasan') {   // como cualquier objeto original: la mitad de su precio; desaparece y los escribas hacen otro
+    precio = Math.floor(MAPA_JORASAN.precio / 2); quitarCarta(j, c.uid); j.dinares += precio; reponerMapaJorasanLuego(e);
+    log(e, `${j.nombre} vende un mapa del Jorasán por ${precio} dinares; el mapa desaparece y los escribas de Bagdad hacen otro (en 2 rondas).`, { pid }); return ok();
+  }
   const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' ? 30 : c.ref === 'velo' ? 30 : 0);
   if (!base) return err('Eso no se puede vender al mercado.');
   precio = Math.floor(base / 2); quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${ITEMS[c.ref]?.nombre || c.ref} por ${precio} dinares.`, { pid });
@@ -250,10 +270,10 @@ export function tienda(data, e, pid) {
   const orig = (ref, desde) => {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad) && !(ARMAS_CIUDAD[ref] && existenciaArma(e, ref, j.ciudad) > 0)) return;   // una vendida queda a la venta ahí
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
-    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : ARMAS_CIUDAD[ref] ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(e.burros > 0)),
-      motivo: !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : ref === 'mapaJorasan' ? mapasJorasanVenta(e) : ARMAS_CIUDAD[ref] ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(e.burros > 0)) && !(ref === 'mapaJorasan' && (!(mapasJorasanVenta(e) > 0) || motivoNPCMapa(e, j))),
+      motivo: !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
-  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro'].forEach(orig);
+  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro', 'mapaJorasan'].forEach(orig);
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
   for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc), motivo: j.dinares < x.precio ? 'No te alcanza' : undefined });
@@ -330,6 +350,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3 (si vendes varias, deciden los dados).';
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `En el mercado de cualquier ciudad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares ${c.ref === 'burro' ? ', por desnutrido' : ''} (ahí se revende a ${REVENTA_ANIMAL[c.ref]}, con todos sus turnos de vida).`;
   if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
+  if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
@@ -662,7 +683,7 @@ export function objetosRaros(data, ciudad) {
   const todas = data.ciudades.ciudades.map((c) => c.id), r = [];
   const agrega = (nombre, cs, precio) => { const n = cs ? cs.length : todas.length; if (cs && cs.includes(ciudad) && n <= RAROS_MAX) r.push({ nombre, precio, soloAqui: n === 1, n }); };
   for (const o of data.objetos.mazo) if (!o.sinVenta) agrega(o.nombre, POR_CIUDAD[o.id] || ciudadesDe(o), o.valor);
-  for (const ref of ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro']) {
+  for (const ref of ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro', 'mapaJorasan']) {
     const base = ARMAS_ORIG.includes(ref) || ref === 'flechas' ? (ref === 'cimitarra' ? (data.config.armas?.cimitarra?.precio ?? ITEMS.cimitarra.precio) : ITEMS[ref].precio) : VENTA_ORIGINAL[ref];
     agrega(ITEMS[ref].nombre, CIUDAD_ORIGINAL[ref] || null, base + (RECARGO_ARMA[ref]?.[ciudad] || 0));
   }

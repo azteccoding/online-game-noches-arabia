@@ -251,6 +251,7 @@ function empezarRonda(data, e) {
   e.ronda++;
   if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
   OBJ.caducarDados(data, e);   // Jorge (10 de noviembre): los dados duran 3 rondas
+  OBJ.reponerMapasJorasan(e);   // Jorge (12 de noviembre): los escribas de Bagdad terminan un mapa del Jorasán
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
@@ -385,6 +386,7 @@ function iniciarTurno(data, e, id, idx) {
   const esclavas = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclava');
   for (const c of esclavas) { if (j.dinares >= 1) j.dinares -= 1; j.noches += 5; }
   OBJ.animalesInicioTurno(data, e, id);                                                                   // albéitar y comida de los animales
+  TES.llegaMapaJorasan(data, e, id);                                                                      // mapa del Jorasán que le mandaron con los piratas
   firmanYafarTurno(data, e, j);
   log(e, `Turno de ${j.nombre}: cobra ${ing} dinares.`, { pid: id });
   PJ.inicioTurno(data, e, id);
@@ -1211,7 +1213,7 @@ export function acciones(data, e, pid) {
   if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la carta de Cuentos' });
   { const pd = RET.opcionPagoDeuda(e, j); if (pd && !t.omitido) r.push(pd); }   // la deuda con Bagdad se paga en cualquier momento de tu turno
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
-  if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
+  if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));
@@ -1229,6 +1231,7 @@ export function acciones(data, e, pid) {
     for (const x of PJ.disponibles(data, e, pid)) r.push(x);
   } else if (!t.ccActual) for (const x of RET.disponibles(data, e, pid)) r.push(x);   // con la acción principal usada, los retos se ven apagados con su motivo (Jorge, 11 de noviembre)
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
+  for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x);   // en Yemen: mandar el mapa del Jorasán con los piratas
   if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
   r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' });
   return r;

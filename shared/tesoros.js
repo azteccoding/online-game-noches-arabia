@@ -1,9 +1,9 @@
 // Tesoros, mapas, tesoro propio escondido, el Jorasán, genios y cartas de Ifrit (R 16, R 15.4).
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
-  eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd,
+  eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
 } from './base.js';
-import { etiquetaBurro } from './objetos.js';
+import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
 function ciudadMapa(e, c) {
@@ -37,7 +37,10 @@ export function accion(data, e, pid, a) {
   const j = e.jugadores[pid], t = e.turno;
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
+  if (a.sub === 'enviarMapa' && !MAPA_JORASAN.envioPrincipal) return enviarMapa(data, e, pid, a.con);
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
+  if (a.sub === 'enviarMapa') return enviarMapa(data, e, pid, a.con);
+  if (a.sub === 'mapaJorasan') return usarMapaJorasan(data, e, pid);
   if (a.sub === 'salir') { if (!j.perdido) return err('No estás perdido.'); if (j.extra.salioJuntosRonda === e.ronda) return err('Ya intentaste salir esta ronda junto con otro jugador.'); t.principal = true; return salirJorasan(data, e, pid); }
   if (a.sub === 'juntos') return proponerSalirJuntos(data, e, pid, a.con);
   // Jorge (10 de noviembre): la alfombra mágica te saca del Jorasán sin tirar dados: eliges a qué ciudad vuela (no a Bagdad).
@@ -164,6 +167,66 @@ export function recuperar(data, e, pid, a = {}) {
 }
 
 // ---------------------------------------------------------------- Jorasán (R 16.4)
+// Mapa del Jorasán (Jorge, 12 de noviembre): perdido en el Jorasán, tiras un dado y sales con cualquier resultado: impar a Basra, par a
+// Samarcanda (sin rumbo, genio ni ghul). En Yemen, por 5 dinares, los piratas se lo llevan a un jugador perdido: le llega en su próximo turno.
+const tieneMapaJ = (j) => j.mano.some((c) => c.tipo === 'item' && c.ref === 'mapaJorasan');
+const perdidosParaMapa = (e, pid) => Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado).map((x) => x.id);
+export function opcionesMapaJorasan(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno, r = [];
+  if (!t || t.pid !== pid || t.fase === 'ingreso' || t.fin || j.transito) return r;
+  const sinPrincipal = !puedePrincipal(t) ? 'Ya usaste tu acción principal en este turno.' : undefined;
+  if (j.perdido) {
+    if (tieneMapaJ(j)) r.push({ k: 'tesoro', sub: 'mapaJorasan', titulo: `Salir del Jorasán con tu mapa (impar: ${MAPA_JORASAN.impar}; par: ${MAPA_JORASAN.par})`, texto: 'Tiras un dado y sales con cualquier resultado.', bloqueado: sinPrincipal });
+    return r;
+  }
+  if (j.ciudad !== 'Yemen') return r;
+  const mot = MAPA_JORASAN.envioPrincipal ? sinPrincipal : undefined;
+  const ps = perdidosParaMapa(e, pid);
+  if (!ps.length) { if (tieneMapaJ(j)) r.push({ k: 'tesoro', sub: 'enviarMapa', titulo: 'Mandar tu mapa del Jorasán con los piratas', bloqueado: 'No hay nadie perdido en el Jorasán.' }); return r; }
+  for (const q of ps) r.push({ k: 'tesoro', sub: 'enviarMapa', con: q, titulo: `Pagar ${MAPA_JORASAN.envio} dinares a los piratas para llevarle tu mapa del Jorasán a ${e.jugadores[q].nombre}`, texto: 'Le llega en su próximo turno.',
+    bloqueado: !tieneMapaJ(j) ? `No tienes un mapa del Jorasán (se compra en ${MAPA_JORASAN.ciudad} por ${MAPA_JORASAN.precio} dinares).` : j.dinares < MAPA_JORASAN.envio ? `Te faltan ${MAPA_JORASAN.envio - j.dinares} dinares.` : mot });
+  return r;
+}
+function enviarMapa(data, e, pid, con) {
+  const j = e.jugadores[pid], k = e.jugadores[con], t = e.turno;
+  if (j.perdido || j.transito) return err('Estás perdido o de camino.');
+  if (j.ciudad !== 'Yemen') return err('Los piratas salen de Yemen.');
+  const c = j.mano.find((x) => x.tipo === 'item' && x.ref === 'mapaJorasan');
+  if (!c) return err('No tienes un mapa del Jorasán.');
+  if (!k || !perdidosParaMapa(e, pid).includes(con)) return err('No hay nadie perdido en el Jorasán.');
+  if (j.dinares < MAPA_JORASAN.envio) return err(`Te faltan ${MAPA_JORASAN.envio - j.dinares} dinares.`);
+  j.dinares -= MAPA_JORASAN.envio; quitarCarta(j, c.uid);
+  if (MAPA_JORASAN.envioPrincipal) t.principal = true;
+  (e.mapasEnCamino ||= []).push({ para: con, de: pid, carta: c });
+  log(e, `${j.nombre} paga ${MAPA_JORASAN.envio} dinares a los piratas de Yemen para llevarle un mapa del Jorasán a ${k.nombre}: le llega en su próximo turno.`, { pid, aviso: true });
+  return ok();
+}
+// Al empezar el turno del destinatario le llega el mapa (lo puede usar en ese mismo turno).
+export function llegaMapaJorasan(data, e, pid) {
+  const j = e.jugadores[pid];
+  if (!e.mapasEnCamino?.length || !j) return;
+  for (const m of e.mapasEnCamino.filter((x) => x.para === pid)) {
+    e.mapasEnCamino.splice(e.mapasEnCamino.indexOf(m), 1);
+    if (j.eliminado) { reponerMapaJorasanLuego(e); continue; }   // se pierde con los piratas: los escribas hacen otro
+    m.carta.pub = true; j.mano.push(m.carta);
+    log(e, `Los piratas le entregan a ${j.nombre} el mapa del Jorasán que le mandó ${nombre(e, m.de)}.`, { pid, aviso: true });
+  }
+}
+function usarMapaJorasan(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (!j.perdido) return err('No estás perdido.');
+  const c = j.mano.find((x) => x.tipo === 'item' && x.ref === 'mapaJorasan');
+  if (!c) return err('No tienes un mapa del Jorasán.');
+  t.principal = true;
+  const x = dado(e), dest = x % 2 ? MAPA_JORASAN.impar : MAPA_JORASAN.par;
+  mostrarDados(e, { por: pid, npc: !!j.npc, motivo: 'jorasan', grupos: [{ etq: `${j.nombre}: el mapa del Jorasán (impar: ${MAPA_JORASAN.impar}; par: ${MAPA_JORASAN.par})`, valores: [x] }], resumen: [`Sale ${x}: ${j.nombre} sale del Jorasán hacia ${dest}.`] });
+  if (MAPA_JORASAN.seGasta) { quitarCarta(j, c.uid); if (MAPA_JORASAN.usadoRepone) reponerMapaJorasanLuego(e); }   // se desgasta y se desvanece; los escribas hacen otro
+  const origen = j.ciudad; j.perdido = false; j.extra.enRumbo = false; j.extra.destinoA = null; j.ciudad = dest;
+  log(e, `${j.nombre} sigue su mapa y sale del Jorasán hacia ${dest}; el mapa se desgasta y se desvanece.`, { pid, aviso: true });
+  t.movio = true; t.fin = true;
+  HOOK.llegada(data, e, pid, origen);
+  return ok();
+}
 // Salir juntos (Jorge, 11 de noviembre): dos jugadores perdidos en el Jorasán pueden intentar salir juntos. El que está en turno lo
 // propone y el otro acepta o rechaza (Yafar NPC siempre acepta). Buscar el rumbo: cada uno tira su dado y basta con que uno saque par
 // para que los dos vayan por buen rumbo. Ante el genio se tira una sola vez y el resultado es de los dos: genio de lámpara, una carta
