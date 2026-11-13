@@ -3162,6 +3162,7 @@ console.log('reglas de la casa OK');
   const { textoEquipo } = await import('../src/game/equipo.js');
   assert.equal(textoEquipo({ mano: [] }), '', 'si no traes nada, no sale');
   const mano = ['cimitarra', 'arco', 'flechas', 'flechas', 'caballo', 'caballoMongol', 'caballoMongol', 'dadosCairo'].map((ref, i) => ({ uid: 'u' + i, tipo: 'item', ref }));
-  assert.equal(textoEquipo({ mano }), 'Cimitarra · Arco (2 flechas) · 🐴 Caballo · 🐴 Caballo mongol (2) · Dados del Cairo');
+  assert.equal(textoEquipo({ mano }), 'Cimitarra · Arco (2 flechas) · 🐎 Caballo · 🐴 Caballo mongol (2) · Dados del Cairo');
   assert.equal(textoEquipo({ mano: [{ uid: 'x', tipo: 'item', ref: 'camello', datos: { vida: 3 } }] }), '🐪 Camello: 3 turnos', 'con la vida del animal');
+  assert.equal(textoEquipo({ mano: [{ uid: 'y', tipo: 'item', ref: 'caballoMongol', datos: { vida: 2 } }, { uid: 'z', tipo: 'item', ref: 'alfombra' }] }), '🐴 Caballo mongol: 2 turnos · 🪄 Alfombra mágica');
 }
