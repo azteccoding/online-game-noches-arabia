@@ -613,10 +613,11 @@ function reducir0(data, e, pid, a, ahora) {
   return r;
 }
 
-// REGLA de Jorge (11 de noviembre): si la acción dejó dados esperando el botón de un jugador, las cartas que esa misma acción publicó son
-// consecuencias: se marcan con esos dados y no se muestran hasta que se tiren y se cierren (server/index.js, shared/congelar.js).
+// REGLA de Jorge (11 de noviembre): si la acción dejó dados en la mesa, las cartas que esa misma acción publicó son consecuencias: se marcan
+// con esos dados y no se muestran hasta que se tiren y se cierren (server/index.js, shared/congelar.js). También los dados que ya salen
+// lanzados, como el de ingreso (bug del 13 de noviembre: con un 6, la carta del sheij salía antes de ver rodar el dado).
 function marcarConsecuencias(e, seq0) {
-  const nuevos = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.id > seq0 && !d.lanzado);
+  const nuevos = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.id > seq0);
   if (!nuevos.length) return;
   const ultimo = Math.max(...nuevos.map((d) => d.id));
   for (const h of e.historial) if (h.nro > seq0 && !h.trasDados) h.trasDados = ultimo;

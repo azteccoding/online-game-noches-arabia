@@ -3166,3 +3166,19 @@ console.log('reglas de la casa OK');
   assert.equal(textoEquipo({ mano: [{ uid: 'x', tipo: 'item', ref: 'camello', datos: { vida: 3 } }] }), '🐪 Camello: 3 turnos', 'con la vida del animal');
   assert.equal(textoEquipo({ mano: [{ uid: 'y', tipo: 'item', ref: 'caballoMongol', datos: { vida: 2 } }, { uid: 'z', tipo: 'item', ref: 'alfombra' }] }), '🐴 Caballo mongol: 2 turnos · 🪄 Alfombra mágica');
 }
+
+// Bug (13 de noviembre): con 6 en el dado de ingreso, la carta del sheij salía antes de ver rodar el dado. Es consecuencia del dado:
+// se marca con él y no se muestra hasta que se cierre.
+{
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, a = e.turno.pid;
+  assert.equal(e.turno.fase, 'ingreso');
+  const v0 = vistaDe(e, a); forzar(e, data.config.minimoMensajeDado);
+  assert.ok(g.act(a, { t: 'tirarDados' }).ok);
+  const carta = e.historial.find((h) => h.deck === 'mensaje');
+  assert.ok(carta, 'sale la carta del sheij');
+  assert.equal(carta.trasDados, e.dados.id, 'la carta espera al dado de ingreso');
+  const vf = vistaCongelada(v0, vistaDe(e, a), dadosPendientes(e));
+  assert.ok(!vf.historial.some((h) => h.deck === 'mensaje'), 'no se ve antes de que se cierre el dado');
+}
