@@ -3141,7 +3141,8 @@ console.log('reglas de la casa OK');
   const { readFileSync } = await import('node:fs');
   const m = readFileSync(new URL('../src/components/MenuPersonajes.jsx', import.meta.url), 'utf8'), h = readFileSync(new URL('../src/components/HojaPersonaje.jsx', import.meta.url), 'utf8');
   for (const t of ['Destreza bélica (en todas las armas)', 'Destreza en cimitarra', 'Destreza en alfanje', 'Destreza con arco', 'Campeón de arco (ganó el Torneo de Murcia)']) assert.ok(m.includes(t), t);
-  assert.ok(h.includes('{!jugador && <ul className="stats-hoja">'), 'sin atributos en los personajes en la partida');
+  assert.ok(!h.includes('stats-hoja'), 'sin atributos en ninguna hoja');
+  for (const f of ['Carta.jsx', 'Lobby.jsx']) assert.ok(!readFileSync(new URL('../src/components/' + f, import.meta.url), 'utf8').includes('statsEtiquetas'), 'sin atributos en ' + f);
 }
 
 // Jorge (12 de noviembre): la ficha de la ciudad dice qué armas vende hoy (de las existencias del mercado)

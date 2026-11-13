@@ -32,7 +32,6 @@ export default function Lobby({ s }) {
               <button key={p.id} className={`pj-opcion${mio ? ' mio' : ''}`} disabled={!!t && !mio} onClick={() => enviar(ACCIONES.elegirPj(p.id))} aria-pressed={mio}>
                 <Sprite pj={p.id} alto={84} />
                 <span className="nom">{p.nombre}</span><span className="it">{p.titulo}</span>
-                <span className="mini-stats">{p.stats.map((v, i) => <i key={i} title={p.statsEtiquetas[i]} style={{ '--v': v }} />)}</span>
                 {t && <span className="chip">{mio ? 'Tuyo' : t.nombre}</span>}
               </button>
             );

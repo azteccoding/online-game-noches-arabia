@@ -32,15 +32,7 @@ const Chips = ({ d }) => (
   </div>
 );
 
-function Stats({ d }) {
-  return (
-    <ul className="stats">
-      {d.stats.map((v, i) => (
-        <li key={i}><span>{d.statsEtiquetas[i]}</span><i style={{ '--v': v }}>{Array.from({ length: 5 }, (_, k) => <b key={k} className={k < v ? 'on' : ''} />)}</i></li>
-      ))}
-    </ul>
-  );
-}
+// Jorge (12 de noviembre): la carta del personaje ya no muestra Saber, Labia, Fuerza… (siguen en personajes.json).
 
 export default function Carta({ datos, tam = 'completa', children, className = '' }) {
   const completa = tam === 'completa';
@@ -73,7 +65,6 @@ export default function Carta({ datos, tam = 'completa', children, className = '
       <div className="c-pill"><span>{et}</span><span className="ar">{ar}</span></div>
       <div className="c-cuerpo">
         <p className="c-texto">{datos.texto}</p>
-        {datos.deck === 'personaje' && <Stats d={datos} />}
         {datos.limite && <p className="c-nota"><b>Límite:</b> {datos.limite}</p>}
         {datos.costo && <p className="c-nota"><b>Costo:</b> {datos.costo}</p>}
         {datos.deck === 'cuento' && <p className="c-nota c-premio">{datos.premioEtiqueta}.</p>}
