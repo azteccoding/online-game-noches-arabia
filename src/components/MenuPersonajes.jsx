@@ -5,6 +5,15 @@ import Sprite from './Sprite.jsx';
 import GuiaPersonaje from './GuiaPersonaje.jsx';
 import { DATA } from '../game/data.js';
 
+// Jorge (12 de noviembre): lo que sí importa de cada personaje en la partida: sus destrezas.
+const entrenamientoPj = (j) => [
+  ['Destreza bélica (en todas las armas)', !!j.destreza],
+  ['Destreza en cimitarra', (j.entrenado || []).includes('cimitarra')],
+  ['Destreza en alfanje', (j.entrenado || []).includes('alfanje')],
+  ['Destreza en jambiya', (j.entrenado || []).includes('jambiya')],
+  ['Destreza con arco', (j.entrenado || []).includes('arco')],
+  ['Campeón de arco (ganó el Torneo de Murcia)', !!j.arcoMaximo],
+];
 // Panel desplegable con las hojas de los personajes: jugadores en la partida (estado público) y las 8 hojas de referencia.
 export default function MenuPersonajes({ s, onCerrar }) {
   const [abierto, setAbierto] = useState();
@@ -24,7 +33,7 @@ export default function MenuPersonajes({ s, onCerrar }) {
               {j.herido && <span className="chip mal">H</span>}{j.perdido && <span className="chip mal">P</span>}{j.buscadoInfo && <span className="chip mal" title={j.buscadoInfo}>B</span>}
             </button>
             {abierto === j.id && j.buscadoInfo && <p className="aviso-mal aviso-buscado">{j.id === s.yo ? 'Estás' : `${j.nombre} está`} {j.buscadoInfo}</p>}
-            {abierto === j.id && <p className="it entrenamiento-pj"><b>Entrenamiento:</b> {[['Destreza', j.destreza], ...['cimitarra', 'alfanje', 'jambiya', 'arco'].map((a) => [a[0].toUpperCase() + a.slice(1), (j.entrenado || []).includes(a)])].map(([n, si]) => (n === 'Arco' && j.arcoMaximo ? 'Arco ✓ (máxima)' : `${n} ${si ? '✓' : '✗'}`)).join(' · ')}</p>}   {/* Jorge (11 de noviembre) */}
+            {abierto === j.id && <ul className="entrenamiento-pj">{entrenamientoPj(j).map(([n, si]) => <li key={n} className={si ? 'si' : 'no'}>{si ? '✓' : '✗'} {n}</li>)}</ul>}   {/* Jorge (12 de noviembre): en lugar de Saber, Labia… */}
             {abierto === j.id && <HojaPersonaje pj={j.pj} jugador={j} esYo={j.id === s.yo} />}
             {abierto === j.id && j.id === s.yo && s.miGuia && <GuiaPersonaje g={s.miGuia} />}
           </section>

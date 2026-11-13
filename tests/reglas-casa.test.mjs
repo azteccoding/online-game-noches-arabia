@@ -3135,3 +3135,11 @@ console.log('reglas de la casa OK');
   { const { e, Y } = prep('facil'); Y.ciudad = 'Estambul'; Y.dinares = 50; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     assert.ok(!tieneItem(Y, 'cimitarra'), 'en fácil, solo con más de 60'); }
 }
+
+// Jorge (12 de noviembre): en Personajes, los personajes en la partida muestran sus destrezas en lugar de Saber, Labia, Fuerza…
+{
+  const { readFileSync } = await import('node:fs');
+  const m = readFileSync(new URL('../src/components/MenuPersonajes.jsx', import.meta.url), 'utf8'), h = readFileSync(new URL('../src/components/HojaPersonaje.jsx', import.meta.url), 'utf8');
+  for (const t of ['Destreza bélica (en todas las armas)', 'Destreza en cimitarra', 'Destreza en alfanje', 'Destreza con arco', 'Campeón de arco (ganó el Torneo de Murcia)']) assert.ok(m.includes(t), t);
+  assert.ok(h.includes('{!jugador && <ul className="stats-hoja">'), 'sin atributos en los personajes en la partida');
+}

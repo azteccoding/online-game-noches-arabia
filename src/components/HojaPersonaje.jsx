@@ -30,7 +30,7 @@ export default function HojaPersonaje({ pj, jugador, esYo }) {
           {jugador.tieneMensaje && <span className="chip">{jugador.nMensajes > 1 ? `${jugador.nMensajes} Mensajes en curso` : 'Mensaje en curso'}</span>}
         </div>
       )}
-      <ul className="stats-hoja">{p.stats.map((v, i) => <li key={i}><span>{p.statsEtiquetas[i]}</span><i>{Array.from({ length: 5 }, (_, k) => <b key={k} className={k < v ? 'on' : ''} />)}</i></li>)}</ul>
+      {!jugador && <ul className="stats-hoja">{p.stats.map((v, i) => <li key={i}><span>{p.statsEtiquetas[i]}</span><i>{Array.from({ length: 5 }, (_, k) => <b key={k} className={k < v ? 'on' : ''} />)}</i></li>)}</ul>}   {/* Jorge (12 de noviembre): en los personajes en la partida no se muestran Saber, Labia… */}
       <ul className="hab">{p.habilidades.map((h, i) => <li key={i}>{h}</li>)}</ul>
       <p className="lim"><b>Límite:</b> {p.limite}</p>
       <p className="it">{p.cita}</p>

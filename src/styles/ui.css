@@ -381,3 +381,8 @@ fieldset:disabled { opacity: .5; }
 .btn-ciudad { gap: 6px; }
 .btn-ciudad .ciudad-corta { display: none; }
 @media (max-width: 420px) { .btn-ciudad .ciudad-larga { display: none; } .btn-ciudad .ciudad-corta { display: inline; } }
+
+/* Jorge (12 de noviembre): destrezas de cada personaje en la partida (pestaña Personajes) */
+.entrenamiento-pj { list-style: none; margin: 6px 0 8px; padding: 0; display: grid; gap: 2px; font-size: 0.92em; }
+.entrenamiento-pj li.si { color: var(--ok, #2e6b2e); font-weight: 600; }
+.entrenamiento-pj li.no { opacity: 0.7; }
