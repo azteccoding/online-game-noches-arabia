@@ -3160,7 +3160,8 @@ console.log('reglas de la casa OK');
 // Jorge (12 de noviembre): la barra de abajo muestra lo que llevas (armas, transporte y dados), no las destrezas
 {
   const { textoEquipo } = await import('../src/game/equipo.js');
-  assert.equal(textoEquipo({ mano: [] }), 'Armas: ninguna · Transporte: ninguno · Dados: ninguno');
+  assert.equal(textoEquipo({ mano: [] }), '', 'si no traes nada, no sale');
   const mano = ['cimitarra', 'arco', 'flechas', 'flechas', 'caballo', 'caballoMongol', 'caballoMongol', 'dadosCairo'].map((ref, i) => ({ uid: 'u' + i, tipo: 'item', ref }));
-  assert.equal(textoEquipo({ mano }), 'Armas: Cimitarra, Arco (2 flechas) · Transporte: Caballo, Caballo mongol (2) · Dados: Dados del Cairo');
+  assert.equal(textoEquipo({ mano }), 'Cimitarra · Arco (2 flechas) · 🐴 Caballo · 🐴 Caballo mongol (2) · Dados del Cairo');
+  assert.equal(textoEquipo({ mano: [{ uid: 'x', tipo: 'item', ref: 'camello', datos: { vida: 3 } }] }), '🐪 Camello: 3 turnos', 'con la vida del animal');
 }

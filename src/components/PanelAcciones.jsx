@@ -5,7 +5,7 @@ import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
 import Dinares from './Dinares.jsx';
 import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
-import { contadoresCarrera, vidaAnimales } from '../game/carrera.js';
+import { contadoresCarrera } from '../game/carrera.js';
 import { textoEquipo } from '../game/equipo.js';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
@@ -41,9 +41,8 @@ export default function PanelAcciones({ s, abrir, panel }) {
         </div>
         <div className="acc-yo">
           <Dinares valor={saldo.dinares} /><span className="chip" title="Noches">{saldo.noches} noches</span>
-          {vidaAnimales(s).length > 0 && <span className="chip" title="Turnos de vida que le quedan a cada animal después de este">{vidaAnimales(s).map((a) => a.texto).join(' · ')}</span>}
           {contadoresCarrera(s).map((c) => <span key={c.id} className="chip chip-ev" title="Cada noche cuenta al terminar tu turno en esa ciudad; si terminas un turno en otra, vuelves a 0. Con 2 noches seguidas ganas el premio de la carrera.">🏁 {c.texto}</span>)}
-          <span className="chip chip-entrena" title="Lo que llevas: armas, transporte y dados. Tus destrezas se ven en Personajes.">{textoEquipo(s)}</span>   {/* Jorge (12 de noviembre): armas, transporte y dados en lugar de las destrezas */}
+          {textoEquipo(s) && <span className="chip chip-entrena" title="Lo que llevas: armas, transporte (con los turnos de vida de cada animal) y dados. Tus destrezas se ven en Personajes.">{textoEquipo(s)}</span>}   {/* Jorge (12 de noviembre): armas, transporte y dados en lugar de las destrezas */}
           {(yo.idiomas || []).map((i) => <span key={i} className="chip" title={`Puedes enseñar ${i} ${i === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'}: 4 dinares por noche`}>Habla {i}</span>)}
           {yo.estudiando && <span className="chip chip-ev" title="No puedes salir de la ciudad y tu acción principal se va en las clases">Estudiando {yo.estudiando.idioma}</span>}
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
