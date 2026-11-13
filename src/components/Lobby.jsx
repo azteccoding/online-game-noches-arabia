@@ -3,6 +3,7 @@ import Sprite from './Sprite.jsx';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import BotonSonido from './BotonSonido.jsx';
 
 const NIVEL = { facil: 'Fácil', normal: 'Normal', dificil: 'Difícil' };
 
@@ -18,6 +19,7 @@ export default function Lobby({ s }) {
     <main className="pantalla lobby">
       <header className="lobby-cab">
         <h1>Sala {s.codigo}</h1>
+        <BotonSonido s={s} />
         {tarde ? <p>{s.puedeUnirse ? 'La partida ya empezó. Elige personaje y entra: jugarás al final de esta ronda.' : 'La primera ronda ya terminó: ya no se puede entrar a esta partida.'}</p>
           : <p>Los demás entran abriendo <b>{s.urls?.[0] || location.host}</b> en su navegador (misma red).</p>}
         {!tarde && s.cuenta == null && todos.some((j) => j.listo) && s.faltaInicio?.length > 0 && <p className="it">La cuenta regresiva arranca cuando todos estén conectados y listos. Falta: {s.faltaInicio.join(', ')}.</p>}

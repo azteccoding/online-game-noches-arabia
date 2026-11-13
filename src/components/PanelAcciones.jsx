@@ -7,6 +7,7 @@ import Dinares from './Dinares.jsx';
 import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
 import { contadoresCarrera } from '../game/carrera.js';
 import { textoEquipo } from '../game/equipo.js';
+import BotonSonido from './BotonSonido.jsx';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
@@ -41,6 +42,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
         </div>
         <div className="acc-yo">
           <Dinares valor={saldo.dinares} /><span className="chip" title="Noches">{saldo.noches} noches</span>
+          <BotonSonido s={s} />
           {contadoresCarrera(s).map((c) => <span key={c.id} className="chip chip-ev" title="Cada noche cuenta al terminar tu turno en esa ciudad; si terminas un turno en otra, vuelves a 0. Con 2 noches seguidas ganas el premio de la carrera.">🏁 {c.texto}</span>)}
           {textoEquipo(s) && <span className="chip chip-entrena" title="Lo que llevas: armas, transporte (con los turnos de vida de cada animal) y dados. Tus destrezas se ven en Personajes.">{textoEquipo(s)}</span>}   {/* Jorge (12 de noviembre): armas, transporte y dados en lugar de las destrezas */}
           {(yo.idiomas || []).map((i) => <span key={i} className="chip" title={`Puedes enseñar ${i} ${i === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'}: 4 dinares por noche`}>Habla {i}</span>)}

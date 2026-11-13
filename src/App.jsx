@@ -5,6 +5,7 @@ import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
 import Lobby from './components/Lobby.jsx';
+import { sonar, sonidoDeLinea } from './game/sonidos.js';
 import Tablero from './components/Tablero.jsx';
 import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
 import BarraEstado from './components/BarraEstado.jsx';
@@ -45,6 +46,15 @@ function Juego({ lienzo }) {
   const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
+  // Sonidos (PRUEBA, solo en local): peleas, viajes en caballo o burro y muertes, al llegar su línea nueva al registro (para todos).
+  const sonidoN = useRef(null);
+  useEffect(() => {
+    if (!s?.sonidos || !s.log) return;
+    const maxN = s.log.reduce((m, l) => Math.max(m, l.n || 0), 0);
+    if (sonidoN.current == null) { sonidoN.current = maxN; return; }   // al cargar o reconectar no suena lo viejo
+    for (const l of s.log) if ((l.n || 0) > sonidoN.current) { const t = sonidoDeLinea(l.texto || ''); if (t) sonar(t); }
+    sonidoN.current = Math.max(sonidoN.current, maxN);
+  }, [s]);
   // Avisos verdes: premios propios (dinares o noches que suben) y comienzo de cada ronda.
   const prev = useRef(null);
   useEffect(() => {
@@ -57,10 +67,12 @@ function Juego({ lienzo }) {
     if (dd < 0) {                                                       // pagos y pérdidas: aviso rojo con el motivo (alojamiento, robo, multa…)
       const motivo = s.log.filter((l) => (l.n || 0) > p.logN && !l.saldo && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
       avisarPerdida(`Pierdes ${-dd} dinares${motivo ? ': ' + motivo : ''}`);
+      if (s.sonidos) sonar('pierde');   // PRUEBA, solo en local: monedas cayendo
     }
     if (dd > 0 || dn > 0) {
       const motivo = s.log.filter((l) => (l.n || 0) > p.logN && !l.saldo && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
       avisar(`Ganaste ${[dd > 0 && `${dd} dinares`, dn > 0 && `${dn} noches`].filter(Boolean).join(' y ')}${motivo ? ': ' + motivo : ''}`);
+      if (s.sonidos && dd > 0) sonar('cobro');   // PRUEBA, solo en local: caja registradora
     }
   }, [s]);
 

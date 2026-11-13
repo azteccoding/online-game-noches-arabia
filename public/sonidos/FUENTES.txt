@@ -1,0 +1,62 @@
+Sonidos candidatos para las peleas (12 de noviembre de 2026). Todos gratuitos y de uso libre.
+
+DUELO (trompetas)
+- duelo-1.ogg  «Classic fanfare lick», de fvcalderan. Licencia CC0 (dominio público).
+  https://opengameart.org/content/classic-fanfare-lick
+- duelo-2.wav  «Victory Fanfare Short» (Heavy_ConceptB), de cynicmusic. Licencia CC0. Recortado a los primeros 3.5 segundos, con desvanecido.
+  https://opengameart.org/content/victory-fanfare-short
+
+ATAQUE A MUERTE (choque de escudos)
+- ataque-1.ogg  «20 Sword Sound Effects (Attacks and Clashes)», archivo sword_clash.6, de StarNinjas. Licencia CC0. El autor dice que los choques sirven también como golpe contra escudo.
+  https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes
+- ataque-2.wav  «Metal Impact Sounds», archivo bong1, de BMacZero. Licencia CC0.
+  https://opengameart.org/content/metal-impact-sounds
+
+ROBO (choque de espadas)
+- robo-1.ogg  «20 Sword Sound Effects (Attacks and Clashes)», archivo sword_clash.1, de StarNinjas. Licencia CC0.
+  https://opengameart.org/content/20-sword-sound-effects-attacks-and-clashes
+- robo-2.mp3  «Sword Clash», de Gravity Sound. Licencia CC BY 4.0: se puede usar y redistribuir, pero hay que dar crédito al autor (Gravity Sound).
+  https://commons.wikimedia.org/wiki/File:Sword_Clash_(Gravity_Sound).mp3
+
+La carpeta «descargas» guarda los archivos originales tal como se bajaron.
+
+ROBO, candidatos nuevos (Jorge descartó robo-1 y robo-2). Recortados de grabaciones más largas: pasados a 48 kHz, 16 bits y mono, con desvanecido al final.
+- robo-3.wav  Sable contra espada nórdica, un solo choque (1.3 s). «Medieval Sound Effects: Weapon Impacts», de medicinestorm. Licencia CC0.
+  https://opengameart.org/content/medieval-sound-effects-weapon-impacts
+- robo-4.wav  Sable contra katana, tres choques seguidos (3 s). Mismo paquete, de medicinestorm. Licencia CC0.
+- robo-5.wav  Espada nórdica contra katana, un choque corto (0.7 s). Mismo paquete, de medicinestorm. Licencia CC0.
+- robo-6.wav  Desenvainar la espada (0.5 s): no es un choque, es el sonido de sacar la espada para el asalto. «RPG Sound Pack», de artisticdude. Licencia CC0.
+  https://opengameart.org/content/rpg-sound-pack
+
+Elegidos por Jorge: duelo-1 y ataque-1.
+
+======== 12 de noviembre, segunda tanda ========
+ROBO, otros temas (Jorge descartó robo-1 a robo-6). Del tambor solo hay uno; de laúd u oud no encontré nada con licencia clara.
+- robo-monedas-1.ogg  Monedas que se agitan. «80 CC0 RPG SFX» (item_coins_01), de rubberduck. CC0.  https://opengameart.org/content/80-cc0-rpg-sfx
+- robo-monedas-2.ogg  «Shaking coins in palm», de ezwa. Dominio público.  https://commons.wikimedia.org/wiki/File:Shaking_coins_in_palm.ogg
+- robo-tambor-1.wav  Tambores de guerra, los primeros 2 s de «Horde War Drums», de William Hector. CC0.  https://opengameart.org/content/horde-war-drums-loop
+- robo-daga-1.wav  Silbido rápido de un arma en el aire. «Swishes Sound Pack» (swish-1), de artisticdude. CC0.  https://opengameart.org/content/swishes-sound-pack
+- robo-daga-2.ogg  Hoja de arma. «80 CC0 RPG SFX» (blade_01), de rubberduck. CC0.
+- robo-campana-1.ogg  Gong. «100 CC0 SFX» (gong_01), de rubberduck. CC0.  https://opengameart.org/content/100-cc0-sfx
+- robo-campana-2.ogg  Campana. «100 CC0 SFX» (bell_01), de rubberduck. CC0.
+
+COBRO (cuando te suben los dinares)
+- cobro-1.ogg  «Cash register», caja registradora. Dominio público.  https://commons.wikimedia.org/wiki/File:Cash_register.ogg
+- cobro-2.wav  «Cha Ching Register», de Laxerboyd. Licencia CC BY-SA 4.0: hay que dar crédito y compartir igual.  https://commons.wikimedia.org/wiki/File:Cha_Ching_Register-Muska666-173262285.wav
+
+PIERDE (cuando te bajan los dinares)
+- pierde-1.ogg  «Coins dropped on wooden floor», monedas cayendo al piso, de ezwa. Dominio público.  https://commons.wikimedia.org/wiki/File:Coins_dropped_on_wooden_floor.ogg
+- pierde-2.ogg  «Coin Splash», de lordtomorrow. CC0.  https://opengameart.org/content/coin-splash
+
+CABALLO (al viajar en caballo o caballo mongol)
+- caballo-1.ogg  «Wiehern», relincho. Dominio público.  https://commons.wikimedia.org/wiki/File:Wiehern.ogg
+- caballo-2.oga  Relincho de semental, de Lemasson y otros (artículo científico de PLOS ONE). Licencia CC BY 4.0: hay que dar crédito.  https://commons.wikimedia.org/wiki/File:Mares-Prefer-the-Voices-of-Highly-Fertile-Stallions-pone.0118468.s001.oga
+
+BURRO (al viajar en burro)
+- burro-1.ogg  «Donkey Bray», de StarNinjas. CC0.  https://opengameart.org/content/donkey-bray
+- burro-2.wav  Burro rebuznando, de Félix Blume (primer rebuzno de la grabación, 2 s). CC0.  https://commons.wikimedia.org/wiki/File:157763_felix-blume_a-donkey-is-braying-in-his-enclosure-in-south-of-france.wav
+
+MUERTE (grito corto de dolor; no es de ningún videojuego)
+- muerte-1.wav  Primer grito de «Grunts (male) death and pain», de thebardofblasphemy. CC0.  https://opengameart.org/content/grunts-male-death-and-pain
+- muerte-2.wav  Otro grito del mismo paquete. CC0.
+- muerte-3.ogg  «5 Hit Sounds + Dying» (die1), de tinyworlds. CC0.  https://opengameart.org/content/5-hit-sounds-dying

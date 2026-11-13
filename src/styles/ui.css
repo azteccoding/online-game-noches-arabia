@@ -389,3 +389,5 @@ fieldset:disabled { opacity: .5; }
 /* Jorge (12 de noviembre): retos de la ciudad, uno por línea (se lee bien en teléfono) */
 .retos-ciudad { margin: 2px 0 8px; padding-left: 1.1em; }
 .retos-ciudad li { margin: 1px 0; }
+/* Sonidos de pelea (PRUEBA, solo en local) */
+.boton-sonido.on { opacity: 0.75; }

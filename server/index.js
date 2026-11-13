@@ -132,7 +132,8 @@ function difundir() {
     if (!estado.dados && avisosDiferidos.length) { const xs = avisosDiferidos.splice(0); for (const msg of xs) for (const ws of clientes.keys()) enviar(ws, { t: 'aviso', msg }); }
     for (const [ws, pid] of clientes) {
       let v = vista(data, estado, pid);
-      if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };   // en línea el PIN es la clave: no se reenvía
+      if (v.host_info) v.host_info = { ...v.host_info, pinHost: CLAVE ? null : PIN_LOCAL };
+      v.sonidos = !CLAVE;   // sonidos de pelea: solo en local (PRUEBA, Jorge 12 de noviembre)   // en línea el PIN es la clave: no se reenvía
       const g = GUIAS.guias[estado.jugadores[pid]?.pj];
       if (g) v.miGuia = g;
       const antes = congelada?.get(pid);
