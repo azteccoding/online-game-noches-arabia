@@ -3143,3 +3143,15 @@ console.log('reglas de la casa OK');
   for (const t of ['Destreza bélica (en todas las armas)', 'Destreza en cimitarra', 'Destreza en alfanje', 'Destreza con arco', 'Campeón de arco (ganó el Torneo de Murcia)']) assert.ok(m.includes(t), t);
   assert.ok(h.includes('{!jugador && <ul className="stats-hoja">'), 'sin atributos en los personajes en la partida');
 }
+
+// Jorge (12 de noviembre): la ficha de la ciudad dice qué armas vende hoy (de las existencias del mercado)
+{
+  const { armasEnCiudad } = await import('../shared/objetos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, n = (c) => armasEnCiudad(data, e, c).map((x) => x.ref).sort().join(',');
+  assert.equal(n('Bagdad'), 'jambiya', 'en Bagdad solo jambiya');
+  assert.equal(n('Estambul'), 'alfanje,cimitarra,jambiya');
+  assert.equal(armasEnCiudad(data, e, 'Estambul').find((x) => x.ref === 'cimitarra').precio, 40, 'cimitarra en Estambul, 40');
+  assert.equal(n('Aleppo'), 'arco,jambiya');
+  assert.ok(vistaDe(e, g.ids[0]).armasCiudades.Samarcanda.some((x) => x.ref === 'cimitarra'), 'la vista lo lleva');
+}

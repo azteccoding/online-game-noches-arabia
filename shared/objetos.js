@@ -21,6 +21,16 @@ export function motivoNoMongol(e, j) {
   if (j.dinares < MONGOL.precio) return 'No te alcanza';
   return null;
 }
+// Armas que vende hoy cada ciudad, para su ficha (Jorge, 12 de noviembre): las mismas existencias que usa el mercado.
+export function armasEnCiudad(data, e, ciudad) {
+  const r = [];
+  for (const ref of ['cimitarra', 'alfanje', 'arco', 'jambiya']) {
+    const n = existenciaArma(e, ref, ciudad); if (!(n > 0)) continue;
+    const base = ref === 'cimitarra' ? (data.config.armas?.cimitarra?.precio ?? ITEMS.cimitarra.precio) : ITEMS[ref].precio;
+    r.push({ ref, nombre: ITEMS[ref].nombre, precio: base + (RECARGO_ARMA[ref]?.[ciudad] || 0), quedan: Number.isFinite(n) ? n : null });
+  }
+  return r;
+}
 export const REPARA_ESCUDO = { ciudad: 'Isfahán', costo: 5 };   // Jorge (12 de noviembre): reparar el escudo de cuero, sin gastar la acción principal
 export const mapasJorasanVenta = (e) => e.mapasJorasan ?? MAPA_JORASAN.stock;
 // Los escribas de Bagdad hacen otro mapa del Jorasán: vuelve a la venta 2 rondas después de venderse a un mercado o de gastarse.
