@@ -11,7 +11,7 @@ h1, h2, h3 { font-family: var(--f-titulo); font-weight: 400; margin: 0; letter-s
 .lienzo { position: absolute; left: 0; top: 0; overflow: hidden; will-change: transform; }
 .app { position: absolute; inset: 0; display: flex; flex-direction: column; background: radial-gradient(ellipse at 50% 0%, #3a1218 0%, var(--noche) 70%); }
 .mesa { position: relative; flex: 1; min-height: 0; }
-.pantalla { flex: 1; overflow: auto; padding: 20px 16px 24px; display: flex; flex-direction: column; align-items: center; gap: 18px; user-select: text; -webkit-user-select: text; }
+.pantalla { flex: 1; overflow: auto; padding: calc(20px + var(--seg-arriba)) max(16px, var(--seg-der)) calc(24px + var(--seg-abajo)) max(16px, var(--seg-izq)); display: flex; flex-direction: column; align-items: center; gap: 18px; user-select: text; -webkit-user-select: text; }
 
 .btn { min-height: 44px; padding: 8px 16px; border-radius: 12px; border: 2px solid var(--oro); background: linear-gradient(180deg, #9c2a31, var(--vino-osc)); color: var(--pergamino); font-family: var(--f-titulo); letter-spacing: .04em; box-shadow: 0 2px 0 rgba(0,0,0,.35); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 .btn:active:not(:disabled) { transform: translateY(1px); }

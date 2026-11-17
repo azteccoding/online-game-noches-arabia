@@ -1,7 +1,7 @@
 /* Interfaz: barras, paneles, modales, dados, lobby, listas. Móvil primero; cada panel cabe en 320 px de ancho. */
 
 /* ---------- Barra superior ---------- */
-.barra { height: var(--barra-alto); flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 10px; background: linear-gradient(180deg, #3a1218, #240a0f); border-bottom: 2px solid var(--oro); position: relative; z-index: 30; }
+.barra { height: var(--barra-alto); flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: var(--seg-arriba) max(10px, var(--seg-der)) 0 max(10px, var(--seg-izq)); background: linear-gradient(180deg, #3a1218, #240a0f); border-bottom: 2px solid var(--oro); position: relative; z-index: 30; }
 .barra-izq { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .sala { font-family: var(--f-titulo); letter-spacing: .06em; color: var(--oro-claro); white-space: nowrap; }
 .barra-der { display: flex; align-items: center; gap: 6px; }
@@ -13,7 +13,7 @@
 .menu-lista .sep { padding: 8px 12px 2px; color: var(--oro-claro); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 
 /* ---------- Barra inferior de acciones ---------- */
-.acciones { flex: none; min-height: var(--acciones-alto); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px 10px; background: linear-gradient(0deg, #3a1218, #240a0f); border-top: 2px solid var(--oro); position: relative; z-index: 30; }
+.acciones { flex: none; min-height: var(--acciones-alto); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 8px max(10px, var(--seg-der)) calc(8px + var(--seg-abajo)) max(10px, var(--seg-izq)); background: linear-gradient(0deg, #3a1218, #240a0f); border-top: 2px solid var(--oro); position: relative; z-index: 30; }
 .acc-info { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 260px; }
 .acc-txt { display: flex; flex-direction: column; min-width: 0; line-height: 1.15; }
 .acc-txt small { color: var(--oro-claro); opacity: .85; font-size: 14px; }
@@ -103,7 +103,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .registro time { opacity: .6; font-size: 12.5px; margin-right: 6px; }
 
 /* ---------- Modal de carta (una sola carta completa montada) ---------- */
-.modal-fondo { position: absolute; inset: 0; z-index: 80; background: rgba(12, 3, 5, .84); display: flex; padding: 10px; overflow-y: auto; overscroll-behavior: contain; animation: aparece .15s ease-out; }
+.modal-fondo { position: absolute; inset: 0; z-index: 80; background: rgba(12, 3, 5, .84); display: flex; padding: max(10px, var(--seg-arriba)) max(10px, var(--seg-der)) max(10px, var(--seg-abajo)) max(10px, var(--seg-izq)); overflow-y: auto; overscroll-behavior: contain; animation: aparece .15s ease-out; }
 @keyframes aparece { from { opacity: 0 } to { opacity: 1 } }
 /* La carta conserva su proporción y cabe en pantalla; en horizontal bajo (móvil) mantiene un ancho legible y el fondo se desplaza. */
 .modal-carta { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: auto; width: max(min(100%, 470px, calc((var(--lh) - 150px) * .716)), min(100%, 300px)); }
@@ -193,8 +193,8 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 /* ---------- Ajustes por tamaño del lienzo (medido por JS: data-tam en .lienzo; nunca media queries) ---------- */
 .lienzo[data-tam='xs'] .barra-der .btn.mini { padding: 4px 8px; font-size: 13px; }
 .lienzo[data-tam='xs'] .sala { font-size: 14px; }
-.lienzo[data-tam='xs'] { --barra-alto: 44px; --acciones-alto: 58px; }
-.lienzo[data-tam='xs'] .acciones { flex-wrap: nowrap; padding-top: 4px; padding-bottom: 4px; gap: 6px; }
+.lienzo[data-tam='xs'] { --barra-alto: calc(44px + var(--seg-arriba)); --acciones-alto: calc(58px + var(--seg-abajo)); }
+.lienzo[data-tam='xs'] .acciones { flex-wrap: nowrap; padding-top: 4px; padding-bottom: calc(4px + var(--seg-abajo)); gap: 6px; }
 .lienzo[data-tam='xs'] .acc-info { flex: 0 1 auto; }
 .lienzo[data-tam='xs'] .acc-txt small { display: none; }
 .lienzo[data-tam='xs'] .acc-botones .btn { padding: 4px 8px; font-size: 14px; min-height: 40px; }
@@ -253,7 +253,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .flotante { position: absolute; z-index: 22; right: 10px; bottom: 10px; }
 /* Tras el fin de la partida, con el tablero a la vista: siempre arriba y al centro, por encima de paneles y botones flotantes. */
 .volver-fin { position: fixed; top: calc(var(--barra-alto) + 10px); left: 50%; transform: translateX(-50%); z-index: 96; box-shadow: var(--sombra); max-width: calc(100vw - 120px); }
-.lienzo[data-forma='alta'] .barra { height: auto; min-height: var(--barra-alto); flex-wrap: wrap; padding: 4px 8px; row-gap: 4px; }
+.lienzo[data-forma='alta'] .barra { height: auto; min-height: var(--barra-alto); flex-wrap: wrap; padding: calc(4px + var(--seg-arriba)) max(8px, var(--seg-der)) 4px max(8px, var(--seg-izq)); row-gap: 4px; }
 .lienzo[data-forma='alta'] .barra-izq { flex: 1 1 100%; flex-wrap: wrap; }
 .lienzo[data-forma='alta'] .barra-der { flex: 1 1 100%; justify-content: space-between; }
 .lienzo[data-forma='alta'] .barra-der .btn.mini { min-height: 34px; }

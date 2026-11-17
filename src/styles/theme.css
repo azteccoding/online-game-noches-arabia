@@ -24,6 +24,12 @@
   --f-titulo: 'Marcellus SC', 'Alegreya', Georgia, serif;
   --f-texto: 'Alegreya', Georgia, 'Times New Roman', serif;
   --f-arabe: 'Aref Ruqaa', 'Alegreya', serif;
-  --barra-alto: 52px;
-  --acciones-alto: 76px;
+  /* Zonas seguras (iPhone en modo app): la barra de estado/isla de arriba y la raya de inicio de abajo.
+     En el navegador valen 0, así que nada cambia ahí. Las alturas de las barras ya las incluyen. */
+  --seg-arriba: env(safe-area-inset-top, 0px);
+  --seg-abajo: env(safe-area-inset-bottom, 0px);
+  --seg-izq: env(safe-area-inset-left, 0px);
+  --seg-der: env(safe-area-inset-right, 0px);
+  --barra-alto: calc(52px + var(--seg-arriba));
+  --acciones-alto: calc(76px + var(--seg-abajo));
 }
