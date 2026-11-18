@@ -551,12 +551,16 @@ T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 
   if (x <= 2 && tieneItem(j, 'bendicionAbuMadyan')) { quitarPrimero(j, 'item', 'bendicionAbuMadyan'); ctx.say('Asoman bandoleros, pero la bendición de Abu Madyan protege la caravana: pasan de largo (la bendición se gasta).'); nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); }
   else if (x <= 2) {
     ctx.say('Bandoleros asaltan la caravana.');
-    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R23 · Bandoleros', texto: 'Pelea (ellos tiran 2 dados con 1 de ventaja) o pierdes un saco.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'saco', texto: 'Perder un saco' }], porDefecto: 'saco', cont: { fn: 'r23.banditos', args: { carga } } });
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R23 · Bandoleros', texto: 'Pelea (ellos tiran 2 dados con 1 de ventaja): si ganas no pierdes nada; si pierdes, se llevan los 3 sacos pero ganas 15 noches. O entrégales un saco sin pelear.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'saco', texto: 'Perder un saco' }], porDefecto: 'saco', cont: { fn: 'r23.banditos', args: { carga } } });
   } else nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
 } };
 registrar('r23.banditos', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid]; let carga = args.carga;
-  if (resp.opcion === 'saco' || !peleaNPC(data, e, pid, { etq: 'Bandoleros', dados: 2, bono: 1 })) { const c = carga.pop(); quitarCarta(j, c.uid); }
+  if (resp.opcion === 'saco') { const c = carga.pop(); quitarCarta(j, c.uid); }
+  else if (!peleaNPC(data, e, pid, { etq: 'Bandoleros', dados: 2, bono: 1 })) {   // Jorge (17 de noviembre): si pierdes, pierdes los 3 sacos pero ganas 15 noches
+    for (const c of carga) quitarCarta(j, c.uid); carga = [];
+    premio(data, e, pid, { noches: 15 }, `${j.nombre} pierde ante los bandoleros: se llevan toda la sal, pero gana 15 noches por la historia.`);
+  }
   if (carga.length) nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
 });
 T.R24 = { ciudad: 'Basra', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) {
@@ -791,6 +795,33 @@ export function finEstudio(data, e, pid) {
   j.extra.estudio = null; (j.extra.idiomas ||= []).push(s.idioma);
   publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
   log(e, `${j.nombre} termina sus clases: ya habla ${s.idioma}.`, { pid, aviso: true });
+}
+// R52 «Forjar acero de Damasco» (Jorge, 17 de noviembre): pagas 18 dinares y tiras 1 dado (con botón). Par: te quedas ese turno en
+// Damasco forjando y al iniciar tu siguiente turno te dan una cimitarra. Impar: tardas dos turnos (este y el siguiente, en el que no
+// puedes salir y tu acción principal se va en la forja) y te la dan al iniciar el tercero. Mientras forjas no puedes salir de Damasco.
+export const FORJA = { costo: 18, ciudad: 'Damasco' };
+T.R52 = { ciudad: FORJA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid];
+    return j.npc ? 'Yafar NPC no forja acero.' : j.extra?.forja ? 'Ya estás forjando tu acero.' : tieneItem(j, 'cimitarra') ? 'Ya tienes una cimitarra.' : j.dinares < FORJA.costo ? `Forjar cuesta ${FORJA.costo} dinares: sin dinero no hay trato.` : null; },
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid]; j.dinares -= FORJA.costo;
+    const [x] = ctx.t(`${j.nombre}: forjar acero de Damasco (par, 1 turno; impar, 2)`, 1);
+    const n = x % 2 === 0 ? 1 : 2;
+    j.extra.forja = { desde: j.turnos, entrega: j.turnos + n };
+    ctx.say(`Pagas ${FORJA.costo} dinares. ${n === 1 ? 'Te quedas este turno en Damasco forjando: al iniciar tu siguiente turno te dan la cimitarra.' : 'Tardas dos turnos: este y el siguiente te quedas en Damasco forjando (en el siguiente tu acción principal se va en la forja) y al iniciar el tercero te dan la cimitarra.'}`);
+    log(e, `${j.nombre} empieza a forjar acero de Damasco: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
+  } };
+export function turnoForja(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno, f = j?.extra?.forja;
+  if (!f || !t) return;
+  if (j.ciudad !== FORJA.ciudad) { j.extra.forja = null; log(e, `${j.nombre} tuvo que dejar Damasco: pierde su acero a medio forjar.`, { pid }); return; }   // si un evento lo sacó de la ciudad
+  if (j.turnos >= f.entrega) {
+    j.extra.forja = null; darItem(e, j, 'cimitarra');
+    publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: 'Tu acero está listo: recibes una cimitarra de acero de Damasco. Ya puedes salir de la ciudad.', arte: 're' }, pid, [pid]);
+    log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra.`, { pid, aviso: true });
+    return;
+  }
+  t.principal = true; t.forjando = true;
+  log(e, `${j.nombre} pasa este turno en la forja de Damasco: su acción principal se va en el acero.`, { pid });
 }
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {

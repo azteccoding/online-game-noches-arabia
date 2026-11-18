@@ -855,9 +855,14 @@
    "precio": "20 dinares"
   },
   {
-   "nombre": "Buza",
-   "efecto": "Bebida de baja calidad. Se compra en Damasco y se vende en El Cairo por 4 dinares la pieza o en Bagdad por 3. El pago sale de la tesorería del Califa. Se pueden vender entre jugadores al precio que quieran",
-   "precio": "1 dinar (Damasco)"
+   "nombre": "Cálamo de Kufa",
+   "efecto": "Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Se compra en Damasco o en Basra (máximo 6 en tu mano) y se vende en El Cairo por 4 dinares la pieza o en Bagdad por 3: tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. El pago sale de la tesorería del Califa. Se pueden vender entre jugadores al precio que quieran",
+   "precio": "1 dinar (Damasco o Basra)"
+  },
+  {
+   "nombre": "Frasco con tinta de pulpo",
+   "efecto": "Se compra en India; cuando alguien ya visitó India, también en Bagdad. Si te roban, el frasco se rompe y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro y el Firmán: el ladrón no se los lleva y el frasco se gasta. Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 dinares, y ahí el mercado lo revende en 10",
+   "precio": "3 dinares (India); 6 dinares (Bagdad)"
   },
   {
    "nombre": "Papel amate",

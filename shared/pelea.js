@@ -4,7 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado,
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ,
 } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
@@ -328,7 +328,7 @@ function enJuego(data, e, tipo, A, D, pedirNur) {
     const pierde = D.herido ? 'estás herido: si pierdes este duelo, mueres' : `si pierdes entregas ${mitad(D)} dinares y ${Math.min(n, D.noches)} noches y quedas herido`;
     return `${gana}; ${pierde}. Rechazar cuesta ${rechazo}. `;
   }
-  if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas (y ${A.nombre} queda Buscado); si fracasa no pierdes nada. `;
+  if (tipo === 'robo') return `Si el asalto sale bien te quita tus ${Math.max(0, D.dinares)} dinares y tus cartas (y ${A.nombre} queda Buscado); si fracasa no pierdes nada y ${A.nombre} queda herido. `;
   return `Golpe de gracia: si gana por 3 o más mueres; por 1 o 2 quedas herido; empate, heridos los dos. Si ganas tú por 3 o más, muere ${A.nombre} y recibes su botín. `;
 }
 registrar('pelea.defensa', (data, e, args, resp) => elegirDefensa(data, e, resp));
@@ -526,7 +526,7 @@ function resolverNuevo(data, e) {
   const ganaAtk = r.ganaA;                                                     // en el robo, el empate es del defensor
   let cierre;
   if (P.tipo === 'matar') { P.golpe = golpe(r.ganaA, r.margen, r.empate); cierre = [textoGolpe(e, P, P.golpe)]; }
-  else cierre = [r.empate ? `Empate: gana ${nombre(e, P.def)}, que se defiende.` : `Gana ${ganaAtk ? nA : nD}.`, ganaAtk ? `${nA} le roba a ${nombre(e, P.def)} sus dinares y sus cartas.` : `${nA} no se lleva nada.`];
+  else cierre = [r.empate ? `Empate: gana ${nombre(e, P.def)}, que se defiende.` : `Gana ${ganaAtk ? nA : nD}.`, ganaAtk ? `${nA} le roba a ${nombre(e, P.def)} sus dinares y sus cartas.` : `${nA} no se lleva nada y queda herido.`];
   mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio, titulo, cierre });
   aplicar(data, e, { ganaAtk, numeroOk: false, cat: 'D' });
 }
@@ -548,8 +548,8 @@ function golpe(ganaAtk, margen, empate) {
   return { r: ganaAtk ? (mata ? 'mata' : 'hiereDef') : (mata ? 'muereAtk' : 'hiereAtk'), margen };
 }
 function consecuencia(e, P, ganaAtk, numeroOk, cat) {
-  const nA = nombre(e, P.atk), nD = nombre(e, P.def), sinArmas = cat === 'A' || cat === 'B';
-  if (P.tipo === 'robo') return ganaAtk ? `${nA} le roba a ${nD} sus dinares y sus cartas.` : `${nA} no se lleva nada${sinArmas && numeroOk ? ' y queda herido' : ''}.`;
+  const nA = nombre(e, P.atk), nD = nombre(e, P.def);
+  if (P.tipo === 'robo') return ganaAtk ? `${nA} le roba a ${nD} sus dinares y sus cartas.` : `${nA} no se lleva nada y queda herido.`;   // Jorge (17 de noviembre): quien roba y no gana queda herido
   if (P.tipo === 'matar') return ganaAtk ? `${nD} muere a manos de ${nA}.` : numeroOk ? `${nD} se salva a pedradas y ${nA} queda herido.` : `${nA} muere en el intento.`;
   const perd = e.jugadores[ganaAtk ? P.def : P.atk];
   return perd.herido ? `${perd.nombre} pierde el duelo estando herido: muere.` : `${perd.nombre} pierde el duelo: entrega la mitad de sus dinares y 30 noches y queda herido.`;
@@ -606,7 +606,6 @@ function resolver(data, e, { numeros }) {
 
 function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
   const P = e.pelea, A = e.jugadores[P.atk], D = e.jugadores[P.def];
-  const sinArmasDef = cat === 'A' || cat === 'B';
   if (P.tipo === 'robo') {
     if (ganaAtk) {
       const enmascarado = tieneObj(A, 'OB45');   // la máscara tiene que ser suya de antes, no la que acaba de robar
@@ -615,7 +614,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
       else { marcarBuscado(data, e, A, { tipo: 'robo', victima: D.nombre }); log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
     }
-    else { log(e, `${A.nombre} no se lleva nada de ${D.nombre}.`, { pid: P.atk }); if (sinArmasDef && numeroOk) { A.herido = true; log(e, `${A.nombre} queda herido.`, { pid: P.atk }); } }
+    else { A.herido = true; log(e, `${A.nombre} no se lleva nada de ${D.nombre} y queda herido.`, { pid: P.atk }); }   // Jorge (17 de noviembre): quien roba y no gana queda herido, con o sin armas
   } else if (P.tipo === 'matar' && P.golpe && P.golpe.r !== 'mata' && P.golpe.r !== 'muereAtk') {   // golpe de gracia: solo heridas
     if (P.golpe.r !== 'hiereAtk') { D.herido = true; log(e, `${D.nombre} queda herido.`, { pid: P.def }); }
     if (P.golpe.r !== 'hiereDef') { A.herido = true; log(e, `${A.nombre} queda herido.`, { pid: P.atk }); }
@@ -665,6 +664,13 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
 function robar(data, e, atk, def) {
   const A = e.jugadores[atk], D = e.jugadores[def];
   const din = Math.max(0, D.dinares); D.dinares -= din; A.dinares += din;   // a quien tiene deudas no se le roban dinares
+  // Frasco con tinta de pulpo (Jorge, 17 de noviembre): se rompe y destruye los papeles de la víctima; el ladrón no se los lleva y el frasco se gasta
+  if (tieneItem(D, 'tintaPulpo')) {
+    const papel = (c) => (c.tipo === 'item' && PAPELES_ITEM.includes(c.ref) && !(c.ref === 'mapa' && c.extra?.tesoro === 'jugador')) || (c.tipo === 'objeto' && PAPELES_OBJ.includes(c.ref)) || (c.tipo === 'especial' && c.ref === 'F1');   // también el Firmán (Jorge, 17 de noviembre): se destruye, no vuelve al banco
+    const rotos = D.mano.filter(papel);
+    quitarPrimero(D, 'item', 'tintaPulpo'); D.mano = D.mano.filter((c) => !papel(c));
+    log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
+  }
   const oculta = (c) => (c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta)   // la jambiya escondida no se la llevan
     || (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');                   // ni el mapa del escondite de dinares (regla de Jorge)
   const cartas = D.mano.filter((c) => !oculta(c)); D.mano = D.mano.filter(oculta);

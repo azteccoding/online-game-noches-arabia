@@ -2455,6 +2455,26 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!g.act(a, { t: 'reto', id: 'R49' }).ok, 'una vez por turno (gasta la acción principal)');
 }
 
+// Jorge (17 de noviembre): R52 «Forjar acero de Damasco»: 18 dinares, dado par 1 turno / impar 2; no sales de Damasco; luego la cimitarra.
+{
+  const { motivoNoSalir, tieneItem } = await import('../shared/base.js');
+  const { turnoForja } = await import('../shared/retos.js');
+  for (const [valor, extra] of [[4, 0], [3, 1]]) {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.mano = A.mano.filter((c) => c.ref !== 'cimitarra');
+    A.ciudad = 'Damasco'; A.dinares = 17; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    assert.match(g.act(a, { t: 'reto', id: 'R52' }).error || '', /sin dinero no hay trato/, 'sin 18 dinares no hay forja');
+    A.dinares = 30; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; forzar(e, valor);
+    const r = g.act(a, { t: 'reto', id: 'R52' }); assert.ok(r.ok, r.error); assert.equal(A.dinares, 12, 'paga 18');
+    assert.match(motivoNoSalir(e, A) || '', /forjando acero/, 'no puede salir de Damasco');
+    for (let k = 0; k < extra; k++) { A.turnos++; turnoDe(e, a, 'Damasco'); turnoForja(data, e, a); assert.ok(e.turno.principal, 'turno de forja: sin acción principal'); assert.ok(!tieneItem(A, 'cimitarra')); }
+    A.turnos++; turnoDe(e, a, 'Damasco'); turnoForja(data, e, a);
+    assert.ok(tieneItem(A, 'cimitarra'), 'al iniciar el turno siguiente recibe la cimitarra'); assert.ok(!e.turno.principal, 'ese turno sí tiene acción principal');
+    assert.equal(motivoNoSalir(e, A), null, 'ya puede salir');
+  }
+}
+
 // Jorge (10 de noviembre): una pala en Damasco y otra en El Cairo; una linterna en Damasco y otra en Isfahán; cada mercado con su existencia
 {
   const { tienda } = await import('../shared/objetos.js');

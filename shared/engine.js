@@ -376,6 +376,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
+  RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
   if (j.pierdeTurno > 0) {
     j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true;
     if (j.extra.nizam) { j.extra.nizam = false; j.herido = true; log(e, `${j.nombre} trabaja para el Nizam y pierde este turno; en el siguiente, rendido, no tendrá acción principal.`, { pid: id }); }   // R45
@@ -923,6 +924,7 @@ export function llegada(data, e, pid, origen) {
   const primera = !j.visitadas.includes(j.ciudad);
   const nadieAntes = !Object.values(e.jugadores).some((x) => x.visitadas.includes(j.ciudad));
   if (primera) j.visitadas.push(j.ciudad);
+  if (j.ciudad === 'India' && !e.indiaVisitada) { e.indiaVisitada = true; log(e, `${j.nombre} llega a India: desde ahora el frasco con tinta de pulpo también se vende en Bagdad (6 dinares).`, { aviso: true }); }   // Jorge (17 de noviembre)
   if (nadieAntes && t) {
     for (const k of e.caravanas.slice()) { /* las caravanas de ida y vuelta ya existen por el primer viaje */ }
     const bagdad = data.rutas.tarifas[j.ciudad + '>Bagdad'] !== undefined;
@@ -1297,7 +1299,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }

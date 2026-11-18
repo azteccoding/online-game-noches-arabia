@@ -706,6 +706,21 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R52",
+   "nombre": "Forjar acero de Damasco",
+   "ciudad": "Damasco",
+   "tipo": "V",
+   "requisito": "Pagar 18 dinares (sin dinero no hay trato). No tener ya una cimitarra.",
+   "resolucion": "Trabajas con los herreros de Damasco el famoso acero. Tira 1 dado: par, te quedas ese turno en Damasco y al iniciar tu siguiente turno te dan la cimitarra; impar, tardas dos turnos (en el segundo tu acción principal se va en la forja) y te la dan al iniciar el tercero. Mientras forjas no puedes salir de Damasco.",
+   "premio": "Una cimitarra.",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

@@ -70,7 +70,8 @@ export const ITEMS = {
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
-  buza: { nombre: 'Buza', precio: 1, texto: 'Se compra en Damasco y se vende en El Cairo (4) o en Bagdad (3).' },
+  buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
+  tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 40, texto: 'Carga para R7. Ocupa las manos: no puedes huir con un objeto.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
@@ -239,7 +240,12 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 // Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
 // mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.
 // Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.
-export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra'];
+// Frasco con tinta de pulpo (Jorge, 17 de noviembre): India 3; en Bagdad 6 cuando alguien ya visitó India; el mercado de Andalucía o
+// Samarcanda lo compra en 9 y lo revende en 10. Si roban a su dueño, se rompe y destruye sus papeles (no pasan al ladrón).
+export const TINTA = { india: 3, bagdad: 6, venta: 9, reventa: 10, ciudadesVenta: ['Andalucía', 'Samarcanda'] };
+export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
+export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de Kufa en la mano
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo'];   // el frasco de tinta pesa (Jorge, 17 de noviembre)
 // Mapa del Jorasán (Jorge, 12 de noviembre): hay 2 en toda la partida, a la venta en Bagdad por 20 dinares; no pesa. Perdido en el
 // Jorasán, usarlo gasta tu acción principal: un dado, impar sales a Basra, par a Samarcanda; el mapa se desgasta y se desvanece. Los
 // piratas de Yemen lo llevan por 5 dinares (sin gastar la acción principal) a un jugador perdido: le llega en su próximo turno. Se vende y
@@ -452,6 +458,7 @@ export function motivoNoSalir(e, j, enCaravana = true) {
   if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return 'Tienes una deuda con Bagdad (reto R1, el cofre del Éufrates): págala antes de salir de la ciudad.';
   if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
   if (j.extra?.estudio && j.ciudad === j.extra.estudio.ciudad) return `Estás estudiando ${j.extra.estudio.idioma} en ${j.extra.estudio.ciudad}: no puedes salir hasta terminar las clases.`;   // Jorge (10 de noviembre)
+  if (j.extra?.forja && j.ciudad === 'Damasco') return 'Estás forjando acero de Damasco: no puedes salir hasta que te den tu cimitarra.';   // R52 (Jorge, 17 de noviembre)
   if (cargaExcedida(j, e)) return sobrecarga(j, e);
   if (e.mods?.varado?.[j.id]) return 'Estás varado en India por los vientos del monzón: esta ronda no puedes moverte.';
   if (enCaravana && e.sinCaravanasBagdad && j.ciudad === 'Bagdad') return 'Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).';

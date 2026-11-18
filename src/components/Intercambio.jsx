@@ -16,7 +16,7 @@ function Producto({ it, puedeActuar, s }) {
       <div className="der">
         <span className="chip">{it.precio} din.</span>
         {it.stock != null && <span className="chip">quedan {it.stock}</span>}
-        {it.cantidad && <span className="cant"><button className="btn mini sec" onClick={() => setN((x) => Math.max(1, x - 1))} aria-label="Menos">−</button><b>{n}</b><button className="btn mini sec" onClick={() => setN((x) => Math.min(10, x + 1))} aria-label="Más">+</button></span>}
+        {it.cantidad && <span className="cant"><button className="btn mini sec" onClick={() => setN((x) => Math.max(1, x - 1))} aria-label="Menos">−</button><b>{n}</b><button className="btn mini sec" onClick={() => setN((x) => Math.min(it.max ?? 10, x + 1))} aria-label="Más">+</button></span>}
         <button className="btn mini" disabled={!puedeActuar || !it.puede || mi.dinares < total} title={motivo || undefined} onClick={() => enviar(ACCIONES.comprar(it.id ? { id: it.id } : { ref: it.ref, n }))}>Comprar{n > 1 ? ` (${total})` : ''}</button>
         {puedeActuar && motivo && <small className="motivo-no">{motivo}</small>}
       </div>
@@ -94,7 +94,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
                     <button className="btn mini sec" disabled={!miTurno || c.venta == null} onClick={() => enviar(ACCIONES.vender(c.uid))}>{c.venta === 0 ? 'Regalar' : 'Vender'}</button></div></li>
               ))}
             </ul>
-            <p className="it nota">El vendedor paga al banco el impuesto de la ciudad (Bagdad 0 %, Samarcanda 50 %). Las ventas de varias cartas iguales (buza) se resuelven con dados.</p>
+            <p className="it nota">El vendedor paga al banco el impuesto de la ciudad (Bagdad 0 %, Samarcanda 50 %). Las ventas de varias cartas iguales (cálamo de Kufa) se resuelven con dados.</p>
           </>
         )}
         {tab === 'tratos' && (
