@@ -58,7 +58,18 @@ for (const [r, cs] of Object.entries(ARMAS_CIUDAD)) CIUDAD_ORIGINAL[r] = cs;
 CIUDAD_ORIGINAL.mapaJorasan = ['Bagdad'];   // Jorge (12 de noviembre)
 CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
 const stockArmas = (e) => (e.stockArmas ||= Object.fromEntries(Object.entries(ARMAS_CIUDAD).map(([r, cs]) => [r, Object.fromEntries(cs.map((c) => [c, 1]))])));
-export const existenciaArma = (e, ref, ciudad) => (ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
+// Cálamos de Kufa (Jorge, 17 de noviembre): 12 en toda la partida, 6 en Basra y 6 en Damasco. Los que se venden en El Cairo o Bagdad
+// vuelven a la venta en la de esas dos ciudades que tenga menos (sin pasar de 6).
+export const CALAMOS_CIUDAD = { Damasco: 6, Basra: 6 };
+const stockCalamos = (e) => (e.stockCalamos ||= { ...CALAMOS_CIUDAD });
+function devolverCalamos(e, n) {
+  const s = stockCalamos(e);
+  for (let i = 0; i < n; i++) { const c = Object.keys(CALAMOS_CIUDAD).filter((k) => s[k] < CALAMOS_CIUDAD[k]).sort((a, b) => s[a] - s[b])[0]; if (c) s[c]++; }
+}
+// Jorge (17 de noviembre): no hay cimitarras en ningún mercado hasta que alguien forja acero de Damasco (R52)
+export const cimitarrasBloqueadas = (e, ref) => ref === 'cimitarra' && !e.forjaDamasco;
+export const MSJ_SIN_FORJA = 'Aún no hay cimitarras: se venden cuando alguien forje acero de Damasco (reto R52, en Damasco)';
+export const existenciaArma = (e, ref, ciudad) => (cimitarrasBloqueadas(e, ref) ? 0 : ref === 'buza' ? (stockCalamos(e)[ciudad] || 0) : ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
 export const quitarArma = (e, ref, ciudad) => { if (ARMAS_CIUDAD[ref]) stockArmas(e)[ref][ciudad] = Math.max(0, (stockArmas(e)[ref][ciudad] || 0) - 1); };
 function devolverArma(e, ref, ciudad) {   // Jorge (10 de noviembre): queda a la venta en la ciudad donde la vendiste, sea cual sea
   if (!ARMAS_CIUDAD[ref]) return null;
@@ -167,6 +178,8 @@ export function comprar(data, e, pid, a) {
     const cs = CIUDAD_ORIGINAL[a.ref]; if (cs && !cs.includes(j.ciudad) && !(existenciaArma(e, a.ref, j.ciudad) > 0)) return err(`Solo se vende en ${cs.join(' o ')}.`);
     const n = Math.max(1, Math.min(10, Math.floor(a.n || 1)));
     if (a.ref === 'buza' && nCalamos(j) + n > CALAMO_MAX) return err(`Máximo ${CALAMO_MAX} cálamos de Kufa en tu mano${nCalamos(j) ? ` (ya tienes ${nCalamos(j)})` : ''}.`);   // Jorge (17 de noviembre)
+    if (cimitarrasBloqueadas(e, a.ref)) return err(MSJ_SIN_FORJA + '.');
+    if (a.ref === 'buza' && existenciaArma(e, 'buza', j.ciudad) < n) return err(existenciaArma(e, 'buza', j.ciudad) ? `Solo quedan ${existenciaArma(e, 'buza', j.ciudad)} cálamos de Kufa en ${j.ciudad}.` : `Agotado: ya no quedan cálamos de Kufa en ${j.ciudad}.`);
     if (existenciaArma(e, a.ref, j.ciudad) < n) return err(`Agotado: ya no hay ${ITEMS[a.ref].nombre.toLowerCase()} en ${j.ciudad}.`);
     let p = ARMAS_ORIG.includes(a.ref) || a.ref === 'flechas' ? precioArma(data, e, a.ref, j) : base;
     p *= dobleCairo(e, j.ciudad); p *= n;
@@ -182,6 +195,7 @@ export function comprar(data, e, pid, a) {
     j.dinares -= p;
     if (a.ref === 'burro') { e.burros--; j.noches += 20; log(e, `${j.nombre} compra un burro en Basra y recibe 20 noches de regalo.`, { pid }); darItem(e, j, 'burro'); return ok(); }
     quitarArma(e, a.ref, j.ciudad);
+    if (a.ref === 'buza') stockCalamos(e)[j.ciudad] -= n;
     if (a.ref === 'mapaJorasan') e.mapasJorasan = mapasJorasanVenta(e) - n;
     for (let i = 0; i < n; i++) darItem(e, j, a.ref, a.ref === 'vino' ? { ronda: e.ronda } : undefined);
     log(e, `${j.nombre} compra ${n > 1 ? n + ' ' : ''}${ITEMS[a.ref].nombre}.`, { pid });
@@ -268,7 +282,7 @@ export function vender(data, e, pid, a) {
     const x = dado(e), k = Math.min(x, todas.length), quedan = todas.length - k;
     mostrarDados(e, { por: pid, motivo: 'buza', grupos: [{ etq: `${j.nombre}: venta de cálamos de Kufa (te compran tantos como salga)`, valores: [x] }],
       resumen: [`Sale ${x}: te compran ${k} cálamo${k === 1 ? '' : 's'} de Kufa a ${p} dinares, ${p * k} en total.${quedan ? ` Te ${quedan === 1 ? 'queda 1' : `quedan ${quedan}`} para otro turno.` : ''}`] });
-    for (const c2 of todas.slice(0, k)) quitarCarta(j, c2.uid); j.dinares += p * k;
+    for (const c2 of todas.slice(0, k)) quitarCarta(j, c2.uid); j.dinares += p * k; devolverCalamos(e, k);
     return ok();
   }
   if (c.ref === 'tintaPulpo') {                                                                          // Jorge (17 de noviembre)
@@ -347,8 +361,8 @@ export function tienda(data, e, pid) {
   const orig = (ref, desde) => {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad) && !(ARMAS_CIUDAD[ref] && existenciaArma(e, ref, j.ciudad) > 0)) return;   // una vendida queda a la venta ahí
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
-    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : ref === 'mapaJorasan' ? mapasJorasanVenta(e) : ARMAS_CIUDAD[ref] ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(e.burros > 0)) && !(ref === 'mapaJorasan' && (!(mapasJorasanVenta(e) > 0) || motivoNPCMapa(e, j))),
-      motivo: !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+    r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? (e.burros || 0) : ref === 'mapaJorasan' ? mapasJorasanVenta(e) : ARMAS_CIUDAD[ref] || ref === 'buza' ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(e.burros > 0)) && !(ref === 'mapaJorasan' && (!(mapasJorasanVenta(e) > 0) || motivoNPCMapa(e, j))),
+      motivo: cimitarrasBloqueadas(e, ref) ? MSJ_SIN_FORJA : !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno ? MSJ_COMPRA_LLENO : ref === 'burro' && !(e.burros > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'burro', 'mapaJorasan'].forEach(orig);
   { const b = r.find((x) => x.ref === 'buza'), nc = nCalamos(j);   // máximo 6 cálamos en la mano (Jorge, 17 de noviembre)

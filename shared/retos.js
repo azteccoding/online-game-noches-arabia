@@ -799,9 +799,10 @@ export function finEstudio(data, e, pid) {
 // R52 «Forjar acero de Damasco» (Jorge, 17 de noviembre): pagas 18 dinares y tiras 1 dado (con botón). Par: te quedas ese turno en
 // Damasco forjando y al iniciar tu siguiente turno te dan una cimitarra. Impar: tardas dos turnos (este y el siguiente, en el que no
 // puedes salir y tu acción principal se va en la forja) y te la dan al iniciar el tercero. Mientras forjas no puedes salir de Damasco.
+// Solo se forja si no tienes cimitarra; Yafar (NPC o jugador) nunca. El primero que termina gana 50 noches y abre la venta de cimitarras.
 export const FORJA = { costo: 18, ciudad: 'Damasco' };
 T.R52 = { ciudad: FORJA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid];
-    return j.npc ? 'Yafar NPC no forja acero.' : j.extra?.forja ? 'Ya estás forjando tu acero.' : tieneItem(j, 'cimitarra') ? 'Ya tienes una cimitarra.' : j.dinares < FORJA.costo ? `Forjar cuesta ${FORJA.costo} dinares: sin dinero no hay trato.` : null; },
+    return j.pj === 'B' ? 'Yafar no forja acero: es inepto y corrupto, y esto es conocimiento técnico especializado.' : j.extra?.forja ? 'Ya estás forjando tu acero.' : tieneItem(j, 'cimitarra') ? 'Ya tienes una cimitarra.' : j.dinares < FORJA.costo ? `Forjar cuesta ${FORJA.costo} dinares: sin dinero no hay trato.` : null; },
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= FORJA.costo;
     const [x] = ctx.t(`${j.nombre}: forjar acero de Damasco (par, 1 turno; impar, 2)`, 1);
@@ -816,8 +817,10 @@ export function turnoForja(data, e, pid) {
   if (j.ciudad !== FORJA.ciudad) { j.extra.forja = null; log(e, `${j.nombre} tuvo que dejar Damasco: pierde su acero a medio forjar.`, { pid }); return; }   // si un evento lo sacó de la ciudad
   if (j.turnos >= f.entrega) {
     j.extra.forja = null; darItem(e, j, 'cimitarra');
-    publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: 'Tu acero está listo: recibes una cimitarra de acero de Damasco. Ya puedes salir de la ciudad.', arte: 're' }, pid, [pid]);
-    log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra.`, { pid, aviso: true });
+    const primero = !e.forjaDamasco;   // Jorge (17 de noviembre): el primero que forja gana 50 noches y abre la venta de cimitarras
+    if (primero) { e.forjaDamasco = true; j.noches += 50; }
+    publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ''}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
+    log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ''}.`, { pid, aviso: true });
     return;
   }
   t.principal = true; t.forjando = true;

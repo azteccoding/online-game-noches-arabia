@@ -2473,6 +2473,23 @@ for (let k = 0; k < 6; k++) {
     assert.ok(tieneItem(A, 'cimitarra'), 'al iniciar el turno siguiente recibe la cimitarra'); assert.ok(!e.turno.principal, 'ese turno sí tiene acción principal');
     assert.equal(motivoNoSalir(e, A), null, 'ya puede salir');
   }
+  // sin forja no hay cimitarras en los mercados; el primero que forja gana 50 noches y las habilita; Yafar no forja; con cimitarra no se repite
+  const { tienda: tiendaF } = await import('../shared/objetos.js');
+  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], B = e.jugadores[b], Y = e.jugadores[y];
+  for (const j of [A, B, Y]) { j.mano = j.mano.filter((c) => c.ref !== 'cimitarra'); j.dinares = 100; }
+  B.ciudad = 'El Cairo'; turnoDe(e, a, 'Damasco');
+  assert.match(tiendaF(data, e, b).find((x) => x.ref === 'cimitarra').motivo || '', /forje acero de Damasco/, 'la tienda dice por qué no hay cimitarras');
+  assert.match(g.act(b, { t: 'comprar', ref: 'cimitarra' }).error || '', /forje acero de Damasco/, 'no se venden cimitarras antes de la forja');
+  Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(y, { t: 'reto', id: 'R52' }).error || '', /Yafar no forja/, 'Yafar jugador no forja');
+  const forjar = (pid) => { const J = e.jugadores[pid]; J.ciudad = 'Damasco'; turnoDe(e, pid, 'Damasco'); e.turno.fase = 'acciones'; forzar(e, 2); const r = g.act(pid, { t: 'reto', id: 'R52' }); assert.ok(r.ok, r.error); const n0 = J.noches; J.turnos++; turnoDe(e, pid, 'Damasco'); turnoForja(data, e, pid); return J.noches - n0; };
+  assert.equal(forjar(a), 50, 'el primero que forja gana 50 noches'); assert.ok(e.forjaDamasco, 'y habilita las cimitarras');
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'reto', id: 'R52' }).error || '', /Ya tienes una cimitarra/, 'con cimitarra no se vuelve a forjar');
+  assert.ok(g.act(b, { t: 'comprar', ref: 'cimitarra' }).ok, 'ya se venden cimitarras en El Cairo');
+  B.mano = B.mano.filter((c) => c.ref !== 'cimitarra');
+  assert.equal(forjar(b), 0, 'los demás solo reciben la cimitarra'); assert.ok(tieneItem(B, 'cimitarra'));
 }
 
 // Jorge (10 de noviembre): una pala en Damasco y otra en El Cairo; una linterna en Damasco y otra en Isfahán; cada mercado con su existencia
@@ -2510,6 +2527,7 @@ for (let k = 0; k < 6; k++) {
   assert.deepEqual(ARMAS_CIUDAD, { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul', 'Samarcanda'] });
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  e.forjaDamasco = true;   // R52: las cimitarras se venden cuando alguien ya forjó acero de Damasco (Jorge, 17 de noviembre)
   turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
   for (const J of [A, B]) { J.dinares = 300; J.mano = J.mano.filter((c) => !['alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); }
   const ver = (ciudad, ref) => { A.ciudad = ciudad; return tienda(data, e, a).find((x) => x.ref === ref); };
@@ -3139,7 +3157,7 @@ console.log('reglas de la casa OK');
   { const { e, Y } = prep('facil'); Y.ciudad = 'Andalucía'; Y.dinares = 40; darItem(e, Y, 'arco'); darItem(e, Y, 'flechas');
     NPC.accionPrincipal(data, e, 'npc'); assert.ok(!Y.extra.arcoMaximo, 'en fácil no va al torneo'); }
   // compras al cerrar: animal (caballo de segunda mano, nunca burro) y armas (dos en difícil)
-  { const { e, Y } = prep('dificil'); Y.ciudad = 'Estambul'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.tipo !== 'item');
+  { const { e, Y } = prep('dificil'); Y.ciudad = 'Estambul'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.forjaDamasco = true;   // R52: ya se venden cimitarras
     e.establo = [{ carta: { uid: 'u-burro', tipo: 'item', ref: 'burro' }, precio: 35, ciudad: 'Estambul' }, { carta: { uid: 'u-cab', tipo: 'item', ref: 'caballo' }, precio: 10, ciudad: 'Estambul' }];
     e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     assert.ok(tieneItem(Y, 'caballo') && !tieneItem(Y, 'burro'), 'compra el caballo, nunca el burro');
@@ -3150,7 +3168,7 @@ console.log('reglas de la casa OK');
   { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 200; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     turnoDe(e, 'npc', 'Estambul'); e.turno.fase = 'acciones'; e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     assert.equal(['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(Y, r)).length, 1, 'en normal, una'); }
-  { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 40; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
+  { const { e, Y } = prep('normal'); Y.ciudad = 'Estambul'; Y.dinares = 40; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.forjaDamasco = true; e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     assert.ok(tieneItem(Y, 'cimitarra'), 'en normal compra armas desde 40'); }
   { const { e, Y } = prep('facil'); Y.ciudad = 'Estambul'; Y.dinares = 50; Y.mano = Y.mano.filter((c) => c.tipo !== 'item'); e.turno.principal = true; NPC.accionPrincipal(data, e, 'npc');
     assert.ok(!tieneItem(Y, 'cimitarra'), 'en fácil, solo con más de 60'); }
@@ -3171,6 +3189,8 @@ console.log('reglas de la casa OK');
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, n = (c) => armasEnCiudad(data, e, c).map((x) => x.ref).sort().join(',');
   assert.equal(n('Bagdad'), 'jambiya', 'en Bagdad solo jambiya');
+  assert.equal(n('Estambul'), 'alfanje,jambiya', 'sin forja de Damasco (R52) no hay cimitarras');
+  e.forjaDamasco = true;
   assert.equal(n('Estambul'), 'alfanje,cimitarra,jambiya');
   assert.equal(armasEnCiudad(data, e, 'Estambul').find((x) => x.ref === 'cimitarra').precio, 40, 'cimitarra en Estambul, 40');
   assert.equal(n('Aleppo'), 'arco,jambiya');
