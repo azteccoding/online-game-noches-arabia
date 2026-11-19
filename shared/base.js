@@ -70,10 +70,10 @@ export const ITEMS = {
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
-  buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
-  tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
+  buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
+  tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
-  alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 40, texto: 'Carga para R7. Ocupa las manos: no puedes huir con un objeto.' },
+  alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 30, texto: 'Mercancía de Isfahán: el mercado de Isfahán la vende a 30 y la recompra a 15; los demás mercados la compran a 35 (Andalucía a 40) y la revenden 3 dinares más cara. La tinta de pulpo la destruye. Pesa y ocupa las manos: no puedes huir con un objeto.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
   velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
@@ -90,6 +90,7 @@ export const ITEMS = {
   cartaUrgente: { nombre: 'Carta urgente', texto: 'Debe entregarse en la ciudad indicada antes de que venza el plazo.' },
   especias: { nombre: 'Especias', texto: 'Mercancía de comercio: se vende en la ciudad que las pida.' },
   recetaAverroes: { nombre: 'Receta de Averroes', texto: 'Regalo del cadí y médico Averroes: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. Úsala cuando estés herido: te cura y recuperas tu acción principal de ese turno. Se gasta al usarla.' },
+  dadivaEmir: { nombre: 'Dádiva del Emir', texto: 'El Emir premia tu servicio: esta carta paga tu pasaje a una ciudad conectada con la que estás, la que elijas. Se usa sola en tu siguiente viaje de caravana y se gasta. No se vende.' },   // Jorge (18 de noviembre)
   bendicionAbuMadyan: { nombre: 'Bendición de Abu Madyan', texto: 'Regalo del sufí Abu Madyan: solo hay una en toda la partida, para el primero que cumpla uno de sus Mensajes. En el Magreb y Andalucía te protege: los bandoleros de la caravana de la sal (R23) pasan de largo y el esposo de Zein no te sorprende en la Giralda (R26). Sirve una sola vez: se gasta al protegerte.' },
   libroIbnHazm: { nombre: 'Libro de Ibn Hazm', texto: 'Regalo del sheij Ibn Hazm al cumplir su Mensaje de entregar un libro, papiro o mapa. Empieza valiendo 50 dinares y gana 2 por ronda; solo lo compra la biblioteca de Bagdad, a la mitad de su valor actual. No se puede regalar ni vender a otros jugadores.' },
   dadosCairo: { nombre: 'Dados del Cairo', texto: 'Regalo de Zacaría al Ansari a Zein. Una vez por ronda, si vas a perder una pelea, repites tus dados. Se vende a otro jugador en un trato (al precio que quieran) o al mercado de la ciudad por 35 dinares, que luego la revende en 75.' },
@@ -243,9 +244,19 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 // Frasco con tinta de pulpo (Jorge, 17 de noviembre): India 3; en Bagdad 6 cuando alguien ya visitó India; el mercado de Andalucía o
 // Samarcanda lo compra en 9 y lo revende en 10. Si roban a su dueño, se rompe y destruye sus papeles (no pasan al ladrón).
 export const TINTA = { india: 3, bagdad: 6, venta: 9, reventa: 10, ciudadesVenta: ['Andalucía', 'Samarcanda'] };
-export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
+export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
 export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de Kufa en la mano
-export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo'];   // el frasco de tinta pesa (Jorge, 17 de noviembre)
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan'];   // las alfombras de Isfahán pesan (18 de noviembre)
+// Alfombras de Isfahán (Jorge, 18 de noviembre): 20 en todo el juego, empiezan en el mercado de Isfahán. Ahí cuestan 30 (20 en el reto R17).
+// Los demás mercados las compran a 35 (Andalucía a 40) y las revenden 3 dinares más caras; el de Isfahán las recompra a 15 (y las vende a 30).
+// La tinta de pulpo las destruye (dejan de existir); la del banquete H14 es aparte de las 20; si fallas R17 por plazo te quedas las tuyas.
+// R17: compras de 2 a 4 a 20 cada una y las llevas en 3 turnos a Bagdad (30 c/u), Estambul (40) o Andalucía (55); 15 noches por intentarlo y 25 más al completarlo.
+export const ALFOMBRAS = { total: 20, origen: 'Isfahán', precioOrigen: 30, recompraOrigen: 15, margen: 3, venta: 35, ventaCiudad: { 'Andalucía': 40 },
+  reto: { precio: 20, min: 2, max: 4, plazo: 3, entrega: { Bagdad: 30, Estambul: 40, 'Andalucía': 55 }, nochesIntento: 15, nochesFin: 25 } };
+export const alfombrasEn = (e, ciudad) => ((e.alfombras ||= { [ALFOMBRAS.origen]: ALFOMBRAS.total })[ciudad] || 0);
+export const precioAlfombraVenta = (ciudad) => (ciudad === ALFOMBRAS.origen ? ALFOMBRAS.recompraOrigen : ALFOMBRAS.ventaCiudad[ciudad] ?? ALFOMBRAS.venta);   // lo que paga ese mercado
+export const precioAlfombraCompra = (ciudad) => (ciudad === ALFOMBRAS.origen ? ALFOMBRAS.precioOrigen : precioAlfombraVenta(ciudad) + ALFOMBRAS.margen);   // lo que cobra ese mercado
+export function moverAlfombras(e, ciudad, n) { alfombrasEn(e, ciudad); e.alfombras[ciudad] = Math.max(0, (e.alfombras[ciudad] || 0) + n); }   // el frasco de tinta pesa (Jorge, 17 de noviembre)
 // Mapa del Jorasán (Jorge, 12 de noviembre): hay 2 en toda la partida, a la venta en Bagdad por 20 dinares; no pesa. Perdido en el
 // Jorasán, usarlo gasta tu acción principal: un dado, impar sales a Basra, par a Samarcanda; el mapa se desgasta y se desvanece. Los
 // piratas de Yemen lo llevan por 5 dinares (sin gastar la acción principal) a un jugador perdido: le llega en su próximo turno. Se vende y
@@ -266,8 +277,13 @@ export function recortarMano(data, e, pid) {
   info(e, pid, 'Vas muy cargado', sobrecarga(j, e));
 }
 // Pala de zapador y Linterna de aceite (Jorge, 10 de noviembre): una copia en cada mercado que la vende, con su propia existencia.
-export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'] };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
-export const existencia = (e, id, ciudad) => (POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
+export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'] };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
+// Sobre de sobornos (Jorge, 18 de noviembre): 2 en cada mercado de Aleppo, Bagdad y Damasco; un solo uso y el que se usa no vuelve al mercado.
+export const POR_CIUDAD_N = {};
+export const copiasPorCiudad = (id) => POR_CIUDAD_N[id] || 1;
+export const NO_VUELVE = ['OB14'];
+export const SIN_LIMITE = ['OB21'];   // Pastel de pistachos: nunca se agota en sus mercados (Jorge, 18 de noviembre)
+export const existencia = (e, id, ciudad) => (SIN_LIMITE.includes(id) ? Infinity : POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
 export function sacarExistencia(e, id, ciudad) {
   e.stock[id] = Math.max(0, (e.stock[id] || 0) - 1);
   const m = POR_CIUDAD[id] && e.stockCiudad?.[id]; if (!m) return;
@@ -276,7 +292,7 @@ export function sacarExistencia(e, id, ciudad) {
 export function ponerExistencia(e, id) {
   e.stock[id] = (e.stock[id] || 0) + 1;
   const m = POR_CIUDAD[id] && e.stockCiudad?.[id]; if (!m) return;
-  const c = POR_CIUDAD[id].find((x) => !(m[x] > 0)) || POR_CIUDAD[id][0]; m[c] = (m[c] || 0) + 1;   // vuelve al mercado que se quedó sin ella
+  const c = POR_CIUDAD[id].find((x) => (m[x] || 0) < copiasPorCiudad(id)) || POR_CIUDAD[id][0]; m[c] = (m[c] || 0) + 1;   // vuelve al mercado que se quedó sin ella
 }
 export function darObjeto(data, e, pid, id) {
   const j = e.jugadores[pid];
@@ -423,7 +439,7 @@ export function consumirObj(data, e, pid, id) {
   const o = objDe(data, id);
   if (o.duracion === 'Permanente') return true;
   if (o.duracion === '2 usos') { c.usos = (c.usos || 0) + 1; if (c.usos < 2) return true; }
-  j.mano.splice(j.mano.indexOf(c), 1); devolverObjeto(data, e, id);
+  j.mano.splice(j.mano.indexOf(c), 1); if (!NO_VUELVE.includes(id)) devolverObjeto(data, e, id);
   return true;
 }
 

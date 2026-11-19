@@ -19,7 +19,8 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const enTurno = t && s.jugadores[t.pid];
   const ocupado = !!s.dados || !!s.pend;
   const sinCC = !t?.ccActual;
-  const nAcc = s.acciones.filter((a) => !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)).length;
+  // Jorge (18 de noviembre): el número solo cuenta lo que todavía puedes hacer; los retos apagados (acción principal gastada, requisito sin cumplir) no cuentan
+  const nAcc = s.acciones.filter((a) => !a.bloqueado && !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)).length;
   const mano = s.mano.length + (s.mensajes?.length || 0);
   const marca = (p) => (panel === p ? ' on' : '');
   // Qué impide seguir: una decisión, los dados o una CC sin responder. En vez de un botón muerto, se avisa y se lleva a esa carta.
@@ -45,6 +46,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           {textoEquipo(s) && <span className="chip chip-entrena" title="Lo que llevas: armas, transporte (con los turnos de vida de cada animal) y dados. Tus destrezas se ven en Personajes.">{textoEquipo(s)}</span>}   {/* Jorge (12 de noviembre): armas, transporte y dados en lugar de las destrezas */}
           {(yo.idiomas || []).map((i) => <span key={i} className="chip" title={`Puedes enseñar ${i} ${i === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'}: 4 dinares por noche`}>Habla {i}</span>)}
           {yo.forjando && <span className="chip chip-ev" title="No puedes salir de Damasco hasta que te den tu cimitarra">Forjando acero de Damasco</span>}
+          {yo.conEmir && <span className="chip chip-ev" title="Sirves dos turnos; después recibes la Dádiva del Emir y 5 dinares">Al servicio del Emir de {yo.conEmir}</span>}
           {yo.estudiando && <span className="chip chip-ev" title="No puedes salir de la ciudad y tu acción principal se va en las clases">Estudiando {yo.estudiando.idioma}</span>}
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>

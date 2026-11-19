@@ -234,7 +234,7 @@ registrar('ev.h14', (data, e, args, resp) => {
     : 'Se roba una alfombra del palacio, pero lo descubren: le cortan una mano por ladrón y queda herido (se queda con la alfombra).';
   conContexto(e, 'La corte selyúcida en Isfahán', () => mostrarDados(e, { por: pid, motivo: 'h14', grupos: [{ etq: `${j.nombre} en el banquete`, valores: [x] }], resumen: [`${j.nombre} asiste al banquete del sultán: paga 10 dinares y gana 30 noches.`, res] }));
   if (x === 6) { j.dinares += 30; j.noches += 20; }
-  else if (x >= 2) { darItem(e, j, 'alfombraIsfahan'); if (!par(x)) j.herido = true; }
+  else if (x >= 2) { darItem(e, j, 'alfombraIsfahan'); if (!par(x)) j.herido = true; }   // aparte de las 20 del bazar (Jorge, 19 de noviembre)
 });
 registrar('ev.h17', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid), n = Math.min(resp.numero || 0, Math.floor(j.dinares / 15));

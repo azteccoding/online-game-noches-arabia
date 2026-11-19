@@ -3,7 +3,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, } from './base.js';
+itemDatos, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -21,7 +21,13 @@ export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
 }
 const cobrarFijo = (data, e, pid, monto) => { const j = e.jugadores[pid]; if (j.dinares < monto) return false; j.dinares -= monto; return true; };
 function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.includes(id)) j.retosHechos.push(id); }
-const REPETIBLES = ['R8', 'R9'];
+// Jorge (18 de noviembre): cada reto se hace una sola vez por jugador, salvo los que por su naturaleza se repiten: llevar mercancía o
+// encargos (libros R4, papiros R10, sacos de sal R23, manzanas R24, comprar alfombras R17, pergamino R30 y posta R39). R7 ya no existe.
+// R8 y R9 se repiten como siempre: cuando sales de El Cairo y vuelves. Aparte siguen igual: los Asesinos (R15), enseñar un idioma
+// (R48, R49), forjar si ya no tienes cimitarra (R52) y reintentar un reto fallado.
+export const REPETIBLES = ['R4', 'R10', 'R23', 'R24', 'R17', 'R30', 'R39'];
+export const REPITE_AL_VOLVER = ['R8', 'R9'];
+const yaNoSePuede = (j, id) => hecho(j, id) && !REPETIBLES.includes(id) && !(REPITE_AL_VOLVER.includes(id) && !j.extra.rep?.[id]);
 // Reintentables (Jorge, 8 de noviembre): si fallas uno de estos retos no queda hecho; se vuelve a abrir cuando sales de su ciudad y
 // regresas (como R8 y R9). Si lo logras, queda hecho para siempre. Cada reto marca su fallo con ctx.fallo.
 export const REINTENTABLES = ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38'];
@@ -52,12 +58,12 @@ const tieneArma = (data, e, j) => armasUsables(data, e, j, j.ciudad).length > 0 
 // ---------------------------------------------------------------- catálogo (ciudad, objetos usables, requisito, ejecución)
 const T = {};   // T[id] = { ciudad, objs, req(data,e,pid)->string|null, run(data,e,pid,ctx,usados) }
 const OBJS = {
-  R28: ['OB07', 'OB43', 'OB08', 'OB06', 'OB09'], R29: ['OB05', 'OB18'], R30: ['OB14', 'OB17', 'OB21'], R31: ['OB07', 'OB41', 'OB43', 'OB08', 'OB06'], R33: ['OB10', 'OB05', 'OB08'],
+  R28: ['OB07', 'OB43', 'OB08', 'OB06', 'OB09'], R29: ['OB05', 'OB18'], R30: ['OB14', 'OB17', 'OB21'], R31: ['OB07', 'OB41', 'OB14', 'OB43', 'OB08', 'OB21', 'OB30', 'OB06'], R33: ['OB10', 'OB05', 'OB08'],
   R34: ['OB09', 'OB06', 'OB26'], R35: ['OB30'], R37: ['OB21', 'OB30'], R38: ['OB13'],
 };
 const hecho = (j, id) => j.retosHechos.includes(id);
 // «Sirve para»: retos (y mensajes) donde se usa o se entrega cada carta, para mostrarlo en la mano y en el mercado.
-const ITEM_RETO = { yegua: ['R50'], alfombraIsfahan: ['R7'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
+const ITEM_RETO = { yegua: ['R50'], alfombraIsfahan: ['R17'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
   alfanje: ['R8', 'R32', 'R36', 'R42'], cimitarra: ['R8', 'R32', 'R36', 'R18'], jambiya: ['R8', 'R32', 'R36', 'R19'], arco: ['R8', 'R32', 'R36', 'R43'] };
 export function sirvePara(data, c) {
   let ids = c.tipo === 'item' ? (ITEM_RETO[c.ref] || []) : Object.entries(OBJS).filter(([, l]) => l.includes(c.ref)).map(([r]) => r);
@@ -78,7 +84,7 @@ export function disponibles(data, e, pid) {
   for (const id of Object.keys(T)) {
     const d = m1(data, id);
     if (!d || !(T[id].ciudades || [d.ciudad]).includes(j.ciudad)) continue;
-    if (hecho(j, id) && !(REPETIBLES.includes(id) && !j.extra.rep?.[id])) {
+    if (yaNoSePuede(j, id)) {
       // los entrenamientos ya hechos se siguen viendo, apagados y con el motivo (Jorge, 11 de noviembre)
       if (id === 'R25' || ENTRENAMIENTOS[id]) r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: id === 'R25' ? 'Ya tienes destreza con armas.' : `Ya entrenaste con ${ENTRENAMIENTOS[id].arma}.` });
       continue;
@@ -114,7 +120,7 @@ export function iniciarReto(data, e, pid, a) {
   if (!def) return err('Reto inexistente.');
   if (!(def.ciudades || [d.ciudad]).includes(j.ciudad)) return err(`Ese reto está en ${(def.ciudades || [d.ciudad]).join(' o ')}.`);
   if (j.transito || j.perdido) return err('No puedes ahora.');
-  if (hecho(j, a.id) && !(REPETIBLES.includes(a.id) && !j.extra.rep?.[a.id])) return err('Ya completaste ese reto.');
+  if (yaNoSePuede(j, a.id)) return err(REPITE_AL_VOLVER.includes(a.id) ? 'Ya lo hiciste: sal de la ciudad y vuelve para repetirlo.' : 'Ya completaste ese reto: cada reto se hace una sola vez.');
   if (esperaVolver(j, a.id)) return err('Fallaste este reto: sal de la ciudad y vuelve para intentarlo otra vez.');
   if (j.misiones.some((m) => m.id === a.id)) return err('Ya lo tienes en curso.');
   const msg = def.req ? def.req(data, e, pid) : null;
@@ -158,16 +164,16 @@ function nuevaMision(e, pid, m, turnosPlazo) {
   j.misiones.push(mis); return mis;
 }
 const quitarMision = (j, m) => { const i = j.misiones.indexOf(m); if (i >= 0) j.misiones.splice(i, 1); };
-function quitarCarga(e, pid, m) { const j = e.jugadores[pid]; for (const c of (m.carga || [])) { const x = j.mano.find((q) => q.uid === c.uid); if (x) quitarCarta(j, x.uid); } }
+function quitarCarga(e, pid, m) { const j = e.jugadores[pid]; let n = 0; for (const c of (m.carga || [])) { const x = j.mano.find((q) => q.uid === c.uid); if (x) { quitarCarta(j, x.uid); n++; } } return n; }
 const cargaCompleta = (j, m) => (m.carga || []).every((c) => j.mano.some((q) => q.uid === c.uid));
 function perder(data, e, pid, m, motivo) {
   const j = e.jugadores[pid];
-  quitarCarga(e, pid, m); quitarMision(j, m);
+  const quedan = m.id === 'R17' ? 0 : quitarCarga(e, pid, m); quitarMision(j, m);   // R17: las alfombras que te queden siguen siendo tuyas (Jorge, 19 de noviembre)
   log(e, `${j.nombre} pierde el reto ${m.id}${motivo ? ' (' + motivo + ')' : ''}.`, { pid });
-  const f = FALLO[m.id]; if (f) f(data, e, pid, m);
+  const f = FALLO[m.id]; if (f) f(data, e, pid, m, quedan);
 }
 const FALLO = {
-  R10: () => {}, R4: () => {}, R24: () => {}, R7: () => {}, R23: () => {},
+  R10: () => {}, R4: () => {}, R24: () => {}, R23: () => {},
   R30: (data, e, pid) => { pagar(data, e, pid, 10); }, R39: (data, e, pid) => { pagar(data, e, pid, 10); },
   R3: (data, e, pid, m) => {
     const j = e.jugadores[pid];
@@ -197,7 +203,7 @@ export function alLlegar(data, e, pid, origen) {
   for (const m of j.misiones.slice()) {
     if (m.id === 'R3') { if (j.ciudad === 'Estambul') m.visito = true; if (j.ciudad === 'Bagdad' && m.visito) completarR3(data, e, pid, m); continue; }
     if (m.id === 'R29') { if (j.ciudad === 'Bagdad') { quitarMision(j, m); premio(data, e, pid, { dinares: 40, noches: 15 }, 'Cruzas el desierto con tu camello.'); hacer(e, pid, 'R29'); } else if (!j.transito) perder(data, e, pid, m, 'te desviaste'); continue; }
-    if (m.destino && m.destino === j.ciudad) entregar(data, e, pid, m);
+    if ((m.destino && m.destino === j.ciudad) || m.destinos?.includes(j.ciudad)) entregar(data, e, pid, m);
   }
 }
 function entregar(data, e, pid, m) {
@@ -208,7 +214,8 @@ function entregar(data, e, pid, m) {
   let pr = { dinares: 0, noches: 0 };
   switch (m.id) {
     case 'R10': pr = { dinares: 70, noches: 15 }; break;
-    case 'R30': pr = { dinares: 60, noches: 15 }; break;
+    case 'R17': pr = { dinares: AR.entrega[j.ciudad] * n, noches: AR.nochesFin }; moverAlfombras(e, j.ciudad, n); break;   // se venden solas al llegar y quedan a la venta en ese mercado
+    case 'R30': pr = { dinares: 60 + 8, noches: 15 }; break;   // Balanza de mercader: 8 dinares más (Jorge, 18 de noviembre)
     case 'R39': pr = { dinares: 45, noches: 10 }; break;
     case 'R24': pr = { dinares: 30 }; break;
     case 'R23': pr = { dinares: 40 * n }; break;
@@ -232,7 +239,7 @@ function completarR3(data, e, pid, m) {
 
 export function misionesVista(data, e, pid) {
   const j = e.jugadores[pid];
-  return j.misiones.map((m) => ({ id: m.id, nombre: m1(data, m.id)?.nombre, destino: m.destino || null, turnosRestantes: m.limite != null ? Math.max(0, m.limite - j.turnos + 1) : null, deuda: m.deuda || null, objetivo: m.objetivo ? nombre(e, m.objetivo) : null, texto: m.texto || null }));
+  return j.misiones.map((m) => ({ id: m.id, nombre: m1(data, m.id)?.nombre, destino: m.destino || (m.destinos ? m.destinos.join(', ') : null), turnosRestantes: m.limite != null ? Math.max(0, m.limite - j.turnos + 1) : null, deuda: m.deuda || null, objetivo: m.objetivo ? nombre(e, m.objetivo) : null, texto: m.texto || null }));
 }
 export const tras = () => {};
 
@@ -354,22 +361,27 @@ T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   if (Math.abs(x - prom) === 1) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}: ganas 50 dinares y un libro.`); }
   else { const [y] = ctx.t('Segunda tirada', 1); if (par(y)) { premio(data, e, pid, { dinares: 20 }); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y} (par): 20 dinares.`); } else { pagar(data, e, pid, 1); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y}: pagas 1 dinar y tomas un libro.`); } }
 } };
-// ---------------------------------------------------------------- R7 / R17
-T.R7 = { ciudad: 'Bagdad', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!hecho(j, 'R17')) return 'Debes haber hecho R17.'; if (!tieneItem(j, 'alfombraIsfahan')) return 'Necesitas 1 o 2 alfombras de Isfahán.'; return null; },
-  run(data, e, pid, ctx) {
-    const j = e.jugadores[pid]; const n = Math.min(2, j.mano.filter((c) => c.tipo === 'item' && c.ref === 'alfombraIsfahan').length);
-    for (let i = 0; i < n; i++) quitarPrimero(j, 'item', 'alfombraIsfahan');
-    j.extra.viajeCalifa = true; hacer(e, pid, 'R7'); premio(data, e, pid, { dinares: 90 * n, noches: 10 }, `${j.nombre} entrega ${n} alfombra(s) al Califa (R7):`);
-  } };
-T.R17 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 40 ? null : 'Cada alfombra cuesta 40 dinares: no te alcanza.'), run(data, e, pid) {
-  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R17 · Alfombras de Isfahán', texto: 'Cuestan 40 dinares cada una. ¿Cuántas compras (1 o 2)?', modo: 'numero', min: 1, max: 2, porDefecto: 1, cont: { fn: 'r17.n', args: {} } });
+// ---------------------------------------------------------------- R17 (R7, entregar las alfombras al Califa, ya no existe: Jorge, 18 de noviembre)
+const AR = ALFOMBRAS.reto;
+const espacioCarga = (e, j) => (tieneCarga(j) ? Infinity : Math.max(0, limiteCarga(e, j) - nCarga(j)));
+const maxR17 = (e, j) => Math.min(AR.max, alfombrasEn(e, ALFOMBRAS.origen), Math.floor(j.dinares / AR.precio), espacioCarga(e, j));
+T.R17 = { ciudad: 'Isfahán', req: (d, e, pid) => { const j = e.jugadores[pid];
+  if (alfombrasEn(e, ALFOMBRAS.origen) < AR.min) return 'Ya no quedan alfombras suficientes en Isfahán.';
+  if (j.dinares < AR.min * AR.precio) return `Necesitas al menos ${AR.min * AR.precio} dinares: son ${AR.min} alfombras como mínimo, a ${AR.precio} cada una.`;
+  if (espacioCarga(e, j) < AR.min) return `Las alfombras pesan: sin caballo, burro o camello no te caben ${AR.min}.`;
+  return null; }, run(data, e, pid) {
+  const j = e.jugadores[pid], max = maxR17(e, j);
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R17 · Alfombras de Isfahán', texto: `Cuestan ${AR.precio} dinares cada una. Llévalas en ${AR.plazo} turnos a Bagdad (${AR.entrega.Bagdad} c/u), Estambul (${AR.entrega.Estambul} c/u) o Andalucía (${AR.entrega['Andalucía']} c/u). ¿Cuántas compras (${AR.min} a ${max})?`, modo: 'numero', min: AR.min, max, porDefecto: AR.min, cont: { fn: 'r17.n', args: {} } });
 } };
 registrar('r17.n', (data, e, args, resp) => {
-  const pid = resp.pid, j = e.jugadores[pid], n = resp.numero || 1;
-  const quepan = Math.min(n, Math.floor(j.dinares / 40));
-  if (!quepan) { log(e, `${j.nombre} no puede pagar las alfombras.`, { pid }); return; }
-  j.dinares -= 40 * quepan; for (let i = 0; i < quepan; i++) darItem(e, j, 'alfombraIsfahan');
-  hacer(e, pid, 'R17'); log(e, `${j.nombre} compra ${quepan} alfombra(s) de Isfahán (R17).`, { pid });
+  const pid = resp.pid, j = e.jugadores[pid], n = Math.min(Math.max(AR.min, resp.numero || AR.min), maxR17(e, j));
+  if (n < AR.min) { log(e, `${j.nombre} no puede comprar las alfombras.`, { pid }); return; }
+  j.dinares -= AR.precio * n; moverAlfombras(e, ALFOMBRAS.origen, -n);
+  const carga = Array.from({ length: n }, () => ({ uid: darItem(e, j, 'alfombraIsfahan').uid }));
+  const destinos = Object.keys(AR.entrega);
+  nuevaMision(e, pid, { id: 'R17', destinos, carga, texto: `Lleva tus ${n} alfombras a Bagdad, Estambul o Andalucía.` }, AR.plazo);
+  hacer(e, pid, 'R17'); log(e, `${j.nombre} compra ${n} alfombras de Isfahán (R17) por ${AR.precio * n} dinares.`, { pid });
+  premio(data, e, pid, { noches: AR.nochesIntento }, `${j.nombre} emprende el viaje de las alfombras:`);   // por intentarlo (Jorge, 18 de noviembre)
 });
 // ---------------------------------------------------------------- R8 / R9 / R10
 T.R8 = { ciudad: 'El Cairo', req: (data, e, pid) => (tieneArma(data, e, e.jugadores[pid]) ? null : 'Necesitas un arma.'), run(data, e, pid, ctx) {
@@ -536,15 +548,19 @@ T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10
   else { premio(data, e, pid, { dinares: 40 }, `${j.nombre} halla un cofre en la casa embrujada:`); if (x === 6) { darItem(e, j, 'mapa', { tesoro: 'ruman' }); ctx.say('Y un mapa de los Rumán.'); } }
 } };
 T.R22 = { ciudad: 'Damasco', req: (data, e, pid) => {
-  const j = e.jugadores[pid]; const l = j.mano.filter((c) => c.tipo === 'objeto' && objDe(data, c.ref).tipo === 'Lujo/Comercio');
+  const j = e.jugadores[pid]; if (!tieneObj(j, 'OB12')) return 'Necesitas una Balanza de mercader.';   // obligatoria (Jorge, 18 de noviembre)
+  const l = j.mano.filter((c) => c.tipo === 'objeto' && objDe(data, c.ref).tipo === 'Lujo/Comercio');
   if (new Set(l.map((c) => c.ref)).size < 2) return 'Necesitas 2 o más objetos distintos de Lujo/Comercio.';
   return suma(l.map((c) => objDe(data, c.ref).valor + 10)) >= 60 ? null : 'Tus mercancías no suman 60 dinares de reventa.'; },
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; const l = j.mano.filter((c) => c.tipo === 'objeto' && objDe(data, c.ref).tipo === 'Lujo/Comercio');
     let tot = 0; for (const c of l) { tot += objDe(data, c.ref).valor + 10; quitarCarta(j, c.uid); devolverObjeto(data, e, c.ref); }
-    hacer(e, pid, 'R22'); premio(data, e, pid, { dinares: tot + 30, noches: 15 }, `${j.nombre} comercia en el zoco de Damasco (${tot} dinares de mercancía):`);
+    // Jorge (18 de noviembre): solo recibes noches y 3 dinares. La Balanza de mercader suma 3 dinares por pieza (máximo 3 piezas).
+    const bal = 3 * Math.min(3, l.length);
+    hacer(e, pid, 'R22'); premio(data, e, pid, { dinares: 3 + bal, noches: 15 }, `${j.nombre} comercia en el zoco de Damasco (entrega ${tot} dinares de mercancía${bal ? '; su balanza le da ' + bal + ' dinares más' : ''}):`);
   } };
-T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx) {
+T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (!tieneObj(e.jugadores[pid], 'OB18') ? 'Necesitas un Odre de agua para cruzar el desierto con la caravana.' : e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx) {
+  consumirObj(data, e, pid, 'OB18');   // Jorge (18 de noviembre): el Odre de agua es necesario y se gasta en la travesía
   const j = e.jugadores[pid]; j.dinares -= 15;
   const carga = [0, 1, 2].map(() => ({ uid: darItem(e, j, 'sal').uid }));
   const [x] = ctx.t(`${j.nombre}: caravana de la sal`, 1);
@@ -588,7 +604,8 @@ export function zeinTirada(data, e, ctx, pid, etq = 'Esposo de Zein') {
 }
 T.R27 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R27'); const [x] = ctx.t(`${j.nombre}: pócimas`, 1);
-  if (x === 1) { j.noches = Math.max(0, j.noches - 10); j.herido = true; ctx.say('La mezcla explota: -10 noches y herido.'); }
+  if (x === 1 && tieneObj(j, 'OB20')) { consumirObj(data, e, pid, 'OB20'); ctx.say('La mezcla explota, pero tu Antídoto te salva: ni quedas herido ni pierdes noches (el antídoto se gasta).'); }   // Jorge (18 de noviembre)
+  else if (x === 1) { j.noches = Math.max(0, j.noches - 10); j.herido = true; ctx.say('La mezcla explota: -10 noches y herido.'); }
   else { darItem(e, j, 'veneno', { turnos: j.turnos }); j.noches += 10; ctx.say('Preparas un veneno y ganas 10 noches.'); }
 } };
 // ---------------------------------------------------------------- retos añadidos R28-R39
@@ -612,7 +629,8 @@ T.R29 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
   HOOK.viajarTransporte(data, e, pid, { destino: 'Bagdad', motivo: 'camello', turnos: 2 });
   ctx.say('Partes hacia Bagdad con tu camello.');
 } };
-T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Cuesta 5 dinares.'), run(data, e, pid, ctx, us) {
+T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (!tieneObj(e.jugadores[pid], 'OB12') ? 'Necesitas una Balanza de mercader.' : e.jugadores[pid].dinares >= 5 ? null : 'Cuesta 5 dinares.'),   // Balanza obligatoria (Jorge, 18 de noviembre)
+  run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 5; const c = darItem(e, j, 'pergaminoSellado');
   const [x] = ctx.t(`${j.nombre}: el guardia del camino`, 1);
   if (x <= 3) {
@@ -624,7 +642,8 @@ T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (e.jugadores[pid].dinares >=
 } };
 T.R31 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R31');
-  const ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0);
+  // Jorge (18 de noviembre): el Sobre de sobornos cambia el dado del guardia a lo que necesitas (pasas sin tirar); el Pastel de pistachos y la Carta de recomendación suman +1
+  const ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41') || aplic(data, e, pid, us, 'OB14'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0) + (aplic(data, e, pid, us, 'OB21') ? 1 : 0) + (aplic(data, e, pid, us, 'OB30') ? 1 : 0);
   if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches = Math.max(0, j.noches - 30); j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); ctx.fallo = true; return; } }
   if (!aplic(data, e, pid, us, 'OB06')) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x < 5) { ctx.say('La cerradura resiste: huyes sin botín.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 80, noches: 15 }, `${j.nombre} despoja la cámara del emir:`); robarBotin(data, e, pid);

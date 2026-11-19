@@ -183,7 +183,7 @@
    "valor": 10,
    "duracion": "Permanente",
    "momento": "Tu turno",
-   "efecto": "Al vender mercancías (tipo Lujo/Comercio) a un jugador o al banco cobras 2 dinares extra por pieza (máximo 3 piezas por turno).",
+   "efecto": "Al vender mercancías (tipo Lujo/Comercio) a un jugador o al banco cobras 2 dinares extra por pieza (máximo 3 piezas por turno). Es obligatoria para los retos R22 y R30. Pesa como cualquier objeto y solo se vende en Bagdad, por lo mismo que te costó. En el reto R22 cobras 3 dinares más por cada mercancía que entregas (máximo 3) y al entregar el pergamino del reto R30 cobras 8 dinares más.",
    "sirvePara": "R22, R30, mercancías",
    "seConsigueEn": "Bagdad, Damasco",
    "humor": "Pesa tu oro y, sobre todo, el del otro.",
@@ -209,13 +209,13 @@
    "id": "OB14",
    "nombre": "Sobre de sobornos",
    "tipo": "Soborno",
-   "copias": 4,
+   "copias": 3,
    "valor": 15,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Neutraliza a un guardia, vigilante o la Patrulla: no pagas el soborno que te correspondería y no peleas en esa ocasión.",
+   "efecto": "Neutraliza a un guardia, vigilante o la Patrulla: no pagas el soborno que te correspondería y no peleas en esa ocasión. En un reto cambia el dado del guardia por el resultado que necesitas. Sirve una sola vez y se agota: no vuelve al mercado. Solo hay 1 en cada mercado de Aleppo, Bagdad y Damasco.",
    "sirvePara": "R30, R31, E11, H6, H18, arresto en Bagdad",
-   "seConsigueEn": "Bagdad, Estambul",
+   "seConsigueEn": "Aleppo, Bagdad, Damasco",
    "humor": "Un buen argumento con sello propio.",
    "arte": "ob-soborno",
    "sinVenta": false
@@ -273,7 +273,7 @@
    "valor": 5,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Paga el agua de H20 por ti y por un animal de transporte; +1 a tu dado en retos de travesía por desierto.",
+   "efecto": "Paga el agua de H20 por ti y por un animal de transporte; +1 a tu dado en retos de travesía por desierto. Es necesario para llevar la sal del Magreb (R23) y se gasta en la travesía.",
    "sirvePara": "H20, R23, R29",
    "seConsigueEn": "Todas",
    "humor": "El tesoro más valioso del camino.",
@@ -303,7 +303,7 @@
    "valor": 25,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Cancela un envenenamiento (veneno de 11.1, banquete o abrevadero): no mueres ni pagas tus noches a Ruyán.",
+   "efecto": "Cancela un envenenamiento (veneno de 11.1, banquete o abrevadero): no mueres ni pagas tus noches a Ruyán. En el reto R27, si la mezcla explota, te salva: ni quedas herido ni pierdes noches.",
    "sirvePara": "Veneno, R27, H14",
    "seConsigueEn": "Aleppo, Damasco",
    "humor": "Se vende caro porque se usa tarde.",
@@ -318,7 +318,7 @@
    "valor": 4,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "Regalo comestible: un NPC menor (guardia, criado, portero) te deja pasar sin pagar, o suma +1 a tu dado en retos de convencer.",
+   "efecto": "Regalo comestible: un NPC menor (guardia, criado, portero) te deja pasar sin pagar, o suma +1 a tu dado en retos de convencer y ante el capitán de la guardia del reto R31.",
    "sirvePara": "R30, R31, R37",
    "seConsigueEn": "Estambul, Damasco",
    "humor": "Argumento irrefutable, con miel.",
@@ -449,11 +449,11 @@
    "id": "OB30",
    "nombre": "Carta de recomendación",
    "tipo": "Documento",
-   "copias": 3,
+   "copias": 2,
    "valor": 15,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "Añade 1 voto a favor en retos que se resuelven por votación, o una entrada gratuita a un banquete o fiesta.",
+   "efecto": "Añade 1 voto a favor en retos que se resuelven por votación, o una entrada gratuita a un banquete o fiesta. En el reto R31 suma +1 a tu dado ante el capitán de la guardia.",
    "sirvePara": "R14*, R31, R35, R37",
    "seConsigueEn": "Bagdad, Isfahán",
    "humor": "Alguien muy importante dice que eres de fiar.",
@@ -472,21 +472,6 @@
    "sirvePara": "Mensajes, R4*, R10*, R30, R39",
    "seConsigueEn": "Bagdad, Aleppo",
    "humor": "Anota hasta lo que no pasó.",
-   "arte": "ob-documento",
-   "sinVenta": false
-  },
-  {
-   "id": "OB32",
-   "nombre": "Pergamino sellado",
-   "tipo": "Documento",
-   "copias": 4,
-   "valor": 8,
-   "duracion": "Permanente",
-   "momento": "Tu turno",
-   "efecto": "Carga de entrega para retos de cargamento; si te lo roban, el reto se pierde. Valor de venta fijo.",
-   "sirvePara": "R30, R4*, R10*",
-   "seConsigueEn": "Bagdad, El Cairo",
-   "humor": "No lo abras. De verdad.",
    "arte": "ob-documento",
    "sinVenta": false
   },
@@ -856,7 +841,7 @@
   },
   {
    "nombre": "Cálamo de Kufa",
-   "efecto": "Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (máximo 6 en tu mano) y se vende en El Cairo por 4 dinares la pieza o en Bagdad por 3: tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. El pago sale de la tesorería del Califa. Se pueden vender entre jugadores al precio que quieran",
+   "efecto": "Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (máximo 6 en tu mano) y se vende en El Cairo por 4 dinares la pieza o en Bagdad por 3: tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra. El pago sale de la tesorería del Califa. Se pueden vender entre jugadores al precio que quieran",
    "precio": "1 dinar (Damasco o Basra)"
   },
   {
@@ -871,8 +856,8 @@
   },
   {
    "nombre": "Alfombras de Isfahán",
-   "efecto": "Objeto de carga para R7; ocupan las manos: no puedes huir con un objeto mientras las llevas",
-   "precio": "40 dinares cada una (máx. 2)"
+   "efecto": "Se compran en Isfahán (30 dinares, o 20 en el reto R17); pesan y ocupan las manos: no puedes huir con un objeto mientras las llevas",
+   "precio": "30 dinares cada una en Isfahán (20 en el reto R17, de 2 a 4); 20 en todo el juego"
   },
   {
    "nombre": "Cesta de manzanas",
@@ -1121,7 +1106,7 @@
   ]
  },
  "limiteManoObjetos": 7,
- "botin": 47,
+ "botin": 46,
  "mercado": 89,
  "refReglamento": "15",
  "escasez": {

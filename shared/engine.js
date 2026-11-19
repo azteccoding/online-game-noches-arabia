@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, ponerExistencia, sacarExistencia, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -126,7 +126,7 @@ function prepararMazos(data, e) {
   const botin = [], guardadas = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (POR_CIUDAD[o.id]) { e.stock[o.id] = POR_CIUDAD[o.id].length; (e.stockCiudad ||= {})[o.id] = Object.fromEntries(POR_CIUDAD[o.id].map((c) => [c, 1])); continue; }   // pala y linterna: una en cada mercado, sin Botín (Jorge, 10 de noviembre)
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (POR_CIUDAD[o.id]) { e.stock[o.id] = POR_CIUDAD[o.id].length * copiasPorCiudad(o.id); (e.stockCiudad ||= {})[o.id] = Object.fromEntries(POR_CIUDAD[o.id].map((c) => [c, copiasPorCiudad(o.id)])); continue; }   // pala y linterna: una en cada mercado, sin Botín (Jorge, 10 de noviembre)
     else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
   }
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
@@ -327,6 +327,7 @@ function volver(e, pid) {
 }
 
 function siguienteTurno(data, e, desde) {
+  { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
   if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
@@ -377,6 +378,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
+  turnoEmir(data, e, id);          // servicio del Emir: llega la Dádiva (Jorge, 18 de noviembre)
   if (j.pierdeTurno > 0) {
     j.pierdeTurno--; t.fase = 'mov'; t.principal = true; t.omitido = true;
     if (j.extra.nizam) { j.extra.nizam = false; j.herido = true; log(e, `${j.nombre} trabaja para el Nizam y pierde este turno; en el siguiente, rendido, no tendrá acción principal.`, { pid: id }); }   // R45
@@ -707,7 +709,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'responderTrato': return responderTrato(data, e, pid, a);
     case 'cancelarTrato': { const tr = e.tratos[a.id]; if (tr && tr.de === pid) delete e.tratos[a.id]; return ok(); }
     case 'ofrecer5': return RET.ofrecer5(data, e, pid, a);
-    case 'reto': return RET.iniciarReto(data, e, pid, a);
+    case 'reto': return a.sub === 'sinDinares' ? sinDinares(data, e, pid) : RET.iniciarReto(data, e, pid, a);
     case 'tesoro': return TES.accion(data, e, pid, a);
     case 'esconder': return TES.esconder(data, e, pid, a);
     case 'recuperar': return TES.recuperar(data, e, pid, a);
@@ -836,11 +838,13 @@ export function viajar(data, e, pid, a) {
   if (a.gratisPrimerVisitante && j.extra.viajeGratisBagdad) precio = 0;
   if (j.extra.viajeZein && precio > 0) { precio = 0; gratis = true; j.extra.usaViajeZein = true; }               // Zein en apuros: un tramo gratis
   const args = { destino, precio, servicios: false, hilo: false };
+  const conDadiva = precio > 0 && tieneItem(j, 'dadivaEmir');   // Dádiva del Emir: paga este pasaje
   if (a.servicios && j.pj === '6') { args.servicios = true; args.precio = 0; }                                  // Zubayda paga con servicios (R 10.7)
   else {
     if (a.hilo) { const c = OBJ.hiloDe(j); if (!c || precio > 15) return err('Necesitas un Hilo de alfombra y un tramo de tarifa 15 o menos.'); args.hilo = true; args.precio = 0; }
     else if (a.califa) { if (!j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.'); if (destino === 'Samarcanda') return err('No a Samarcanda.'); args.precio = 0; args.califa = true; }
-    if (!args.hilo && !args.califa && precio > 0 && !puedeDinares(j, precio)) return err(`No te alcanzan los dinares (${precio}).`);
+    if (!args.hilo && !args.califa && conDadiva) { args.dadiva = true; args.precio = 0; }
+    if (!args.hilo && !args.califa && !args.dadiva && precio > 0 && !puedeDinares(j, precio)) return err(`No te alcanzan los dinares (${precio}).`);
   }
   if (a.califa && !j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.');
   if (e.mods.huir?.[pid]) { /* la huida se resuelve en eventos: aquí no */ }
@@ -855,6 +859,7 @@ export function partir(data, e, pid, args) {
   if (args.precio > 0) { if (j.dinares < args.precio) { log(e, `${j.nombre} ya no puede pagar el viaje.`); return err('No te alcanzan los dinares.'); } j.dinares -= args.precio; }
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
   if (args.califa) { j.extra.viajeCalifa = false; }
+  if (args.dadiva) { quitarPrimero(j, 'item', 'dadivaEmir'); log(e, `${j.nombre} paga su pasaje con la Dádiva del Emir.`, { pid }); }
   if (j.extra.usaViajeZein) { j.extra.viajeZein = false; j.extra.usaViajeZein = false; log(e, `${j.nombre} viaja gratis con lo que sacó de sus alhajas.`, { pid }); }
   t.tramos++; t.movio = true;
   const key = origen + '>' + destino;
@@ -1070,6 +1075,66 @@ function terminarTurno(data, e, pid) {
   return ok();
 }
 
+// ---------------------------------------------------------------- sin dinares (Jorge, 18 de noviembre)
+// Si no tienes dinares (cero o deuda) ni nada que se pueda vender (literalmente nada, por ejemplo porque te asaltaron), puedes
+// ponerte al servicio del Emir de la ciudad:
+// · En Bagdad, Estambul, El Cairo y Andalucía, cuando ya pasaste un turno entero en cero: te quedas dos turnos (este, que termina
+//   aquí, y el siguiente, que pierdes) y al iniciar el tercero recibes la carta «Dádiva del Emir» (paga tu pasaje a una ciudad
+//   conectada) y 5 dinares.
+// · En las demás ciudades solo recibes 2 dinares, sin esperar un turno.
+// En los dos casos se gasta tu acción principal y termina tu turno; mientras sirves no pagas alojamiento.
+export const EMIR = { ciudades: ['Bagdad', 'Estambul', 'El Cairo', 'Andalucía'], dinares: 5, jornal: 2 };
+const NO_SE_VENDE = /^(No se vende|Nadie la compra|Carta especial|El Firmán no se vende|El banco no lo compra)/;
+export const algoQueVender = (data, e, pid) => e.jugadores[pid].mano.some((c) => { const d = OBJ.dondeVender(data, e, pid, c); return !!d && !NO_SE_VENDE.test(d); });
+function motivoSinDinares(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (j.dinares > 0) return 'Solo si no tienes dinares.';
+  if (algoQueVender(data, e, pid)) return 'Todavía tienes algo que se puede vender.';
+  if (j.extra.emir) return 'Ya estás al servicio del Emir.';
+  if (EMIR.ciudades.includes(j.ciudad) && !(j.extra.enCero >= 1)) return 'Tiene que pasar un turno entero sin dinares: podrás hacerlo en tu siguiente turno.';
+  if (!puedePrincipal(t)) return 'Ya usaste tu acción principal en este turno.';
+  return null;
+}
+function opcionSinDinares(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (!t || j.npc || j.transito || j.perdido || j.dinares > 0 || algoQueVender(data, e, pid)) return null;
+  const emir = EMIR.ciudades.includes(j.ciudad);
+  return { k: 'reto', id: 'EMIR', sub: 'sinDinares', boton: 'Aceptar',
+    titulo: `Ponerse al servicio del Emir de ${j.ciudad}${emir ? '' : ` (${EMIR.jornal} dinares)`}`,
+    texto: emir ? `No tienes dinares ni nada que vender. Sirves al Emir dos turnos: este, que termina aquí, y el siguiente, que pierdes. Al iniciar el tercero recibes la carta «Dádiva del Emir», que paga tu pasaje a una ciudad conectada (la que elijas), y ${EMIR.dinares} dinares. Mientras sirves no pagas alojamiento.`
+      : `No tienes dinares ni nada que vender. Recibes ${EMIR.jornal} dinares: se gasta tu acción principal y termina tu turno. Este turno no pagas alojamiento.`,
+    premio: emir ? `Dádiva del Emir y ${EMIR.dinares} dinares` : `${EMIR.jornal} dinares`, bloqueado: motivoSinDinares(data, e, pid) || undefined };
+}
+function sinDinares(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
+  if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
+  if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
+  if (j.transito || j.perdido || t.fin || t.omitido) return err('No puedes ahora.');
+  const m = motivoSinDinares(data, e, pid); if (m) return err(m);
+  t.principal = true; t.sinAlojamiento = true; t.fin = true;
+  if (EMIR.ciudades.includes(j.ciudad)) {
+    j.extra.emir = { ciudad: j.ciudad, entrega: j.turnos + 2 }; j.pierdeTurno = (j.pierdeTurno || 0) + 1;
+    log(e, `${j.nombre}, sin un dinar, se pone al servicio del Emir de ${j.ciudad}: pierde este turno y el siguiente, y después recibirá su dádiva.`, { pid, aviso: true });
+    info(e, pid, 'Al servicio del Emir', `Sirves al Emir de ${j.ciudad}: tu turno termina aquí y pierdes el siguiente. Al iniciar el tercero recibirás la carta «Dádiva del Emir» y ${EMIR.dinares} dinares.`);
+  } else {
+    j.dinares += EMIR.jornal;
+    log(e, `${j.nombre}, sin un dinar, se pone al servicio del Emir de ${j.ciudad} y recibe ${EMIR.jornal} dinares: termina su turno.`, { pid });
+    info(e, pid, 'Al servicio del Emir', `Sirves al Emir de ${j.ciudad} y recibes ${EMIR.jornal} dinares. Tu turno termina aquí.`);
+  }
+  return ok();
+}
+export function turnoEmir(data, e, pid) {
+  const j = e.jugadores[pid], s = j.extra.emir;
+  if (!s) return;
+  if (j.ciudad !== s.ciudad) { j.extra.emir = null; log(e, `${j.nombre} ya no está en ${s.ciudad}: se queda sin la dádiva del Emir.`, { pid }); return; }   // si un evento lo sacó de la ciudad
+  if (j.turnos < s.entrega) { log(e, `${j.nombre} sigue al servicio del Emir de ${s.ciudad}: pierde este turno.`, { pid }); return; }
+  j.extra.emir = null;
+  darItem(e, j, 'dadivaEmir'); j.dinares += EMIR.dinares;
+  publicarCarta(e, { ...itemDatos(data, 'dadivaEmir'), sub: `El Emir de ${j.ciudad} premia tu servicio: recibes esta carta y ${EMIR.dinares} dinares` }, pid, [pid]);
+  log(e, `${j.nombre} recibe la Dádiva del Emir de ${j.ciudad} y ${EMIR.dinares} dinares.`, { pid, aviso: true });
+}
+
 // ---------------------------------------------------------------- tratos entre jugadores (R 8.6, 15.2)
 // Cartas que cada jugador de tu ciudad puede intercambiar (para pedírselas en un trato). El libro de Ibn Hazm no se intercambia.
 function comerciables(data, e, pid) {
@@ -1221,7 +1286,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein ? 0 : tarifa(data, e, j, j.ciudad, d) });
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d) });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
@@ -1234,6 +1299,7 @@ export function acciones(data, e, pid) {
     for (const x of NPC.disponibles(data, e, pid)) r.push(x);
     for (const x of PJ.disponibles(data, e, pid)) r.push(x);
   } else if (!t.ccActual) for (const x of RET.disponibles(data, e, pid)) r.push(x);   // con la acción principal usada, los retos se ven apagados con su motivo (Jorge, 11 de noviembre)
+  { const x = opcionSinDinares(data, e, pid); if (x) r.push(x); }
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
   for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x);   // en Yemen: mandar el mapa del Jorasán con los piratas
   if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
@@ -1299,7 +1365,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, conEmir: j.extra?.emir?.ciudad || null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }

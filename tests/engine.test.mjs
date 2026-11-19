@@ -74,7 +74,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   assert.ok(!act(p, { t: 'cerrarDados' }).ok, 'siguen rodando');
   g.tickear(3000); assert.ok(act(ids[1], { t: 'cerrarDados' }).ok); assert.ok(e.dados && e.dados.cerrados.includes(ids[1]), 'otro jugador solo lo cierra en su pantalla');
   assert.ok(act(p, { t: 'cerrarDados' }).ok); assert.equal(e.dados, null, 'quien tiró lo cierra para todos');
-  sinMensaje(e.jugadores[p]); e.jugadores[p].dinares = 100;
+  sinMensaje(e.jugadores[p]); e.jugadores[p].dinares = 100; e.sinCaravanasBagdad = false;   // que una Tormenta de arena (E3) al azar no cierre Bagdad
   const r = act(p, { t: 'viajar', destino: 'Damasco' });
   assert.ok(r.ok, r.error);
   assert.equal(e.jugadores[p].ciudad, 'Damasco');

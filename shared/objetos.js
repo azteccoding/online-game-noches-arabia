@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, } from './base.js';
+ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
 // solo entre sus 5 ciudades (fuera de ellas muere), no termina el turno, carga, vive 2 turnos y solo lo compra el mercado de Estambul,
@@ -59,12 +59,17 @@ CIUDAD_ORIGINAL.mapaJorasan = ['Bagdad'];   // Jorge (12 de noviembre)
 CIUDAD_ORIGINAL.arco = ['Aleppo', 'Damasco', 'Isfahán', 'El Cairo', 'Yemen', 'Magreb'];   // Jorge (10 de noviembre): el arco solo ahí, sin límite; las flechas, en cualquier ciudad
 const stockArmas = (e) => (e.stockArmas ||= Object.fromEntries(Object.entries(ARMAS_CIUDAD).map(([r, cs]) => [r, Object.fromEntries(cs.map((c) => [c, 1]))])));
 // Cálamos de Kufa (Jorge, 17 de noviembre): 12 en toda la partida, 6 en Basra y 6 en Damasco. Los que se venden en El Cairo o Bagdad
-// vuelven a la venta en la de esas dos ciudades que tenga menos (sin pasar de 6).
+// NO vuelven de inmediato: cuando ya se vendieron los 12 (no queda ninguno en los mercados ni en manos de nadie), se regeneran 6 y 6.
 export const CALAMOS_CIUDAD = { Damasco: 6, Basra: 6 };
 const stockCalamos = (e) => (e.stockCalamos ||= { ...CALAMOS_CIUDAD });
-function devolverCalamos(e, n) {
+function regenerarCalamos(e) {
   const s = stockCalamos(e);
-  for (let i = 0; i < n; i++) { const c = Object.keys(CALAMOS_CIUDAD).filter((k) => s[k] < CALAMOS_CIUDAD[k]).sort((a, b) => s[a] - s[b])[0]; if (c) s[c]++; }
+  const enMercado = Object.values(s).reduce((a, b) => a + b, 0);
+  const enManos = Object.values(e.jugadores || {}).reduce((a, j) => a + (j.mano || []).filter((x) => x.tipo === 'item' && x.ref === 'buza').length, 0);
+  if (enMercado + enManos > 0) return false;
+  e.stockCalamos = { ...CALAMOS_CIUDAD };
+  log(e, 'Ya se vendieron los 12 cálamos de Kufa: vuelve a haber 6 en Damasco y 6 en Basra.');
+  return true;
 }
 // Jorge (17 de noviembre): no hay cimitarras en ningún mercado hasta que alguien forja acero de Damasco (R52)
 export const cimitarrasBloqueadas = (e, ref) => ref === 'cimitarra' && !e.forjaDamasco;
@@ -133,6 +138,14 @@ export function comprar(data, e, pid, a) {
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
+  }
+  if (a.ref === 'alfombraIsfahan') {                                                                    // Alfombras de Isfahán (Jorge, 18 de noviembre)
+    const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);
+    if (n <= 0) return err(j.ciudad === ALFOMBRAS.origen ? 'Ya no quedan alfombras en Isfahán: se vendieron todas.' : 'Este mercado no tiene alfombras de Isfahán.');
+    if (j.dinares < p) return err(`Cuestan ${p} dinares.`);
+    if (!tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);
+    j.dinares -= p; moverAlfombras(e, j.ciudad, -1); darItem(e, j, 'alfombraIsfahan');
+    log(e, `${j.nombre} compra una alfombra de Isfahán en el mercado de ${j.ciudad} por ${p} dinares.`, { pid }); return ok();
   }
   if (DADOS_VENTA[a.ref]) {                                                                              // dados revendidos por el mercado
     const D = DADOS_VENTA[a.ref], m = e.mercadoDados?.[a.ref];
@@ -231,6 +244,7 @@ export function vender(data, e, pid, a) {
   const c = j.mano.find((x) => x.uid === a.uid);
   if (!c) return err('No tienes esa carta.');
   const ciudad = j.ciudad;
+  { const m = (j.misiones || []).find((x) => (x.carga || []).some((k) => k.uid === c.uid)); if (m) return err(`No se vende: es la carga del reto ${m.id}.`); }   // como ya decía dondeVender
   let precio = 0, sinImp = false, texto = 'objeto';
   if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') {      // regla de la casa: subasta en la biblioteca
     const todas = j.mano.filter((x) => x.tipo === 'objeto' && x.ref === c.ref), x = dado(e), p = x % 2 === 0 ? 150 : 100;
@@ -244,6 +258,7 @@ export function vender(data, e, pid, a) {
   if (c.tipo === 'objeto') {
     const o = objDe(data, c.ref);
     texto = o.nombre;
+    if (c.ref === 'OB12' && ciudad !== 'Bagdad') return err('La Balanza de mercader solo se vende en Bagdad (o a otro jugador en un trato).');   // Jorge (18 de noviembre)
     if (reventaDe(data, c.ref, ciudad) != null) { precio = reventaDe(data, c.ref, ciudad); sinImp = true; }
     else if (c.ref === 'OB41') { precio = 20; sinImp = true; }                                            // banco: 20
     else if (c.ref === 'OB24' ) { precio = 40; sinImp = true; }                                           // Botella de genio: 40 al banco (R 15.2)
@@ -282,7 +297,7 @@ export function vender(data, e, pid, a) {
     const x = dado(e), k = Math.min(x, todas.length), quedan = todas.length - k;
     mostrarDados(e, { por: pid, motivo: 'buza', grupos: [{ etq: `${j.nombre}: venta de cálamos de Kufa (te compran tantos como salga)`, valores: [x] }],
       resumen: [`Sale ${x}: te compran ${k} cálamo${k === 1 ? '' : 's'} de Kufa a ${p} dinares, ${p * k} en total.${quedan ? ` Te ${quedan === 1 ? 'queda 1' : `quedan ${quedan}`} para otro turno.` : ''}`] });
-    for (const c2 of todas.slice(0, k)) quitarCarta(j, c2.uid); j.dinares += p * k; devolverCalamos(e, k);
+    for (const c2 of todas.slice(0, k)) quitarCarta(j, c2.uid); j.dinares += p * k; regenerarCalamos(e);
     return ok();
   }
   if (c.ref === 'tintaPulpo') {                                                                          // Jorge (17 de noviembre)
@@ -322,8 +337,12 @@ export function vender(data, e, pid, a) {
     if (ciudad !== 'Bagdad') return err('Las especias se venden en Bagdad (30 dinares, sin impuesto).');
     quitarCarta(j, c.uid); j.dinares += 30; log(e, `${j.nombre} vende un fardo de especias en Bagdad por 30 dinares.`, { pid }); return ok();
   }
-  if (c.ref === 'esclava' || c.ref === 'alfombraIsfahan' || c.ref === 'sal' || c.ref === 'cesta') {
-    const p = { esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref]; quitarCarta(j, c.uid); j.dinares += Math.floor(p / 2); log(e, `${j.nombre} vende ${ITEMS[c.ref].nombre}.`, { pid }); return ok();
+  if (c.ref === 'alfombraIsfahan') {                                                                    // vuelve a la venta en ese mercado (Jorge, 18 de noviembre)
+    const p = precioAlfombraVenta(ciudad); quitarCarta(j, c.uid); j.dinares += p; moverAlfombras(e, ciudad, 1);
+    log(e, `${j.nombre} vende una alfombra de Isfahán al mercado de ${ciudad} por ${p} dinares.`, { pid }); return ok();
+  }
+  if (c.ref === 'esclava' || c.ref === 'sal' || c.ref === 'cesta') {
+    const p = { esclava: 20, sal: 5, cesta: 2 }[c.ref]; quitarCarta(j, c.uid); j.dinares += Math.floor(p / 2); log(e, `${j.nombre} vende ${ITEMS[c.ref].nombre}.`, { pid }); return ok();
   }
   if (c.ref === 'alfombra') {                                                                           // Jorge (10 de noviembre)
     if (!ALFOMBRA_VENTA.ciudades.includes(ciudad)) return err('La alfombra mágica solo se vende en Samarcanda o Isfahán.');
@@ -370,6 +389,8 @@ export function tienda(data, e, pid) {
   { const pt = precioTinta(e, j.ciudad);                            // Frasco con tinta de pulpo (Jorge, 17 de noviembre)
     if (pt || j.ciudad === 'Bagdad') r.push({ ref: 'tintaPulpo', nombre: ITEMS.tintaPulpo.nombre, tipo: 'Objeto original', texto: ITEMS.tintaPulpo.texto, precio: pt ? pt.precio : TINTA.bagdad, stock: pt && pt.stock !== Infinity ? pt.stock : undefined,
       puede: !!pt && j.dinares >= pt.precio && !lleno, motivo: !pt ? motivoTinta(e, j.ciudad) : lleno ? MSJ_COMPRA_LLENO : j.dinares < pt.precio ? 'No te alcanza' : undefined }); }
+  { const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);   // Alfombras de Isfahán (Jorge, 18 de noviembre)
+    if (n > 0) r.push({ ref: 'alfombraIsfahan', nombre: ITEMS.alfombraIsfahan.nombre, tipo: 'Objeto original', texto: ITEMS.alfombraIsfahan.texto, precio: p, stock: n, puede: j.dinares >= p && !lleno, motivo: lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
   for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc), motivo: j.dinares < x.precio ? 'No te alcanza' : undefined });
@@ -386,7 +407,7 @@ export function tienda(data, e, pid) {
     const cs = ciudadesDe(o);
     if (cs && !cs.includes(j.ciudad)) continue;
     const precio = o.valor * cai;
-    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: existencia(e, o.id, j.ciudad), puede: existencia(e, o.id, j.ciudad) > 0 && j.dinares >= precio && !lleno,
+    r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: Number.isFinite(existencia(e, o.id, j.ciudad)) ? existencia(e, o.id, j.ciudad) : undefined, puede: existencia(e, o.id, j.ciudad) > 0 && j.dinares >= precio && !lleno,
       // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
       motivo: !(existencia(e, o.id, j.ciudad) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
   }
@@ -399,6 +420,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') return 100;   // subasta: 100 o 150
     if (c.tipo === 'objeto') {
       const o = objDe(data, c.ref); let p = o.valor, sin = false;
+      if (c.ref === 'OB12' && ciudad !== 'Bagdad') return null;   // la Balanza solo se vende en Bagdad
       if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
       return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : 0;   // 0: sin precio, se regala
     }
@@ -416,19 +438,21 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'alfombra') return ALFOMBRA_VENTA.ciudades.includes(ciudad) ? ALFOMBRA_VENTA.precio : null;
     if (c.ref === 'pergamino') return ciudad === 'Damasco' ? 30 : null;
     if (c.ref === 'especias') return ciudad === 'Bagdad' ? 30 : null;
-    if (['esclava', 'alfombraIsfahan', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, alfombraIsfahan: 40, sal: 5, cesta: 2 }[c.ref] / 2);
+    if (c.ref === 'alfombraIsfahan') return precioAlfombraVenta(ciudad);
+    if (['esclava', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, sal: 5, cesta: 2 }[c.ref] / 2);
     const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
     return base ? Math.floor(base / 2) : null;
   } catch { return null; }
 }
 
 // Dónde se vende cada carta y a cuánto (o para qué sirve si no se vende), para que «no se vende aquí» nunca quede sin explicación.
-const MITAD = { esclava: 10, alfombraIsfahan: 20, sal: 2, cesta: 1 };
+const MITAD = { esclava: 10, sal: 2, cesta: 1 };
 const USO = {
   idolo: 'Destrúyelo en cualquier ciudad (100 noches) o véndelo en Estambul a los mercaderes venecianos (100 dinares, con riesgo de herejía). Sirve para: reto R41 (Andalucía).',
   caballo: 'Es tu transporte: úsalo para viajar.', camello: 'Es tu transporte: úsalo para viajar.', burro: 'Es tu transporte: úsalo para viajar.', alfombra: 'Es tu transporte: úsala para viajar.',
   brujula: 'Sirve para buscar tesoros (1 intento extra).', astrolabio: 'Sirve para buscar tesoros (2 intentos extra).',
   recetaAverroes: 'Úsala para curarte una herida.', bendicionAbuMadyan: 'Te protege una vez de los asaltos en Andalucía y el Magreb.', dadoIbnArabi: 'Repite una pelea que vayas a perder.',
+  dadivaEmir: 'Paga tu pasaje a una ciudad conectada: se usa sola en tu siguiente viaje de caravana.',
   pergaminoSellado: 'Es la carga del reto R30.', cartaUrgente: 'Es la carga del reto R39: llévala a El Cairo.',
 };
 export function dondeVender(data, e, pid, c) {
@@ -441,6 +465,7 @@ export function dondeVender(data, e, pid, c) {
     if (c.ref === 'OB41') return 'El banco la compra por 20 dinares en cualquier ciudad.';
     if (LIBROS_SUBASTA.includes(c.ref)) return `Mejor venta: Bagdad, en subasta (dado par 150, impar 100 cada uno; una sola tirada para todas tus copias). También: ${Object.entries(o.reventa).filter(([k]) => k !== 'Bagdad').map(([k, v]) => `${k} ${v}`).join(', ')}.`;
     if (c.ref === 'OB24') return 'El banco la compra por 40 dinares en cualquier ciudad.';
+    if (c.ref === 'OB12') return `Solo en Bagdad: te pagan lo mismo que te costó (${o.valor} dinares). O a otro jugador en un trato. Pesa como cualquier objeto.`;
     if (!o?.valor) return 'Nadie la compra: solo sirve para usarla.';
     if (o.reventa) { const [mc, mp] = Object.entries(o.reventa).sort((x, y) => y[1] - x[1])[0]; return `Mejor venta: ${mc} (${mp} dinares, sin impuesto). También: ${lista(o.reventa)}; en las demás ciudades, ${o.valor} menos el impuesto.`; }
     return `En cualquier ciudad por ${o.valor} dinares, menos el impuesto (mejor en Bagdad, sin impuesto).`;
@@ -461,7 +486,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
-  if (c.ref === 'alfombraIsfahan') return `Mejor venta: el reto R7 en Bagdad paga 90 por alfombra (máximo 2) y 10 noches. En el mercado de cualquier ciudad, ${MITAD.alfombraIsfahan}.`;
+  if (c.ref === 'alfombraIsfahan') return `En cualquier mercado por ${ALFOMBRAS.venta} dinares (Andalucía ${ALFOMBRAS.ventaCiudad['Andalucía']}; Isfahán solo ${ALFOMBRAS.recompraOrigen}); ahí queda a la venta ${ALFOMBRAS.margen} dinares más cara. O a otro jugador en un trato.`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
   if (c.ref === 'alfombra') return `Solo en Samarcanda o Isfahán, por ${ALFOMBRA_VENTA.precio} dinares (se deshace: el mercado no la revende). También te saca del Jorasán.`;
   if (USO[c.ref]) return `No se vende. ${USO[c.ref]}`;

@@ -85,7 +85,7 @@ function Reto({ a, s }) {
       </div>
       <div className="accion-ctl">
         {(a.texto || a.requisito) && <button className="btn mini sec" onClick={() => setVer((v) => !v)}>{ver ? 'Menos' : 'Detalles'}</button>}
-        <button className="btn mini" disabled={!!a.bloqueado || !!s.pend || !!s.dados} onClick={() => enviar(ACCIONES.reto(a.id, a.sub))}>{a.sub === 'pagar' ? 'Pagar' : 'Intentar'}</button>
+        <button className="btn mini" disabled={!!a.bloqueado || !!s.pend || !!s.dados} onClick={() => enviar(ACCIONES.reto(a.id, a.sub))}>{a.boton || (a.sub === 'pagar' ? 'Pagar' : 'Intentar')}</button>
       </div>
     </div>
   );

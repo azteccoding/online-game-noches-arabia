@@ -669,7 +669,7 @@ function robar(data, e, atk, def) {
     const papel = (c) => (c.tipo === 'item' && PAPELES_ITEM.includes(c.ref) && !(c.ref === 'mapa' && c.extra?.tesoro === 'jugador')) || (c.tipo === 'objeto' && PAPELES_OBJ.includes(c.ref)) || (c.tipo === 'especial' && c.ref === 'F1');   // también el Firmán (Jorge, 17 de noviembre): se destruye, no vuelve al banco
     const rotos = D.mano.filter(papel);
     quitarPrimero(D, 'item', 'tintaPulpo'); D.mano = D.mano.filter((c) => !papel(c));
-    log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
+    log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate, alfombras o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
   }
   const oculta = (c) => (c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta)   // la jambiya escondida no se la llevan
     || (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');                   // ni el mapa del escondite de dinares (regla de Jorge)
