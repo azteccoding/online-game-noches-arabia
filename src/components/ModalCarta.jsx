@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Carta from './Carta.jsx';
-import { enviar, marcarCartaEnPantalla } from '../game/store.js';
+import { enviar, marcarCartaEnPantalla, marcarCartaPorLeer } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
@@ -62,11 +62,13 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   // Una carta publicada ANTES que los dados se lee primero (da el contexto de la tirada); las posteriores (p. ej. el Botín) esperan a que se cierren.
   // Jorge (19 de noviembre): la carta que provoca una decisión se lee ANTES que sus botones (antes la decisión la tapaba: p. ej. la Leva
   // del sultán mostraba «alistarte / pagar» antes de la carta). Solo esperan detrás de tu decisión las cartas posteriores a ella.
-  const tapaDecision = !!debesResponder && !(s.pend?.mia && !s.pend.respondiste && s.pend.id > cola[0] && !(s.votoReinicio?.votas && s.votoReinicio.miVoto == null));
+  // Mientras haya dados pendientes la decisión no se ve (Decision.jsx), así que no tapa ninguna carta: así nunca se esperan en círculo.
+  const tapaDecision = !!debesResponder && !(s.pend?.mia && !s.pend.respondiste && (s.pend.id > cola[0] || !!s.dados) && !(s.votoReinicio?.votas && s.votoReinicio.miVoto == null));
   const tapaDados = consulta == null && cola.length > 0 && ((!!s.dados && s.dados.id < cola[0]) || tapaDecision);
   const nroActual = consultaObj ? consultaObj.nro : tapaDados ? null : (consulta ?? cola[0] ?? null);
   const modoLectura = consulta == null && cola.length > 0 && !tapaDados;
-  useEffect(() => { marcarCartaEnPantalla(modoLectura ? cola[0] : null); }, [modoLectura, cola[0]]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { marcarCartaEnPantalla(modoLectura ? cola[0] : null); }, [modoLectura, cola[0]]);
+  useEffect(() => { marcarCartaPorLeer(cola[0] ?? null); }, [cola[0]]);   // eslint-disable-line react-hooks/exhaustive-deps
   const carta = useMemo(() => consultaObj || (nroActual != null ? s.historial.find((h) => h.nro === nroActual) : null), [nroActual, s.historial, consultaObj]);
 
   useLayoutEffect(() => {

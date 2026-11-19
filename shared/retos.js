@@ -11,7 +11,7 @@ const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
 // ---------------------------------------------------------------- utilidades
 // Las cartas que el reto publica antes de mostrar sus dados (un caballo, un camello, una carta de Ifrit…) son consecuencias: se marcan
 // con trasDados para que el servidor no las muestre hasta que el jugador tire y se cierren los dados (Jorge, 11 de noviembre).
-function marcarTrasDados(e, nro0, d) { if (d) for (const h of e.historial) if (h.nro > nro0 && h.nro < d.id) h.trasDados = d.id; }
+function marcarTrasDados(e, nro0, d) { if (d) for (const h of e.historial) if (h.nro > nro0 && h.nro < d.id && !h.causa && !(d.contexto && d.contexto === h.titulo)) h.trasDados = d.id; }
 function nuevoCtx(e, pid, id) { const nro0 = e.seq; return { grupos: [], res: [], t(etq, n = 1) { const v = dados(e, n); this.grupos.push({ etq, valores: v }); return v; }, say(x) { this.res.push(x); }, fin() { if (this.grupos.length) marcarTrasDados(e, nro0, mostrarDados(e, { por: pid, motivo: 'reto:' + id, grupos: this.grupos, resumen: [`Reto ${id}:`, ...this.res] })); else { for (const r of this.res) log(e, r, { pid }); if (this.res.length) info(e, pid, `Reto ${id}`, this.res.join(' ')); } } }; }
 const nProb = (e) => activos(e).length;
 export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
@@ -129,6 +129,9 @@ export function iniciarReto(data, e, pid, a) {
   const msg = def.req ? def.req(data, e, pid) : null;
   if (msg) return err(msg);
   t.principal = true;
+  // Jorge (19 de noviembre): primero sale la carta del reto y la cierras; solo entonces sus objetos, dados, botones y resultado
+  // (todo lo que sigue tiene un número mayor y el cliente lo pone detrás de la carta).
+  if (!j.npc) publicarCarta(e, { ...cartaDatos(data, 'reto', a.id), causa: true }, pid, [pid]);   // causa: no es consecuencia de los dados
   log(e, `${j.nombre} intenta el reto ${a.id}: ${d.nombre}.`, { pid });
   const ids = OBJS[a.id];
   if (ids) ofrecerObjetos(data, e, pid, { ids, max: 2, titulo: `Reto ${a.id}: objetos`, texto: 'Puedes usar hasta 2 objetos (R 15.2). Elige los que quieras usar.', cont: { fn: 'reto.obj', args: { id: a.id } } });

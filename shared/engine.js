@@ -679,7 +679,10 @@ function marcarConsecuencias(e, seq0) {
   const nuevos = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.id > seq0);
   if (!nuevos.length) return;
   const ultimo = Math.max(...nuevos.map((d) => d.id));
-  for (const h of e.historial) if (h.nro > seq0 && !h.trasDados) h.trasDados = ultimo;
+  // Jorge (19 de noviembre): la carta que CAUSA la tirada (la del reto, el evento de la ronda como la Ira del cornudo, un histórico…)
+  // sale ANTES que los dados: no es su consecuencia. Se reconoce porque los dados llevan su título como contexto.
+  const causa = (h) => h.causa || nuevos.some((d) => d.contexto && d.contexto === h.titulo && h.nro < d.id);
+  for (const h of e.historial) if (h.nro > seq0 && !h.trasDados && !causa(h)) h.trasDados = ultimo;
 }
 function postAccion(data, e) {
   const t = e.turno;

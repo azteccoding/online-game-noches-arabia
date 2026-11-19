@@ -2609,8 +2609,9 @@ for (let k = 0; k < 6; k++) {
   const { T: _t } = await import('../shared/retos.js').catch(() => ({}));
   void _t;
   const ids = data.retos.retos.map((r) => r.id);
-  let conDados = 0; const cubiertos = [];
-  const huella = (v, p) => JSON.stringify({ din: v.jugadores[p].dinares, noc: v.jugadores[p].noches, mano: (v.mano || []).map((c) => c.uid), log: (v.log || []).map((l) => l.n), hist: (v.historial || []).map((h) => h.nro) });
+  let conDados = 0; const cubiertos = [], conCarta = [];
+  // la carta del propio reto sí sale antes de tirar (Jorge, 19 de noviembre: primero la carta, luego los dados): no cuenta como consecuencia
+  const huella = (v, p, id) => JSON.stringify({ din: v.jugadores[p].dinares, noc: v.jugadores[p].noches, mano: (v.mano || []).map((c) => c.uid), log: (v.log || []).map((l) => l.n), hist: (v.historial || []).filter((h) => !(h.deck === 'reto' && h.id === id)).map((h) => h.nro) });
   for (const id of ids) {
     const r = data.retos.retos.find((x) => x.id === id);
     const ciudades = data.ciudades.ciudades.filter((c) => (c.retos || []).includes(id)).map((c) => c.id);
@@ -2625,6 +2626,12 @@ for (let k = 0; k < 6; k++) {
       const v0 = vistaDe(e, a), v0b = vistaDe(e, b);
       const res = g.act(a, { t: 'reto', id });
       if (!res.ok) continue;   // requisitos que esta preparación no cumple (se revisan a mano)
+      {   // Jorge (19 de noviembre): en TODOS los retos sale primero su carta; objetos, botones, alertas y dados van detrás
+        const carta = e.historial.find((h) => h.deck === 'reto' && h.id === id && h.para?.includes(a));
+        assert.ok(carta, `${id} (${r.nombre}): sale su carta`); conCarta.push(id);
+        assert.ok(!carta.trasDados, `${id}: su carta no espera a sus propios dados`);
+        for (const x of [e.pend, ...(e.colaPend || []), e.dados, ...(e.colaDados || [])].filter(Boolean)) assert.ok(x.id > carta.nro, `${id} (${r.nombre}): ${x.titulo || x.motivo || 'algo'} sale después de la carta`);
+      }
       for (let k = 0; k < 6 && e.pend && !dadosPendientes(e).size; k++) {
         const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: (p.opciones?.find((o) => o.id === 'si') || p.opciones?.[0] || {}).id, numero: p.min ?? 1, valores: [] });
       }
@@ -2633,7 +2640,8 @@ for (let k = 0; k < 6; k++) {
       conDados++; cubiertos.push(id);
       for (const [quien, v0x] of [[a, v0], [b, v0b]]) {
         const vf = vistaCongelada(v0x, vistaDe(e, quien), pend);
-        assert.equal(huella(vf, a), huella(v0x, a), `${id} (${r.nombre}): antes de tirar, ${quien === a ? 'quien juega' : 'los demás'} no ven ninguna consecuencia`);
+        assert.equal(huella(vf, a, id), huella(v0x, a, id), `${id} (${r.nombre}): antes de tirar, ${quien === a ? 'quien juega' : 'los demás'} no ven ninguna consecuencia`);
+        if (quien === a) assert.ok((vf.historial || []).some((h) => h.deck === 'reto' && h.id === id && h.nro < e.dados.id), `${id} (${r.nombre}): su carta sale antes que los dados`);
       }
       // tirar y cerrar todos los dados
       const real = () => JSON.stringify({ d: A.dinares, n: A.noches, m: A.mano.length, h: A.herido });
@@ -2644,7 +2652,8 @@ for (let k = 0; k < 6; k++) {
     }
   }
   assert.ok(conDados >= 14, 'la prueba recorrió los retos con dados: ' + conDados);
-  if (process.env.VER_RETOS) console.log('retos con dados cubiertos:', cubiertos.join(' '));
+  if (process.env.VER_RETOS) console.log('retos con dados cubiertos:', cubiertos.join(' '), '| con carta:', conCarta.length, conCarta.join(' '));
+  assert.ok(conCarta.length >= 25, 'la carta se revisa en los retos que esta preparación permite: ' + conCarta.length);
 }
 
 // Deuda con Bagdad (Jorge, 11 de noviembre): se paga en el mismo turno en que la adquieres o en cualquier turno, sin gastar la acción
@@ -4273,4 +4282,36 @@ console.log('reglas de la casa OK');
   assert.equal(dondeSeVende(data, { ref: 'shatranj' }), 'India');
   assert.equal(dondeSeVende(data, { ref: 'costalPistaches' }), 'Isfahán');
   assert.equal(dondeSeVende(data, { id: 'OB42' }), null, 'el Disfraz de mendigo está en todos los mercados');
+}
+// Jorge (19 de noviembre): las cartas de la ronda que causan dados (p. ej. la Ira del cornudo, E8) salen ANTES que esos dados;
+// nunca se piden los dados primero. Recorre todos los eventos y los históricos que tiran dados al empezar la ronda.
+{
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  let revisados = 0;
+  const todos = [...data.eventos.eventos.map((x) => ['eventos', x.id]), ...data.eventos.historicos.map((x) => ['historicos', x.id])];
+  for (const [mazo, id] of todos) {
+    const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e;
+    for (const x of Object.values(e.jugadores)) { x.extra.clienteWeb = true; x.dinares = 80; x.noches = 300; x.ciudad = 'Bagdad'; }
+    e.mazos[mazo] = [id, ...e.mazos[mazo].filter((x) => x !== id)];
+    if (mazo === 'historicos') e.mazos.eventos = e.mazos.eventos.filter((x) => !['E1', 'E5', 'E8'].includes(x));   // un solo origen de dados
+    else e.mazos.historicos = [];
+    const r0 = e.ronda;
+    for (let k = 0; k < 30 && e.ronda === r0; k++) {
+      if (e.dados) { e.dados = null; e.colaDados = []; }
+      if (e.pend) { e.pend = null; e.colaPend = []; }
+      const t = e.turno; if (!t) { g.tickear(1000); continue; }
+      if (t.fase === 'ingreso') { g.act(t.pid, { t: 'tirarDados' }); e.dados = null; e.colaDados = []; continue; }
+      g.act(t.pid, { t: 'terminarTurno' }); g.tickear(1000);
+    }
+    if (e.ronda === r0) continue;
+    const carta = e.historial.find((h) => h.id === id && h.ronda === e.ronda);
+    const ds = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.contexto === carta?.titulo);
+    if (!carta || !ds.length) continue;   // esa carta no tiró dados en esta preparación
+    revisados++;
+    assert.ok(ds.every((d) => d.id > carta.nro), `${id}: la carta sale antes que sus dados`);
+    assert.ok(!carta.trasDados, `${id} (${carta.titulo}): la carta no se esconde detrás de sus propios dados`);
+    for (const pid of g.ids) assert.ok(vistaCongelada(null, vistaDe(e, pid), dadosPendientes(e)).historial.some((h) => h.nro === carta.nro), `${id}: ${e.jugadores[pid].nombre} ve la carta antes de tirar`);
+  }
+  assert.ok(revisados >= 1, 'al menos la Ira del cornudo tira dados al empezar la ronda: ' + revisados);
 }

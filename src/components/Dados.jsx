@@ -54,12 +54,13 @@ function Cubo({ valor, rodando, idx, color }) {
 export default function Dados({ s }) {
   const d = s.dados;
   const cartaPrevia = useJuego((x) => x.cartaEnPantalla);
+  const porLeer = useJuego((x) => x.cartaPorLeer);   // primera carta de la cola, aunque todavía no esté en pantalla
   const [fila, setFila] = useState(-1);          // fila que está rodando; -1 = ninguna (todas fijas)
   const idVisto = useRef(null);
   const nFilas = Math.max(1, d?.grupos?.length || 1);
   // Jorge (19 de noviembre): ningún dado sale ya resuelto. Si la tirada espera detrás de la carta que la explica, no rueda a escondidas:
   // empieza a rodar, desde el principio, cuando la carta se cierra (antes se veía solo el resultado, p. ej. el dado de ingreso).
-  const esperaCarta = !!d && cartaPrevia != null && cartaPrevia < d.id;
+  const esperaCarta = !!d && ((cartaPrevia != null && cartaPrevia < d.id) || (porLeer != null && porLeer < d.id));
   const espero = useRef(null);
   if (d && esperaCarta) espero.current = d.id;
   useEffect(() => {

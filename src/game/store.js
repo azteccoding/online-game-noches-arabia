@@ -13,6 +13,8 @@ export function useJuego(sel = (s) => s) {
 export const leer = () => S;
 // Carta que se está leyendo (nro del historial): los dados lanzados después de ella esperan a que se cierre.
 export function marcarCartaEnPantalla(nro) { if (S.cartaEnPantalla !== nro) poner({ cartaEnPantalla: nro }); }
+// Primera carta de la cola de lectura, se esté mostrando o no (Jorge, 19 de noviembre): ningún dado ni decisión posterior sale antes que ella.
+export function marcarCartaPorLeer(nro) { if (S.cartaPorLeer !== nro) poner({ cartaPorLeer: nro }); }
 // Aviso verde local (premios, nueva ronda…); se borra solo a los 3.5 s.
 // Como mucho dos avisos juntos.
 // Aviso rojo local (pagos y pérdidas propias); se borra solo a los 4 s.
