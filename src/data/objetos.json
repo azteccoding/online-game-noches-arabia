@@ -312,15 +312,15 @@
   },
   {
    "id": "OB21",
-   "nombre": "Pastel de pistachos",
+   "nombre": "Pastel de pistaches",
    "tipo": "Sustento",
-   "copias": 3,
+   "copias": 9,
    "valor": 9,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "Regalo comestible: un NPC menor (guardia, criado, portero) te deja pasar sin pagar, o suma +1 a tu dado en retos de convencer. Con él superas sin tirar al guardia de R28 y al capitán de la guardia de R31, en R30 el guardia del camino te deja pasar sin peaje y en R41, si te iban a atrapar, distraes a los guardias y huyes con las manos vacías. Se gasta al usarlo.",
+   "efecto": "Regalo comestible: un NPC menor (guardia, criado, portero) te deja pasar sin pagar, o suma +1 a tu dado en retos de convencer. Con él superas sin tirar al guardia de R28 y al capitán de la guardia de R31, en R30 el guardia del camino te deja pasar sin peaje y en R41, si te iban a atrapar, distraes a los guardias y huyes con las manos vacías. Se gasta al usarlo. Hay 3 en cada mercado de El Cairo, Bagdad y Damasco, pero no se venden hasta que alguien lleva pistaches de Isfahán a Bagdad (R56). Pesa y la tinta de pulpo lo destruye.",
    "sirvePara": "R28, R30, R31, R37, R41",
-   "seConsigueEn": "Estambul, Damasco",
+   "seConsigueEn": "El Cairo, Bagdad, Damasco",
    "humor": "Argumento irrefutable, con miel.",
    "arte": "ob-sustento",
    "sinVenta": false
@@ -836,7 +836,7 @@
   },
   {
    "nombre": "Botellas de vino",
-   "efecto": "Se compran en Bagdad. Cada turno aumentan su valor en 6 dinares. Se venden en cualquier otra ciudad, que las compra a la mitad de su precio",
+   "efecto": "Se compran en Basra (hay 2) y en Andalucía (hay 4). Cada ronda aumentan su valor en 2 dinares. Se venden en cualquier mercado a su valor actual (menos el impuesto) y la botella vendida se esfuma: cuando se acaban las 6, ya no hay vino. Pesan; la tinta de pulpo no les afecta",
    "precio": "20 dinares"
   },
   {

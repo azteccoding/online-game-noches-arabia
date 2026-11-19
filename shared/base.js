@@ -70,12 +70,13 @@ export const ITEMS = {
   citricos: { nombre: 'Cítricos', precio: 5, texto: 'Se venden en el mercado de cualquier ciudad a 5 dinares. Te protegen del escorbuto en un viaje por mar y se gastan en el primero que hagas: El Cairo–Andalucía, El Cairo–Yemen, Magreb–Andalucía (ida o vuelta), el cruce a Abisinia, los piratas de Yemen al Jorasán y el barco que te regresa a Basra desde India (Sindbad o el monzón). Sin cítricos, cada viaje por mar te deja herido por escorbuto, y herido no puedes embarcarte.' },
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
-  vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
+  vino: { nombre: 'Botella de vino', precio: 20, texto: 'Se compra a 20 dinares en Basra (hay 2) y en Andalucía (hay 4). Gana 2 dinares de valor por ronda. Cualquier mercado la compra a su valor actual (menos el impuesto) y la botella se esfuma: cuando se acaban las 6, ya no hay vino. Pesa; la tinta de pulpo no le afecta.' },
   buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
   tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán, el Shatranj y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
   shatranj: { nombre: 'Shatranj (ajedrez)', precio: 12, texto: 'El juego de los reyes que llegó de India: un tablero con sus piezas de marfil. Solo lo vende el mercado de India, por 12 dinares, y solo hay 5 en todo el juego. Se vende en Isfahán por 25, en Bagdad por 30 o en Andalucía por 35, y al venderlo deja de existir. Pesa: cuenta para el límite de 7 objetos. La tinta de pulpo lo estropea.' },   // Jorge (19 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 30, texto: 'Mercancía de Isfahán: el mercado de Isfahán la vende a 30 y la recompra a 15; los demás mercados la compran a 35 (Andalucía a 40) y la revenden 3 dinares más cara. La tinta de pulpo la destruye. Pesa y ocupa las manos: no puedes huir con un objeto.' },
+  costalPistaches: { nombre: 'Costal de pistaches', precio: 2, texto: 'Mercancía: se compra en Isfahán a 2 dinares (hasta 10 costales a la vez). Pesa. Al llegar a Bagdad se entregan solos y cobras 6 dinares por costal; el primero en la partida que los entrega gana además 60 noches (reto R56) y desde entonces se venden los Pasteles de pistaches.' },
   almudDatiles: { nombre: 'Almud de dátiles', precio: 2, texto: 'Mercancía: se compra en Yemen y Basra a 2 dinares y el mercado de Bagdad la compra a 4. Pesa. La primera vez que vendes dátiles en Bagdad cumples el reto R53 y ganas 20 noches.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
@@ -261,20 +262,24 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 export const SHATRANJ = { ciudad: 'India', precio: 12, stock: 5, venta: { 'Isfahán': 25, 'Bagdad': 30, 'Andalucía': 35 } };
 export const shatranjEnIndia = (e) => e.shatranj ?? SHATRANJ.stock;
 export const TINTA = { india: 3, bagdad: 6, venta: 9, reventa: 10, ciudadesVenta: ['Andalucía', 'Samarcanda'] };
-export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan', 'shatranj'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
+export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan', 'shatranj'], PAPELES_OBJ = ['OB46', 'OB47', 'OB21'];   // Jorge (19 de noviembre): la tinta también destruye los Pasteles de pistaches   // libros, papiros, manuscritos, papel amate y mapas de tesoro
 export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de Kufa en la mano
 // Jorge (19 de noviembre): pesa todo lo que se carga: armas (arco, jambiya, alfanje, cimitarra; las flechas cuentan como 1 aunque tengas
 // varias), libros (no los Manuscritos de la India ni los papeles), cálamos, cesta de manzanas, almudes de dátiles, dados, brújula, astrolabio,
 // ídolo, velo, veneno, especias y sal. No pesan los papeles (papiro, amate, pergaminos, mapas, cartas, recetas), los animales, las
 // esclavas, el Ejército de Kanmakán ni la Bendición de Abu Madyan.
 export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan', 'shatranj',   // las alfombras de Isfahán pesan (18 de noviembre)
-  'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
+  'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'costalPistaches', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
   'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos'];
 export const OBJ_SIN_PESO = ['OB46', 'OB05'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre)
 export const pesaCarta = (c) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && CARGA_ITEMS.includes(c.ref));
 // Dátiles (Jorge, 19 de noviembre): almudes en Yemen y Basra a 2, sin límite (solo te frena el peso); el mercado de Bagdad los compra a 4.
 // La primera vez que cada jugador los vende en Bagdad cumple R53 (20 noches). Hasta que alguien lo cumple, ningún mercado vende «Dátiles y pan de viaje» (OB19).
 export const DATILES = { compra: 2, venta: 4, ciudades: ['Yemen', 'Basra'], ciudadVenta: 'Bagdad', reto: 'R53', noches: 20, obj: 'OB19' };
+// Pistaches (Jorge, 19 de noviembre): reto R56 «Llevar cosecha de pistaches». En Isfahán compras costales a 2 dinares (hasta 10 a la vez;
+// pesan). Al llegar a Bagdad se entregan solos y cobras 6 dinares por costal. El primero en la partida gana además 60 noches y desde
+// entonces se venden los Pasteles de pistaches (3 en cada mercado de El Cairo, Bagdad y Damasco); los siguientes solo cobran los dinares.
+export const PISTACHES = { compra: 2, venta: 6, ciudadCompra: 'Isfahán', ciudadVenta: 'Bagdad', reto: 'R56', noches: 60, max: 10, obj: 'OB21' };
 // Burros (Jorge, 19 de noviembre): 2 en el mercado de Basra desde el principio; cuando se compran los dos, aparece uno en Aleppo y otro en
 // Damasco (anuncio para todos). Un burro que muere ya no vuelve («si el burro muere ya no hay más»); el de un jugador eliminado sí vuelve
 // al mercado de donde salió.
@@ -336,13 +341,13 @@ export function recortarMano(data, e, pid) {
 // Disfraz de mendigo (Jorge, 19 de noviembre): uno en el mercado de cada ciudad (el Jorasán no tiene mercado).
 const MERCADOS = ['Andalucía', 'Magreb', 'El Cairo', 'Estambul', 'Aleppo', 'Damasco', 'Yemen', 'Basra', 'Bagdad', 'Isfahán', 'Samarcanda', 'India'];
 // Lazo de camellero (Jorge, 19 de noviembre): uno en cada mercado de Basra, Bagdad, El Cairo, Yemen y Samarcanda, nada más.
-export const POR_CIUDAD = { OB05: ['Basra', 'Bagdad', 'El Cairo', 'Yemen', 'Samarcanda'], OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'], OB42: MERCADOS };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
+export const POR_CIUDAD = { OB21: ['El Cairo', 'Bagdad', 'Damasco'], OB05: ['Basra', 'Bagdad', 'El Cairo', 'Yemen', 'Samarcanda'], OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'], OB42: MERCADOS };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
 // Sobre de sobornos (Jorge, 18 de noviembre): 2 en cada mercado de Aleppo, Bagdad y Damasco; un solo uso y el que se usa no vuelve al mercado.
-export const POR_CIUDAD_N = {};
+export const POR_CIUDAD_N = { OB21: 3 };   // Pastel de pistaches: 3 en cada uno de sus mercados (Jorge, 19 de noviembre)
 export const EN_BOTIN = ['OB42'];   // el Disfraz de mendigo, además de uno en cada mercado, sigue saliendo en el Botín como antes
 export const copiasPorCiudad = (id) => POR_CIUDAD_N[id] || 1;
 export const NO_VUELVE = ['OB14'];
-export const SIN_LIMITE = ['OB21'];   // Pastel de pistachos: nunca se agota en sus mercados (Jorge, 18 de noviembre)
+export const SIN_LIMITE = [];   // (el Pastel de pistaches ya no: desde el 19 de noviembre hay 3 en cada mercado de El Cairo, Bagdad y Damasco)
 export const existencia = (e, id, ciudad) => (SIN_LIMITE.includes(id) ? Infinity : POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
 export function sacarExistencia(e, id, ciudad) {
   e.stock[id] = Math.max(0, (e.stock[id] || 0) - 1);
@@ -480,7 +485,9 @@ export function tarifa(data, e, j, a, b) {
 }
 export const esLibro = (c) => c.tipo === 'item' && (c.ref === 'libro' || c.ref === 'papiro' || c.ref === 'libroIbnHazm');
 export function valorLibro(data, e, c) { return (c.extra?.valor ?? 0) + 2 * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
-export function valorVino(c, e) { return 20 + 6 * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
+// Jorge (19 de noviembre): el vino gana 2 dinares por ronda (antes 6).
+export const VINO = { precio: 20, porRonda: 2, stock: { 'Basra': 2, 'Andalucía': 4 } };
+export function valorVino(c, e) { return VINO.precio + VINO.porRonda * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
 export const vivos = (e) => activos(e).length;
 
 export const puedePrincipal = (t) => !!t && !t.principal && !t.bloqueoPrincipal;

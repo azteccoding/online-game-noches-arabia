@@ -17,7 +17,7 @@ const fuente = fs.readFileSync(path.join(RAIZ, 'tests', 'sim.mjs'), 'utf8')
     "if (!a && p.tipo === 'meta') a = { t: 'decidir', id: p.id, opcion: 'ganar' }; if (!a) { const dis = p.opciones.filter((o) => !o.desactivada); a = { t: 'decidir', id: p.id, opcion: pick(dis).id }; }")
   // cuenta los retos por número
   .replace("cuenta(stats.acciones, a.t + (a.sub ? ':' + a.sub : '') + ':' + (r.ok ? 'ok' : 'x'));",
-    "cuenta(stats.acciones, a.t + (a.t === 'reto' ? ':' + a.id : '') + (a.sub ? ':' + a.sub : '') + ':' + (r.ok ? 'ok' : 'x'));")
+    "cuenta(stats.acciones, a.t + (a.t === 'reto' ? ':' + a.id : '') + (a.sub ? ':' + a.sub : '') + ':' + (r.ok ? 'ok' : 'x')); if (r.ok && a.t === 'comprar' && (a.id === 'OB21' || a.ref === 'OB21')) cuenta(stats.acciones, 'pastel:comprado');")
   .replace(/if \(process\.argv\[1\][\s\S]*$/, '');
 if (!fuente.includes("p.tipo === 'meta'") || !fuente.includes("a.t === 'reto' ? ':' + a.id")) throw new Error('No pude adaptar tests/sim.mjs (cambió su código).');
 const tmp = path.join(RAIZ, 'tests', `_sim-estadisticas-${process.pid}.mjs`);
@@ -109,8 +109,17 @@ const REG = [   // [clave, prueba sobre el texto del registro]
   ['Yafar NPC último en pie', (t) => t === 'Yafar NPC es el último en pie: gana la partida.'],
   ['Yafar NPC llega a 1,001', (t) => t.startsWith('Yafar NPC llega')],
   ['Líneas del registro sobre el servicio del Emir', (t) => /Emir/.test(t) && / sirve | al servicio /.test(t)],
+  ['R56 entregas de pistaches en Bagdad', (t) => / costales? de pistaches en Bagdad y cobra \d+ dinares\.$/.test(t)],
+  ['R56 primero en traer la cosecha (+60 noches)', (t) => / es el primero en traer la cosecha de pistaches/.test(t)],
+  ['Pasteles usados: guardia de R28', (t) => / convence al guardia con un pastel de pistaches\.$/.test(t)],
+  ['Pasteles usados: capitán de R31', (t) => / convence al capitán de la guardia con un pastel de pistaches\.$/.test(t)],
+  ['Pasteles usados: guardia del camino (peaje)', (t) => / pasa al guardia del camino con un pastel de pistaches\.$/.test(t)],
+  ['Pasteles usados: guardias de Toledo (R41)', (t) => / distrae a los guardias de Toledo con un pastel/.test(t)],
+  ['Vino: botellas compradas', (t) => / compra (\d+ )?Botella de vino\.$/.test(t)],
+  ['Vino: botellas vendidas (se esfuman)', (t) => / vende una botella de vino en .+ por \d+ dinares; la botella se esfuma\.$/.test(t)],
   ['Alojamientos cobrados', (t) => / paga \d+ dinares? de alojamiento/.test(t)],
 ];
+const EXTRA = { costales: 0, ingresoPist: 0, vinoVentas: [], partidasPist: 0 };
 for (const [i, { cfg, etq }] of CONFIGS.entries()) {
   const R = (cfgRes[etq] ||= { partidas: 0, terminadas: 0, jugador: 0, npc: 0, nadie: 0, rondas: [], noches: 0, dinares: 0, humanos: 0 });
   for (let k = 0; k < N; k++) {
@@ -126,16 +135,19 @@ for (const [i, { cfg, etq }] of CONFIGS.entries()) {
     if (todo.some((l) => / vende una yegua de la estepa al mercado de Estambul/.test(l.texto || ''))) conYeguaEst++;
     if (todo.some((l) => / termina de forjar su acero de Damasco/.test(l.texto || ''))) conForja++;
     R.rondas.push(e.ronda);
+    if (todo.some((l) => / es el primero en traer la cosecha de pistaches/.test(l.texto || ''))) EXTRA.partidasPist++;
     if ((e.ganadores || []).length) R.jugador++; else if (e.derrota === 'npc') R.npc++; else R.nadie++;
     if (cfg.conYafar === false && !cfg.sinYafar) medirNPC('normal', r);
     for (const [key, n] of Object.entries(stats.acciones)) {
-      if (/^(util|utilVende|explota|fortaleza|buscadoMujer):/.test(key)) bot[key] = (bot[key] || 0) + n;
+      if (/^(util|utilVende|explota|fortaleza|buscadoMujer|pastel):/.test(key)) bot[key] = (bot[key] || 0) + n;
       const m = key.match(/^reto:(R\d+)(?::[^:]+)?:(ok|x)$/);
       if (m) { const o = (retosIntentos[m[1]] ||= { ok: 0, x: 0 }); o[m[2]] += n; }
     }
     for (const l of todo) {
       const t = l.texto || '';
       for (const [key, f] of REG) if (f(t)) inc(key);
+      let m = t.match(/ entrega (\d+) costales? de pistaches en Bagdad y cobra (\d+) dinares\.$/); if (m) { EXTRA.costales += +m[1]; EXTRA.ingresoPist += +m[2]; }
+      m = t.match(/ vende una botella de vino en .+ por (\d+) dinares; la botella se esfuma\.$/); if (m) EXTRA.vinoVentas.push(+m[1]);
       const v = t.match(/ viaja de .+ a .+ en (.+?)( y termina su turno)?\.$/);
       if (v) viajes[v[1]] = (viajes[v[1]] || 0) + 1;
     }
@@ -203,6 +215,12 @@ grupo('utilVende', 'Ventas útiles de los bots (Shatranj y dátiles)');
 grupo('explota', 'Debilidades ajenas aprovechadas');
 grupo('fortaleza', 'Fortalezas propias usadas');
 grupo('buscadoMujer', 'Quedan Buscados por atacar a Zein o a Zubayda (víctima · tipo de ataque; solo jugadores bot)');
+console.log('\n=== Pistaches (R56), pasteles y vino');
+const med = (xs) => xs.length ? f(xs.reduce((a, b) => a + b, 0) / xs.length, 1) : '—';
+console.log(`Partidas en que alguien entregó pistaches: ${EXTRA.partidasPist}/${terminadas}`);
+console.log(`Costales entregados: ${EXTRA.costales}; dinares cobrados por pistaches: ${EXTRA.ingresoPist} (media por entrega ${f(EXTRA.ingresoPist / Math.max(1, C['R56 entregas de pistaches en Bagdad'] || 0), 1)})`);
+console.log(`Pasteles de pistaches comprados (bots): ${bot['pastel:comprado'] || 0}`);
+console.log(`Vino: ${C['Vino: botellas compradas'] || 0} compradas, ${EXTRA.vinoVentas.length} vendidas y esfumadas; valor medio de venta ${med(EXTRA.vinoVentas)} dinares (mín ${EXTRA.vinoVentas.length ? Math.min(...EXTRA.vinoVentas) : '—'}, máx ${EXTRA.vinoVentas.length ? Math.max(...EXTRA.vinoVentas) : '—'})`);
 console.log('\n=== Yafar NPC por dificultad (3 jugadores con Yafar NPC; fácil y difícil son 300 partidas extra cada una)');
 console.log('Dificultad | partidas | gana | llega a 1,001 | último en pie | eliminado | noches final | dinares final | robos hechos | le roban | duelos G/P | burros | mongoles | compras | rondas');
 for (const dif of ['facil', 'normal', 'dificil']) { const X = npcRes[dif]; if (!X) continue; const p = X.partidas;

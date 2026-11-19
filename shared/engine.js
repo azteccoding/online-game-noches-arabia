@@ -90,13 +90,14 @@ export function unirTarde(e, { nombre: nom, token }) {
   e.jugadores[id] = { ...nuevoJugador(e, id, nom, token), tarde: true };           // aún no está en el orden: entra cuando elige personaje
   return id;
 }
-// Jorge (19 de noviembre): idiomas de inicio (Jamil, persa; Zein, árabe: el mismo marcador que dejan R46 y R47) y objetos de
+// Jorge (19 de noviembre): idiomas de inicio (Jamil, persa; Zein y Ruyán, árabe: el mismo marcador que dejan R46 y R47) y objetos de
 // inicio (Anís: un Disfraz de mendigo, que no sale de ningún mercado).
 // Jorge (19 de noviembre): Zein empieza con 15 dinares más: su mahr (dote), que le da su esposo. Sale una carta y los dinares
 // llegan al cerrarla (como las cartas de cuentos; si no la cierra, a los 90 segundos).
 export const MAHR = 15;
 function inicioExtra(e, j, p) {
   if (p.mahr) { const ent = publicarCarta(e, { id: 'mahr', deck: 'especial', titulo: 'Mahr', sub: 'Dote de Zein', texto: `Tu esposo te entrega tu mahr (dote): +${p.mahr} dinares.`, arte: 'es' }, j.id, [j.id]); j.extra.mahrPend = { monto: p.mahr, nro: ent.nro, t: e.ahora }; }
+  if (p.destrezaJambiyaInicio) j.extra.destrezaJambiya = true;   // Zein empieza con destreza en la jambiya (Jorge, 19 de noviembre)
   if (p.idiomasInicio?.length) j.extra.idiomas = [...new Set([...(j.extra.idiomas || []), ...p.idiomasInicio])];
   for (const ref of p.objetosInicio || []) j.mano.push({ uid: uid(e), tipo: 'objeto', ref, pub: true });
 }
@@ -1002,7 +1003,8 @@ export function llegada(data, e, pid, origen) {
   OBJ.burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
   if (e.jugadores[pid]?.ciudad === 'Isfahán') e.jugadores[pid].extra.isfahanTurno = e.jugadores[pid].turnos;   // Kanmakán (punto 7)
   OBJ.renovarDadosZein(e, pid);
-  OBJ.cobrarAmarrados(e, pid);    // le compraron su camello amarrado: cobra al llegar   // Zein llega a El Cairo con sus Dados del Cairo: duran 7 turnos en vez de 5 (Jorge, 19 de noviembre)
+  OBJ.cobrarAmarrados(e, pid);    // le compraron su camello amarrado: cobra al llegar
+  OBJ.entregarPistaches(e, pid);  // R56: los costales de pistaches se entregan solos al llegar a Bagdad   // Zein llega a El Cairo con sus Dados del Cairo: duran 7 turnos en vez de 5 (Jorge, 19 de noviembre)
   const t = e.turno, j = e.jugadores[pid], c = ciudadDe(data, j.ciudad);
   const primera = !j.visitadas.includes(j.ciudad);
   const nadieAntes = !Object.values(e.jugadores).some((x) => x.visitadas.includes(j.ciudad));
@@ -1264,7 +1266,7 @@ function proponerTrato(data, e, pid, a) {
     return { dinares: Math.max(0, Math.floor(x?.dinares || 0)), noches: Math.max(0, Math.floor(x?.noches || 0)), objetos, refs, nombres };
   };
   const ofrece = val(a.ofrece, j), pide = val(a.pide, k);
-  if (ofrece.dinares > j.dinares || ofrece.noches > j.noches) return err('No tienes todo lo que ofreces.');
+  if ((ofrece.dinares > 0 && ofrece.dinares > j.dinares) || (ofrece.noches > 0 && ofrece.noches > j.noches)) return err('No tienes todo lo que ofreces.');   // con noches o dinares en negativo se puede tratar sin ofrecerlos
   if (!ofrece.dinares && !ofrece.noches && !ofrece.nombres.length && !pide.dinares && !pide.noches && !pide.nombres.length) return err('El trato está vacío.');
   const id = 'tr' + (++e.seq);
   e.tratos[id] = { id, de: pid, con: a.con, ofrece, pide, t: e.ahora, contra: !!a.contra };
@@ -1280,8 +1282,9 @@ function responderTrato(data, e, pid, a) {
   { const o = tratoOcupado(e, [A.id, B.id]); if (o) { e.tratos[a.id] = tr; return err(o); } }
   if (A.ciudad !== B.ciudad) return err('Ya no están en la misma ciudad.');
   tr.ofrece.noches ||= 0; tr.pide.noches ||= 0; tr.ofrece.refs ||= []; tr.pide.refs ||= [];
-  if (A.dinares < tr.ofrece.dinares || B.dinares < tr.pide.dinares) return err('Faltan dinares para el trato.');
-  if (A.noches < tr.ofrece.noches || B.noches < tr.pide.noches) return err('Faltan noches para el trato.');
+  // solo se revisa lo que de verdad se entrega: con dinares o noches en negativo puedes tratar si no los ofreces (Jorge, 19 de noviembre)
+  if ((tr.ofrece.dinares > 0 && A.dinares < tr.ofrece.dinares) || (tr.pide.dinares > 0 && B.dinares < tr.pide.dinares)) return err('Faltan dinares para el trato.');
+  if ((tr.ofrece.noches > 0 && A.noches < tr.ofrece.noches) || (tr.pide.noches > 0 && B.noches < tr.pide.noches)) return err('Faltan noches para el trato.');
   // lo pedido por tipo: la primera carta de ese tipo de cada mano
   const elegir = (de, refs, ya) => { const r = []; for (const ref of refs) { const c = de.mano.find((x) => x.ref === ref && x.tipo !== 'especial' && !ya.includes(x.uid) && !r.includes(x.uid)); if (!c) return { falta: ref }; r.push(c.uid); } return { uids: r }; };
   const eA = elegir(A, tr.ofrece.refs, tr.ofrece.objetos), eB = elegir(B, tr.pide.refs, tr.pide.objetos);

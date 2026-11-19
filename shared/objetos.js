@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia } from './base.js';
+ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
 // solo entre sus 5 ciudades (fuera de ellas muere), no termina el turno, carga, vive 2 turnos y solo lo compra el mercado de Estambul,
@@ -46,8 +46,8 @@ const motivoNPCMapa = (e, j) => { if (!(j.pj === 'B' && j.npc)) return null; con
 
 // Mercancías de comercio: solo se compran en su ciudad y se venden caras, sin impuesto, en las ciudades de «reventa» (objetos.json).
 export const reventaDe = (data, id, ciudad) => objDe(data, id)?.reventa?.[ciudad] ?? null;
-const VENTA_ORIGINAL = { almudDatiles: DATILES.compra, arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 25 /* VENTA_BURRO_MERCADO */, citricos: 5, mapaJorasan: 20 };   // Jorge (19 de noviembre): el burro vale 25 y vive 2 turnos; cítricos a 5 en cualquier mercado
-const CIUDAD_ORIGINAL = { almudDatiles: DATILES.ciudades, vino: ['Bagdad'], buza: ['Damasco', 'Basra'], cesta: ['Basra', 'Bagdad'], burro: ['Basra', 'Aleppo', 'Damasco'] };   // el burro: Basra, y Aleppo y Damasco cuando se acaban los de Basra (25 dinares y 20 noches de regalo)
+const VENTA_ORIGINAL = { costalPistaches: PISTACHES.compra, almudDatiles: DATILES.compra, arco: 15, alfanje: 25, cimitarra: 35, jambiya: 15, flechas: 5, vino: 20, buza: 1, amate: 2, cesta: 5, burro: 25 /* VENTA_BURRO_MERCADO */, citricos: 5, mapaJorasan: 20 };   // Jorge (19 de noviembre): el burro vale 25 y vive 2 turnos; cítricos a 5 en cualquier mercado
+const CIUDAD_ORIGINAL = { costalPistaches: [PISTACHES.ciudadCompra], almudDatiles: DATILES.ciudades, vino: Object.keys(VINO.stock), buza: ['Damasco', 'Basra'], cesta: ['Basra', 'Bagdad'], burro: ['Basra', 'Aleppo', 'Damasco'] };   // el burro: Basra, y Aleppo y Damasco cuando se acaban los de Basra (25 dinares y 20 noches de regalo)
 const ARMAS_ORIG = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (10 de noviembre): el alfanje solo en Yemen, Estambul, Isfahán y Samarcanda, y la cimitarra solo en Andalucía y El Cairo, con
 // 1 en cada mercado (la jambiya, en todas las ciudades, sin límite). Venderlas se puede en cualquier ciudad; la vendida queda a la
@@ -74,8 +74,10 @@ function regenerarCalamos(e) {
 // Jorge (17 de noviembre): no hay cimitarras en ningún mercado hasta que alguien forja acero de Damasco (R52)
 export const cimitarrasBloqueadas = (e, ref) => ref === 'cimitarra' && !e.forjaDamasco;
 export const MSJ_SIN_FORJA = 'Aún no hay cimitarras: se venden cuando alguien forje acero de Damasco (reto R52, en Damasco)';
-export const existenciaArma = (e, ref, ciudad) => (cimitarrasBloqueadas(e, ref) ? 0 : ref === 'buza' ? (stockCalamos(e)[ciudad] || 0) : ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
-export const quitarArma = (e, ref, ciudad) => { if (ARMAS_CIUDAD[ref]) stockArmas(e)[ref][ciudad] = Math.max(0, (stockArmas(e)[ref][ciudad] || 0) - 1); };
+// Vino (Jorge, 19 de noviembre): 2 botellas en Basra y 4 en Andalucía; la que se vende al mercado se esfuma y no se repone.
+const stockVino = (e) => (e.stockVino ||= { ...VINO.stock });
+export const existenciaArma = (e, ref, ciudad) => (cimitarrasBloqueadas(e, ref) ? 0 : ref === 'vino' ? (stockVino(e)[ciudad] || 0) : ref === 'buza' ? (stockCalamos(e)[ciudad] || 0) : ARMAS_CIUDAD[ref] ? (stockArmas(e)[ref][ciudad] || 0) : CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(ciudad) ? 0 : Infinity);
+export const quitarArma = (e, ref, ciudad) => { if (ref === 'vino') { stockVino(e)[ciudad] = Math.max(0, (stockVino(e)[ciudad] || 0) - 1); return; } if (ARMAS_CIUDAD[ref]) stockArmas(e)[ref][ciudad] = Math.max(0, (stockArmas(e)[ref][ciudad] || 0) - 1); };
 function devolverArma(e, ref, ciudad) {   // Jorge (10 de noviembre): queda a la venta en la ciudad donde la vendiste, sea cual sea
   if (!ARMAS_CIUDAD[ref]) return null;
   const m = stockArmas(e); m[ref][ciudad] = (m[ref][ciudad] || 0) + 1; return ciudad;
@@ -124,6 +126,7 @@ export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 20
 // Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
 // revende (Cairo 35 → 75, Persia 30 → 60) y a todos les sale el aviso de dónde está. Entre jugadores, en un trato, al precio que quieran.
 export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
+export const MSJ_SIN_PISTACHES = 'Todavía no se vende: llega cuando alguien lleve pistaches de Isfahán a Bagdad (reto R56)';
 export const MSJ_SIN_DATILES = 'Todavía no se vende: llega cuando alguien lleve dátiles de Basra o Yemen al mercado de Bagdad (reto R53)';
 export function comprar(data, e, pid, a) {
   const j = e.jugadores[pid];
@@ -210,6 +213,7 @@ export function comprar(data, e, pid, a) {
     if (ARMAS_ORIG.includes(a.ref) && tieneItem(j, a.ref)) return err('Ya tienes esa arma.');
     if (a.ref === 'burro' && yafarSinBurro(e, j)) return err('Yafar no compra burros: dice que es indigno de su posición.');
     if (a.ref === 'burro' && n > 1) return err('Solo un burro.');
+    if (a.ref === 'costalPistaches' && costales(j) + n > PISTACHES.max) return err(`Puedes llevar hasta ${PISTACHES.max} costales de pistaches a la vez${costales(j) ? ` (ya llevas ${costales(j)})` : ''}.`);
     if (a.ref === 'burro' && !(burrosEn(e, j.ciudad) > 0)) return err(`No quedan burros en ${j.ciudad}.`);
     if (a.ref === 'mapaJorasan' && n > mapasJorasanVenta(e)) return err('Agotado: no quedan mapas del Jorasán en Bagdad (los escribas tardan 2 rondas en hacer otro).');
     if (a.ref === 'mapaJorasan' && motivoNPCMapa(e, j)) return err(motivoNPCMapa(e, j));
@@ -223,7 +227,7 @@ export function comprar(data, e, pid, a) {
     if (a.ref === 'mapaJorasan') e.mapasJorasan = mapasJorasanVenta(e) - n;
     for (let i = 0; i < n; i++) darItem(e, j, a.ref, a.ref === 'vino' ? { ronda: e.ronda } : undefined);
     log(e, `${j.nombre} compra ${n > 1 ? n + ' ' : ''}${ITEMS[a.ref].nombre}.`, { pid });
-    if (a.ref === 'vino') { /* el vino gana 6 dinares por turno */ }
+    if (a.ref === 'vino') { /* el vino gana 2 dinares por ronda */ }
     return ok();
   }
   const o = objDe(data, a.id);
@@ -231,6 +235,7 @@ export function comprar(data, e, pid, a) {
   const cs = ciudadesDe(o);
   if (cs && !cs.includes(j.ciudad)) return err(`Aquí no se vende (${o.seConsigueEn}).`);
   if (a.id === DATILES.obj && !e.datilesBagdad) return err(MSJ_SIN_DATILES + '.');
+  if (a.id === PISTACHES.obj && !e.pistachesBagdad) return err(MSJ_SIN_PISTACHES + '.');
   if (existencia(e, a.id, j.ciudad) <= 0) return err('Agotado.');
   const p = o.valor * dobleCairo(e, j.ciudad);
   if (j.dinares < p) return err('No te alcanzan los dinares.');
@@ -250,6 +255,24 @@ export function impuesto(data, e, ciudad, monto) {
 }
 
 export const LIBROS_SUBASTA = ['OB46', 'OB47'];
+// Costales de pistaches (Jorge, 19 de noviembre): al llegar a Bagdad se entregan solos (R56).
+const costales = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'costalPistaches').length;
+export function entregarPistaches(e, pid) {
+  const j = e.jugadores[pid];
+  if (!j || j.eliminado || j.ciudad !== PISTACHES.ciudadVenta) return;
+  const n = costales(j); if (!n) return;
+  j.mano = j.mano.filter((c) => !(c.tipo === 'item' && c.ref === 'costalPistaches'));
+  const pago = n * PISTACHES.venta; j.dinares += pago;
+  const primero = !e.pistachesBagdad;
+  log(e, `${j.nombre} entrega ${n} ${n === 1 ? 'costal' : 'costales'} de pistaches en ${j.ciudad} y cobra ${pago} dinares.`, { pid });
+  if (!j.retosHechos.includes(PISTACHES.reto)) j.retosHechos.push(PISTACHES.reto);
+  if (primero) {
+    e.pistachesBagdad = true; j.noches += PISTACHES.noches;
+    log(e, `${j.nombre} es el primero en traer la cosecha de pistaches de Isfahán (reto ${PISTACHES.reto}): +${PISTACHES.noches} noches.`, { pid });
+    log(e, `Llegaron pistaches a ${j.ciudad}: desde ahora se venden Pasteles de pistaches en El Cairo, Bagdad y Damasco.`, { aviso: true });
+  }
+  info(e, pid, 'Cosecha de pistaches', `Entregas ${n} ${n === 1 ? 'costal' : 'costales'} de pistaches y cobras ${pago} dinares${primero ? `. ¡Eres el primero! Ganas ${PISTACHES.noches} noches` : ''}.`);
+}
 export const MITAD_VENTA = ['OB05'];   // se venden al mercado a la mitad de su precio (redondeo hacia abajo)
 
 // ---------------------------------------------------------------- camello amarrado (Jorge, 19 de noviembre)
@@ -370,9 +393,9 @@ export function vender(data, e, pid, a) {
     return ok();
   }
   if (c.ref === 'vino') {
-    if (ciudad === 'Bagdad') return err('El vino se vende en cualquier otra ciudad.');
-    precio = Math.floor(valorVino(c, e) / 2); const imp = impuesto(data, e, ciudad, precio);
-    quitarCarta(j, c.uid); j.dinares += precio - imp; log(e, `${j.nombre} vende vino por ${precio - imp} dinares.`, { pid }); return ok();
+    // Jorge (19 de noviembre): cualquier mercado la compra a su valor actual (menos el impuesto) y la botella se esfuma.
+    precio = valorVino(c, e); const imp = impuesto(data, e, ciudad, precio);
+    quitarCarta(j, c.uid); j.dinares += precio - imp; log(e, `${j.nombre} vende una botella de vino en ${ciudad} por ${precio - imp} dinares; la botella se esfuma.`, { pid }); return ok();
   }
   if (c.ref === 'buza') {
     const p = ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : 0;
@@ -482,7 +505,7 @@ export function tienda(data, e, pid) {
     r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? burrosEn(e, j.ciudad) : ref === 'mapaJorasan' ? mapasJorasanVenta(e) : ARMAS_CIUDAD[ref] || ref === 'buza' ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno && !(ref === 'flechas' && tieneItem(j, 'flechas'))) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(burrosEn(e, j.ciudad) > 0)) && !(ref === 'mapaJorasan' && (!(mapasJorasanVenta(e) > 0) || motivoNPCMapa(e, j))),
       motivo: cimitarrasBloqueadas(e, ref) ? MSJ_SIN_FORJA : !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno && !(ref === 'flechas' && tieneItem(j, 'flechas')) ? MSJ_COMPRA_LLENO : ref === 'burro' && !(burrosEn(e, j.ciudad) > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
-  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'almudDatiles', 'citricos', 'burro', 'mapaJorasan'].forEach(orig);
+  ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'almudDatiles', 'costalPistaches', 'citricos', 'burro', 'mapaJorasan'].forEach(orig);
   { const b = r.find((x) => x.ref === 'buza'), nc = nCalamos(j);   // máximo 6 cálamos en la mano (Jorge, 17 de noviembre)
     if (b) { b.max = Math.max(1, CALAMO_MAX - nc); if (nc >= CALAMO_MAX) { b.puede = false; b.motivo = `Ya tienes ${CALAMO_MAX} cálamos de Kufa: es el máximo`; } } }
   { const pt = precioTinta(e, j.ciudad);                            // Frasco con tinta de pulpo (Jorge, 17 de noviembre)
@@ -513,6 +536,7 @@ export function tienda(data, e, pid) {
     const cs = ciudadesDe(o);
     if (cs && !cs.includes(j.ciudad)) continue;
     const precio = o.valor * cai;
+    if (o.id === PISTACHES.obj && !e.pistachesBagdad) { r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, puede: false, motivo: MSJ_SIN_PISTACHES }); continue; }
     if (o.id === DATILES.obj && !e.datilesBagdad) { r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, puede: false, motivo: MSJ_SIN_DATILES }); continue; }
     r.push({ id: o.id, nombre: o.nombre, tipo: o.tipo, texto: o.efecto, precio, stock: Number.isFinite(existencia(e, o.id, j.ciudad)) ? existencia(e, o.id, j.ciudad) : undefined, puede: existencia(e, o.id, j.ciudad) > 0 && j.dinares >= precio && !lleno,
       // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
@@ -534,7 +558,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.tipo === 'ifrit') return 40;
     if (c.tipo !== 'item') return null;
     if (esLibro(c)) return ciudad === 'Bagdad' ? (e.mods.sabiduria ? valorLibro(data, e, c) : Math.floor(valorLibro(data, e, c) / 2)) : null;
-    if (c.ref === 'vino') { if (ciudad === 'Bagdad') return null; const p = Math.floor(valorVino(c, e) / 2); return p - impuesto(data, e, ciudad, p); }
+    if (c.ref === 'vino') { const p = valorVino(c, e); return p - impuesto(data, e, ciudad, p); }
     if (c.ref === 'buza') return ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : null;
     if (c.ref === 'tintaPulpo') return TINTA.ciudadesVenta.includes(ciudad) ? TINTA.venta : null;
     if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return null;
@@ -583,7 +607,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
   if (c.tipo !== 'item') return null;
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
-  if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
+  if (c.ref === 'vino') return 'En cualquier mercado, a su valor actual menos el impuesto; la botella se esfuma.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3: tiras un dado y te compran tantos como salga (los demás, en otro turno).';
   if (c.ref === 'shatranj') return `Solo en Isfahán (${SHATRANJ.venta['Isfahán']}), Bagdad (${SHATRANJ.venta.Bagdad}) o Andalucía (${SHATRANJ.venta['Andalucía']} dinares); al venderlo deja de existir. La tinta de pulpo lo estropea.`;
   if (c.ref === 'tintaPulpo') return `Solo en Andalucía o Samarcanda, por ${TINTA.venta} dinares (ahí se revende en ${TINTA.reventa}). Si te roban, se rompe y destruye tus papeles.`;

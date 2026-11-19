@@ -22,7 +22,7 @@ const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];
 const VECINOS = {};
 for (const k of Object.keys(data.rutas.tarifas)) { const [a, b] = k.split('>'); (VECINOS[a] ||= new Set()).add(b); }
 const DIST = {};   // DIST[destino][ciudad] = tramos que faltan
-for (const dst of ['Estambul', 'Damasco', 'Samarcanda']) {
+for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad']) {
   const d = (DIST[dst] = { [dst]: 0 }), cola = [dst];
   while (cola.length) { const c = cola.shift(); for (const [a, vs] of Object.entries(VECINOS)) if (vs.has(c) && d[a] === undefined) { d[a] = d[c] + 1; cola.push(a); } }
 }
@@ -104,6 +104,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     const j = e.jugadores[pid];
     const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
     if (tieneItem(j, 'yegua')) return 'Estambul';
+    if (tieneItem(j, 'costalPistaches')) return 'Bagdad';   // R56: los pistaches se entregan solos al llegar
     if (m.forja && j.pj !== 'B' && !tieneItem(j, 'cimitarra') && !j.extra?.forja && j.dinares >= 20) return 'Damasco';
     if (m.estepa && !(j.retosHechos || []).includes('R50') && j.dinares >= 115) return 'Samarcanda';
     return null;
@@ -111,7 +112,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   const porViaje = (pid, x) => {
     const j = e.jugadores[pid];
     if (x.gratisInicial) return 'fortaleza:Zubayda usa su viaje gratis (primera salida de Bagdad)';
-    { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return 'meta:' + (m === 'Estambul' ? 'lleva la yegua a Estambul' : m === 'Damasco' ? 'va a Damasco a forjar' : 'va a Samarcanda por yeguas'); }
+    { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return 'meta:' + (m === 'Estambul' ? 'lleva la yegua a Estambul' : m === 'Bagdad' ? 'lleva pistaches a Bagdad' : m === 'Damasco' ? 'va a Damasco a forjar' : 'va a Samarcanda por yeguas'); }
     if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return 'explota:viaja a donde está Ruyán';
     if (j.pj === '6' && x.destino === 'Bagdad' && apuros(j)) return 'fortaleza:Zubayda vuelve a Bagdad (harén)';
     if (j.pj === 'B' && enCiudad(pid, x.destino) >= 2) return 'fortaleza:Yafar va donde hay gente (comisión)';
@@ -254,11 +255,13 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         if (jb.pj === 'B' && !tieneItem(jb, 'arco') && jb.dinares >= 25) op.push([{ ref: 'arco' }, 2]);
         const hecho = (id) => (jb.retosHechos || []).includes(id);
         if (!tieneItem(jb, 'citricos') && jb.dinares >= 10) op.push([{ ref: 'citricos' }, 3]);
+        if (c === 'Isfahán' && !tieneItem(jb, 'costalPistaches') && jb.dinares >= 12) op.push([{ ref: 'costalPistaches', n: 2 + Math.floor(R() * 4) }, 5]);   // R56
+        if ((c === 'Basra' || c === 'Andalucía') && !tieneItem(jb, 'vino') && jb.dinares >= 30) op.push([{ ref: 'vino' }, 1.5]);   // vino: +2 por ronda, se vende en cualquier mercado
         if (DATILES.ciudades.includes(c) && !hecho(DATILES.reto) && !tieneItem(jb, 'almudDatiles') && jb.dinares >= 6) op.push([{ ref: 'almudDatiles' }, 2]);
         if (c === SHATRANJ.ciudad && !tieneItem(jb, 'shatranj') && jb.dinares >= SHATRANJ.precio + 5) op.push([{ ref: 'shatranj' }, 2]);
         if (c === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(jb, 'caballoMongol') && jb.dinares >= 40) op.push([{ ref: 'caballoMongol' }, 4]);
         if ((c === 'Basra' || c === 'Bagdad') && !tieneItem(jb, 'cesta') && !hecho('R24')) op.push([{ ref: 'cesta' }, 1.5]);
-        for (const [id, w] of Object.entries(OBJ_RETOS)) { const o = data.objetos.mazo.find((x) => x.id === id); if (o && seVendeEn(o, c) && !tieneObj(jb, id) && jb.dinares >= o.valor + 5) op.push([{ id }, w]); }
+        for (const [id, w] of Object.entries(OBJ_RETOS)) { const o = data.objetos.mazo.find((x) => x.id === id); if (id === 'OB21' && !e.pistachesBagdad) continue; if (o && seVendeEn(o, c) && !tieneObj(jb, id) && jb.dinares >= o.valor + 5) op.push([{ id }, w]); }
         if (op.length && !(metas[b]?.estepa && !(jb.retosHechos || []).includes('R50') && R() < 0.97)) {
           let r = R() * op.reduce((a, x) => a + x[1], 0), q = op[0][0];
           for (const [x, w] of op) { r -= w; if (r <= 0) { q = x; break; } }
@@ -269,8 +272,8 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       }
       {                                                                                          // y vende lo que conviene vender ahí (en su turno)
         const j = e.jugadores[pid], c = j.ciudad;
-        const sh = SHATRANJ.venta[c] && tieneItem(j, 'shatranj'), da = c === DATILES.ciudadVenta && tieneItem(j, 'almudDatiles'), ye = c === 'Estambul' && tieneItem(j, 'yegua');
-        if ((sh || da || ye) && R() < (ye ? 0.9 : 0.5) && !t.ccActual && t.fase !== 'ingreso') { const k = ye ? 'yegua' : sh ? 'shatranj' : 'almudDatiles'; const r0 = act(pid, { t: 'vender', uid: tieneItem(j, k).uid }); cuenta(stats.acciones, 'utilVende:' + k + ':' + (r0.ok ? 'ok' : 'x')); }
+        const sh = SHATRANJ.venta[c] && tieneItem(j, 'shatranj'), da = c === DATILES.ciudadVenta && tieneItem(j, 'almudDatiles'), ye = c === 'Estambul' && tieneItem(j, 'yegua'), vi = c !== 'Jorasán' && tieneItem(j, 'vino') && R() < 0.12;
+        if ((sh || da || ye || vi) && R() < (ye ? 0.9 : vi ? 1 : 0.5) && !t.ccActual && t.fase !== 'ingreso') { const k = ye ? 'yegua' : sh ? 'shatranj' : da ? 'almudDatiles' : 'vino'; const r0 = act(pid, { t: 'vender', uid: tieneItem(j, k).uid }); cuenta(stats.acciones, 'utilVende:' + k + ':' + (r0.ok ? 'ok' : 'x')); }
       }
       if (!Object.keys(e.tratos).length && !t.ccActual) {
         const j = e.jugadores[pid], aqui = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc && !e.jugadores[x].transito && e.jugadores[x].ciudad === j.ciudad);
