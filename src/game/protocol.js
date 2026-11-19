@@ -23,7 +23,7 @@ export const ACCIONES = {
   tirarDados: () => ({ t: 'tirarDados' }),
   cerrarDados: () => ({ t: 'cerrarDados' }),
   lanzarDados: () => ({ t: 'lanzarDados' }),
-  viajar: (destino) => ({ t: 'viajar', destino }),
+  viajar: (destino, extra = {}) => ({ t: 'viajar', destino, ...extra }),   // extra: { servicios: true } (Zubayda paga la caravana con servicios)
   terminarTurno: () => ({ t: 'terminarTurno' }),
   responderCC: (opcion) => ({ t: 'responderCC', opcion }),
   omitirCC: () => ({ t: 'omitirCC' }),

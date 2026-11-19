@@ -392,7 +392,7 @@ T.R8 = { ciudad: 'El Cairo', req: (data, e, pid) => (tieneArma(data, e, e.jugado
   const gana = peleaNPC(data, e, pid, { etq: 'Shams al Din', dados: 2, bono: 1 + bonoCim(data) + 1 });
   // Jorge (10 de noviembre): gana 50 dinares y 20 noches (antes 100 y 30); si pierde, pierde 15 noches y queda herido (ya no paga 20)
   if (gana) premio(data, e, pid, { dinares: 50, noches: 20 }, `${j.nombre} vence a Shams al Din:`);
-  else { j.noches = Math.max(0, j.noches - 15); j.herido = true; log(e, `${j.nombre} pierde ante Shams al Din: pierde 15 noches y queda herido.`, { pid }); }
+  else { j.noches -= 15; j.herido = true; log(e, `${j.nombre} pierde ante Shams al Din: pierde 15 noches y queda herido.`, { pid }); }
 } };
 T.R9 = { ciudad: 'El Cairo', req: (data, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Necesitas 5 dinares para el guía.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 5; j.extra.rep ||= {}; j.extra.rep.R9 = true; hacer(e, pid, 'R9');
@@ -551,7 +551,7 @@ T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugado
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
-  if (x <= 3) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
+  if (x <= 3) { j.noches -= 20; ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
   else { premio(data, e, pid, { dinares: 40 }, `${j.nombre} halla un cofre en la casa embrujada:`); if (x === 6) { darItem(e, j, 'mapa', { tesoro: 'ruman' }); ctx.say('Y un mapa de los Rumán.'); } }
 } };
 T.R22 = { ciudad: 'Damasco', req: (data, e, pid) => {
@@ -605,7 +605,7 @@ T.R26 = { ciudad: 'Andalucía', req: (data, e, pid) => (e.jugadores[pid].pj === 
   if (r.salvo || j.pj === '3' || bendito) { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); if (!bendito) ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
   else {
     ctx.say('El esposo los sorprende.'); ctx.fin(); ctx.grupos = []; ctx.res = [];
-    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { j.noches = Math.max(0, j.noches - 30); j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
+    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { j.noches -= 30; j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
     else premio(data, e, pid, { dinares: 25, noches: 20 }, `${j.nombre} vence al esposo de Zein:`);
   }
 } };
@@ -619,7 +619,7 @@ export function zeinTirada(data, e, ctx, pid, etq = 'Esposo de Zein') {
 T.R27 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R27'); const [x] = ctx.t(`${j.nombre}: pócimas`, 1);
   if (x === 1 && tieneObj(j, 'OB20')) { consumirObj(data, e, pid, 'OB20'); ctx.say('La mezcla explota, pero tu Antídoto te salva: ni quedas herido ni pierdes noches (el antídoto se gasta).'); }   // Jorge (18 de noviembre)
-  else if (x === 1) { j.noches = Math.max(0, j.noches - 10); j.herido = true; ctx.say('La mezcla explota: -10 noches y herido.'); }
+  else if (x === 1) { j.noches -= 10; j.herido = true; ctx.say('La mezcla explota: -10 noches y herido.'); }
   else { darItem(e, j, 'veneno', { turnos: j.turnos }); j.noches += 10; ctx.say('Preparas un veneno y ganas 10 noches.'); }
 } };
 // ---------------------------------------------------------------- retos añadidos R28-R39
@@ -627,7 +627,7 @@ const aplic = (data, e, pid, usados, id) => usa(data, e, pid, usados, id);
 T.R28 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R28');
   let ganz = aplic(data, e, pid, us, 'OB07'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0);
-  if (!ganz) { const v = ctx.t(`${j.nombre}: el guardia`, 2); if (suma(v) + b1 < 7) { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardia te sorprende: -20 noches, herido.'); ctx.fallo = true; return; } ctx.say('Pasas al guardia.'); } else ctx.say('La ganzúa neutraliza al guardia.');
+  if (!ganz) { const v = ctx.t(`${j.nombre}: el guardia`, 2); if (suma(v) + b1 < 7) { j.noches -= 20; j.herido = true; ctx.say('El guardia te sorprende: -20 noches, herido.'); ctx.fallo = true; return; } ctx.say('Pasas al guardia.'); } else ctx.say('La ganzúa neutraliza al guardia.');
   const llave = aplic(data, e, pid, us, 'OB06'), lin = aplic(data, e, pid, us, 'OB09') ? 1 : 0;
   if (!llave) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x + lin < 4) { pagar(data, e, pid, 10); ctx.say('La cerradura no cede: huyes y pagas 10 dinares.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 45, noches: 10 }, `${j.nombre} vacía el cofre del tesorero:`);
@@ -658,7 +658,7 @@ T.R31 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 1
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R31');
   // Jorge (18 de noviembre): el Sobre de sobornos cambia el dado del guardia a lo que necesitas (pasas sin tirar); el Pastel de pistachos y la Carta de recomendación suman +1
   const ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41') || aplic(data, e, pid, us, 'OB14'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0) + (aplic(data, e, pid, us, 'OB21') ? 1 : 0) + (aplic(data, e, pid, us, 'OB30') ? 1 : 0);
-  if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches = Math.max(0, j.noches - 30); j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); ctx.fallo = true; return; } }
+  if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches -= 30; j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); ctx.fallo = true; return; } }
   if (!aplic(data, e, pid, us, 'OB06')) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x < 5) { ctx.say('La cerradura resiste: huyes sin botín.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 80, noches: 15 }, `${j.nombre} despoja la cámara del emir:`); robarBotin(data, e, pid);
 } };
@@ -677,7 +677,7 @@ T.R33 = { ciudad: 'Damasco', run(data, e, pid, ctx, us) {
 T.R34 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R34');
   const b = (aplic(data, e, pid, us, 'OB09') ? 1 : 0) + (aplic(data, e, pid, us, 'OB06') ? 1 : 0); const [x] = ctx.t(`${j.nombre}: la cueva`, 1); const r = x + b;
-  if (r <= 2) { ctx.fallo = true; if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches = Math.max(0, j.noches - 20); j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
+  if (r <= 2) { ctx.fallo = true; if (aplic(data, e, pid, us, 'OB26')) ctx.say('El espejo devuelve la maldición.'); else { j.noches -= 20; j.herido = true; ctx.say('El guardián te maldice: -20 noches, herido.'); } }
   else if (r <= 4) premio(data, e, pid, { dinares: 20 }, 'Un cofre pequeño:');
   else { premio(data, e, pid, { dinares: 20 }, 'Una lámpara:'); if (!tomarDeBotin(data, e, pid, 'OB24')) premio(data, e, pid, { dinares: 30, noches: 15 }); }
 } };

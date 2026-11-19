@@ -311,7 +311,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
 
 function verificar(e) {
   for (const j of Object.values(e.jugadores)) {
-    for (const k of ['dinares', 'noches']) if (!Number.isFinite(j[k]) || (k === 'noches' && j[k] < 0)) throw new Error(`${j.nombre}.${k} = ${j[k]}`);   // los dinares pueden quedar en negativo (deuda con el banco)
+    for (const k of ['dinares', 'noches']) if (!Number.isFinite(j[k])) throw new Error(`${j.nombre}.${k} = ${j[k]}`);   // dinares (deuda con el banco) y noches (Jorge, 19 de noviembre) pueden quedar en negativo
     if (j.mano.some((c) => !c.uid || !c.tipo || !c.ref)) throw new Error('carta malformada en ' + j.nombre);
   }
 }

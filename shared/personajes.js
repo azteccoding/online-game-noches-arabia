@@ -178,7 +178,7 @@ registrar('pj.satira', (data, e, args, resp) => {
   if (!jm || !c || c.eliminado) return;
   let txt;
   if (resp.opcion === 'pagar' && c.dinares >= SATIRA.dinares) { c.dinares -= SATIRA.dinares; jm.dinares += SATIRA.dinares; txt = `${c.nombre} le paga ${SATIRA.dinares} dinares a ${jm.nombre} para que deje de cantar su sátira.`; }
-  else { const n = Math.min(SATIRA.noches, c.noches); c.noches -= n; txt = `La sátira de ${jm.nombre} corre por la ciudad: ${c.nombre} pierde ${n} noches.`; }
+  else { const n = SATIRA.noches; c.noches -= n; txt = `La sátira de ${jm.nombre} corre por la ciudad: ${c.nombre} pierde ${n} noches.`; }
   log(e, txt, { pid: args.jamil }); info(e, args.jamil, 'Versos de sátira', txt); info(e, resp.pid, 'Versos de sátira', txt);
 });
 registrar('pj.prost', (data, e, args, resp) => {

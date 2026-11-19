@@ -790,9 +790,25 @@ function morirAnimal(data, e, pid, c) {
 // que los recibe si es el suyo, o si no el siguiente (si cambian de dueño, el contador vuelve a empezar); al terminar el 5.º, caducan: «Un ifrit se robó tus dados» y salen de la partida. Ejército de Kanmakán: dura 2 turnos de su dueño; pasar por
 // Isfahán lo renueva por otros 2; si no, se disuelve al acabarse (además de disolverse al pelear, como antes).
 export const DADOS_CADUCAN = ['dadosCairo', 'dadosPersia'], TURNOS_DADOS = 5, TURNOS_KANMAKAN = 2;
-function marcarDueno(c, j, ahora) { if (c.extra?.dueno !== j.id) c.extra = { ...(c.extra || {}), dueno: j.id, desde: ahora }; }
+// Zein y sus Dados del Cairo (Jorge, 19 de noviembre): «a partir del comienzo de la partida, si Zein llega a El Cairo, en vez de
+// que sus dados caduquen a los 5 turnos caducan a los 7. Si nunca visita El Cairo, le duran 5 turnos y ya». Es el total contado
+// desde que los tiene (no se renueva el contador): una sola vez, solo Zein y solo con los dados con que empezó (si cambiaron de
+// dueño, ya no). Si ya caducaron, llegar a El Cairo no los devuelve.
+export const ZEIN_CAIRO = { turnos: 7 };
+const durDados = (c) => c.extra?.dur ?? TURNOS_DADOS;
+function marcarDueno(c, j, ahora) { if (c.extra?.dueno !== j.id) { const { dur, ...resto } = c.extra || {}; void dur; c.extra = { ...resto, dueno: j.id, desde: ahora, ...(c.extra?.dueno ? { cambio: true } : {}) }; } }   // nuevo dueño: duración normal
 const primerTurnoDados = (e, j) => j.turnos + (e.turno?.pid === j.id ? 0 : 1);   // el turno actual si es el suyo; si no, el siguiente
-export const turnosDados = (e, j, c) => Math.max(0, (c.extra?.dueno === j.id ? c.extra.desde : primerTurnoDados(e, j)) + TURNOS_DADOS - primerTurnoDados(e, j));   // turnos suyos que le quedan, contando el actual (o el próximo)
+export const turnosDados = (e, j, c) => Math.max(0, (c.extra?.dueno === j.id ? c.extra.desde : primerTurnoDados(e, j)) + (c.extra?.dueno === j.id ? durDados(c) : TURNOS_DADOS) - primerTurnoDados(e, j));
+export const duracionDados = (c) => durDados(c);
+export function renovarDadosZein(e, pid) {   // al llegar a El Cairo
+  const j = e.jugadores[pid];
+  if (!j || j.pj !== '2' || j.ciudad !== 'El Cairo') return;
+  anotarDuenos(e);
+  const c = j.mano.find((x) => x.tipo === 'item' && x.ref === 'dadosCairo');
+  if (!c || c.extra?.dueno !== j.id || c.extra?.cambio || c.extra?.dur) return;   // solo los suyos de inicio y una sola vez
+  c.extra = { ...c.extra, dur: ZEIN_CAIRO.turnos };
+  log(e, `${j.nombre} llega a El Cairo con sus Dados del Cairo: en vez de ${TURNOS_DADOS} turnos le duran ${ZEIN_CAIRO.turnos} (contados desde el inicio).`, { pid });
+}   // turnos suyos que le quedan, contando el actual (o el próximo)
 export const turnosKanmakan = (j, c) => {
   const desde = c.extra?.dueno === j.id ? c.extra.desde : j.turnos;
   const base = Math.max(desde, j.extra?.isfahanTurno ?? -Infinity);
@@ -816,7 +832,7 @@ export function caducarDados(data, e, pid) {   // al terminar cada turno de su d
       if (turnosDados(e, j, c) > 1) continue;   // este era su último turno
       quitarCarta(j, c.uid);
       const nom = ITEMS[c.ref].nombre;
-      publicarCarta(e, { id: 'caduca:' + c.ref, deck: 'objeto', titulo: 'Un ifrit se robó tus dados', sub: nom, texto: `Un ifrit se robó tus ${nom}: pasaron ${TURNOS_DADOS} turnos tuyos desde que los recibiste y desaparecen de la partida.`, arte: 'ob-magico' }, j.id, [j.id]);
+      publicarCarta(e, { id: 'caduca:' + c.ref, deck: 'objeto', titulo: 'Un ifrit se robó tus dados', sub: nom, texto: `Un ifrit se robó tus ${nom}: pasaron ${durDados(c)} turnos tuyos desde que los recibiste y desaparecen de la partida.`, arte: 'ob-magico' }, j.id, [j.id]);
       log(e, `Un ifrit se robó los ${nom} de ${j.nombre}: desaparecen de la partida.`, { pid: j.id, aviso: true });
     }
   }

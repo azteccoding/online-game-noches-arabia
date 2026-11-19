@@ -102,7 +102,7 @@ function Juego({ lienzo }) {
   const { vivas, alcance } = useMemo(() => {
     const v = (viajes || []).filter((a) => a.k === 'viajar');
     if (!v.length || !mi) return { vivas: null, alcance: null };
-    const ok = v.filter((a) => a.precio <= mi.dinares);
+    const ok = v.filter((a) => a.precio <= mi.dinares || mi.pj === '6');   // Zubayda puede pagar la caravana con servicios
     return { vivas: new Set(ok.map((a) => mi.ciudad + '>' + a.destino)), alcance: new Set(ok.map((a) => a.destino)) };
   }, [viajes, mi?.ciudad, mi?.dinares]);   // eslint-disable-line react-hooks/exhaustive-deps
 

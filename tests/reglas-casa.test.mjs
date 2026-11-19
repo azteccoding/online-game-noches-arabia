@@ -3791,6 +3791,60 @@ console.log('reglas de la casa OK');
   assert.ok(giralda(anis).ok); assert.ok(giralda(anis).ok, 'Anís lo repite'); assert.ok(giralda(anis).ok, 'y otra vez');
   assert.ok(giralda(adi).ok); assert.ok(!giralda(adi).ok, 'otro personaje no puede repetirlo');
 }
+// Zein (Jorge, 19 de noviembre): «Los dados, si viaja a El Cairo le duran 7 turnos. En Andalucía no paga alojamiento».
+{
+  const { turnosDados, ZEIN_CAIRO } = await import('../shared/objetos.js');
+  const g = partida(['2', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, adi] = g.ids, Z = e.jugadores[z], A = e.jugadores[adi];
+  const dados = () => Z.mano.find((c) => c.ref === 'dadosCairo');
+  assert.ok(dados(), 'Zein empieza con los Dados del Cairo');
+  // Andalucía: Zein no paga alojamiento; otro sí
+  Z.ciudad = 'Andalucía'; turnoDe(e, z, 'Andalucía'); e.turno.fase = 'acciones'; Z.dinares = 50;
+  assert.ok(g.act(z, { t: 'terminarTurno' }).ok); assert.equal(Z.dinares, 50, 'Zein no paga alojamiento en Andalucía');
+  assert.ok(e.log.some((l) => /no paga alojamiento en Andalucía/.test(l.texto)), 'y la bitácora lo dice');
+  A.ciudad = 'Andalucía'; turnoDe(e, adi, 'Andalucía'); e.turno.fase = 'acciones'; A.dinares = 50;
+  assert.ok(g.act(adi, { t: 'terminarTurno' }).ok); assert.ok(A.dinares < 50, 'Adí sí paga');
+  // El Cairo: si llega con sus dados de inicio, en vez de 5 turnos le duran 7 en total (contados desde el inicio), una sola vez
+  Z.herido = false; Z.dinares = 100; turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; e.turno.fase = 'mov';
+  const c0 = dados(); c0.extra = { ...(c0.extra || {}), desde: Z.turnos - 3 };   // ya llevaba 3 turnos con ellos
+  assert.equal(turnosDados(e, Z, c0), 2);
+  const r = g.act(z, { t: 'viajar', destino: 'El Cairo' }); assert.ok(r.ok, r.error); assert.equal(Z.ciudad, 'El Cairo');
+  assert.equal(turnosDados(e, Z, dados()), 2 + ZEIN_CAIRO.turnos - 5, 'gana 2 turnos: 7 en total desde el inicio');
+  assert.ok(e.log.some((l) => /en vez de 5 turnos le duran 7/.test(l.texto)));
+  { turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; e.turno.fase = 'mov'; const antes = turnosDados(e, Z, dados()); assert.ok(g.act(z, { t: 'viajar', destino: 'El Cairo' }).ok); assert.equal(turnosDados(e, Z, dados()), antes, 'una sola vez'); }
+  // otro dueño de los Dados del Cairo no los renueva y, al cambiar de dueño, vuelven a los 5 normales
+  const c1 = dados(); Z.mano = Z.mano.filter((x) => x !== c1); A.mano.push(c1); A.ciudad = 'Damasco';
+  const { anotarDuenos, TURNOS_DADOS } = await import('../shared/objetos.js');
+  turnoDe(e, adi, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'mov'; A.dinares = 100; anotarDuenos(e);
+  assert.equal(turnosDados(e, A, c1), TURNOS_DADOS, 'con otro dueño, 5');
+  { const r2 = g.act(adi, { t: 'viajar', destino: 'El Cairo' }); assert.ok(r2.ok, r2.error); }
+  assert.equal(turnosDados(e, A, c1), TURNOS_DADOS, 'a Adí no se le alargan');
+  // si Zein los recupera, ya no son los de inicio: no se alargan
+  A.mano = A.mano.filter((x) => x !== c1); Z.mano.push(c1); turnoDe(e, z, 'Damasco'); Z.ciudad = 'Damasco'; e.turno.fase = 'mov'; anotarDuenos(e);
+  { const antes = turnosDados(e, Z, c1); assert.ok(g.act(z, { t: 'viajar', destino: 'El Cairo' }).ok); assert.equal(turnosDados(e, Z, c1), antes, 'recuperados, no se alargan'); }
+}
+// Noches en negativo (Jorge, 19 de noviembre: «cuando pierdes con el esposo de Zein no pierdes noches si estás en cero; deben quedarte
+// negativas»): las pérdidas de noches ya no se detienen en 0.
+{
+  const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [adi] = g.ids, A = e.jugadores[adi];
+  for (const id of g.ids) e.jugadores[id].ciudad = 'Andalucía';
+  turnoDe(e, adi, 'Andalucía'); e.turno.fase = 'acciones'; A.noches = 0; A.herido = false; A.mano = A.mano.filter((c) => c.tipo !== 'item');
+  forzar(e, 1, 1, 1, 1, 6, 6);
+  const r = g.act(adi, { t: 'reto', id: 'R26' }); assert.ok(r.ok, r.error);
+  for (let i = 0; i < 20 && (e.dados || e.colaDados?.length || e.pend); i++) { if (e.dados && !e.dados.lanzado && e.dados.boton) g.act(e.dados.por, { t: 'lanzarDados' }); else if (e.dados) g.act(adi, { t: 'cerrarDados' }); else if (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones?.[0]?.id }); }
+  assert.ok(e.log.some((l) => / pierde ante el esposo: pierde 30 noches/.test(l.texto)), 'pierde ante el esposo');
+  assert.equal(A.noches, -30, 'con 0 noches queda en -30');
+}
+{ // la sátira de Jamil también deja noches negativas
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, adi] = g.ids, A = e.jugadores[adi];
+  for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+  turnoDe(e, jamil, 'Damasco'); e.turno.fase = 'acciones'; A.noches = 3; A.dinares = 0;
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'satira', con: adi }).ok);
+  assert.ok(g.act(adi, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
+  assert.equal(A.noches, 3 - 10, 'la sátira le deja 3 − 10 = −7 noches');
+}
 // quien entra tarde también recibe su idioma y sus objetos de inicio
 {
   const { hablaIdioma } = await import('../shared/retos.js');
@@ -3867,7 +3921,9 @@ console.log('reglas de la casa OK');
     forzar(e, 2); const r = g.act(z, { t: 'viajar', destino: 'Basra', servicios: true }); assert.ok(r.ok, r.error);
     const ap = [e.dados, ...(e.colaDados || [])].find((d) => d?.motivo === 'apedreo'); assert.ok(ap, 'dado de apedreo en la caravana');
     if (e.pend?.tipo === 'apedreo') g.act(z, { t: 'decidir', id: e.pend.id, opcion: 'herido' });
-    assert.ok(Z.herido, 'con 2, apedreada también en la caravana con servicios'); }
+    assert.ok(Z.herido, 'con 2, apedreada también en la caravana con servicios');
+    assert.ok(e.log.some((l) => /viaja de Bagdad a Basra y paga la caravana con sexo\./.test(l.texto)), 'la bitácora lo dice claro');
+    const { ACCIONES } = await import('../src/game/protocol.js'); assert.deepEqual(ACCIONES.viajar('Basra', { servicios: true }), { t: 'viajar', destino: 'Basra', servicios: true }, 'la interfaz manda el pago con sexo'); }
 }
 
 // Jorge (19 de noviembre): Zein nunca renta su cuerpo; R26 no depende de si Zein es jugadora (quien juega con Zein no puede hacerlo).

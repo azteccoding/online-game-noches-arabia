@@ -251,7 +251,7 @@ function traicionJerusalen(data, e) {
   publicarCarta(e, { id: 'S4', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
   for (const id of enPartida(e)) {
     const j = e.jugadores[id], q = j.npc ? TRAICION.npc : TRAICION.jugador;
-    j.dinares -= q.dinares; j.noches = Math.max(0, j.noches - q.noches);
+    j.dinares -= q.dinares; j.noches -= q.noches;   // las noches pueden quedar en negativo (Jorge, 19 de noviembre)
   }
   log(e, `Traición en Jerusalén: ${s.texto} Todos los jugadores pierden ${TRAICION.jugador.dinares} dinar y ${TRAICION.jugador.noches} noche${e.jugadores.npc ? `; Yafar NPC pierde ${TRAICION.npc.dinares} dinares y ${TRAICION.npc.noches} noches` : ''}.`, { aviso: true });
 }
@@ -918,7 +918,7 @@ export function partir(data, e, pid, args) {
   if (!e.caravanas.includes(key)) e.caravanas.push(key);                                                    // regla de la casa: primer viaje paga y crea la caravana (R 7.2)
   if (!e.caravanas.includes(destino + '>' + origen) && data.rutas.tarifas[destino + '>' + origen] !== undefined) e.caravanas.push(destino + '>' + origen);
   j.ciudad = destino;
-  log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}.`, { pid });
+  log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}${args.servicios ? ' y paga la caravana con sexo' : ''}.`, { pid });   // Jorge (19 de noviembre): dicho con claridad
   if (esRutaMar(origen, destino)) { const m = viajePorMar(e, pid, 'en el viaje por mar'); if (m) info(e, pid, 'Viaje por mar', m); }   // escorbuto (Jorge, 19 de noviembre)
   if (args.servicios) PJ.apedreo(data, e, pid);
   return llegada(data, e, pid, origen);
@@ -978,6 +978,7 @@ export function viajarTransporte(data, e, pid, { destino, motivo = 'transporte',
 export function llegada(data, e, pid, origen) {
   OBJ.burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
   if (e.jugadores[pid]?.ciudad === 'Isfahán') e.jugadores[pid].extra.isfahanTurno = e.jugadores[pid].turnos;   // Kanmakán (punto 7)
+  OBJ.renovarDadosZein(e, pid);   // Zein llega a El Cairo con sus Dados del Cairo: duran 7 turnos en vez de 5 (Jorge, 19 de noviembre)
   const t = e.turno, j = e.jugadores[pid], c = ciudadDe(data, j.ciudad);
   const primera = !j.visitadas.includes(j.ciudad);
   const nadieAntes = !Object.values(e.jugadores).some((x) => x.visitadas.includes(j.ciudad));
@@ -1112,7 +1113,8 @@ function terminarTurno(data, e, pid) {
   if (t.ccActual) return err('Resuelve primero la carta de Cuentos (o sáltala).');
   RET.mensajes(data, e, pid, 'finTurno', {});
   if (!t.movio && !j.perdido && !t.omitido && !t.sinAlojamiento) {                                           // R 6.2 fase 5 / 8.2: alojamiento
-    if (!t.primerTurnoBagdad || j.ciudad !== 'Bagdad') {
+    if (j.pj === '2' && j.ciudad === 'Andalucía') log(e, `${j.nombre} no paga alojamiento en Andalucía.`, { pid });   // Jorge (19 de noviembre)
+    else if (!t.primerTurnoBagdad || j.ciudad !== 'Bagdad') {
       const c = ciudadDe(data, j.ciudad); let costo = c.alojamiento * (j.pj === 'B' ? 2 : 1);
       if (e.mods.alojDoble?.includes(j.ciudad)) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);
       if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = 10 * (j.pj === 'B' ? 2 : 1);
@@ -1369,7 +1371,7 @@ function datosMano(data, e, c) {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
-    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.TURNOS_DADOS} turnos de su dueño: ${n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'}.`; }
+    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.duracionDados(c)} turnos de su dueño${c.ref === 'dadosCairo' ? ' (a Zein, si llega a El Cairo con los suyos, ' + OBJ.ZEIN_CAIRO.turnos + ' en total)' : ''}: ${n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'}.`; }
     if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }

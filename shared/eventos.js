@@ -57,7 +57,7 @@ function aplicarEvento0(data, e, id) {
     case 'E8': {
       const c = act.slice().sort((a, b) => jug(e, b).dinares - jug(e, a).dinares)[0];
       if (!c) break;
-      if (!peleaNPC(data, e, c, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { const j = jug(e, c); j.noches = Math.max(0, j.noches - 30); log(e, `${j.nombre} pierde ante el esposo de Zein: -30 noches.`, { pid: c }); }
+      if (!peleaNPC(data, e, c, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { const j = jug(e, c); j.noches -= 30; log(e, `${j.nombre} pierde ante el esposo de Zein: -30 noches.`, { pid: c }); }
       break;
     }
     case 'E9': e.mods.sindbad = true; break;
@@ -179,7 +179,7 @@ function preguntaEspecias(data, e, pid) {
 
 registrar('ev.h1', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
-  if (resp.opcion === 'quedar') { j.noches = Math.max(0, j.noches - 30); (e.mods.sinIngreso ||= {})[pid] = true; log(e, `${j.nombre} aguanta la rebelión: -30 noches.`, { pid }); return; }
+  if (resp.opcion === 'quedar') { j.noches -= 30; (e.mods.sinIngreso ||= {})[pid] = true; log(e, `${j.nombre} aguanta la rebelión: -30 noches.`, { pid }); return; }
   if (String(resp.opcion).startsWith('burro:')) { mover(data, e, pid, resp.opcion.slice(6), 0, 'huye de la rebelión en su burro'); return; }
   const t = Math.min(30, tarifa(data, e, j, j.ciudad, resp.opcion) * 3 * (j.pj === 'B' ? 1 : 1));
   mover(data, e, pid, resp.opcion, t, 'huye de la rebelión');
@@ -194,14 +194,14 @@ registrar('ev.h4', (data, e, args, resp) => {
   const ord = ordenadoPorTurno(e, Object.keys(resp).filter((k) => resp[k].opcion === 'si')), vistos = {};
   for (const pid of ord) {
     const j = jug(e, pid), c = j.ciudad; vistos[c] = (vistos[c] || 0) + 1;
-    j.dinares += vistos[c] === 1 ? 40 : 20; j.noches = Math.max(0, j.noches - 20); marcarBuscado(data, e, j, { tipo: 'saqueo' });
+    j.dinares += vistos[c] === 1 ? 40 : 20; j.noches -= 20; marcarBuscado(data, e, j, { tipo: 'saqueo' });
     log(e, `${j.nombre} saquea durante la revolución: +${vistos[c] === 1 ? 40 : 20} dinares, -20 noches y es Buscado.`, { pid });
   }
 });
 registrar('ev.h7', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'alistar') { j.dinares += 30; j.extra.sinPrincipal = true; (e.mods.alistados ||= []).push(pid); log(e, `${j.nombre} se alista en la leva del sultán.`, { pid }); }
-  else if (resp.opcion === 'pagar' && j.dinares >= 10) { j.dinares -= 10; } else { j.noches = Math.max(0, j.noches - 15); }
+  else if (resp.opcion === 'pagar' && j.dinares >= 10) { j.dinares -= 10; } else { j.noches -= 15; }
   if (args.ultimo) {
     const por = {}; for (const x of e.mods.alistados || []) (por[jug(e, x).ciudad] ||= []).push(x);
     for (const [c, ids] of Object.entries(por)) for (let i = 0; i + 1 < ids.length; i += 2) { const g = luchaLibre(data, e, ids[i], ids[i + 1], 'Duelo de entrenamiento (sin heridas ni muertes)'); jug(e, g).dinares += 20; log(e, `${jug(e, g).nombre} gana el duelo de entrenamiento y 20 dinares.`, { pid: g }); }
