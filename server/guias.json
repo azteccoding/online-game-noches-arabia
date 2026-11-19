@@ -118,8 +118,7 @@
   "7": {
    "resumen": "El rico: empieza con más dinero y gana el doble por turno.",
    "fuerte": [
-    "Empieza con 30 dinares y gana 10 por turno (el doble que los demás).",
-    "Cuentos de noche: invita a otro jugador; ambos ganan 5 dinares y el invitado 10 noches."
+    "Empieza con 30 dinares y gana 10 por turno (el doble que los demás)."
    ],
    "debil": [
     "Siempre es el último en el orden de turnos.",
@@ -128,7 +127,6 @@
    "consejos": [
     "Convierte los dinares en noches: viajes largos en rondas con multiplicador alto y retos con cuota de entrada (por ejemplo R31 en Isfahán: 15 dinares por 80 dinares, 15 noches y un objeto).",
     "Protege tu dinero: esconde tesoro, compra un Amuleto o consigue destreza y un arma para defenderte.",
-    "Usa los Cuentos de noche para ganar aliados.",
     "Sé el primero en cumplir un Mensaje de Averroes: regala la única Receta de Averroes de la partida, que cura una herida.",
     "Sé el primero en cumplir un Mensaje de Abu Madyan: da la única Bendición de Abu Madyan, que te protege una vez de los bandoleros de la sal (Magreb) o del esposo de Zein en la Giralda (Andalucía)."
    ]

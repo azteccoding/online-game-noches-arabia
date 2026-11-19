@@ -93,7 +93,7 @@ export function disponibles(data, e, pid) {
   const aqui = enCiudad(e, j.ciudad, pid).filter((x) => !jug(e, x).npc);
   if (j.pj === '6' && j.ciudad === 'Bagdad') r.push({ k: 'pj', sub: 'haren', titulo: `Pasar la noche en el harén del Califa (+${HAREN_DINARES} dinares, termina tu turno)` });
   if (j.pj === '6' && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: j.pj !== '6', texto: j.pj === '6' ? `Entregas al cliente 50 noches de tu haber (o las que tengas) y te paga ${PRECIO_ZUBAYDA} dinares.` : undefined });
-  if (j.pj === '7') { const o = aqui.filter((x) => jug(e, x).pj !== '2'); if (o.length) r.push({ k: 'pj', sub: 'cuentos', titulo: 'Cuentos de noche (ambos +5 dinares, el compañero +10 noches)', objetivos: o }); }
+  // Jorge (19 de noviembre): Adí ya no tiene «Cuentos de noche».
   // Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (el otro pierde 10
   // noches o le paga 7). Con alguien de su misma ciudad; gasta la acción principal.
   if (j.pj === '4' && aqui.length) {
@@ -116,13 +116,6 @@ export function accion(data, e, pid, a) {
       j.dinares += HAREN_DINARES; j.extra.bajoTecho = true; j.extra.techoRonda = e.ronda;
       t.principal = true; t.sinAlojamiento = true; t.fin = true;
       log(e, `${j.nombre} pasa la noche en el harén del Califa: gana ${HAREN_DINARES} dinares y queda bajo su techo.`, { pid });
-      return ok();
-    }
-    case 'cuentos': {
-      if (j.pj !== '7') return err('Solo Adí.');
-      if (!valido() || k.pj === '2') return err('Compañero no válido.');
-      t.principal = true;
-      pedir(e, { tipo: 'trato', para: [a.con], titulo: 'Cuentos de noche', texto: `${j.nombre} te ofrece pasar la noche contando cuentos: ambos ganan 5 dinares y tú 10 noches.`, opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.cuentos', args: { adi: pid } } });
       return ok();
     }
     case 'prost': {
@@ -157,14 +150,6 @@ export function accion(data, e, pid, a) {
   }
 }
 
-registrar('pj.cuentos', (data, e, args, resp) => {
-  const adi = jug(e, args.adi), c = jug(e, resp.pid);
-  if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza los cuentos de noche de ${adi?.nombre}.`, { pid: args.adi }); return devolverPrincipal(e, args.adi, 'su propuesta no fue aceptada'); }
-  if (!adi || adi.eliminado || c.eliminado || adi.ciudad !== c.ciudad) return devolverPrincipal(e, args.adi, 'la propuesta no se llevó a cabo');
-  log(e, `${c.nombre} acepta los cuentos de noche de ${adi.nombre}.`, { pid: args.adi });
-  adi.dinares += 5; c.dinares += 5; c.noches += 10;
-  log(e, `${adi.nombre} pasa la noche contando cuentos con ${c.nombre}: ambos ganan 5 dinares y ${c.nombre} 10 noches.`, { pid: args.adi });
-});
 export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares: 7 };
 registrar('pj.honra', (data, e, args, resp) => {
   const jm = jug(e, args.jamil), c = jug(e, resp.pid);

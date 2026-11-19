@@ -250,8 +250,7 @@
    "arma": [],
    "destreza": false,
    "habilidades": [
-    "Empieza con 30 dinares y gana 10 por turno.",
-    "Cuentos de noche: ambos ganan 5 dinares y el invitado 10 noches."
+    "Empieza con 30 dinares y gana 10 por turno."
    ],
    "limite": "Siempre juega último entre los mercaderes; solo Yafar va después de él.",
    "stats": [

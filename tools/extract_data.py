@@ -86,7 +86,7 @@ PERS = [
  dict(id='6', slug='zubayda', nombre='Zubayda', titulo='La del harén', inicio=dict(dinares=10, ingreso=5), arma=[], destreza=False,
       habilidades=['Harén del Califa en Bagdad: termina su turno, gana 15 dinares y no puede ser robada ni asesinada allí.', 'Paga caravanas con servicios (riesgo de apedreo).'], limite='Riesgo de apedreo al prostituirse.', stats=[3, 4, 2, 2, 4], cita='«Cada puerta tiene su precio; yo elijo la moneda.»', refReglamento='10.7'),
  dict(id='7', slug='adi', nombre='Adí hijo de Hatim al Taí', titulo='El rico', inicio=dict(dinares=30, ingreso=10), arma=[], destreza=False,
-      habilidades=['Empieza con 30 dinares y gana 10 por turno.', 'Cuentos de noche: ambos ganan 5 dinares y el invitado 10 noches.'], limite='Siempre es el último en el orden de turnos.', stats=[3, 3, 2, 3, 3], cita='«El dinero no lo compra todo; por eso lo gasto en lo que sí.»', refReglamento='10.8'),
+      habilidades=['Empieza con 30 dinares y gana 10 por turno.'], limite='Siempre es el último en el orden de turnos.', stats=[3, 3, 2, 3, 3], cita='«El dinero no lo compra todo; por eso lo gasto en lo que sí.»', refReglamento='10.8'),
  dict(id='B', slug='yafar', nombre='Yafar el Bermekí', titulo='Visir de todos los bolsillos', inicio=dict(dinares=10, ingreso=5, firman=1), arma=['jambiya'], destreza=True,
       habilidades=['Comisión de bolsillo: 5 dinares por cada otro jugador en su ciudad (máx. 15).', 'Paga la mitad de caravanas, sobornos y servicios; empieza con un Firmán.'], limite='Doble alojamiento; blanco de todos; no puede esconder tesoro.', stats=[3, 5, 2, 1, 4], cita='«Todo tiene precio; casi siempre, el tuyo.»', refReglamento='10.1 y 20'),
 ]

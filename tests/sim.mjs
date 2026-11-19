@@ -65,9 +65,8 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (p.titulo === 'El Sabio Ruyán' && tiene('si')) op = adi || R() < 0.85 ? 'si' : 'no';
       else if (p.titulo === 'Versos en tu honra' && tiene('si')) op = adi || R() < 0.8 ? 'si' : 'no';
       else if (p.titulo === 'Versos de sátira') op = tiene('pagar') && jp.dinares >= 15 ? 'pagar' : 'noches';
-      else if (p.titulo === 'Cuentos de noche' && tiene('si')) op = R() < 0.9 ? 'si' : 'no';
       else if (p.titulo === 'R50 · Llevar yeguas de la estepa' && tiene('1')) op = jp.dinares >= 230 && tiene('2') && R() < 0.3 ? '2' : '1';   // deja dinero para el viaje
-      if (op && tiene(op)) { const r = act(pid, { t: 'decidir', id: p.id, opcion: op }); if (r.ok) cuenta(stats.acciones, (adi && op === 'si' && p.titulo !== 'Cuentos de noche' ? 'fortaleza:Adí paga ' : 'explota:') + p.titulo + ':' + op); return r; }
+      if (op && tiene(op)) { const r = act(pid, { t: 'decidir', id: p.id, opcion: op }); if (r.ok) cuenta(stats.acciones, (adi && op === 'si' ? 'fortaleza:Adí paga ' : 'explota:') + p.titulo + ':' + op); return r; }
     }
     if (!a) { const dis = p.opciones.filter((o) => !o.desactivada); a = { t: 'decidir', id: p.id, opcion: pick(dis).id }; }
     return act(pid, a);
@@ -130,7 +129,6 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (x.sub === 'haren') return apuros(j) ? 'fortaleza:Zubayda se refugia en el harén' : 'fortaleza:Zubayda pasa la noche en el harén';
     if (x.sub === 'honra') return 'fortaleza:Jamil propone versos en honra';
     if (x.sub === 'satira') return 'fortaleza:Jamil canta sátira';
-    if (x.sub === 'cuentos') return 'fortaleza:Adí cuenta cuentos';
     return undefined;
   };
   const pesoAccion = (pid, x, base) => {
@@ -161,7 +159,6 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (x.k === 'venderFirmanYafar') return 0.02;                                             // Yafar conserva su Firmán
     if (x.k === 'pj' && x.sub === 'honra') return 0.8;
     if (x.k === 'pj' && x.sub === 'satira') return 0.3;
-    if (x.k === 'pj' && x.sub === 'cuentos') return 0.6;
     if (x.k === 'pj' && x.sub === 'haren') return apuros(j) ? 2.5 : base + 0.3 * enCiudad(pid, 'Bagdad');
     return base;
   };
