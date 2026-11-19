@@ -1,6 +1,6 @@
 // Cartas por leer (Jorge, 8 de noviembre): primero se cierra la carta y luego se ven sus consecuencias. Mientras tengas una carta
 // sin cerrar, la barra muestra tu saldo de antes y el registro no enseña lo que pasó desde esa carta. Sin React para probarlo con node.
-export const MIN_LECTURA_MS = 4000;                         // todas las cartas se pueden cerrar a los 4 s
+export const MIN_LECTURA_MS = 3000;                         // todas las cartas se pueden cerrar a los 3 s (Jorge, 19 de noviembre; antes 4)
 export const LECTURA_ESPECIAL_MS = { S4: 7000 };            // Traición en Jerusalén: a los 7 s
 export const lecturaMs = (carta) => LECTURA_ESPECIAL_MS[carta?.id] ?? MIN_LECTURA_MS;
 const VIGENCIA_MS = 120000;                                 // una carta vieja que nadie marcó como leída ya no congela nada

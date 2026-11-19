@@ -1,4 +1,4 @@
-// Cartas (Jorge, 8 de noviembre): primero se cierra la carta y luego se ven sus consecuencias; 4 s para todas y 7 s para Traición en
+// Cartas (Jorge, 8 de noviembre): primero se cierra la carta y luego se ven sus consecuencias; 3 s para todas (antes 4) y 7 s para Traición en
 // Jerusalén; mientras tengas una carta sin cerrar, la barra muestra el saldo de antes y el registro no enseña lo que pasó desde ella.
 import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, vista } from '../shared/engine.js';
@@ -6,9 +6,9 @@ import { cargarDatos } from '../server/datos.js';
 import { publicarCarta } from '../shared/base.js';
 import { cartaSinCerrar, saldoVisible, logVisible, lecturaMs, MIN_LECTURA_MS } from '../src/game/lectura.js';
 
-assert.equal(MIN_LECTURA_MS, 4000);
+assert.equal(MIN_LECTURA_MS, 3000);
 assert.equal(lecturaMs({ id: 'S4' }), 7000, 'Traición en Jerusalén: 7 s');
-assert.equal(lecturaMs({ id: 'E3' }), 4000);
+assert.equal(lecturaMs({ id: 'E3' }), 3000);
 
 const data = cargarDatos();
 const e = nuevoJuego(data, { semilla: 3, ahora: 1000, opciones: {} });

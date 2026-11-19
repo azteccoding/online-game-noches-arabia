@@ -2,7 +2,7 @@
 // cola de dados, objetos en mano, pagos y eliminación. Código puro (sin DOM ni APIs de Node). Referencias: «R 11.4» = sección 11.4 del reglamento.
 
 export const VERSION_ESTADO = 3;
-export const MIN_LECTURA_MS = 5000;
+export const MIN_LECTURA_MS = 3000;   // las cartas se cierran a los 3 s (Traición en Jerusalén, 7 s: src/game/lectura.js)
 export const MIN_DADOS_MS = 1900;
 export const LIMITE_PEND_MS = 90000;           // una decisión sin respuesta se resuelve sola con su opción por defecto
 export const AUTOCIERRE_DADOS_MS = 30000;   // tras lanzarlos, los dados se cierran solos a los 30 s

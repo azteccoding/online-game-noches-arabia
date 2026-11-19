@@ -6,7 +6,7 @@ import { nombreCorto } from '../game/data.js';
 import '../styles/ui.css';
 
 import { lecturaMs, MIN_LECTURA_MS as MIN_NORMAL } from '../game/lectura.js';
-// Jorge (8 de noviembre): todas las cartas se cierran a los 4 s; Traición en Jerusalén, a los 7 s.
+// Jorge (19 de noviembre): todas las cartas se cierran a los 3 s (antes 4); Traición en Jerusalén, a los 7 s.
 export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new URLSearchParams(location.search).get('minLectura'))) || MIN_NORMAL;
 const minLectura = (c) => (MIN_LECTURA_MS !== MIN_NORMAL ? MIN_LECTURA_MS : lecturaMs(c));
 const PASO_MS = 1800;            // la ficha camina por la ruta entre 1.3 y 3.6 s (Peon3D.jsx): la carta espera a que casi llegue
@@ -17,7 +17,7 @@ const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 // Ciclo de vida de una carta (ver plan «Cartas bajo demanda»):
 //   1. llega a estado.historial (DATOS) -> entra en la cola de lectura
 //   2. espera a que la ficha termine de moverse, muestra el dorso y gira; luego se MONTA un único <Carta completa>;
-//      barra descendente de 5 s; el botón Cerrar espera a que acabe (los cuentos de ambiente se cierran al instante)
+//      barra descendente de 3 s (7 s Traición en Jerusalén); el botón Cerrar espera a que acabe (los cuentos de ambiente se cierran al instante)
 //   3. al cerrar se DESMONTA (se libera el DOM y las imágenes) y solo permanece el dato en el historial
 // «Última carta» e historial vuelven a dibujar la carta desde esos datos (modo consulta, sin temporizador).
 export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudades }) {
