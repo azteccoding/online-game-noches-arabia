@@ -72,7 +72,8 @@ export const ITEMS = {
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
   buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
-  tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
+  tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán, el Shatranj y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
+  shatranj: { nombre: 'Shatranj (ajedrez)', precio: 12, texto: 'El juego de los reyes que llegó de India: un tablero con sus piezas de marfil. Solo lo vende el mercado de India, por 12 dinares, y solo hay 5 en todo el juego. Se vende en Isfahán por 25, en Bagdad por 30 o en Andalucía por 35, y al venderlo deja de existir. Pesa: cuenta para el límite de 7 objetos. La tinta de pulpo lo estropea.' },   // Jorge (19 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 30, texto: 'Mercancía de Isfahán: el mercado de Isfahán la vende a 30 y la recompra a 15; los demás mercados la compran a 35 (Andalucía a 40) y la revenden 3 dinares más cara. La tinta de pulpo la destruye. Pesa y ocupa las manos: no puedes huir con un objeto.' },
   almudDatiles: { nombre: 'Almud de dátiles', precio: 2, texto: 'Mercancía: se compra en Yemen y Basra a 2 dinares y el mercado de Bagdad la compra a 4. Pesa. La primera vez que vendes dátiles en Bagdad cumples el reto R53 y ganas 20 noches.' },
@@ -218,6 +219,16 @@ export function vencerPend(data, e, ahora) {
 }
 
 // ---------------------------------------------------------------- manos y objetos
+// Jorge (19 de noviembre): Zein al Mawasif y el Sabio Ruyán nunca consiguen destreza, salvo con la jambiya. Si ganan la destreza
+// general (R25, deseos, tesoros), para ellos es destreza solo con la jambiya (j.extra.destrezaJambiya); y solo entrenan la jambiya.
+export const SOLO_JAMBIYA = ['2', '5'];
+export const soloJambiya = (j) => SOLO_JAMBIYA.includes(j?.pj);
+export const MSJ_SOLO_JAMBIYA = 'Zein y el Sabio Ruyán nunca consiguen destreza, salvo con la jambiya.';
+export const puedeEntrenarArma = (j, arma) => !soloJambiya(j) || arma === 'jambiya';
+export const tieneDestrezaGeneral = (j) => !!j.destreza || (soloJambiya(j) && !!j.extra?.destrezaJambiya);
+export function darDestreza(j) { if (soloJambiya(j)) (j.extra ||= {}).destrezaJambiya = true; else j.destreza = true; }
+// destreza que vale en una pelea con estas armas: la general, o la de jambiya si la lleva
+export const destrezaCon = (j, armas) => !!j.destreza || (!!j.extra?.destrezaJambiya && armas.includes('jambiya'));
 export const uid = (e) => 'u' + (++e.seq);
 export const tieneItem = (j, ref) => j.mano.find((c) => c.tipo === 'item' && c.ref === ref);
 export const tieneObj = (j, id) => j.mano.find((c) => c.tipo === 'objeto' && c.ref === id);
@@ -245,14 +256,18 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 // Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.
 // Frasco con tinta de pulpo (Jorge, 17 de noviembre): India 3; en Bagdad 6 cuando alguien ya visitó India; el mercado de Andalucía o
 // Samarcanda lo compra en 9 y lo revende en 10. Si roban a su dueño, se rompe y destruye sus papeles (no pasan al ladrón).
+// Shatranj (ajedrez), Jorge (19 de noviembre): solo en el mercado de India, a 12; hay 5 en todo el juego. Se vende en Isfahán (25),
+// Bagdad (30) o Andalucía (35) y al venderlo deja de existir (Jorge: no vuelve a India). Pesa. La tinta de pulpo lo destruye (como los papeles: se pierde).
+export const SHATRANJ = { ciudad: 'India', precio: 12, stock: 5, venta: { 'Isfahán': 25, 'Bagdad': 30, 'Andalucía': 35 } };
+export const shatranjEnIndia = (e) => e.shatranj ?? SHATRANJ.stock;
 export const TINTA = { india: 3, bagdad: 6, venta: 9, reventa: 10, ciudadesVenta: ['Andalucía', 'Samarcanda'] };
-export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
+export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan', 'shatranj'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
 export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de Kufa en la mano
 // Jorge (19 de noviembre): pesa todo lo que se carga: armas (arco, jambiya, alfanje, cimitarra; las flechas cuentan como 1 aunque tengas
 // varias), libros (no los Manuscritos de la India ni los papeles), cálamos, cesta de manzanas, almudes de dátiles, dados, brújula, astrolabio,
 // ídolo, velo, veneno, especias y sal. No pesan los papeles (papiro, amate, pergaminos, mapas, cartas, recetas), los animales, las
 // esclavas, el Ejército de Kanmakán ni la Bendición de Abu Madyan.
-export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan',   // las alfombras de Isfahán pesan (18 de noviembre)
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan', 'shatranj',   // las alfombras de Isfahán pesan (18 de noviembre)
   'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
   'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos'];
 export const OBJ_SIN_PESO = ['OB46'];   // Manuscritos de la India (Jorge, 19 de noviembre)
@@ -318,9 +333,12 @@ export function recortarMano(data, e, pid) {
   info(e, pid, 'Vas muy cargado', sobrecarga(j, e));
 }
 // Pala de zapador y Linterna de aceite (Jorge, 10 de noviembre): una copia en cada mercado que la vende, con su propia existencia.
-export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'] };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
+// Disfraz de mendigo (Jorge, 19 de noviembre): uno en el mercado de cada ciudad (el Jorasán no tiene mercado).
+const MERCADOS = ['Andalucía', 'Magreb', 'El Cairo', 'Estambul', 'Aleppo', 'Damasco', 'Yemen', 'Basra', 'Bagdad', 'Isfahán', 'Samarcanda', 'India'];
+export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'], OB42: MERCADOS };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
 // Sobre de sobornos (Jorge, 18 de noviembre): 2 en cada mercado de Aleppo, Bagdad y Damasco; un solo uso y el que se usa no vuelve al mercado.
 export const POR_CIUDAD_N = {};
+export const EN_BOTIN = ['OB42'];   // el Disfraz de mendigo, además de uno en cada mercado, sigue saliendo en el Botín como antes
 export const copiasPorCiudad = (id) => POR_CIUDAD_N[id] || 1;
 export const NO_VUELVE = ['OB14'];
 export const SIN_LIMITE = ['OB21'];   // Pastel de pistachos: nunca se agota en sus mercados (Jorge, 18 de noviembre)
@@ -499,7 +517,7 @@ export const refDeUid = (j, u) => j.mano.find((c) => c.uid === u)?.ref;
 export function marcarBuscado(data, e, j, motivo) {
   j.buscado = data.config.buscadoRondas; j.extra.buscadoMotivo = { ...motivo, ronda: e.ronda };
 }
-const POR = { matar: (m) => `por matar a ${m.victima}`, robo: (m) => `por robar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí', mujer: (m) => `por atacar a ${m.victima}, que iba sin armas` };
+const POR = { matar: (m) => `por matar a ${m.victima}`, robo: (m) => `por robar a ${m.victima}`, asesinos: () => 'por contratar a los Asesinos', asesinosSinPago: () => 'por hacer perder el tiempo a los Asesinos', saqueo: () => 'por saquear durante la Revolución abasí', apedreo: () => 'por escándalo: la apedrearon', mujer: (m) => `por atacar a ${m.victima}, que iba sin armas` };
 export function textoBuscado(data, e, j) {
   const r = [];
   if (j.buscado > 0) {

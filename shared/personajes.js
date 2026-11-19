@@ -1,7 +1,7 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
   ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
-enPartida, } from './base.js';
+enPartida, marcarBuscado, } from './base.js';
 import { peleaNPC } from './pelea.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -52,23 +52,25 @@ registrar('pj.ruyan', (data, e, args, resp) => {
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
 export const PRECIO_ZUBAYDA = 7;
+// Jorge (19 de noviembre): más riesgo de apedreo: a salvo solo con 4 o 6 (con 1, 2, 3 o 5 intentan apedrearla).
+export const salvoApedreo = (x) => x === 4 || x === 6;
 export function apedreo(data, e, pid) {
   const j = jug(e, pid), x = dado(e);
-  mostrarDados(e, { por: pid, motivo: 'apedreo', grupos: [{ etq: `${j.nombre}: ¿apedreo? (par = a salvo)`, valores: [x] }], resumen: [par(x) ? `${j.nombre} está a salvo.` : `Intentan apedrear a ${j.nombre}.`] });
+  mostrarDados(e, { por: pid, motivo: 'apedreo', grupos: [{ etq: `${j.nombre}: ¿apedreo? (4 o 6 = a salvo)`, valores: [x] }], resumen: [salvoApedreo(x) ? `${j.nombre} está a salvo.` : `Intentan apedrear a ${j.nombre}.`] });
   marcarVergonzoso(e, pid);
-  if (par(x)) return;
+  if (salvoApedreo(x)) return;
   castigoApedreo(data, e, pid);
 }
+// Jorge (19 de noviembre): el apedreo es igual en todas las ciudades (ya no hay excepción en Yemen ni guardias en Bagdad).
 function castigoApedreo(data, e, pid) {
   const j = jug(e, pid);
-  if (j.ciudad === 'Yemen') return;
   pedir(e, { tipo: 'apedreo', para: [pid], titulo: 'La gente quiere apedrearte', texto: 'Tira 30 dinares para que los recojan en vez de lincharte, o acepta quedar herido.',
     opciones: [{ id: 'pagar', texto: 'Tirar 30 dinares', desactivada: j.dinares < 30 }, { id: 'herido', texto: 'Quedar herido' }], porDefecto: j.dinares >= 30 ? 'pagar' : 'herido', limiteMs: 30000, cont: { fn: 'pj.apedreo', args: {} } });
 }
 registrar('pj.apedreo', (data, e, args, resp) => {
   const j = jug(e, resp.pid);
   if (resp.opcion === 'pagar' && j.dinares >= 30) { pagar(data, e, resp.pid, 30); log(e, `${j.nombre} lanza 30 dinares y se libra del linchamiento.`, { pid: resp.pid }); }
-  else { j.herido = true; log(e, `${j.nombre} queda herido por las pedradas.`, { pid: resp.pid }); }
+  else { j.herido = true; marcarBuscado(data, e, j, { tipo: 'apedreo' }); log(e, `${j.nombre} queda herido por las pedradas y además Buscado (${data.config.buscadoRondas} rondas).`, { pid: resp.pid }); }   // Jorge (19 de noviembre): apedreada, también Buscada
 });
 function marcarVergonzoso(e, pid) { jug(e, pid).extra.vergonzoso = e.ronda; }
 
@@ -89,7 +91,7 @@ export function disponibles(data, e, pid) {
   if (!puedePrincipal(t) || j.transito || j.perdido) return r;
   const aqui = enCiudad(e, j.ciudad, pid).filter((x) => !jug(e, x).npc);
   if (j.pj === '6' && j.ciudad === 'Bagdad') r.push({ k: 'pj', sub: 'haren', titulo: 'Pasar la noche en el harén del Califa (+15 dinares, termina tu turno)' });
-  if (['2', '6', '7'].includes(j.pj) && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: j.pj !== '6', texto: j.pj === '6' ? `Entregas al cliente 50 noches de tu haber (o las que tengas) y te paga ${PRECIO_ZUBAYDA} dinares.` : undefined });
+  if (j.pj === '6' && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: j.pj !== '6', texto: j.pj === '6' ? `Entregas al cliente 50 noches de tu haber (o las que tengas) y te paga ${PRECIO_ZUBAYDA} dinares.` : undefined });
   if (j.pj === '7') { const o = aqui.filter((x) => jug(e, x).pj !== '2'); if (o.length) r.push({ k: 'pj', sub: 'cuentos', titulo: 'Cuentos de noche (ambos +5 dinares, el compañero +10 noches)', objetivos: o }); }
   // Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (el otro pierde 10
   // noches o le paga 7). Con alguien de su misma ciudad; gasta la acción principal.
@@ -123,7 +125,7 @@ export function accion(data, e, pid, a) {
       return ok();
     }
     case 'prost': {
-      if (!['2', '6', '7'].includes(j.pj)) return err('Solo Zein, Zubayda o Adí pueden hacerlo.');
+      if (j.pj !== '6') return err('Solo Zubayda puede hacerlo.');   // Jorge (19 de noviembre): ni Zein ni Adí rentan su cuerpo
       if (!valido()) return err('Cliente no válido (misma ciudad).');
       // Jorge (8 de noviembre): con Zubayda el precio es fijo, 7 dinares, y el otro solo recibe sus 50 noches (o las que tenga).
       const precio = j.pj === '6' ? PRECIO_ZUBAYDA : Math.max(0, Math.min(200, Math.floor(a.precio || 0)));
@@ -189,12 +191,12 @@ registrar('pj.prost', (data, e, args, resp) => {
   if (v.pj === '6') { const n = Math.min(50, v.noches); v.noches -= n; c.noches += n; }
   log(e, `${v.nombre} y ${c.nombre} pasan la noche juntos.`, { pid: args.vend });
   marcarVergonzoso(e, args.vend);
-  if (v.ciudad === 'Bagdad') { const ctx = nuevoCtx(e, args.vend, 'Guardias del Califa'); sobornoGuardias(data, e, args.vend, ctx); ctx.fin(); return; }
+  // Jorge (19 de noviembre): en Bagdad ya no salen los guardias del Califa: el dado de apedreo, como en cualquier ciudad.
   const x = dado(e);
-  mostrarDados(e, { por: args.vend, motivo: 'apedreo', grupos: [{ etq: `${v.nombre}: ¿apedreo? (par = a salvo)`, valores: [x] }], resumen: [par(x) ? `${v.nombre} está a salvo.` : `Intentan apedrear a ${v.nombre}.`] });
-  if (!par(x)) castigoApedreo(data, e, args.vend);
+  mostrarDados(e, { por: args.vend, motivo: 'apedreo', grupos: [{ etq: `${v.nombre}: ¿apedreo? (4 o 6 = a salvo)`, valores: [x] }], resumen: [salvoApedreo(x) ? `${v.nombre} está a salvo.` : `Intentan apedrear a ${v.nombre}.`] });
+  if (!salvoApedreo(x)) castigoApedreo(data, e, args.vend);
 });
 
 // Zein ya no tiene «Noche discreta» (Jorge, 8 de noviembre): se quitó junto con el esposo y su pelea.
 
-void dados; void zeinId;
+void dados; void zeinId; void sobornoGuardias; void nuevoCtx;   // los guardias del Califa (R 12.5) ya no salen al rentar el cuerpo en Bagdad

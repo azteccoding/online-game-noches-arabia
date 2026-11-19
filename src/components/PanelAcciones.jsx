@@ -45,6 +45,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           {contadoresCarrera(s).map((c) => <span key={c.id} className="chip chip-ev" title="Cada noche cuenta al terminar tu turno en esa ciudad; si terminas un turno en otra, vuelves a 0. Con 2 noches seguidas ganas el premio de la carrera.">🏁 {c.texto}</span>)}
           {textoEquipo(s) && <span className="chip chip-entrena" title="Lo que llevas: armas, transporte (con los turnos de vida de cada animal) y dados. Tus destrezas se ven en Personajes.">{textoEquipo(s)}</span>}   {/* Jorge (12 de noviembre): armas, transporte y dados en lugar de las destrezas */}
           {(yo.idiomas || []).map((i) => <span key={i} className="chip" title={`Puedes enseñar ${i} ${i === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'}: 4 dinares por noche`}>Habla {i}</span>)}
+          {yo.polimata && <span className="chip" title="Polímata (R55): cobras 12 dinares más al iniciar tu turno en Bagdad, Estambul, El Cairo o Andalucía">Polímata</span>}
           {yo.forjando && <span className="chip chip-ev" title="No puedes salir de Damasco hasta que te den tu cimitarra">Forjando acero de Damasco</span>}
           {yo.conEmir && <span className="chip chip-ev" title="Sirves dos turnos; después recibes la Dádiva del Emir y 5 dinares">Al servicio del Emir de {yo.conEmir}</span>}
           {yo.estudiando && <span className="chip chip-ev" title="No puedes salir de la ciudad y tu acción principal se va en las clases">Estudiando {yo.estudiando.idioma}</span>}
@@ -53,6 +54,8 @@ export default function PanelAcciones({ s, abrir, panel }) {
       </div>
       {ccPendiente && <div className="acc-responde"><button className="btn responde" onClick={() => abrir('carta:' + cc.nro)} title={`Falta responder «${cc.titulo}»`}>¡Responde! <small>{cc.titulo}</small></button></div>}
       <div className="acc-botones">
+        {/* Jorge (19 de noviembre): con 1,001 noches y tras «Seguir jugando», terminas la partida cuando quieras (también fuera de tu turno) */}
+        {s.puedoGanarYa && <button className="btn grande" title="Tienes 1,001 noches: termina la partida ahora y gana" onClick={() => enviar(ACCIONES.ganarYa())}>Ganar ya</button>}
         {miTurno && t.fase === 'ingreso' && <button className="btn grande" disabled={ocupado} onClick={() => enviar(ACCIONES.tirarDados())}>Tirar dado de ingreso</button>}
         {miTurno && t.fase !== 'ingreso' && (
           <>

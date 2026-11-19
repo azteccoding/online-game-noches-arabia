@@ -10,7 +10,7 @@ import { textoPremio } from '../game/premiosRetos.js';
 import retosData from '../data/retos.json';
 const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
-const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
+const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza || yo?.destrezaJambiya : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
 import { confirmarViajeBurro } from '../game/burro.js';
 import { esRutaMar, HERIDO_BARCO } from '../../shared/base.js';
 

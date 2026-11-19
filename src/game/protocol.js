@@ -46,6 +46,8 @@ export const ACCIONES = {
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
   votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),
   volver: () => ({ t: 'volver' }),
+  volverPartida: () => ({ t: 'volverPartida' }),
+  ganarYa: () => ({ t: 'ganarYa' }),   // Jorge (19 de noviembre): con 1,001 noches, tras «Seguir jugando»   // Jorge (19 de noviembre): seguir jugando después de ganar con 1,001 noches
   host: {
     sacarEspera: (pid) => ({ t: 'host.sacarEspera', pid }),
     sacarDesconectado: (pid) => ({ t: 'host.sacarDesconectado', pid }),

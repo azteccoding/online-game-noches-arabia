@@ -8,6 +8,7 @@ import { DATA } from '../game/data.js';
 // Jorge (12 de noviembre): lo que sí importa de cada personaje en la partida: sus destrezas.
 const entrenamientoPj = (j) => [
   ['Destreza bélica (en todas las armas)', !!j.destreza],
+  ...(j.destrezaJambiya ? [['Destreza bélica, solo con la jambiya (Zein y el Sabio Ruyán)', true]] : []),   // Jorge (19 de noviembre)
   ['Destreza en cimitarra', (j.entrenado || []).includes('cimitarra')],
   ['Destreza en alfanje', (j.entrenado || []).includes('alfanje')],
   ['Destreza en jambiya', (j.entrenado || []).includes('jambiya')],

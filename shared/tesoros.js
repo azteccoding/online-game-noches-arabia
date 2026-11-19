@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
-viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, } from './base.js';
+viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, darDestreza } from './base.js';
 import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -441,7 +441,8 @@ registrar('tes.A', (data, e, args, resp) => {
   if (j.ciudad === resp.opcion) return;
   const origen = j.ciudad; j.ciudad = resp.opcion; if (t && t.pid === pid) { t.movio = true; HOOK.llegada(data, e, pid, origen); }
 });
-registrar('tes.E', (data, e, args, resp) => { const j = e.jugadores[resp.pid]; j.destreza = true; if (!tieneItem(j, resp.opcion)) darItem(e, j, resp.opcion); retoma(data, e, resp.pid, args); });
+registrar('tes.E', (data, e, args, resp) => { const j = e.jugadores[resp.pid]; darDestreza(j);   // Zein y Ruyán: solo con jambiya
+  if (!tieneItem(j, resp.opcion)) darItem(e, j, resp.opcion); retoma(data, e, resp.pid, args); });
 registrar('tes.I', (data, e, args, resp) => { darItem(e, e.jugadores[resp.pid], 'mapa', { tesoro: resp.opcion }); retoma(data, e, resp.pid, args); });
 registrar('tes.J', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], o = e.jugadores[resp.opcion];

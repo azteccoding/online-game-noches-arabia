@@ -45,6 +45,7 @@ function Juego({ lienzo }) {
   const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
+  useEffect(() => { if (s?.fase === 'fin') setVerFin(true); }, [s?.fase]);   // cada vez que la partida termina (también tras «Volver a la partida») sale el resultado
   // Avisos verdes: premios propios (dinares o noches que suben) y comienzo de cada ronda.
   const prev = useRef(null);
   useEffect(() => {

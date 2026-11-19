@@ -4,8 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ,
-} from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
@@ -36,7 +35,7 @@ function usarKanmakan(e, j) {
 export function perfil(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
   const armas = armasUsables(data, e, j, ciudad || j.ciudad);
-  const destreza = !!j.destreza;
+  const destreza = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
   return { pid, armas, destreza, cat };
 }
@@ -442,8 +441,9 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   const ent = (r) => (j.extra?.entrenado?.[r] ? 1 : 0);                       // entrenado con esa arma: +1 (regla de la casa)
   const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r] + ent(r), 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
   if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r] + ent(r)}${ent(r) ? ' (entrenado)' : ''}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
-  if (j.destreza && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
-  if (j.destreza && mods.sinDestreza) partes.push('destreza perdida por la flecha');
+  const dz = destrezaCon(j, armasUsables(data, e, j, ciudad));   // Zein y Ruyán: solo con la jambiya
+  if (dz && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
+  if (dz && mods.sinDestreza) partes.push('destreza perdida por la flecha');
   if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
   if (mods.golpeEscudo) { partes.push('el escudo del rival paró el golpe −1'); total -= 1; }
   if (j.herido) { partes.push('herido −1'); total -= 1; }
@@ -669,7 +669,7 @@ function robar(data, e, atk, def) {
     const papel = (c) => (c.tipo === 'item' && PAPELES_ITEM.includes(c.ref) && !(c.ref === 'mapa' && c.extra?.tesoro === 'jugador')) || (c.tipo === 'objeto' && PAPELES_OBJ.includes(c.ref)) || (c.tipo === 'especial' && c.ref === 'F1');   // también el Firmán (Jorge, 17 de noviembre): se destruye, no vuelve al banco
     const rotos = D.mano.filter(papel);
     quitarPrimero(D, 'item', 'tintaPulpo'); D.mano = D.mano.filter((c) => !papel(c));
-    log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate, alfombras o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
+    log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate, alfombras, el Shatranj o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
   }
   const oculta = (c) => (c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta)   // la jambiya escondida no se la llevan
     || (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');                   // ni el mapa del escondite de dinares (regla de Jorge)

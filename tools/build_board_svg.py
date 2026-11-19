@@ -150,7 +150,7 @@ def deco_layer(rng):
              f'<path d="M0,-70L12,-12L70,0L12,12L0,70L-12,12L-70,0L-12,-12z" fill="none" stroke="#3b2410" stroke-width="2" transform="rotate(45)"/>{n_txt}</g>')
     cx0, cy0 = P(11, 10.5); cw, ch = 860, 250
     t1 = text_use('Mil y una Noches', MARCELLUS, 88, cw / 2, 108, 'middle', '#2b130c', spacing=4)
-    t2 = text_use('Las Noches de Arabia · sin escala', ALEGREYA_I, 46, cw / 2, 172, 'middle', '#7b1e24')
+    t2 = text_use('Las Noches de Arabia', ALEGREYA_I, 46, cw / 2, 172, 'middle', '#7b1e24')
     o.append(f'<g transform="translate({cx0-cw/2:.0f},{cy0-ch/2:.0f})"><rect x="6" y="9" width="{cw}" height="{ch}" rx="14" fill="#000" opacity=".28"/><rect width="{cw}" height="{ch}" rx="14" fill="#f1e3b8" stroke="#7b1e24" stroke-width="7"/><rect x="14" y="14" width="{cw-28}" height="{ch-28}" rx="8" fill="none" stroke="#b9803a" stroke-width="3.5"/>{t1}{t2}</g>')
     return ''.join(o)
 

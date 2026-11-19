@@ -3,9 +3,30 @@
 // Comprueba: ninguna excepción, ningún bloqueo, valores sanos y que la partida termina (1,001 noches o muerte).
 import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
+import { tieneItem, tieneObj, SHATRANJ, DATILES } from '../shared/base.js';
 
 const data = cargarDatos();
 const PJS = ['1', '2', '3', '4', '5', '6', '7'];
+// Compras útiles (Jorge, 19 de noviembre: «enséñale a los bots a comprar artefactos para los retos»): objetos que piden o ayudan en
+// los retos (R22/R30 balanza, R23 odre, R27 antídoto, R31 pastel y carta, sobornos, llaves, cuerdas…), cítricos para el mar, dátiles
+// (R53), Shatranj en India y caballo mongol en Estambul. Sigue siendo al azar, pero con sentido: solo lo que le sirve y si le alcanza.
+const OBJ_RETOS = { OB18: 2, OB12: 2, OB20: 2, OB21: 1.5, OB30: 1.5, OB14: 1.5, OB05: 1, OB06: 1, OB07: 1, OB08: 1, OB09: 1, OB10: 1, OB13: 1, OB17: 1, OB26: 1, OB38: 1, OB40: 1, OB43: 1 };
+// Debilidades ajenas y fortalezas propias (Jorge, 19 de noviembre: «enséñale a los bots a aprovecharse de la debilidad de Zein o de
+// que Ruyán se deja comprar noches», «que jueguen con las fortalezas de su personaje» y «que Yafar aproveche todas sus ventajas»).
+// Solo el bot: el juego no cambia. Lo que se aprovecha se cuenta en stats.acciones como explota:* y fortaleza:*.
+const ARMAS_BOT = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
+const desarmado = (j) => !ARMAS_BOT.some((r) => tieneItem(j, r));
+const sinDestreza = (j) => !j.destreza;
+const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];
+const VECINOS = {};
+for (const k of Object.keys(data.rutas.tarifas)) { const [a, b] = k.split('>'); (VECINOS[a] ||= new Set()).add(b); }
+const DIST = {};   // DIST[destino][ciudad] = tramos que faltan
+for (const dst of ['Estambul', 'Damasco', 'Samarcanda']) {
+  const d = (DIST[dst] = { [dst]: 0 }), cola = [dst];
+  while (cola.length) { const c = cola.shift(); for (const [a, vs] of Object.entries(VECINOS)) if (vs.has(c) && d[a] === undefined) { d[a] = d[c] + 1; cola.push(a); } }
+}
+const acerca = (desde, hacia, meta) => DIST[meta]?.[hacia] !== undefined && DIST[meta][hacia] < (DIST[meta][desde] ?? Infinity);
+const seVendeEn = (o, ciudad) => /^(todas|cualquier)/i.test(String(o?.seConsigueEn || '').trim()) || String(o?.seConsigueEn || '').split(/,| y /).map((x) => x.trim()).includes(ciudad);
 
 function mulberry(a) { return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
@@ -37,8 +58,107 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       const sel = dis.slice().sort(() => R() - 0.5).slice(0, Math.max(p.min ?? 0, Math.min(p.max ?? n, n)));
       a = { t: 'decidir', id: p.id, valores: sel.map((o) => o.id) };
     } else if (p.modo === 'numero') a = { t: 'decidir', id: p.id, numero: (p.min ?? 0) + Math.floor(R() * ((p.max ?? 6) - (p.min ?? 0) + 1)) };
-    else { const dis = p.opciones.filter((o) => !o.desactivada); a = { t: 'decidir', id: p.id, opcion: pick(dis).id }; }
+    else {
+      const dis = p.opciones.filter((o) => !o.desactivada), tiene = (id) => dis.some((o) => o.id === id), jp = e.jugadores[pid], adi = jp.pj === '7';
+      let op = null;
+      if (p.titulo === 'El Sabio Ruyán' && tiene('si')) op = adi || R() < 0.85 ? 'si' : 'no';
+      else if (p.titulo === 'Versos en tu honra' && tiene('si')) op = adi || R() < 0.8 ? 'si' : 'no';
+      else if (p.titulo === 'Versos de sátira') op = tiene('pagar') && jp.dinares >= 15 ? 'pagar' : 'noches';
+      else if (p.titulo === 'Cuentos de noche' && tiene('si')) op = R() < 0.9 ? 'si' : 'no';
+      else if (p.titulo === 'R50 · Llevar yeguas de la estepa' && tiene('1')) op = jp.dinares >= 230 && tiene('2') && R() < 0.3 ? '2' : '1';   // deja dinero para el viaje
+      if (op && tiene(op)) { const r = act(pid, { t: 'decidir', id: p.id, opcion: op }); if (r.ok) cuenta(stats.acciones, (adi && op === 'si' && p.titulo !== 'Cuentos de noche' ? 'fortaleza:Adí paga ' : 'explota:') + p.titulo + ':' + op); return r; }
+    }
+    if (!a) { const dis = p.opciones.filter((o) => !o.desactivada); a = { t: 'decidir', id: p.id, opcion: pick(dis).id }; }
     return act(pid, a);
+  };
+
+  // qué tan apetecible es atacar a x (0 = no lo ataca) y por qué
+  const atractivo = (pid, tipo, x) => {
+    const A = e.jugadores[pid], D = e.jugadores[x];
+    if (A.pj === 'B' && ['2', '6'].includes(D.pj) && tipo !== 'duelo' && desarmado(D)) return [R() < 0.1 ? 0.2 : 0, null];   // Yafar quedaría Buscado
+    if (tipo === 'matar' && D.buscado > 0) return [4, 'explota:mata a un Buscado'];
+    if (D.pj === 'B' && tipo !== 'robo') return [3, 'explota:ataca a Yafar (blanco de todos)'];
+    if (A.pj === 'B') return [1 + Math.min(3, D.dinares / 20), 'fortaleza:Yafar ataca con jambiya y destreza' + (A.ciudad === 'Bagdad' ? ' (con su Firmán en Bagdad)' : '')];
+    if (['2', '5'].includes(D.pj) && sinDestreza(D)) return [3, 'explota:ataca a Zein o Ruyán (sin destreza)'];
+    if (tipo === 'robo' && D.pj === '1') return [2.5, 'explota:roba a Nur al Din'];
+    if (tipo === 'robo' && desarmado(D)) return [2.5, 'explota:roba a quien va sin armas'];
+    if (tipo === 'duelo' && A.pj === '1' && (desarmado(D) || sinDestreza(D))) return [2.5, 'fortaleza:Nur reta a duelo a quien va sin armas o sin destreza'];
+    if (tipo === 'duelo' && A.pj === '1' && HONOR.includes(A.ciudad)) return [2, 'fortaleza:Nur reta en su ciudad de honor'];
+    return [1, null];
+  };
+  const objetivoAtaque = (pid, x) => {
+    const ws = x.objetivos.map((o) => atractivo(pid, x.tipo, o)), tot = ws.reduce((a, w) => a + w[0], 0);
+    if (!tot) return [pick(x.objetivos), null];
+    let r = R() * tot; for (let i = 0; i < ws.length; i++) { r -= ws[i][0]; if (r <= 0) return [x.objetivos[i], ws[i][1]]; }
+    return [x.objetivos[x.objetivos.length - 1], ws[ws.length - 1][1]];
+  };
+  const enCiudad = (pid, c) => Object.values(e.jugadores).filter((y) => y.id !== pid && !y.eliminado && y.ciudad === c).length;
+  const ruyanEn = (pid, c) => Object.values(e.jugadores).some((y) => y.pj === '5' && y.id !== pid && !y.eliminado && !y.transito && y.ciudad === c && c !== 'Bagdad' && y.noches > 0);
+  const apuros = (j) => j.herido || j.buscado > 0 || j.dinares < 15;
+  // Metas largas (Jorge, 19 de noviembre: «tus bots están tontos»): R52 (forjar en Damasco, todos menos Yafar) y la cadena de los
+  // caballos mongoles (R50 en Samarcanda → vender la yegua en Estambul → se venden los mongoles). Cada bot decide al inicio si las persigue.
+  const metas = {};
+  const meta = (pid) => {
+    const j = e.jugadores[pid];
+    const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
+    if (tieneItem(j, 'yegua')) return 'Estambul';
+    if (m.forja && j.pj !== 'B' && !tieneItem(j, 'cimitarra') && !j.extra?.forja && j.dinares >= 20) return 'Damasco';
+    if (m.estepa && !(j.retosHechos || []).includes('R50') && j.dinares >= 115) return 'Samarcanda';
+    return null;
+  };
+  const porViaje = (pid, x) => {
+    const j = e.jugadores[pid];
+    { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return 'meta:' + (m === 'Estambul' ? 'lleva la yegua a Estambul' : m === 'Damasco' ? 'va a Damasco a forjar' : 'va a Samarcanda por yeguas'); }
+    if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return 'explota:viaja a donde está Ruyán';
+    if (j.pj === '6' && x.destino === 'Bagdad' && apuros(j)) return 'fortaleza:Zubayda vuelve a Bagdad (harén)';
+    if (j.pj === 'B' && enCiudad(pid, x.destino) >= 2) return 'fortaleza:Yafar va donde hay gente (comisión)';
+    return undefined;
+  };
+  const porReto = (pid, x) => {
+    const pj = e.jugadores[pid].pj;
+    if (pj === '3' && x.id === 'R26') return 'fortaleza:Anís repite R26';
+    if (pj === '4' && ['R47', 'R48', 'R55'].includes(x.id)) return 'fortaleza:Jamil usa su persa (' + x.id + ')';
+    if (pj === '2' && ['R46', 'R49', 'R55'].includes(x.id)) return 'fortaleza:Zein usa su árabe (' + x.id + ')';
+    return undefined;
+  };
+  const porPj = (pid, x) => {
+    const j = e.jugadores[pid];
+    if (x.sub === 'haren') return apuros(j) ? 'fortaleza:Zubayda se refugia en el harén' : 'fortaleza:Zubayda pasa la noche en el harén';
+    if (x.sub === 'honra') return 'fortaleza:Jamil propone versos en honra';
+    if (x.sub === 'satira') return 'fortaleza:Jamil canta sátira';
+    if (x.sub === 'cuentos') return 'fortaleza:Adí cuenta cuentos';
+    return undefined;
+  };
+  const pesoAccion = (pid, x, base) => {
+    const j = e.jugadores[pid];
+    if (x.k === 'atacar') {
+      const m = Math.max(...x.objetivos.map((o) => atractivo(pid, x.tipo, o)[0]));
+      if (m === 0) return 0.01;
+      let w = base * (m > 1 ? 2.5 : 1);
+      if (j.pj === 'B') w *= j.ciudad === 'Bagdad' ? 3 : 2;                                   // Yafar: jambiya, destreza y Firmán
+      if (j.pj === '1' && x.tipo === 'duelo') w *= 2;                                         // Nur al Din reta a duelo
+      return w;
+    }
+    if (x.k === 'viajar') {
+      if (j.ciudad === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(j, 'caballoMongol') && j.dinares >= 40) return base * 0.05;   // espera a comprar su mongol
+      { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return base * (m === 'Estambul' ? 20 : 6); }   // con la yegua, derecho a Estambul
+      if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return base * 3;
+      if (j.pj === '6' && x.destino === 'Bagdad' && apuros(j)) return base * 3;
+      if (j.pj === 'B') return base * (1 + 0.5 * Math.min(3, enCiudad(pid, x.destino)));
+      if (j.pj === '7') return base * 1.6;                                                     // Adí paga caravanas caras sin miedo
+      return base;
+    }
+    if (x.k === 'reto' && x.id === 'R52') return 2;                                          // forjar acero de Damasco
+    if (x.k === 'reto' && x.id === 'R50') return j.dinares < 105 ? 0.02 : metas[pid]?.estepa ? 2 : 0.6;   // yeguas: solo con dinero para volver a Estambul
+    if (x.k === 'reto' && porReto(pid, x)) return 1.2;
+    if (x.k === 'usar' && j.pj === '3' && j.mano.find((c) => c.uid === x.uid)?.ref === 'OB42') return 0.6;
+    if (x.k === 'asesinos' && j.pj === '6') return 0.6;
+    if (x.k === 'venderFirmanYafar') return 0.02;                                             // Yafar conserva su Firmán
+    if (x.k === 'pj' && x.sub === 'honra') return 0.8;
+    if (x.k === 'pj' && x.sub === 'satira') return 0.3;
+    if (x.k === 'pj' && x.sub === 'cuentos') return 0.6;
+    if (x.k === 'pj' && x.sub === 'haren') return apuros(j) ? 2.5 : base + 0.3 * enCiudad(pid, 'Bagdad');
+    return base;
   };
 
   for (let paso = 0; paso < maxPasos && e.fase !== 'fin'; paso++) {
@@ -79,7 +199,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       else {
         const peso = { tirarDados: 100, cc: 100, viajar: 0.5, atacar: 0.2, reto: 0.35, tesoro: 0.3, esconder: 0.1, recuperar: 0.4, usar: 0.3, asesinos: 0.3, pj: 0.4, terminarTurno: 0.15 };
         const cand = ac.filter((x) => !x.bloqueado);
-        let tot = 0; const w = cand.map((x) => { const p = peso[x.k] ?? 0.1; tot += p; return p; });
+        let tot = 0; const w = cand.map((x) => { const p = pesoAccion(pid, x, peso[x.k] ?? 0.1); tot += p; return p; });
         let r = R() * tot; elegida = cand[0];
         for (let i = 0; i < cand.length; i++) { r -= w[i]; if (r <= 0) { elegida = cand[i]; break; } }
       }
@@ -87,34 +207,96 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       switch (elegida.k) {
         case 'tirarDados': a = { t: 'tirarDados' }; break;
         case 'cc': { const cc = t.ccActual; a = cc?.tipo === 'trivia' ? { t: 'responderCC', opcion: Math.floor(R() * (data.trivias.trivias.find((x) => x.id === cc.id)?.opciones.length || 3)) } : { t: 'resolverMesa', ok: R() < 0.5 }; break; }
-        case 'viajar': a = { t: 'viajar', destino: elegida.destino }; if (e.jugadores[pid].pj === '6' && R() < 0.3) a.servicios = true; break;
-        case 'atacar': a = elegida.tipo === 'duelo' && e.jugadores[pid].herido ? { t: 'terminarTurno' } : { t: 'atacar', tipo: elegida.tipo, objetivo: pick(elegida.objetivos), pedirDinares: 5, pedirNoches: 0 }; break;   // herido, no se arriesga a un duelo
-        case 'reto': a = { t: 'reto', id: elegida.id, sub: elegida.sub }; break;
+        case 'viajar': { a = { t: 'viajar', destino: elegida.destino }; const j = e.jugadores[pid];
+          if (j.pj === '6' && elegida.precio > 0 && j.dinares < elegida.precio) { a.servicios = true; a._por = 'fortaleza:Zubayda paga la caravana con servicios'; }
+          else if (j.pj === '6' && R() < 0.1) a.servicios = true;
+          else a._por = porViaje(pid, elegida); break; }
+        case 'atacar': if (elegida.tipo === 'duelo' && e.jugadores[pid].herido) a = { t: 'terminarTurno' };   // herido, no se arriesga a un duelo
+          else { const [obj, por] = objetivoAtaque(pid, elegida); a = { t: 'atacar', tipo: elegida.tipo, objetivo: obj, pedirDinares: e.jugadores[pid].pj === '1' && HONOR.includes(e.jugadores[pid].ciudad) ? 10 + Math.floor(R() * 11) : 5, pedirNoches: 0, _por: por }; }
+          break;
+        case 'reto': a = { t: 'reto', id: elegida.id, sub: elegida.sub, _por: porReto(pid, elegida) }; break;
         case 'tesoro': a = { t: 'tesoro', sub: elegida.sub, uid: elegida.uid, via: elegida.via }; break;
         case 'esconder': a = { t: 'esconder', monto: 1 + Math.floor(R() * Math.max(1, e.jugadores[pid].dinares - 1)) }; break;
         case 'recuperar': a = { t: 'recuperar' }; break;
-        case 'usar': a = { t: 'usar', uid: elegida.uid, via: elegida.via, destino: elegida.destinos ? pick(elegida.destinos) : undefined, objetivo: elegida.objetivos ? pick(elegida.objetivos) : undefined, deseo: elegida.ifrit ? pick(elegida.ifrit) : undefined }; break;
-        case 'asesinos': a = e.jugadores[pid].dinares >= 6 * Math.max(1, e.ronda) * 35 ? { t: 'asesinos' } : { t: 'terminarTurno' }; break;   // solo si casi seguro le alcanza
-        case 'pj': a = { t: 'pj', sub: elegida.sub, con: elegida.objetivos ? pick(elegida.objetivos) : undefined, precio: 10 }; break;
+        case 'usar': a = { _por: e.jugadores[pid].mano.find((c) => c.uid === elegida.uid)?.ref === 'OB42' && e.jugadores[pid].pj === '3' ? 'fortaleza:Anís usa su disfraz' : undefined, t: 'usar', uid: elegida.uid, via: elegida.via, destino: elegida.destinos ? pick(elegida.destinos) : undefined, objetivo: elegida.objetivos ? pick(elegida.objetivos) : undefined, deseo: elegida.ifrit ? pick(elegida.ifrit) : undefined }; break;
+        case 'asesinos': { const zub = e.jugadores[pid].pj === '6';   // solo si casi seguro le alcanza (a Zubayda le cuestan la mitad)
+          a = e.jugadores[pid].dinares >= 6 * Math.max(1, e.ronda) * 35 / (zub ? 2 : 1) ? { t: 'asesinos', _por: zub ? 'fortaleza:Zubayda contrata a los Asesinos a mitad de precio' : undefined } : { t: 'terminarTurno' }; break; }
+        case 'pj': a = { _por: porPj(pid, elegida), t: 'pj', sub: elegida.sub, con: elegida.objetivos ? pick(elegida.objetivos) : undefined, precio: 10 }; break;
         case 'terminarTurno': a = { t: 'terminarTurno' }; break;
         default: a = { t: 'terminarTurno' };
       }
       if (R() < 0.12 && !t.ccActual && t.fase !== 'ingreso') {                                  // compras y ventas al azar
         const j = e.jugadores[pid];
         const q = R();
+        const ahorra = (x) => metas[x]?.estepa && !(e.jugadores[x].retosHechos || []).includes('R50') && R() < 0.97;   // junta para las yeguas
         // el mercado vende fuera de tu turno: compra otro jugador (Yafar NPC, en el suyo)
         const fuera = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc);
         const comprador = e.jugadores[pid].npc ? pid : fuera.length ? pick(fuera) : pid;
-        if (q < 0.4) { const o = pick(data.objetos.mazo); const r0 = act(comprador, { t: 'comprar', id: o.id }); cuenta(stats.acciones, 'comprar:' + (r0.ok ? 'ok' : 'x')); }
+        if (ahorra(comprador)) { /* no gasta */ } else if (q < 0.4) { const o = pick(data.objetos.mazo); const r0 = act(comprador, { t: 'comprar', id: o.id }); cuenta(stats.acciones, 'comprar:' + (r0.ok ? 'ok' : 'x')); }
         else if (q < 0.6) { const ref = e.jugadores[comprador].ciudad === 'Basra' && R() < 0.5 ? 'burro' : pick(['arco', 'flechas', 'alfanje', 'cimitarra', 'vino', 'buza', 'cesta']); const r0 = act(ref === 'ifrit' ? pid : comprador, { t: 'comprar', ref }); cuenta(stats.acciones, 'comprarRef:' + (r0.ok ? 'ok' : 'x')); }
         else if (q < 0.8 && j.mano.length) { const c = pick(j.mano); const r0 = act(pid, { t: 'vender', uid: c.uid }); cuenta(stats.acciones, 'vender:' + (r0.ok ? 'ok' : 'x')); }
         else if (q < 0.9) { const o = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && e.jugadores[x].ciudad === j.ciudad); if (o.length) { const r0 = act(pid, { t: 'proponerTrato', con: pick(o), ofrece: { dinares: 3, objetos: j.mano.slice(0, 1).map((c) => c.uid) }, pide: { dinares: 1, objetos: [] } }); cuenta(stats.acciones, 'trato:' + (r0.ok ? 'ok' : 'x')); } }
         else { const r0 = act(pid, { t: 'comprar', ref: 'firman' }); cuenta(stats.acciones, 'firman:' + (r0.ok ? 'ok' : 'x')); }
       }
+      if (R() < 0.15 && !t.ccActual && t.fase !== 'ingreso') {                                  // compras útiles para los retos
+        const fuera = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc && !e.jugadores[x].transito && !e.jugadores[x].perdido);
+        const pesos = fuera.map((x) => (e.jugadores[x].pj === '7' ? 3 : 1));
+        let rb = R() * pesos.reduce((a, w) => a + w, 0), b = fuera.length ? fuera[fuera.length - 1] : pid;
+        for (let i = 0; i < fuera.length; i++) { rb -= pesos[i]; if (rb <= 0) { b = fuera[i]; break; } }
+        { const enEst = fuera.filter((x) => e.jugadores[x].ciudad === 'Estambul' && e.jugadores[x].dinares >= 40 && !tieneItem(e.jugadores[x], 'caballoMongol'));
+          if (e.mongoles?.habilitado && e.mongoles.stock > 0 && enEst.length && R() < 0.6) b = pick(enEst); }   // hay caballos mongoles: va por uno
+        const jb = e.jugadores[b], c = jb.ciudad, op = [];
+        if (jb.pj === '7' && desarmado(jb) && jb.dinares >= 25) op.push([{ ref: 'jambiya' }, 3]);
+        if (jb.pj === '7' && !tieneItem(jb, 'arco') && jb.dinares >= 30) op.push([{ ref: 'arco' }, 2]);
+        if (jb.pj === '7' && ['Basra', 'Aleppo', 'Damasco'].includes(c) && !['burro', 'camello', 'caballo', 'caballoMongol'].some((r) => tieneItem(jb, r)) && jb.dinares >= 35) op.push([{ ref: 'burro' }, 3]);
+        if (jb.pj === 'B' && !tieneItem(jb, 'arco') && jb.dinares >= 25) op.push([{ ref: 'arco' }, 2]);
+        const hecho = (id) => (jb.retosHechos || []).includes(id);
+        if (!tieneItem(jb, 'citricos') && jb.dinares >= 10) op.push([{ ref: 'citricos' }, 3]);
+        if (DATILES.ciudades.includes(c) && !hecho(DATILES.reto) && !tieneItem(jb, 'almudDatiles') && jb.dinares >= 6) op.push([{ ref: 'almudDatiles' }, 2]);
+        if (c === SHATRANJ.ciudad && !tieneItem(jb, 'shatranj') && jb.dinares >= SHATRANJ.precio + 5) op.push([{ ref: 'shatranj' }, 2]);
+        if (c === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(jb, 'caballoMongol') && jb.dinares >= 40) op.push([{ ref: 'caballoMongol' }, 4]);
+        if ((c === 'Basra' || c === 'Bagdad') && !tieneItem(jb, 'cesta') && !hecho('R24')) op.push([{ ref: 'cesta' }, 1.5]);
+        for (const [id, w] of Object.entries(OBJ_RETOS)) { const o = data.objetos.mazo.find((x) => x.id === id); if (o && seVendeEn(o, c) && !tieneObj(jb, id) && jb.dinares >= o.valor + 5) op.push([{ id }, w]); }
+        if (op.length && !(metas[b]?.estepa && !(jb.retosHechos || []).includes('R50') && R() < 0.97)) {
+          let r = R() * op.reduce((a, x) => a + x[1], 0), q = op[0][0];
+          for (const [x, w] of op) { r -= w; if (r <= 0) { q = x; break; } }
+          const r0 = act(b, { t: 'comprar', ...q }); cuenta(stats.acciones, 'util:' + (q.ref || q.id) + ':' + (r0.ok ? 'ok' : 'x'));
+          if (r0.ok && jb.pj === '7') cuenta(stats.acciones, 'fortaleza:Adí compra con su dinero (' + (q.ref || q.id) + ')');
+          if (r0.ok && jb.pj === 'B' && q.ref === 'arco') cuenta(stats.acciones, 'fortaleza:Yafar compra el arco (lo usa en Bagdad con su Firmán)');
+        }
+      }
+      {                                                                                          // y vende lo que conviene vender ahí (en su turno)
+        const j = e.jugadores[pid], c = j.ciudad;
+        const sh = SHATRANJ.venta[c] && tieneItem(j, 'shatranj'), da = c === DATILES.ciudadVenta && tieneItem(j, 'almudDatiles'), ye = c === 'Estambul' && tieneItem(j, 'yegua');
+        if ((sh || da || ye) && R() < (ye ? 0.9 : 0.5) && !t.ccActual && t.fase !== 'ingreso') { const k = ye ? 'yegua' : sh ? 'shatranj' : 'almudDatiles'; const r0 = act(pid, { t: 'vender', uid: tieneItem(j, k).uid }); cuenta(stats.acciones, 'utilVende:' + k + ':' + (r0.ok ? 'ok' : 'x')); }
+      }
+      if (!Object.keys(e.tratos).length && !t.ccActual) {
+        const j = e.jugadores[pid], aqui = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc && !e.jugadores[x].transito && e.jugadores[x].ciudad === j.ciudad);
+        const dueños = aqui.filter((x) => tieneItem(e.jugadores[x], 'dadosCairo') || tieneItem(e.jugadores[x], 'dadosPersia'));
+        if (dueños.length && j.dinares >= 50 && R() < (j.pj === '7' ? 0.15 : 0.05)) {                    // comprarle los dados a Zein o a Anís
+          const d = pick(dueños), D = e.jugadores[d], c = tieneItem(D, 'dadosCairo') || tieneItem(D, 'dadosPersia');
+          const r0 = act(pid, { t: 'proponerTrato', con: d, ofrece: { dinares: 40, objetos: [] }, pide: { dinares: 0, objetos: [c.uid] } });
+          if (r0.ok) cuenta(stats.acciones, j.pj === '7' ? 'fortaleza:Adí ofrece comprar los dados' : 'explota:ofrece comprar los dados');
+        } else if (j.pj === '5' && j.dinares < 10 && j.noches >= 60 && aqui.length && R() < 0.15) {        // Ruyán corto de dinares vende noches
+          const r0 = act(pid, { t: 'proponerTrato', con: pick(aqui), ofrece: { dinares: 0, noches: 20, objetos: [] }, pide: { dinares: 10, objetos: [] } });
+          if (r0.ok) cuenta(stats.acciones, 'fortaleza:Ruyán ofrece 20 noches por 10 dinares');
+        }
+      }
+      if (e.jugadores[pid].pj === '2' && e.jugadores[pid].dinares < 10 && tieneItem(e.jugadores[pid], 'dadosCairo') && !t.ccActual && t.fase !== 'ingreso' && R() < 0.1) {   // Zein en apuros vende sus dados
+        const r0 = act(pid, { t: 'vender', uid: tieneItem(e.jugadores[pid], 'dadosCairo').uid }); if (r0.ok) cuenta(stats.acciones, 'fortaleza:Zein vende los Dados del Cairo en apuros');
+      }
       const tr = Object.values(e.tratos);
-      if (tr.length) { const x = tr[0]; act(x.con, { t: 'responderTrato', id: x.id, ok: R() < 0.7 }); }
+      if (tr.length) {
+        const x = tr[0], D = e.jugadores[x.con], uids = x.pide?.objetos || [];
+        const pideDados = uids.some((u) => D?.mano.some((c) => c.uid === u && (c.ref === 'dadosCairo' || c.ref === 'dadosPersia')));
+        const r0 = act(x.con, { t: 'responderTrato', id: x.id, ok: R() < (pideDados ? 0.35 : 0.7) });
+        if (r0.ok && pideDados && !D.mano.some((c) => uids.includes(c.uid))) cuenta(stats.acciones, 'explota:vende sus dados en un trato');
+        if (r0.ok && e.jugadores[x.de]?.pj === '5' && x.ofrece?.noches && !e.tratos[x.id] && e.jugadores[x.de].extra) { /* el trato se cerró o se rechazó */ }
+      }
+      const por = a._por; delete a._por;
       const r = act(pid, a);
       cuenta(stats.acciones, a.t + (a.sub ? ':' + a.sub : '') + ':' + (r.ok ? 'ok' : 'x'));
+      if (r.ok && por) cuenta(stats.acciones, por.startsWith('meta:') ? 'fortaleza:' + por.slice(5) : por);
       if (!r.ok) {
         cuenta(stats.errores, a.t + ':' + r.error);
         if (fin) { const r2 = act(pid, { t: 'terminarTurno' }); if (!r2.ok) cuenta(stats.errores, 'FIN:' + r2.error); }

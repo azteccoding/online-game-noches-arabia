@@ -3,7 +3,7 @@ import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir,
-ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, } from './base.js';
+ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
 // solo entre sus 5 ciudades (fuera de ellas muere), no termina el turno, carga, vive 2 turnos y solo lo compra el mercado de Estambul,
@@ -114,11 +114,11 @@ const dobleCairo = (e, ciudad) => (e.mods.oroMali && ciudad === 'El Cairo' ? 2 :
 export const precioFirman = (j) => (j.extra.joyaVisir ? 45 : 55);
 // Establo de Bagdad (Jorge, punto 13): caballo, burro y camello se venden en Bagdad por 60, 20 y 50 dinares; quien esté en Bagdad
 // los compra después por 10 dinares más. El animal conserva su edad. Yafar no compra burros.
-// Jorge (10 de noviembre): caballo, burro o camello se venden en el mercado de cualquier ciudad a 10 dinares y ahí se revenden a 10;
+// Jorge (10 de noviembre): caballo, burro o camello se venden en el mercado de cualquier ciudad a 10 dinares y ahí se revenden a 10 (Jorge, 19 de noviembre: caballo y camello a 45);
 // quien lo compra lo recibe con todos sus turnos de vida (como recién comprado).
 // Jorge (10 de noviembre): el burro se vende al mercado por 15 («por desnutrido») y otro lo compra por 35 con su vida completa; (Jorge, 19 de noviembre: ahora 25 y 2 turnos)
-// caballo y camello se venden a 10 y se revenden a 10 (no tienen precio de compra: son premios de reto).
-export const VENTA_ANIMAL_BAGDAD = { caballo: 10, burro: 15, camello: 10 }, REVENTA_ANIMAL = { caballo: 10, burro: 25, camello: 10 };   // Jorge (19 de noviembre): el burro se revende a 25 con sus 2 turnos
+// caballo y camello se venden a 10 y se revenden a 45 (Jorge, 19 de noviembre; no tienen precio de compra: son premios de reto).
+export const VENTA_ANIMAL_BAGDAD = { caballo: 10, burro: 15, camello: 10 }, REVENTA_ANIMAL = { caballo: 45, burro: 25, camello: 45 };   // Jorge (19 de noviembre): el burro se revende a 25 con sus 2 turnos; caballo y camello, a 45
 // Jorge (10 de noviembre): la alfombra mágica solo se vende en Samarcanda o Isfahán (precio por confirmar con Jorge).
 export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 20 };   // Jorge (10 de noviembre): 20 dinares y se deshace (nadie la revende)
 // Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
@@ -139,6 +139,14 @@ export function comprar(data, e, pid, a) {
     if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
     j.dinares -= p; e.firmanes--; j.extra.joyaVisir = false; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'F1', pub: true });
     log(e, `${j.nombre} compra un Firmán del Califa.`, { pid }); return ok();
+  }
+  if (a.ref === 'shatranj') {                                                                           // Shatranj (Jorge, 19 de noviembre)
+    if (j.ciudad !== SHATRANJ.ciudad) return err('El Shatranj solo lo vende el mercado de India.');
+    if (shatranjEnIndia(e) <= 0) return err(`Ya no quedan Shatranj en India: solo hay ${SHATRANJ.stock} en todo el juego.`);
+    if (j.dinares < SHATRANJ.precio) return err(`Cuesta ${SHATRANJ.precio} dinares.`);
+    if (!tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);
+    j.dinares -= SHATRANJ.precio; e.shatranj = shatranjEnIndia(e) - 1; darItem(e, j, 'shatranj');
+    log(e, `${j.nombre} compra un Shatranj (ajedrez) en el mercado de India por ${SHATRANJ.precio} dinares.`, { pid }); return ok();
   }
   if (a.ref === 'alfombraIsfahan') {                                                                    // Alfombras de Isfahán (Jorge, 18 de noviembre)
     const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);
@@ -340,6 +348,12 @@ export function vender(data, e, pid, a) {
     if (ciudad !== 'Bagdad') return err('Las especias se venden en Bagdad (30 dinares, sin impuesto).');
     quitarCarta(j, c.uid); j.dinares += 30; log(e, `${j.nombre} vende un fardo de especias en Bagdad por 30 dinares.`, { pid }); return ok();
   }
+  if (c.ref === 'shatranj') {                                                                           // Jorge (19 de noviembre): al venderlo deja de existir
+    const p = SHATRANJ.venta[ciudad];
+    if (!p) return err('El Shatranj solo lo compran en Isfahán (25), Bagdad (30) o Andalucía (35).');
+    quitarCarta(j, c.uid); j.dinares += p;
+    log(e, `${j.nombre} vende un Shatranj (ajedrez) en ${ciudad} por ${p} dinares; ese tablero ya no vuelve a la venta.`, { pid }); return ok();
+  }
   if (c.ref === 'alfombraIsfahan') {                                                                    // vuelve a la venta en ese mercado (Jorge, 18 de noviembre)
     const p = precioAlfombraVenta(ciudad); quitarCarta(j, c.uid); j.dinares += p; moverAlfombras(e, ciudad, 1);
     log(e, `${j.nombre} vende una alfombra de Isfahán al mercado de ${ciudad} por ${p} dinares.`, { pid }); return ok();
@@ -400,6 +414,8 @@ export function tienda(data, e, pid) {
   { const pt = precioTinta(e, j.ciudad);                            // Frasco con tinta de pulpo (Jorge, 17 de noviembre)
     if (pt || j.ciudad === 'Bagdad') r.push({ ref: 'tintaPulpo', nombre: ITEMS.tintaPulpo.nombre, tipo: 'Objeto original', texto: ITEMS.tintaPulpo.texto, precio: pt ? pt.precio : TINTA.bagdad, stock: pt && pt.stock !== Infinity ? pt.stock : undefined,
       puede: !!pt && j.dinares >= pt.precio && !lleno, motivo: !pt ? motivoTinta(e, j.ciudad) : lleno ? MSJ_COMPRA_LLENO : j.dinares < pt.precio ? 'No te alcanza' : undefined }); }
+  if (j.ciudad === SHATRANJ.ciudad) { const n = shatranjEnIndia(e), p = SHATRANJ.precio;   // Shatranj (Jorge, 19 de noviembre)
+    r.push({ ref: 'shatranj', nombre: ITEMS.shatranj.nombre, tipo: 'Objeto original', texto: ITEMS.shatranj.texto, precio: p, stock: n, puede: n > 0 && j.dinares >= p && !lleno, motivo: n <= 0 ? `Agotado: solo hay ${SHATRANJ.stock} en todo el juego` : lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   { const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);   // Alfombras de Isfahán (Jorge, 18 de noviembre)
     if (n > 0) r.push({ ref: 'alfombraIsfahan', nombre: ITEMS.alfombraIsfahan.nombre, tipo: 'Objeto original', texto: ITEMS.alfombraIsfahan.texto, precio: p, stock: n, puede: j.dinares >= p && !lleno, motivo: lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
@@ -451,6 +467,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'pergamino') return ciudad === 'Damasco' ? 30 : null;
     if (c.ref === 'especias') return ciudad === 'Bagdad' ? 30 : null;
     if (c.ref === 'alfombraIsfahan') return precioAlfombraVenta(ciudad);
+    if (c.ref === 'shatranj') return SHATRANJ.venta[ciudad] ?? null;
     if (c.ref === 'almudDatiles') return ciudad === DATILES.ciudadVenta ? DATILES.venta : null;
     if (['esclava', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, sal: 5, cesta: 2 }[c.ref] / 2);
     const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
@@ -489,6 +506,7 @@ export function dondeVender(data, e, pid, c) {
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
   if (c.ref === 'vino') return 'En cualquier ciudad menos Bagdad, a la mitad de su valor menos el impuesto.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3: tiras un dado y te compran tantos como salga (los demás, en otro turno).';
+  if (c.ref === 'shatranj') return `Solo en Isfahán (${SHATRANJ.venta['Isfahán']}), Bagdad (${SHATRANJ.venta.Bagdad}) o Andalucía (${SHATRANJ.venta['Andalucía']} dinares); al venderlo deja de existir. La tinta de pulpo lo estropea.`;
   if (c.ref === 'tintaPulpo') return `Solo en Andalucía o Samarcanda, por ${TINTA.venta} dinares (ahí se revende en ${TINTA.reventa}). Si te roban, se rompe y destruye tus papeles.`;
   if (c.ref === 'yegua') return 'Solo el mercado de Estambul: 150 dinares por yegua. O a otro jugador en un trato, en cualquier ciudad, al precio que acuerden.';
   if (c.ref === 'caballoMongol') return 'Solo en Estambul, por 2 dinares (ahí vuelve a la venta): en las demás ciudades nadie lo quiere.';
@@ -768,12 +786,13 @@ function morirAnimal(data, e, pid, c) {
 }
 
 // ---------------------------------------------------------------- caducidades (Jorge, 10 de noviembre)
-// Dados del Cairo y Dados de Persia: duran 3 rondas desde que su dueño actual los recibe (si cambian de dueño, el contador vuelve a
-// empezar); al caducar, «Un ifrit se robó tus dados» y salen de la partida. Ejército de Kanmakán: dura 2 turnos de su dueño; pasar por
+// Dados del Cairo y Dados de Persia: duran 5 turnos de su dueño actual (Jorge, 19 de noviembre; antes 3 rondas), contando el turno en
+// que los recibe si es el suyo, o si no el siguiente (si cambian de dueño, el contador vuelve a empezar); al terminar el 5.º, caducan: «Un ifrit se robó tus dados» y salen de la partida. Ejército de Kanmakán: dura 2 turnos de su dueño; pasar por
 // Isfahán lo renueva por otros 2; si no, se disuelve al acabarse (además de disolverse al pelear, como antes).
-export const DADOS_CADUCAN = ['dadosCairo', 'dadosPersia'], RONDAS_DADOS = 3, TURNOS_KANMAKAN = 2;
+export const DADOS_CADUCAN = ['dadosCairo', 'dadosPersia'], TURNOS_DADOS = 5, TURNOS_KANMAKAN = 2;
 function marcarDueno(c, j, ahora) { if (c.extra?.dueno !== j.id) c.extra = { ...(c.extra || {}), dueno: j.id, desde: ahora }; }
-export const rondasDados = (e, j, c) => Math.max(0, (c.extra?.dueno === j.id ? c.extra.desde : e.ronda) + RONDAS_DADOS - e.ronda);   // rondas que le quedan, contando la actual
+const primerTurnoDados = (e, j) => j.turnos + (e.turno?.pid === j.id ? 0 : 1);   // el turno actual si es el suyo; si no, el siguiente
+export const turnosDados = (e, j, c) => Math.max(0, (c.extra?.dueno === j.id ? c.extra.desde : primerTurnoDados(e, j)) + TURNOS_DADOS - primerTurnoDados(e, j));   // turnos suyos que le quedan, contando el actual (o el próximo)
 export const turnosKanmakan = (j, c) => {
   const desde = c.extra?.dueno === j.id ? c.extra.desde : j.turnos;
   const base = Math.max(desde, j.extra?.isfahanTurno ?? -Infinity);
@@ -784,20 +803,20 @@ export function anotarDuenos(e) {
   for (const j of Object.values(e.jugadores)) {
     if (!j?.mano) continue;
     for (const c of j.mano) {
-      if (c.tipo === 'item' && DADOS_CADUCAN.includes(c.ref)) marcarDueno(c, j, e.ronda);
+      if (c.tipo === 'item' && DADOS_CADUCAN.includes(c.ref)) marcarDueno(c, j, primerTurnoDados(e, j));
       else if (c.tipo === 'especial' && c.ref === 'K1') marcarDueno(c, j, j.turnos);
     }
   }
 }
-export function caducarDados(data, e) {   // al empezar cada ronda
+export function caducarDados(data, e, pid) {   // al terminar cada turno de su dueño
   anotarDuenos(e);
-  for (const j of Object.values(e.jugadores)) {
+  for (const j of [e.jugadores[pid]]) {
     if (!j?.mano || j.eliminado) continue;
     for (const c of j.mano.filter((x) => x.tipo === 'item' && DADOS_CADUCAN.includes(x.ref))) {
-      if (rondasDados(e, j, c) > 0) continue;
+      if (turnosDados(e, j, c) > 1) continue;   // este era su último turno
       quitarCarta(j, c.uid);
       const nom = ITEMS[c.ref].nombre;
-      publicarCarta(e, { id: 'caduca:' + c.ref, deck: 'objeto', titulo: 'Un ifrit se robó tus dados', sub: nom, texto: `Un ifrit se robó tus ${nom}: pasaron ${RONDAS_DADOS} rondas desde que los recibiste y desaparecen de la partida.`, arte: 'ob-magico' }, j.id, [j.id]);
+      publicarCarta(e, { id: 'caduca:' + c.ref, deck: 'objeto', titulo: 'Un ifrit se robó tus dados', sub: nom, texto: `Un ifrit se robó tus ${nom}: pasaron ${TURNOS_DADOS} turnos tuyos desde que los recibiste y desaparecen de la partida.`, arte: 'ob-magico' }, j.id, [j.id]);
       log(e, `Un ifrit se robó los ${nom} de ${j.nombre}: desaparecen de la partida.`, { pid: j.id, aviso: true });
     }
   }

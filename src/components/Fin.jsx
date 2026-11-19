@@ -26,7 +26,9 @@ export default function Fin({ s, onCerrar }) {
         ))}</ul>
         <p className="it">Ronda {s.ronda}. {s.soyHost ? 'Como banco, puedes empezar otra partida con los mismos jugadores (y dejar entrar a nuevos).' : 'El banco puede empezar otra partida con los mismos jugadores.'}</p>
         {s.soyHost && <button className="btn" onClick={() => enviar(ACCIONES.host.reiniciar())}>Nueva partida</button>}
-        {onCerrar && <button className="btn sec" onClick={onCerrar}>Ver el tablero</button>}
+        {/* Jorge (19 de noviembre): tras ganar con 1,001 noches, el banco o quien ganó puede volver a la partida y seguir jugando */}
+        {s.puedeVolver ? <button className="btn sec" onClick={() => { enviar(ACCIONES.volverPartida()); onCerrar?.(); }}>Volver a la partida</button>
+          : onCerrar && <button className="btn sec" onClick={onCerrar}>Ver el tablero</button>}
       </div>
     </div>
   );

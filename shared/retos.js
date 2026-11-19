@@ -3,7 +3,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
+itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -27,7 +27,9 @@ function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.incl
 // (R48, R49), forjar si ya no tienes cimitarra (R52) y reintentar un reto fallado.
 export const REPETIBLES = ['R4', 'R10', 'R23', 'R24', 'R17', 'R30', 'R39'];
 export const REPITE_AL_VOLVER = ['R8', 'R9'];
-const yaNoSePuede = (j, id) => hecho(j, id) && !REPETIBLES.includes(id) && !(REPITE_AL_VOLVER.includes(id) && !j.extra.rep?.[id]);
+// Jorge (19 de noviembre): Anís puede repetir R26 «Acostarse con Zein en la Giralda» (solo él).
+const repitePorPj = (j, id) => id === 'R26' && j.pj === '3';
+const yaNoSePuede = (j, id) => hecho(j, id) && !REPETIBLES.includes(id) && !repitePorPj(j, id) && !(REPITE_AL_VOLVER.includes(id) && !j.extra.rep?.[id]);
 // Reintentables (Jorge, 8 de noviembre): si fallas uno de estos retos no queda hecho; se vuelve a abrir cuando sales de su ciudad y
 // regresas (como R8 y R9). Si lo logras, queda hecho para siempre. Cada reto marca su fallo con ctx.fallo.
 export const REINTENTABLES = ['R21', 'R28', 'R31', 'R32', 'R33', 'R34', 'R36', 'R38'];
@@ -534,17 +536,19 @@ const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
   if (!tieneItem(j, arma)) return `Necesitas tener ${{ arco: 'un arco', jambiya: 'una jambiya', cimitarra: 'una cimitarra', alfanje: 'un alfanje' }[arma] || arma} para entrenar con ${['jambiya', 'cimitarra'].includes(arma) ? 'ella' : 'él'}.`;
   if (entrenado(j, arma)) return `Ya entrenaste con ${arma}.`;
+  if (!puedeEntrenarArma(j, arma)) return MSJ_SOLO_JAMBIYA;   // Jorge (19 de noviembre)
   return j.dinares >= costo ? null : `Cuesta ${costo} dinares.`;
 };
 T.R18 = { ciudad: 'Isfahán', ciudades: ['Isfahán', 'Samarcanda'], req: reqArma('R18'), run(data, e, pid) { entrenarArma(e, pid, 'R18'); } };
 T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42'), run(data, e, pid) { entrenarArma(e, pid, 'R42'); } };
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
 T.R43 = { ciudad: 'Andalucía', req: reqArma('R43'), run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].destreza ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= DESTREZA.costo; j.destreza = true; j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45)
-  log(e, `${j.nombre} entrena en Estambul: obtiene destreza con armas (+1 en todas las peleas, robos, ataques y duelos) y gana 50 noches.`, { pid });
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid) {
+  const j = e.jugadores[pid]; j.dinares -= DESTREZA.costo; darDestreza(j); j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45); Zein y Ruyán: solo con jambiya
+  log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul: obtiene destreza, pero solo con la jambiya (nunca con otras armas), y gana 50 noches.` : `${j.nombre} entrena en Estambul: obtiene destreza con armas (+1 en todas las peleas, robos, ataques y duelos) y gana 50 noches.`, { pid });
 } };
-T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 30 ? null : 'Cuesta 30 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 30; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
+// Jorge (19 de noviembre): en el reto el velo cuesta 10 dinares (en el mercado sigue a 30).
+T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
   if (x <= 3) { j.noches = Math.max(0, j.noches - 20); ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
@@ -592,7 +596,8 @@ T.R24 = { ciudad: 'Basra', req: (d, e, pid) => { const j = e.jugadores[pid], k =
   if (propia) log(e, `${j.nombre} lleva su propia cesta de manzanas a R24 y paga ${R24.conCesta} dinares.`, { pid });
   nuevaMision(e, pid, { id: 'R24', destino: 'Bagdad', carga: [{ uid: c.uid }], texto: 'Entrega la cesta en Bagdad este turno.' }, 1);
 } };
-T.R26 = { ciudad: 'Andalucía', req: (data, e) => (activos(e).some((x) => e.jugadores[x].pj === '2') ? 'Zein juega: se usan las reglas de Zein (R 10.3).' : null), run(data, e, pid, ctx) {
+// Jorge (19 de noviembre): R26 no depende de si Zein es jugadora; solo quien juega con Zein no puede hacerlo.
+T.R26 = { ciudad: 'Andalucía', req: (data, e, pid) => (e.jugadores[pid].pj === '2' ? 'Zein no puede hacer este reto, por obvias razones.' : null), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R26');
   const r = zeinTirada(data, e, ctx, pid);
   const bendito = !r.salvo && j.pj !== '3' && tieneItem(j, 'bendicionAbuMadyan');
@@ -750,7 +755,7 @@ const motivoTorneo = (e, j) => !tieneItem(j, 'arco') ? 'Necesitas tener un arco 
   : j.extra.murciaTurno != null && j.turnos < j.extra.murciaTurno + TORNEO.cadaTurnos ? 'Podrás volver a participar en tu próximo turno.'
   : j.npc && j.dinares < TORNEO.costo + TORNEO.soborno ? `Yafar NPC soborna a los jueces: necesita ${TORNEO.costo + TORNEO.soborno} dinares.`
   : j.dinares < TORNEO.costo ? `Cuesta ${TORNEO.costo} dinares: sin dinero no hay trato.` : null;
-T.R51 = { ciudad: 'Andalucía', req: (d, e, pid) => motivoTorneo(e, e.jugadores[pid]),
+T.R51 = { ciudad: 'Andalucía', req: (d, e, pid) => (soloJambiya(e.jugadores[pid]) ? MSJ_SOLO_JAMBIYA : motivoTorneo(e, e.jugadores[pid])),   // su premio es destreza en arco
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid];
     if (j.npc) return torneoSoborno(e, pid);   // Yafar NPC siempre soborna
@@ -810,17 +815,45 @@ for (const [id, I] of Object.entries(IDIOMAS)) {
       log(e, `${j.nombre} se inscribe a clases de ${I.idioma} en ${I.ciudad}: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
     } };
 }
+// R55 «Investigar el fuego griego» (Jorge, 19 de noviembre): en Estambul, si ya hablas árabe y persa. Igual que las clases de idiomas:
+// 5 dinares y 1 dado con botón (par, 1 turno; impar, 2), sin salir de Estambul y con la acción principal en el estudio. Al terminar
+// ganas 35 noches (Jorge, 19 de noviembre) y eres «Polímata»: cobras 12 dinares más al iniciar tu turno en Bagdad, Estambul, El Cairo o Andalucía. Una vez por jugador; Yafar NPC no.
+export const POLIMATA = { costo: 5, ciudad: 'Estambul', ingreso: 12, noches: 35, ciudades: ['Bagdad', 'Estambul', 'El Cairo', 'Andalucía'] };
+T.R55 = { ciudad: POLIMATA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid];
+    return j.npc ? 'Yafar NPC no toma clases.' : j.extra?.polimata ? 'Ya eres polímata.' : !(hablaIdioma(j, 'árabe') && hablaIdioma(j, 'persa')) ? 'Necesitas hablar árabe y persa (retos R47, en Yemen, y R46, en Isfahán).' : j.dinares < POLIMATA.costo ? `Las clases cuestan ${POLIMATA.costo} dinares: sin dinero no hay trato.` : null; },
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid]; j.dinares -= POLIMATA.costo; hacer(e, pid, 'R55');
+    const [x] = ctx.t(`${j.nombre}: investigar el fuego griego (par, 1 turno; impar, 2)`, 1);
+    const n = x % 2 === 0 ? 1 : 2;
+    j.extra.estudio = { idioma: 'el fuego griego', ciudad: POLIMATA.ciudad, desde: j.turnos, hasta: j.turnos + n, polimata: true };
+    ctx.say(`Pagas ${POLIMATA.costo} dinares. Te quedas ${n === 1 ? '1 turno' : '2 turnos'} en Estambul investigando el fuego griego: no puedes salir y tu acción principal se va en el estudio.`);
+    log(e, `${j.nombre} empieza a investigar el fuego griego en Estambul: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
+  } };
+export function ingresoPolimata(e, pid) {
+  const j = e.jugadores[pid];
+  if (!j?.extra?.polimata || !POLIMATA.ciudades.includes(j.ciudad)) return 0;
+  j.dinares += POLIMATA.ingreso;
+  log(e, `${j.nombre}, polímata, cobra ${POLIMATA.ingreso} dinares más en ${j.ciudad} por su saber.`, { pid });
+  return POLIMATA.ingreso;
+}
 export function turnoEstudio(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, s = j?.extra?.estudio;
   if (!s || !t) return;
   if (j.ciudad !== s.ciudad) { j.extra.estudio = null; return; }   // si un evento lo sacó de la ciudad, pierde las clases
   t.principal = true; t.estudiando = true;
-  log(e, `${j.nombre} pasa este turno en clases de ${s.idioma} (${j.turnos - s.desde} de ${s.hasta - s.desde}).`, { pid });
+  log(e, `${j.nombre} pasa este turno ${s.polimata ? 'investigando el fuego griego' : 'en clases de ' + s.idioma} (${j.turnos - s.desde} de ${s.hasta - s.desde}).`, { pid });
 }
 export function finEstudio(data, e, pid) {
   const j = e.jugadores[pid], s = j?.extra?.estudio;
   if (!s || j.turnos < s.hasta) return;
-  j.extra.estudio = null; (j.extra.idiomas ||= []).push(s.idioma);
+  j.extra.estudio = null;
+  if (s.polimata) {   // R55
+    j.extra.polimata = true; j.noches += POLIMATA.noches;   // el tope de 1,001 lo aplica topeNoches al cerrar la acción o el tick
+    publicarCarta(e, { id: 'polimata', deck: 'reto', titulo: 'Polímata', sub: 'Habilidad · R55', texto: `Terminaste de investigar el fuego griego: ganas ${POLIMATA.noches} noches y eres polímata. Desde ahora cobras ${POLIMATA.ingreso} dinares más al iniciar tu turno en Bagdad, Estambul, El Cairo o Andalucía.`, arte: 're' }, pid, [pid]);
+    log(e, `${j.nombre} termina de investigar el fuego griego: gana ${POLIMATA.noches} noches y ya es polímata.`, { pid, aviso: true });
+    return;
+  }
+  (j.extra.idiomas ||= []).push(s.idioma);
   publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
   log(e, `${j.nombre} termina sus clases: ya habla ${s.idioma}.`, { pid, aviso: true });
 }
@@ -853,6 +886,38 @@ export function turnoForja(data, e, pid) {
   }
   t.principal = true; t.forjando = true;
   log(e, `${j.nombre} pasa este turno en la forja de Damasco: su acción principal se va en el acero.`, { pid });
+}
+// R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán
+// otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, quedas entrenado (+1)
+// con el arma que llevas, como en R18, R19, R42 y R43 (si ya lo estás con todas las que llevas, solo las noches), y 10 noches.
+// Si llevas varias armas sin entrenar, eliges cuál antes de tirar. Segundo dado: 1 a 3, el siguiente turno estás libre; 4 a 6, sigues
+// en batalla y pierdes ese turno. Una sola vez por jugador; gasta la acción principal; herido no te alistas; Yafar NPC no lo hace.
+const ARMAS_R54 = ['cimitarra', 'alfanje', 'arco', 'jambiya'];
+T.R54 = { ciudad: 'Estambul', req: (d, e, pid) => { const j = e.jugadores[pid];
+    return j.npc ? 'Yafar NPC no se alista en el ejército del sultán.' : j.herido ? 'Herido no puedes alistarte.' : !tieneArma(d, e, j) ? 'Necesitas llevar un arma (la que sea) para alistarte.' : null; },
+  run(data, e, pid, ctx) {
+    const j = e.jugadores[pid], sin = ARMAS_R54.filter((r) => tieneItem(j, r) && !entrenado(j, r) && puedeEntrenarArma(j, r));   // Zein y Ruyán: solo la jambiya
+    hacer(e, pid, 'R54');
+    if (sin.length > 1) {   // primero se elige el arma; los dados, después
+      pedir(e, { tipo: 'reto', para: [pid], titulo: 'Combatir a los húngaros', texto: 'Llevas varias armas sin entrenar. Si sacas par en el primer dado, ¿con cuál quedas entrenado?',
+        opciones: sin.map((r) => ({ id: r, texto: ITEMS[r]?.nombre || r })), porDefecto: sin[0], cont: { fn: 'r54.arma', args: {} } });
+      return;
+    }
+    combateR54(e, pid, ctx, sin[0] || null);
+  } };
+registrar('r54.arma', (data, e, args, resp) => { const ctx = nuevoCtx(e, resp.pid, 'R54'); combateR54(e, resp.pid, ctx, resp.opcion || null); ctx.fin(); });
+function combateR54(e, pid, ctx, arma) {
+  const j = e.jugadores[pid];
+  const [x] = ctx.t(`${j.nombre}: el combate (impar, herido y 25 noches y 5 dinares; par, entrenado${arma ? ' con ' + arma : ''} y 10 noches)`, 1);
+  const [y] = ctx.t(`${j.nombre}: la batalla (1 a 3, libre el siguiente turno; 4 a 6, sigue en batalla)`, 1);
+  if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
+  else {
+    if (arma) (j.extra.entrenado ||= {})[arma] = true;
+    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${arma ? `; quedas entrenado con ${arma} (+1 con ella en las peleas)` : soloJambiya(j) ? ' (solo puedes entrenar la jambiya)' : ' (ya estabas entrenado con tus armas)'}.`);
+  }
+  if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }
+  else ctx.say(`${y}: terminas tu servicio; el siguiente turno estás libre.`);
+  log(e, `${j.nombre} combate a los húngaros con el ejército del sultán otomano.`, { pid });
 }
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {

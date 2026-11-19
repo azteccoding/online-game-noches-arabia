@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -90,12 +90,19 @@ export function unirTarde(e, { nombre: nom, token }) {
   e.jugadores[id] = { ...nuevoJugador(e, id, nom, token), tarde: true };           // aún no está en el orden: entra cuando elige personaje
   return id;
 }
+// Jorge (19 de noviembre): idiomas de inicio (Jamil, persa; Zein, árabe: el mismo marcador que dejan R46 y R47) y objetos de
+// inicio (Anís: un Disfraz de mendigo, que no sale de ningún mercado).
+function inicioExtra(e, j, p) {
+  if (p.idiomasInicio?.length) j.extra.idiomas = [...new Set([...(j.extra.idiomas || []), ...p.idiomasInicio])];
+  for (const ref of p.objetosInicio || []) j.mano.push({ uid: uid(e), tipo: 'objeto', ref, pub: true });
+}
 function incorporarTarde(data, e, pid) {
   const j = e.jugadores[pid], p = pjDe(data, j.pj);
   if (!puedeUnirse(e)) return err('La primera ronda ya terminó: ya no se puede entrar a esta partida.');
   j.dinares = p.inicio.dinares; j.noches = p.inicio.noches || 0; j.ciudad = 'Bagdad'; j.visitadas = ['Bagdad']; j.ciudadPrevia = null; j.destreza = !!p.destreza; if (p.entrenado?.length) j.extra.entrenado = Object.fromEntries(p.entrenado.map((x) => [x, true]));   // Nur al Din: cimitarra entrenada de inicio
   for (const arma of p.arma || []) j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true });
   for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });   // Zein: Dados del Cairo
+  inicioExtra(e, j, p);
   { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
   j.tarde = false; j.listo = true;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
@@ -126,7 +133,7 @@ function prepararMazos(data, e) {
   const botin = [], guardadas = [];
   e.stock = {};
   for (const o of data.objetos.mazo) {                                                                       // R 15.2: Botín 47 cartas, Mercado 89
-    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (POR_CIUDAD[o.id]) { e.stock[o.id] = POR_CIUDAD[o.id].length * copiasPorCiudad(o.id); (e.stockCiudad ||= {})[o.id] = Object.fromEntries(POR_CIUDAD[o.id].map((c) => [c, copiasPorCiudad(o.id)])); continue; }   // pala y linterna: una en cada mercado, sin Botín (Jorge, 10 de noviembre)
+    if (o.sinVenta) for (let i = 0; i < o.copias; i++) botin.push(o.id); else if (POR_CIUDAD[o.id]) { if (EN_BOTIN.includes(o.id)) botin.push(o.id); e.stock[o.id] = POR_CIUDAD[o.id].length * copiasPorCiudad(o.id); (e.stockCiudad ||= {})[o.id] = Object.fromEntries(POR_CIUDAD[o.id].map((c) => [c, copiasPorCiudad(o.id)])); continue; }   // pala y linterna: una en cada mercado, sin Botín (Jorge, 10 de noviembre)
     else { botin.push(o.id); e.stock[o.id] = Math.max(1, o.copias - 2); for (let i = e.stock[o.id]; i < o.copias - 1; i++) guardadas.push(o.id); }
   }
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
@@ -219,6 +226,7 @@ function iniciar(data, e) {
     if (j.npc) { j.destreza = false; j.extra.entrenado = { cimitarra: true }; }   // Jorge (12 de noviembre): Yafar NPC empieza sin destreza, solo entrenado en cimitarra
     for (const arma of p.arma || []) { j.mano.push({ uid: uid(e), tipo: 'item', ref: arma, pub: true }); }
     for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });
+    inicioExtra(e, j, p);
   }
   e.caravanas = ['Bagdad>Damasco', 'Damasco>Bagdad', 'Bagdad>Samarcanda'];
   e.fase = 'juego'; e.ronda = 0;
@@ -251,7 +259,6 @@ function empezarRonda(data, e) {
   e.orden = yafarAlFinal(e, e.orden);                                                             // también en partidas guardadas con el orden viejo
   e.ronda++;
   if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
-  OBJ.caducarDados(data, e);   // Jorge (10 de noviembre): los dados duran 3 rondas
   OBJ.reponerMapasJorasan(e);   // Jorge (12 de noviembre): los escribas de Bagdad terminan un mapa del Jorasán
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
@@ -328,7 +335,7 @@ function volver(e, pid) {
 
 function siguienteTurno(data, e, desde) {
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -345,21 +352,25 @@ function cierreRonda(data, e) {
   NPC.finRonda(data, e);
   for (const id of activos(e)) { const j = e.jugadores[id]; if (j.buscado > 0) j.buscado--; if (j.extra.bajoTecho && j.extra.techoRonda !== e.ronda) j.extra.bajoTecho = false; }
   topeNoches(e, data.config.meta);
-  const ganan = activos(e).filter((id) => e.jugadores[id].noches >= data.config.meta);                         // R 2.3, 2.4, 20.6 (regla de la casa: solo cuentan las noches)
-  if (ganan.length) {
+  // Jorge (19 de noviembre): tras «Volver a la partida» (e.trasFin) ya hay ganador: nadie más gana ni pierde por las 1,001 noches.
+  const ganan = e.trasFin ? [] : activos(e).filter((id) => e.jugadores[id].noches >= data.config.meta);         // R 2.3, 2.4, 20.6 (regla de la casa: solo cuentan las noches)
+  // Jorge (19 de noviembre): quien eligió «Seguir jugando» no gana solo al cerrar la ronda (gana con su botón «Ganar ya»); pero si
+  // Yafar NPC llega a las 1,001 y ese jugador las tiene, empate a favor de los jugadores (R 2.4): gana él.
+  const sigue = (id) => !!e.sigueMil?.[id];
+  if (ganan.length && (ganan.some((id) => e.jugadores[id].npc) || ganan.some((id) => !e.jugadores[id].npc && !sigue(id)))) {
     const npcId = ganan.find((id) => e.jugadores[id].npc);
-    const hum = ganan.filter((id) => !e.jugadores[id].npc);
+    const hum = ganan.filter((id) => !e.jugadores[id].npc && (npcId || !sigue(id)));
     if (npcId && !hum.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega primero a las 1,001 noches: los jugadores pierden.'); return ok(); }
     if (npcId && Math.max(...hum.map((id) => e.jugadores[id].noches)) < e.jugadores[npcId].noches) {                  // R 2.4: si ambos llegan, gana quien tenga más noches; empate: ganan los jugadores
       e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1,001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
     }
     const g = hum.slice().sort((x, y) => (e.llegoMil?.[x] ?? Infinity) - (e.llegoMil?.[y] ?? Infinity)).slice(0, 1);   // punto 15: gana el primero que llegó
-    e.fase = 'fin'; e.ganadores = g; e.turno = null;
+    e.fase = 'fin'; e.ganadores = g; e.turno = null; e.finTurno = null;   // si puede volver a la partida, empieza una ronda nueva
     log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1,001 noches.');
     return ok();
   }
   const hv = humanosVivos(e);                                                                                // R 22.4: último jugador en pie
-  if (!hv.length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; log(e, 'No queda ningún jugador con vida.'); return ok(); }
+  if (!hv.length) { e.fase = 'fin'; if (!e.trasFin) { e.ganadores = []; e.derrota = 'muerte'; } log(e, 'No queda ningún jugador con vida.'); return ok(); }
   if (hv.length === 1 && e.jugadores.npc && !e.solitario && activos(e).length === 2) e.solitario = true;
   return empezarRonda(data, e);
 }
@@ -386,6 +397,7 @@ function iniciarTurno(data, e, id, idx) {
   let ing = p.inicio.ingreso + (data.config.equilibrio?.ingresoExtra?.[j.pj] || 0);   // equilibrio: config.json
   if (e.mods.sinIngreso?.[id]) ing = 0;
   j.dinares += ing;
+  RET.ingresoPolimata(e, id);   // R55 (Jorge, 19 de noviembre): +12 dinares en Bagdad, Estambul, El Cairo o Andalucía
   if (j.pj === '4') j.noches += 5;                                                                       // Jamil: +5 noches por turno (R 10.6)
   const esclavas = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclava');
   for (const c of esclavas) { if (j.dinares >= 1) j.dinares -= 1; j.noches += 5; }
@@ -502,7 +514,7 @@ export function carreraFinTurno(data, e) {
 
 // Regla de la casa: si solo queda un participante vivo (Yafar NPC cuenta), gana al instante, sin esperar al cierre de ronda.
 function ultimoEnPie(e) {
-  if (e.fase !== 'juego' || !e.ronda || (e.participantes || 0) < 2) return false;
+  if (e.fase !== 'juego' || !e.ronda || (e.participantes || 0) < 2 || e.trasFin) return false;   // tras volver a la partida ya hay ganador
   if (e.dados || (e.colaDados || []).length) return false;                 // primero se ven los dados y el desglose; el final, después
   const viv = activos(e);
   if (viv.length !== 1) return false;
@@ -513,6 +525,7 @@ function ultimoEnPie(e) {
     if (!e.victoriaYafar) { e.victoriaYafar = { pid: j.id, ronda: e.ronda }; log(e, `¡${j.nombre} gana: derrotó a Yafar! Puede seguir jugando hasta las 1,001 noches.`, { pid: j.id, aviso: true }); }
     return false;
   }
+  e.finTurno = !j.npc && e.turno ? { turno: e.turno, paso: e.paso ?? null } : null;   // para «Volver a la partida»
   e.fase = 'fin'; e.turno = null; e.pend = null; e.colaPend = []; e.pelea = null; e.finUltimo = true;
   if (j.npc) { e.ganadores = []; e.derrota = 'npc'; log(e, 'Yafar NPC es el último en pie: gana la partida.', { aviso: true }); }
   else { e.ganadores = [j.id]; log(e, `${j.nombre} es el último en pie y gana la partida.`, { pid: j.id, aviso: true }); }
@@ -531,6 +544,7 @@ export function avanzar(data, e) {
     }
     if (ultimoEnPie(e)) return;
     const conDados = !!e.dados || (e.colaDados || []).length > 0;        // el final de la partida espera a que se cierren los dados
+    if (!conDados && e.trasFin && !humanosVivos(e).length) { e.fase = 'fin'; e.turno = null; log(e, 'No queda ningún jugador con vida: la partida termina.'); return; }   // conserva a los ganadores
     if (!conDados && e.solitario && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; log(e, 'Has muerto: Yafar NPC gana la partida.'); return; }
     if (!conDados && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; return; }
     const t = e.turno;
@@ -548,7 +562,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['chat', 'jambiya', 'datiles', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio'];
+const LIBRES = ['chat', 'jambiya', 'datiles', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio', 'ganarYa'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -566,25 +580,60 @@ function tratosSinCiudad(e) {
     if (A && B && (A.ciudad !== B.ciudad || A.transito || B.transito)) { delete e.tratos[id]; log(e, `El trato entre ${A.nombre} y ${B.nombre} se cancela: ya no están en la misma ciudad.`, { pid: tr.de }); }
   }
 }
-// Punto 15 (Jorge): quien llega a 1,001 noches elige en ese momento «Ganar ya» o «Seguir la ronda». Si sigue y al cerrar la ronda hay
-// varios con 1,001, gana el primero que llegó (empate con Yafar NPC: ganan los jugadores, como siempre).
+// Punto 15 (Jorge): quien llega a 1,001 noches elige en ese momento «Ganar ya» o «Seguir jugando».
+// Jorge (19 de noviembre): si sigue, la partida continúa sin fin automático para él (lo pueden robar o matar; otros pueden llegar y se les
+// pregunta lo mismo). Mientras tenga 1,001 noches tiene el botón «Ganar ya» (acción libre, también fuera de su turno). Si baja de 1,001,
+// pierde el botón, y si vuelve a llegar se le pregunta otra vez.
 function llegarAMil(data, e) {
-  if (e.fase !== 'juego') return;
+  if (e.fase !== 'juego' || e.trasFin) return;
   for (const j of Object.values(e.jugadores)) {
-    if (!j.pj || j.npc || j.eliminado || j.noches < data.config.meta || e.llegoMil?.[j.id]) continue;
+    if (!j.pj || j.npc) continue;
+    if (e.llegoMil?.[j.id] && (j.eliminado || j.noches < data.config.meta)) {   // bajó de las 1,001 (o murió): pierde el botón
+      delete e.llegoMil[j.id];
+      if (e.sigueMil?.[j.id]) { delete e.sigueMil[j.id]; if (!j.eliminado) log(e, `${j.nombre} baja de las 1,001 noches: ya no puede ganar ya.`, { pid: j.id }); }
+      continue;
+    }
+    if (j.eliminado || j.noches < data.config.meta || e.llegoMil?.[j.id]) continue;
     (e.llegoMil ||= {})[j.id] = ++e.seq;
     log(e, `¡${j.nombre} llega a las 1,001 noches!`, { pid: j.id, aviso: true });
-    pedir(e, { tipo: 'meta', para: [j.id], titulo: '¡1,001 noches!', texto: 'Llegaste a las 1,001 noches. Puedes ganar ya, o seguir jugando hasta que termine la ronda (si otro también llega, gana quien llegó primero).',
-      opciones: [{ id: 'ganar', texto: 'Ganar ya' }, { id: 'seguir', texto: 'Seguir la ronda' }], porDefecto: 'ganar', limiteMs: 60000, cont: { fn: 'meta.decision', args: {} } });
+    pedir(e, { tipo: 'meta', para: [j.id], titulo: '¡1,001 noches!', texto: 'Llegaste a las 1,001 noches. Puedes ganar ya, o seguir jugando: mientras conserves tus 1,001 noches tendrás el botón «Ganar ya» para terminar la partida cuando quieras (te pueden robar o matar, y si bajas de 1,001 lo pierdes).',
+      opciones: [{ id: 'ganar', texto: 'Ganar ya' }, { id: 'seguir', texto: 'Seguir jugando' }], porDefecto: 'ganar', limiteMs: 60000, cont: { fn: 'meta.decision', args: {} } });
   }
+}
+function ganarYa(e, j) {
+  e.finTurno = e.turno ? { turno: e.turno, paso: e.paso ?? null, dados: e.dados, colaDados: e.colaDados || [], colaPend: e.colaPend || [] } : null;   // para «Volver a la partida»
+  e.fase = 'fin'; e.ganadores = [j.id]; e.turno = null; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null;
+  log(e, `${j.nombre} gana la partida con 1,001 noches.`, { pid: j.id, aviso: true });
 }
 registrar('meta.decision', (data, e, args, resp) => {
   const j = e.jugadores[resp.pid];
   if (!j || e.fase !== 'juego') return;
-  if (resp.opcion === 'seguir') { log(e, `${j.nombre} decide seguir jugando la ronda.`, { pid: j.id }); return; }
-  e.fase = 'fin'; e.ganadores = [j.id]; e.turno = null; e.dados = null; e.colaDados = []; e.colaPend = [];
-  log(e, `${j.nombre} gana la partida con 1,001 noches.`, { pid: j.id, aviso: true });
+  if (resp.opcion === 'seguir') { (e.sigueMil ||= {})[j.id] = true; log(e, `${j.nombre} decide seguir jugando con sus 1,001 noches: puede ganar cuando quiera.`, { pid: j.id }); return; }
+  ganarYa(e, j);
 });
+export const puedeGanarYa = (data, e, pid) => { const j = e.jugadores[pid]; return e.fase === 'juego' && !e.trasFin && !!e.sigueMil?.[pid] && !!j && !j.eliminado && j.noches >= data.config.meta; };
+function accionGanarYa(data, e, pid) {
+  if (!puedeGanarYa(data, e, pid)) return err('Necesitas tener 1,001 noches (y haber elegido seguir jugando) para ganar ya.');
+  if (e.dados || (e.colaDados || []).length) return err('Primero cierra los dados en pantalla.');
+  ganarYa(e, e.jugadores[pid]); return ok();
+}
+// Jorge (19 de noviembre): «Volver a la partida» solo cuando el ganador ya no tiene a nadie vivo (ni jugadores ni Yafar NPC): ganó por
+// último en pie o eligió «Ganar ya» estando solo. Sigue jugando por diversión (moverse, viajar, retos); sus noches no pasan de 1,001
+// y ya no hay nada que ganar ni perder por noches ni por quedar último en pie. Si muere, la partida termina con el mismo ganador.
+export function puedeVolver(e) {
+  const g = (e.ganadores || []).filter((id) => e.jugadores[id] && !e.jugadores[id].npc && !e.jugadores[id].eliminado);
+  return e.fase === 'fin' && g.length > 0 && activos(e).every((id) => g.includes(id));
+}
+function volverPartida(data, e, pid) {
+  if (!puedeVolver(e)) return err('Ya no se puede volver a esta partida.');
+  if (!esHost(e, pid) && !e.ganadores.includes(pid)) return err('Solo el banco o quien ganó puede volver a la partida.');
+  const f = e.finTurno; e.finTurno = null;
+  e.fase = 'juego'; e.trasFin = true; e.finUltimo = false;
+  log(e, `${e.jugadores[pid].nombre} vuelve a la partida: sigue jugando por diversión; ya ganó la partida.`, { pid, aviso: true });
+  if (f && f.turno && e.jugadores[f.turno.pid]) { e.turno = f.turno; e.turno.t0 = e.ahora; e.paso = f.paso; e.dados = f.dados || null; e.colaDados = f.colaDados || []; e.colaPend = f.colaPend || []; return ok(); }
+  e.turno = null; e.paso = null;
+  return empezarRonda(data, e);
+}
 function anotarSaldos(e, antes, data) {
   if (!antes || e.fase === 'lobby') return;
   tratosSinCiudad(e);
@@ -606,6 +655,7 @@ function reducir0(data, e, pid, a, ahora) {
   e.ahora = ahora;
   const j = e.jugadores[pid];
   if (!j) return err('Jugador desconocido.');
+  if (e.fase === 'fin' && a.t === 'volverPartida') { const r = volverPartida(data, e, pid); if (r && r.ok) avanzar(data, e); return r; }
   if (e.fase === 'fin' && !String(a.t).startsWith('host.')) return err('La partida terminó.');
   if (e.pend && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Hay una decisión pendiente: respóndela primero.');
   let r;
@@ -748,6 +798,7 @@ function despachar(data, e, pid, j, a, ahora) {
     }
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
+    case 'ganarYa': return accionGanarYa(data, e, pid);   // Jorge (19 de noviembre): con 1,001 noches, tras «Seguir jugando»
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
     case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); e.bancoFijo = true; if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
     case 'host.eliminar': {
@@ -1318,7 +1369,7 @@ function datosMano(data, e, c) {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
-    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.rondasDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.RONDAS_DADOS} rondas: ${n > 1 ? `les quedan ${n} rondas, contando esta` : 'esta es su última ronda'}.`; }
+    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.TURNOS_DADOS} turnos de su dueño: ${n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'}.`; }
     if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }
@@ -1367,7 +1418,7 @@ export function vista(data, e, pid) {
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
     jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
-      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, conEmir: j.extra?.emir?.ciudad || null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
+      buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, destrezaJambiya: !!j.extra?.destrezaJambiya, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], polimata: !!j.extra?.polimata, estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, conEmir: j.extra?.emir?.ciudad || null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }
@@ -1396,7 +1447,7 @@ export function vista(data, e, pid) {
     sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
     noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo?.extra?.jambiyaOculta,
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, puedeVolver: puedeVolver(e) && (esHost(e, pid) || (e.ganadores || []).includes(pid)), trasFin: !!e.trasFin, puedoGanarYa: puedeGanarYa(data, e, pid), victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),

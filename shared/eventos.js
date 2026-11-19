@@ -103,7 +103,8 @@ function aplicarHistorico0(data, e, id) {
     case 'H5': e.mods.almoravides = true; break;
     case 'H6': e.mods.francos = true; break;
     case 'H7': {
-      const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Aleppo', 'El Cairo']));
+      // Jorge (19 de noviembre): con el Disfraz de mendigo no te reclutan y el disfraz no se gasta.
+      const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Aleppo', 'El Cairo'])).filter((x) => { if (!tieneObj(jug(e, x), 'OB42')) return true; log(e, `${jug(e, x).nombre} pasa inadvertido en la leva con su Disfraz de mendigo.`, { pid: x }); return false; });
       ids.forEach((pid, i) => {
         const j = jug(e, pid), puede = armasUsables(data, e, j).length > 0 && j.destreza || (j.destreza && ['arco', 'alfanje', 'cimitarra', 'jambiya'].some((r) => tieneItem(j, r)));
         const op = []; if (puede) op.push({ id: 'alistar', texto: 'Alistarme (+30 dinares; pierdo mi acción principal del siguiente turno)' });

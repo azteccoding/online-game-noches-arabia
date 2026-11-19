@@ -52,9 +52,13 @@
    },
    "arma": [],
    "cartasInicio": ["dadosCairo"],
+   "idiomasInicio": ["árabe"],
    "destreza": false,
    "habilidades": [
-    "Dados del Cairo: empieza con esta carta, regalo de Zacaría al Ansari. Una vez por ronda, si va a perder una pelea, repite sus dados. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 35 dinares (el mercado la revende en 75)."
+    "Dados del Cairo: empieza con esta carta, regalo de Zacaría al Ansari. Una vez por ronda, si va a perder una pelea, repite sus dados. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 35 dinares (el mercado la revende en 75).",
+    "Habla árabe desde el inicio (como si hubiera hecho el reto R47).",
+    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya.",
+    "No puede hacer el reto «Acostarse con Zein en la Giralda» (R26)."
    ],
    "limite": "Si vende los Dados del Cairo, queda en apuros financieros: vende sus alhajas y se costea un viaje gratis (un tramo, una sola vez por partida).",
    "stats": [
@@ -87,10 +91,13 @@
    },
    "arma": [],
    "cartasInicio": ["dadosPersia"],
+   "objetosInicio": ["OB42"],
    "destreza": false,
    "habilidades": [
     "Dados de Persia: empieza con esta carta. Una vez por ronda, si lo atacan, con 5 o 6 escapa por la ventana y el agresor pierde su acción. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 30 dinares (el mercado la revende en 60 y todos se enteran dónde).",
-    "Si mata a Jamil, cada uno de los demás jugadores le paga 8 dinares y gana 60 noches."
+    "Si mata a Jamil, cada uno de los demás jugadores le paga 8 dinares y gana 60 noches.",
+    "Empieza además con un Disfraz de mendigo.",
+    "Puede repetir el reto «Acostarse con Zein en la Giralda» (R26) las veces que quiera."
    ],
    "limite": "Sin armas ni destreza al inicio.",
    "stats": [
@@ -122,9 +129,11 @@
     "ingreso": 5
    },
    "arma": [],
+   "idiomasInicio": ["persa"],
    "destreza": false,
    "habilidades": [
     "Gana 5 noches por turno sin hacer nada.",
+    "Habla persa desde el inicio (como si hubiera hecho el reto R46).",
     "Viaja gratis de El Cairo a Bagdad; a quien esté en su ciudad le propone versos en su honra (gana 30 noches y le paga 5 dinares) o le canta versos de sátira (pierde 10 noches o le paga 7 dinares)."
    ],
    "limite": "Sin armas ni destreza al inicio.",
@@ -160,6 +169,7 @@
    "arma": [],
    "destreza": false,
    "habilidades": [
+    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya.",
     "Empieza con 200 noches y 5 cartas de respuestas: si falla una trivia, se gasta una y cuenta como correcta (gana el premio).",
     "Quien llega a su ciudad (fuera de Bagdad) le puede comprar 20 noches por 10 dinares, y Ruyán tiene que vender; viaja gratis de Bagdad a El Cairo."
    ],
@@ -198,7 +208,7 @@
     "Harén del Califa en Bagdad: termina su turno, gana 15 dinares y no puede ser robada ni asesinada allí.",
     "Paga caravanas con servicios (riesgo de apedreo)."
    ],
-   "limite": "Riesgo de apedreo al prostituirse.",
+   "limite": "Riesgo de apedreo al prostituirse, igual en todas las ciudades; si la apedrean, queda herida y Buscada.",
    "stats": [
     3,
     4,
