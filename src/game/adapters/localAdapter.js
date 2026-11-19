@@ -12,6 +12,7 @@ import cuentos from '../../data/cuentos.json';
 import retos from '../../data/retos.json';
 import { nuevoJuego, unir, reducir, vista, tick } from '../../../shared/engine.js';
 import { armarReaccion } from '../../../shared/reacciones.js';
+import { vistaCongelada, dadosPendientes } from '../../../shared/congelar.js';
 
 const DATA = { config, ciudades, rutas, personajes, objetos, eventos, mensajes, trivias, cuentos, retos };
 
@@ -22,7 +23,8 @@ export function crearLocal() {
   const e = nuevoJuego(DATA, { semilla: Number(q.get('semilla')) || 20261101, codigo: 'DEMO' });
   let yo = null, mirando = null, timer = null;
   const botIds = [];
-  const emitir = () => cb.estado(vista(DATA, e, mirando || yo));
+  // Como el servidor: las cartas que son consecuencia de unos dados no salen hasta que se tiran (Jorge, 19 de noviembre).
+  const emitir = () => cb.estado(vistaCongelada(null, vista(DATA, e, mirando || yo), dadosPendientes(e)));
   const act = (pid, a) => { const r = reducir(DATA, e, pid, a, Date.now()); if (!r.ok && pid === (mirando || yo)) cb.error(r.error); emitir(); return r; };
 
   const azar = (a) => a[Math.floor(Math.random() * a.length)];

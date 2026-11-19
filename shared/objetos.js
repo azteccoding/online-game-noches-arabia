@@ -493,6 +493,21 @@ export function precioTinta(e, ciudad) {
   return n > 0 ? { precio: TINTA.reventa, stock: n, reventa: true } : null;
 }
 const motivoTinta = (e, ciudad) => (ciudad === 'Bagdad' ? 'En Bagdad se vende cuando alguien ya visitó India' : 'El frasco con tinta de pulpo se vende en India (y en Bagdad cuando alguien ya visitó India).');
+// Dónde se vende cada producto que no está en todos los mercados, leído de las mismas existencias que usa el mercado (Jorge, 19 de noviembre).
+const lista = (cs) => (cs.length > 1 ? cs.slice(0, -1).join(', ') + ' y ' + cs[cs.length - 1] : cs[0]);
+export function dondeSeVende(data, x) {
+  const ref = x.ref;
+  if (x.id) { const o = objDe(data, x.id); const cs = POR_CIUDAD[x.id] || (o ? ciudadesDe(o) : null); return cs?.length && cs.length < data.ciudades.ciudades.length ? lista(cs) : null; }
+  if (typeof ref !== 'string' || /^(amarrado|establo):/.test(ref) || DADOS_VENTA[ref]) return null;
+  if (ref === 'burro') return 'Basra (y en Aleppo y Damasco cuando se acaban los de Basra)';
+  if (ref === 'tintaPulpo') return `India (y en Bagdad cuando alguien ya visitó India; ${lista(TINTA.ciudadesVenta)} revenden los que les venden)`;
+  if (ref === 'shatranj') return SHATRANJ.ciudad;
+  if (ref === 'alfombraIsfahan') return `${ALFOMBRAS.origen} (y donde alguien las revendió)`;
+  if (ref === 'caballoMongol') return MONGOL.ciudad;
+  if (ref === 'firman') return 'Bagdad';
+  const cs = CIUDAD_ORIGINAL[ref] || ARMAS_CIUDAD[ref];
+  return cs ? lista(cs) : null;
+}
 export function tienda(data, e, pid) {
   const j = e.jugadores[pid];
   if (!j || j.eliminado || !j.pj) return [];
@@ -542,6 +557,7 @@ export function tienda(data, e, pid) {
       // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
       motivo: !(existencia(e, o.id, j.ciudad) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
   }
+  for (const x of r) { const d = dondeSeVende(data, x); if (d) x.donde = d; }   // Jorge (19 de noviembre): dónde se vende lo que no hay en todos los mercados
   return r;
 }
 export function estimarVenta(data, e, pid, c) {

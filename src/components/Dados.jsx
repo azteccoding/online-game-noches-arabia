@@ -57,11 +57,16 @@ export default function Dados({ s }) {
   const [fila, setFila] = useState(-1);          // fila que está rodando; -1 = ninguna (todas fijas)
   const idVisto = useRef(null);
   const nFilas = Math.max(1, d?.grupos?.length || 1);
+  // Jorge (19 de noviembre): ningún dado sale ya resuelto. Si la tirada espera detrás de la carta que la explica, no rueda a escondidas:
+  // empieza a rodar, desde el principio, cuando la carta se cierra (antes se veía solo el resultado, p. ej. el dado de ingreso).
+  const esperaCarta = !!d && cartaPrevia != null && cartaPrevia < d.id;
+  const espero = useRef(null);
+  if (d && esperaCarta) espero.current = d.id;
   useEffect(() => {
-    if (!d || !d.lanzado) { setFila(-1); idVisto.current = null; return undefined; }       // espera a que su dueño pulse «Lanzar dados»
+    if (!d || !d.lanzado || esperaCarta) { setFila(-1); idVisto.current = null; return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
     if (idVisto.current === d.id) return undefined;
     idVisto.current = d.id;
-    const transcurrido = Math.max(0, s.ahora - d.t0);                      // reloj del servidor: quien se une tarde ve el final
+    const transcurrido = espero.current === d.id ? 0 : Math.max(0, s.ahora - d.t0);   // reloj del servidor: quien se une tarde ve el final
     const total = RUEDA_MS * nFilas;
     if (transcurrido >= total) { setFila(-1); return undefined; }
     const ts = [];
@@ -69,12 +74,13 @@ export default function Dados({ s }) {
     setFila(primera);
     for (let k = primera + 1; k <= nFilas; k++) ts.push(setTimeout(() => setFila(k < nFilas ? k : -1), k * RUEDA_MS - transcurrido));
     return () => ts.forEach(clearTimeout);
-  }, [d?.id, d?.lanzado]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.id, d?.lanzado, esperaCarta]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rodando = fila >= 0;
   if (!d) return null;
   const por = s.jugadores[d.por];
-  if (s.pend?.mia && !s.pend.respondiste) return null;              // primero tu decisión; los dados esperan detrás
-  if (cartaPrevia != null && cartaPrevia < d.id) return null;          // primero se lee la carta que explica la tirada
+  // Jorge (19 de noviembre): orden estricto carta → dados → decisión. Los dados ya no esperan detrás de tu decisión (en R23 elegías
+  // ante los bandoleros sin haber lanzado el dado); la decisión espera a que se cierren los dados (Decision.jsx).
+  if (esperaCarta) return null;                                         // primero se lee la carta que explica la tirada
   if (!d.lanzado) {
     const mio = d.por === s.yo;
     return (

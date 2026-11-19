@@ -1,4 +1,5 @@
 import { DATA } from './data.js';
+import { VINO } from '../../shared/base.js';
 
 // Consejos de venta de una ciudad, calculados con las reglas (impuestos, reventas sin impuesto y dónde se compra cada objeto).
 const ciudadesDe = (o) => { const s = String(o.seConsigueEn || '').trim(); return /^(todas|cualquier ciudad)/i.test(s) ? null : s.split(/,| y /).map((x) => x.trim()).filter(Boolean); };
@@ -21,12 +22,12 @@ export function consejosVenta(id) {
   }
   if (id === 'Bagdad') {
     r.push('La biblioteca de Bagdad es la única que compra libros y papiros.');
-    r.push('El vino solo se compra aquí y gana valor cada turno: véndelo después en cualquier otra ciudad.');
   }
   if (id === 'Damasco') r.push('El pergamino se cobra aquí: 30 dinares. El cálamo de Kufa se compra aquí (y en Basra) barato y se vende en El Cairo (4) o en Bagdad (3).');
   if (id === 'El Cairo') r.push('El cálamo de Kufa se vende aquí a 4 dinares (en Bagdad a 3).');
   if (id === 'Basra') r.push('Aquí puedes comprar la cesta de manzanas que pide el reto R24 (30 dinares al entregarla).'), r.push('El cálamo de Kufa también se compra aquí barato y se vende en El Cairo (4) o en Bagdad (3).');
   if (id === 'Samarcanda' || id === 'India') r.push('Bazar del genio: aquí se vende una carta de Ifrit por ronda (60 dinares). Concede un deseo a elegir entre los 4 que trae, por ejemplo 60 noches, un viaje instantáneo o una maldición; si no te sirve, el banco te la compra por 40.');
   if (id === 'Isfahán') r.push('En el reto R17 cada alfombra cuesta 40 dinares.');
+  if (VINO.stock[id]) r.push(`Aquí se compra el vino (${VINO.stock[id]} botellas en toda la partida) a ${VINO.precio} dinares: gana ${VINO.porRonda} dinares de valor por ronda y cualquier mercado lo compra a su valor actual; la botella vendida se esfuma.`);
   return r;
 }

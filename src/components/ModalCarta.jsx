@@ -60,7 +60,10 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   // Prioridad de ventanas: primero lo que hay que responder (tu decisión, tu voto) y los dados; las cartas nuevas esperan detrás.
   const debesResponder = (s.pend?.mia && !s.pend.respondiste) || (s.votoReinicio?.votas && s.votoReinicio.miVoto == null);
   // Una carta publicada ANTES que los dados se lee primero (da el contexto de la tirada); las posteriores (p. ej. el Botín) esperan a que se cierren.
-  const tapaDados = consulta == null && cola.length > 0 && ((!!s.dados && s.dados.id < cola[0]) || !!debesResponder);
+  // Jorge (19 de noviembre): la carta que provoca una decisión se lee ANTES que sus botones (antes la decisión la tapaba: p. ej. la Leva
+  // del sultán mostraba «alistarte / pagar» antes de la carta). Solo esperan detrás de tu decisión las cartas posteriores a ella.
+  const tapaDecision = !!debesResponder && !(s.pend?.mia && !s.pend.respondiste && s.pend.id > cola[0] && !(s.votoReinicio?.votas && s.votoReinicio.miVoto == null));
+  const tapaDados = consulta == null && cola.length > 0 && ((!!s.dados && s.dados.id < cola[0]) || tapaDecision);
   const nroActual = consultaObj ? consultaObj.nro : tapaDados ? null : (consulta ?? cola[0] ?? null);
   const modoLectura = consulta == null && cola.length > 0 && !tapaDados;
   useEffect(() => { marcarCartaEnPantalla(modoLectura ? cola[0] : null); }, [modoLectura, cola[0]]);   // eslint-disable-line react-hooks/exhaustive-deps

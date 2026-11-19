@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { enviar } from '../game/store.js';
+import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 
 // Decisión pendiente (pend del motor): defensa en una pelea, trato, elegir objetos, contratos, etc. Solo la ve quien debe decidir;
@@ -18,6 +18,7 @@ function useRestante(s) {
 export default function Decision({ s }) {
   const p = s.pend;
   const resta = useRestante(s);
+  const leyendo = useJuego((x) => x.cartaEnPantalla);
   const [sel, setSel] = useState([]);
   const [num, setNum] = useState(0);
   useEffect(() => { setSel([]); setNum(p?.min ?? 0); }, [p?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -26,6 +27,10 @@ export default function Decision({ s }) {
   if (!p.mia || p.respondiste) {
     return <div className="espera-pend" role="status">{p.respondiste ? 'Respuesta enviada. ' : ''}Esperando a {nombres(p.faltan)} · {p.titulo}{p.subasta ? ` · puja más alta: ${p.subasta.mejor || 'ninguna'} · quedan ${resta} s` : ''}</div>;
   }
+  // Jorge (19 de noviembre): los botones de una decisión nunca salen antes que la carta que la provoca ni antes de los dados:
+  // primero se lee (y se cierra) la carta, luego se lanzan y se cierran los dados, y solo entonces se elige.
+  if (leyendo != null && leyendo < p.id) return null;
+  if (s.dados && !s.dados.cerrados?.includes(s.yo)) return null;
   const responder = (r) => enviar(ACCIONES.decidir(p.id, r));
   const pct = Math.min(100, Math.max(0, (resta / (p.limiteMs / 1000)) * 100));
   const nMin = p.min ?? 0, nMax = p.max ?? 6;

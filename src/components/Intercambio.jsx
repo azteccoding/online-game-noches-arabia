@@ -12,7 +12,7 @@ function Producto({ it, puedeActuar, s }) {
   const motivo = !it.puede ? it.motivo : mi.dinares < total ? (n > 1 ? `No te alcanza para ${n}: cuestan ${total} dinares` : 'No te alcanza') : null;
   return (
     <li>
-      <div className="prod"><b>{it.nombre}</b> <span className="chip">{it.tipo}</span><br /><small>{it.texto}</small></div>
+      <div className="prod"><b>{it.nombre}</b> <span className="chip">{it.tipo}</span><br /><small>{it.texto}</small>{it.donde && <><br /><small className="donde"><b>Se vende en:</b> {it.donde}.</small></>}</div>
       <div className="der">
         <span className="chip">{it.precio} din.</span>
         {it.stock != null && <span className="chip">quedan {it.stock}</span>}

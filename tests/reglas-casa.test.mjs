@@ -4244,3 +4244,33 @@ console.log('reglas de la casa OK');
   enCiudad(A, 'India'); assert.ok(!g.act(a, { t: 'comprar', ref: 'shatranj' }).ok, 'vendidos, dejan de existir: no vuelven a India');
   void B;
 }
+// R23 caravana de la sal (Jorge, 19 de noviembre): el dado no se lanza solo y, con bandoleros, la decisión espera a los dados
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e;
+  for (let k = 0; k < 40 && (e.pend || e.dados || !e.turno || e.jugadores[e.turno.pid].npc); k++) { e.dados = null; e.colaDados = []; g.tickear(100000); }
+  const pid = e.turno.pid, j = e.jugadores[pid];
+  if (e.turno.fase === 'ingreso') { assert.ok(g.act(pid, { t: 'tirarDados' }).ok); e.dados = null; e.colaDados = []; }
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  j.ciudad = 'Magreb'; j.dinares = 50; j.extra.clienteWeb = true; j.mano.push({ uid: 9901, tipo: 'objeto', ref: 'OB18' });
+  forzar(e, 1);
+  assert.ok(g.act(pid, { t: 'reto', id: 'R23' }).ok);
+  assert.ok(e.dados && e.dados.lanzado === false && e.dados.motivo === 'reto:R23', 'el dado de la caravana espera el botón «Lanzar»');
+  assert.equal(e.pend?.titulo, 'R23 · Bandoleros', 'con 1 salen los bandoleros');
+  const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
+  const antes = vista(data, e, pid);
+  assert.equal(vistaCongelada(antes, vista(data, e, pid), dadosPendientes(e)).pend, null, 'la decisión no se ve hasta tirar el dado');
+}
+// Mercado (Jorge, 19 de noviembre): cada producto que no está en todos los mercados dice dónde se vende, con las existencias reales
+{
+  const { tienda, dondeSeVende } = await import('../shared/objetos.js');
+  const g = partida(['4']); const e = g.e, id = g.ids[0];
+  e.jugadores[id].ciudad = 'Basra';
+  const t = tienda(data, e, id), por = (n) => t.find((x) => x.nombre.startsWith(n));
+  assert.equal(por('Lazo de camellero').donde, 'Basra, Bagdad, El Cairo, Yemen y Samarcanda');
+  assert.equal(por('Botella de vino').donde, 'Basra y Andalucía');
+  assert.equal(dondeSeVende(data, { id: 'OB21' }), 'El Cairo, Bagdad y Damasco');
+  assert.equal(dondeSeVende(data, { ref: 'shatranj' }), 'India');
+  assert.equal(dondeSeVende(data, { ref: 'costalPistaches' }), 'Isfahán');
+  assert.equal(dondeSeVende(data, { id: 'OB42' }), null, 'el Disfraz de mendigo está en todos los mercados');
+}
