@@ -482,7 +482,8 @@ export function revisarKanmakan(data, e, pid) {
   if (j.noches >= 500) darKanmakan(data, e, pid, 'reunir 500 noches');
 }
 // ---------------------------------------------------------------- R15 / R16
-T.R15 = { ciudad: 'Samarcanda', req: (data, e) => (e.asesinos.actuaron ? 'Los Asesinos ya actuaron.' : null), run(data, e, pid) { HOOK.contratarAsesinos(data, e, pid, { reto: true }); } };
+// Como la acción directa (npc.js, NOCHES_ASESINOS): los Asesinos solo tratan con quien tiene al menos 500 noches.
+T.R15 = { ciudad: 'Samarcanda', req: (data, e, pid) => (e.asesinos.actuaron ? 'Los Asesinos ya actuaron.' : e.jugadores[pid].noches < 500 ? 'Los Asesinos solo tratan con quien tiene al menos 500 noches.' : null), run(data, e, pid) { HOOK.contratarAsesinos(data, e, pid, { reto: true }); } };
 T.R16 = { ciudad: 'Isfahán', req: (data, e, pid) => { const j = e.jugadores[pid]; if (j.retosHechos.length < 2) return 'Necesitas haber completado al menos 2 retos.'; if (j.dinares < 60) return 'Necesitas 60 dinares en regalos.'; return null; },
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= 60; log(e, `${j.nombre} lleva 60 dinares en regalos a Sherezada.`, { pid });
@@ -870,9 +871,9 @@ export function finEstudio(data, e, pid) {
   publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
   log(e, `${j.nombre} termina sus clases: ya habla ${s.idioma}.`, { pid, aviso: true });
 }
-// R52 «Forjar acero de Damasco» (Jorge, 17 de noviembre): pagas 18 dinares y tiras 1 dado (con botón). Par: te quedas ese turno en
-// Damasco forjando y al iniciar tu siguiente turno te dan una cimitarra. Impar: tardas dos turnos (este y el siguiente, en el que no
-// puedes salir y tu acción principal se va en la forja) y te la dan al iniciar el tercero. Mientras forjas no puedes salir de Damasco.
+// R52 «Forjar acero de Damasco» (Jorge, 17 y 19 de noviembre): pagas 18 dinares y tiras 1 dado (con botón). Igual que estudiar un
+// idioma: par, 1 turno de forja; impar, 2. En esos turnos tu acción principal se va en la forja y no puedes salir de Damasco; la
+// cimitarra llega al terminar el último (turnoForja / finForja).
 // Solo se forja si no tienes cimitarra; Yafar (NPC o jugador) nunca. El primero que termina gana 50 noches y abre la venta de cimitarras.
 export const FORJA = { costo: 18, ciudad: 'Damasco' };
 T.R52 = { ciudad: FORJA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid];
