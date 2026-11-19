@@ -92,7 +92,11 @@ export function unirTarde(e, { nombre: nom, token }) {
 }
 // Jorge (19 de noviembre): idiomas de inicio (Jamil, persa; Zein, árabe: el mismo marcador que dejan R46 y R47) y objetos de
 // inicio (Anís: un Disfraz de mendigo, que no sale de ningún mercado).
+// Jorge (19 de noviembre): Zein empieza con 15 dinares más: su mahr (dote), que le da su esposo. Sale una carta y los dinares
+// llegan al cerrarla (como las cartas de cuentos; si no la cierra, a los 90 segundos).
+export const MAHR = 15;
 function inicioExtra(e, j, p) {
+  if (p.mahr) { const ent = publicarCarta(e, { id: 'mahr', deck: 'especial', titulo: 'Mahr', sub: 'Dote de Zein', texto: `Tu esposo te entrega tu mahr (dote): +${p.mahr} dinares.`, arte: 'es' }, j.id, [j.id]); j.extra.mahrPend = { monto: p.mahr, nro: ent.nro, t: e.ahora }; }
   if (p.idiomasInicio?.length) j.extra.idiomas = [...new Set([...(j.extra.idiomas || []), ...p.idiomasInicio])];
   for (const ref of p.objetosInicio || []) j.mano.push({ uid: uid(e), tipo: 'objeto', ref, pub: true });
 }
@@ -335,6 +339,7 @@ function volver(e, pid) {
 
 function siguienteTurno(data, e, desde) {
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
+  if (e.turno) camelleroCansado(e, e.turno.pid);
   if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
@@ -747,7 +752,7 @@ function despachar(data, e, pid, j, a, ahora) {
       log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} su jambiya.`, { pid });
       return ok();
     }
-    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
+    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
@@ -866,6 +871,19 @@ function darMensaje(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- viajes
+// Jorge (19 de noviembre): la primera vez que Zubayda sale de Bagdad en caravana, el viaje es gratis, a donde quiera ir (por las
+// rutas de siempre; con cualquierCiudad: true, a cualquier ciudad del mapa), si es en su primer o su segundo turno. Si no, se pierde.
+export const ZUBAYDA_PRIMER_VIAJE = { activo: true, cualquierCiudad: false, hastaTurno: 2 };
+export const viajeInicialZubayda = (t, j) => ZUBAYDA_PRIMER_VIAJE.activo && !!t && t.pid === j?.id && j.pj === '6' && j.ciudad === 'Bagdad' && !j.extra?.usoViajeInicial
+  && !j.extra?.camelleroCansado && (j.visitadas || []).length <= 1 && j.turnos <= ZUBAYDA_PRIMER_VIAJE.hastaTurno;   // nunca ha salido de Bagdad
+// Al terminar su segundo turno sin haberlo usado, se pierde (Jorge, 19 de noviembre).
+function camelleroCansado(e, pid) {
+  const j = e.jugadores[pid];
+  if (!ZUBAYDA_PRIMER_VIAJE.activo || !j || j.pj !== '6' || j.extra.usoViajeInicial || j.extra.camelleroCansado || j.turnos < ZUBAYDA_PRIMER_VIAJE.hastaTurno) return;
+  j.extra.camelleroCansado = true;
+  const txt = `El camellero se cansó de rogarle a ${j.nombre}: ya no hay viaje gratis.`;
+  log(e, txt, { pid }); info(e, pid, 'El camellero se cansó', txt);
+}
 export function viajar(data, e, pid, a) {
   const t = e.turno, j = e.jugadores[pid];
   const destino = a.destino;
@@ -884,15 +902,18 @@ export function viajar(data, e, pid, a) {
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
   if (j.herido && esRutaMar(origen, destino)) return err(HERIDO_BARCO);
   let precio = tarifa(data, e, j, origen, destino);
+  const inicialZ = viajeInicialZubayda(t, j);
+  if (precio === null && inicialZ && ZUBAYDA_PRIMER_VIAJE.cualquierCiudad && ciudadDe(data, destino) && destino !== origen) precio = 0;
   if (precio === null) return err('No hay ruta directa o está cortada: usa un transbordo (R 7.3).');
   let gratis = false;
+  if (inicialZ) { precio = 0; gratis = true; }
   if ((j.pj === '4' && origen === 'El Cairo' && destino === 'Bagdad') || (j.pj === '5' && origen === 'Bagdad' && destino === 'El Cairo')) { precio = 0; gratis = true; }   // R 10.5, 10.6
   if (a.gratisPrimerVisitante && j.extra.viajeGratisBagdad) precio = 0;
   if (j.extra.viajeZein && precio > 0) { precio = 0; gratis = true; j.extra.usaViajeZein = true; }               // Zein en apuros: un tramo gratis
-  const args = { destino, precio, servicios: false, hilo: false };
+  const args = { destino, precio, servicios: false, hilo: false, inicialZub: inicialZ };
   const conDadiva = precio > 0 && tieneItem(j, 'dadivaEmir');   // Dádiva del Emir: paga este pasaje
-  if (a.servicios && j.pj === '6') { args.servicios = true; args.precio = 0; }                                  // Zubayda paga con servicios (R 10.7)
-  else {
+  // Jorge (19 de noviembre): Zubayda ya no paga cualquier caravana con servicios («es demasiada ventaja»): paga como todos.
+  {
     if (a.hilo) { const c = OBJ.hiloDe(j); if (!c || precio > 15) return err('Necesitas un Hilo de alfombra y un tramo de tarifa 15 o menos.'); args.hilo = true; args.precio = 0; }
     else if (a.califa) { if (!j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.'); if (destino === 'Samarcanda') return err('No a Samarcanda.'); args.precio = 0; args.califa = true; }
     if (!args.hilo && !args.califa && conDadiva) { args.dadiva = true; args.precio = 0; }
@@ -910,6 +931,7 @@ export function partir(data, e, pid, args) {
   const origen = j.ciudad, destino = args.destino;
   if (args.precio > 0) { if (j.dinares < args.precio) { log(e, `${j.nombre} ya no puede pagar el viaje.`); return err('No te alcanzan los dinares.'); } j.dinares -= args.precio; }
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
+  if (args.inicialZub) j.extra.usoViajeInicial = true;
   if (args.califa) { j.extra.viajeCalifa = false; }
   if (args.dadiva) { quitarPrimero(j, 'item', 'dadivaEmir'); log(e, `${j.nombre} paga su pasaje con la Dádiva del Emir.`, { pid }); }
   if (j.extra.usaViajeZein) { j.extra.viajeZein = false; j.extra.usaViajeZein = false; log(e, `${j.nombre} viaja gratis con lo que sacó de sus alhajas.`, { pid }); }
@@ -918,9 +940,9 @@ export function partir(data, e, pid, args) {
   if (!e.caravanas.includes(key)) e.caravanas.push(key);                                                    // regla de la casa: primer viaje paga y crea la caravana (R 7.2)
   if (!e.caravanas.includes(destino + '>' + origen) && data.rutas.tarifas[destino + '>' + origen] !== undefined) e.caravanas.push(destino + '>' + origen);
   j.ciudad = destino;
-  log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}${args.servicios ? ' y paga la caravana con sexo' : ''}.`, { pid });   // Jorge (19 de noviembre): dicho con claridad
+  if (args.inicialZub) log(e, `${j.nombre} viaja de ${origen} a ${destino} sin pagar un dinar: le paga al camellero con servicios nocturnos.`, { pid });   // Jorge (19 de noviembre)
+  else log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}.`, { pid });
   if (esRutaMar(origen, destino)) { const m = viajePorMar(e, pid, 'en el viaje por mar'); if (m) info(e, pid, 'Viaje por mar', m); }   // escorbuto (Jorge, 19 de noviembre)
-  if (args.servicios) PJ.apedreo(data, e, pid);
   return llegada(data, e, pid, origen);
 }
 
@@ -1051,6 +1073,10 @@ export function robarCC(data, e, pid, ciudad) {
 }
 
 // R 19.7: cada mazo da su cuento de ambiente una sola vez por partida (si el mazo tiene varios, se elige uno al azar); quien lo saca lo lee y cobra 2 dinares del banco. Ni NPC ni eliminados cobran.
+function cobrarMahr(e, j) {
+  const m = j.extra.mahrPend; if (!m) return; j.extra.mahrPend = null;
+  j.dinares += m.monto; log(e, `${j.nombre} recibe su mahr (dote) de su esposo: +${m.monto} dinares.`, { pid: j.id });
+}
 function cobrarCuento(e, j) {
   const c = j.extra.cuentoPend; if (!c) return; j.extra.cuentoPend = null;
   j.dinares += c.monto; log(e, `${j.nombre} recibe ${c.monto} dinares del banco por leer «${c.titulo}».`, { pid: j.id });
@@ -1341,7 +1367,9 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
+    const inicialZ = viajeInicialZubayda(t, j);
+    if (inicialZ && ZUBAYDA_PRIMER_VIAJE.cualquierCiudad && !motivoNoSalir(e, j)) for (const c of data.ciudades.ciudades || data.ciudades) { const n = c.id || c.nombre || c; if (typeof n === 'string' && n !== j.ciudad && !destinos.includes(n)) destinos.push(n); }
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: inicialZ || j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d), ...(inicialZ ? { gratisInicial: true, tarifaNormal: tarifa(data, e, j, j.ciudad, d) ?? 0 } : {}), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
@@ -1524,6 +1552,7 @@ function tick0(data, e, ahora) {
   if (e.turno?.fase === 'ingreso' && (e.pend || e.dados)) e.turno.t0 = ahora;   // los 60 segundos cuentan desde que puede tirar
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
   for (const j of Object.values(e.jugadores)) if (j.extra?.cuentoPend && ahora - j.extra.cuentoPend.t > 90000) { cobrarCuento(e, j); cambio = true; }   // si nunca cierra la carta, cobra igual
+  for (const j of Object.values(e.jugadores)) if (j.extra?.mahrPend && ahora - j.extra.mahrPend.t > 90000) { cobrarMahr(e, j); cambio = true; }   // el mahr de Zein, igual
   if (e.fase === 'lobby') {
     if (!e.esperarDecidido) { const v = enSala(e).filter((j) => j.pj && j.listo).length <= 1; if (v !== !!e.esperarMas) { e.esperarMas = v; cambio = true; } }
     for (const j of Object.values(e.jugadores)) if (j.conectado === false && j.desconectadoEn != null && !j.avisoSacarSala && ahora - j.desconectadoEn >= SACAR_SALA_MS) { j.avisoSacarSala = true; cambio = true; }

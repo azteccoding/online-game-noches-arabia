@@ -1792,7 +1792,8 @@ for (let k = 0; k < 6; k++) {
 // Jorge (8 de noviembre): Yafar que asalta o ataca a muerte a Zein o a Zubayda sin armas a la vista queda Buscado (un arma escondida
 // no cuenta); con un arma a la vista, no. Piratas de Yemen: sin los dinares que piden no hay viaje ni noches ni se gasta la acción.
 {
-  for (const [pjV, arma, oculta, esperado] of [['6', null, false, true], ['2', 'jambiya', true, true], ['2', 'alfanje', false, false]]) {
+  // (Jorge, 19 de noviembre: ahora a Zein la protege siempre, aunque lleve armas; a Zubayda, si no lleva armas fuera de la jambiya)
+  for (const [pjV, arma, oculta, esperado] of [['6', null, false, true], ['2', 'jambiya', true, true], ['2', 'alfanje', false, true], ['6', 'alfanje', false, false], ['6', 'jambiya', false, true]]) {
     const g = partida(['B', pjV]); assert.ok(g.iniciar().ok);
     const e = g.e, [y, v] = g.ids, Y = e.jugadores[y], V = e.jugadores[v];
     e.ronda = 5; turnoDe(e, y, 'Damasco'); Y.ciudad = 'Damasco'; V.ciudad = 'Damasco'; e.turno.fase = 'acciones';
@@ -3845,6 +3846,98 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(adi, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
   assert.equal(A.noches, 3 - 10, 'la sátira le deja 3 − 10 = −7 noches');
 }
+// Jorge (19 de noviembre): el harén del Califa da 16 dinares (antes 15).
+{
+  const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; Z.dinares = 0;
+  assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+16 dinares/.test(x.titulo)), 'el botón dice +16');
+  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 16); assert.ok(e.log.some((l) => /gana 16 dinares y queda bajo su techo/.test(l.texto)));
+}
+// Jorge (19 de noviembre): «dormir con el Califa consume tu acción principal; si ya hiciste otra acción ya no puedes».
+{
+  const prep = () => { const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; Z.dinares = 100; return { g, e, z, Z }; };
+  { // después de un reto en Bagdad, ya no
+    const { g, e, z } = prep();
+    const reto = vistaDe(e, z).acciones.find((x) => x.k === 'reto' && !x.bloqueado); assert.ok(reto, 'hay un reto en Bagdad');
+    const r = g.act(z, { t: 'reto', id: reto.id, sub: reto.sub }); assert.ok(r.ok, r.error);
+    e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+    if (e.turno.principal) {
+      assert.ok(!vistaDe(e, z).acciones.some((x) => x.sub === 'haren'), 'el harén ya no aparece');
+      assert.match(g.act(z, { t: 'pj', sub: 'haren' }).error || '', /Ya usaste tu acción principal/, 'ni se puede usar');
+    }
+  }
+  { // con la acción principal ya gastada (por lo que sea), no
+    const { g, e, z } = prep(); e.turno.principal = true;
+    assert.match(g.act(z, { t: 'pj', sub: 'haren' }).error || '', /Ya usaste tu acción principal/);
+  }
+  { // y el harén gasta la acción principal y termina el turno: después no puede hacer otra
+    const { g, e, z } = prep(); assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok);
+    assert.ok(e.turno?.pid !== z || (e.turno.principal && e.turno.fin), 'gasta la principal y termina el turno');
+    assert.ok(e.turno?.pid !== z || !vistaDe(e, z).acciones.some((x) => ['reto', 'atacar', 'pj', 'viajar'].includes(x.k)), 'ya no puede hacer otra cosa');
+  }
+}
+// Jorge (19 de noviembre): la primera vez que Zubayda sale de Bagdad, en su primer o segundo turno, el viaje es gratis (una sola vez).
+{
+  const { viajeInicialZubayda } = await import('../shared/engine.js');
+  const prep = (turno) => { const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [z, adi] = g.ids, Z = e.jugadores[z]; assert.equal(Z.ciudad, 'Bagdad', 'empieza en Bagdad');
+    turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.turnos = turno; Z.dinares = 0; return { g, e, z, adi, Z }; };
+  for (const turno of [1, 2]) {
+    const { g, e, z, Z } = prep(turno);
+    const v = vistaDe(e, z).acciones.filter((x) => x.k === 'viajar'); assert.ok(v.length && v.every((x) => x.precio === 0 && x.gratisInicial), `turno ${turno}: sus destinos salen gratis`);
+    const dest = v.find((x) => x.destino === 'Samarcanda') ? 'Samarcanda' : v[0].destino;
+    const r = g.act(z, { t: 'viajar', destino: dest }); assert.ok(r.ok, r.error); assert.equal(Z.ciudad, dest); assert.equal(Z.dinares, 0, 'no paga');
+    assert.ok(e.log.some((l) => new RegExp(`viaja de Bagdad a ${dest} sin pagar un dinar: le paga al camellero con servicios nocturnos\.`).test(l.texto)), 'la bitácora lo dice');
+    // de vuelta en Bagdad, la segunda salida ya cobra
+    Z.ciudad = 'Bagdad'; turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov';
+    assert.ok(!viajeInicialZubayda(e.turno, Z) && !vistaDe(e, z).acciones.some((x) => x.gratisInicial), 'la segunda salida ya cobra');
+  }
+  { // al terminar su segundo turno sin usarlo: «el camellero se cansó de rogarle»
+    const { g, e, z, Z } = prep(2); Z.dinares = 50; assert.ok(g.act(z, { t: 'terminarTurno' }).ok);
+    assert.ok(Z.extra.camelleroCansado && e.log.some((l) => /^El camellero se cansó de rogarle a .+: ya no hay viaje gratis\.$/.test(l.texto)), 'aviso y bitácora'); }
+  { const { g, e, z, Z } = prep(3); assert.ok(!vistaDe(e, z).acciones.some((x) => x.gratisInicial), 'en el turno 3 ya se perdió'); assert.ok(!g.act(z, { t: 'viajar', destino: 'Basra' }).ok, 'sin dinares no viaja'); }
+  { const { e, adi } = prep(1); const A = e.jugadores[adi]; turnoDe(e, adi, 'Bagdad'); e.turno.fase = 'mov'; A.turnos = 1; A.ciudad = 'Bagdad'; assert.ok(!vistaDe(e, adi).acciones.some((x) => x.gratisInicial), 'solo Zubayda'); }
+}
+// Jorge (19 de noviembre): Zein empieza con su mahr (dote): sale una carta y los 15 dinares llegan al cerrarla.
+{
+  const { MAHR } = await import('../shared/engine.js');
+  const g = partida(['2', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z, adi] = g.ids, Z = e.jugadores[z];
+  const carta = e.historial.find((c) => c.id === 'mahr'); assert.ok(carta && carta.para?.includes(z), 'sale la carta del mahr, solo para Zein');
+  assert.equal(carta.titulo, 'Mahr'); assert.match(carta.texto, /Tu esposo te entrega tu mahr \(dote\): \+15 dinares\./);
+  const d0 = Z.dinares; assert.ok(Z.extra.mahrPend, 'todavía no los cobra');
+  assert.ok(g.act(z, { t: 'leido', nro: carta.nro }).ok); assert.equal(Z.dinares, d0 + MAHR, 'al cerrar la carta recibe 15'); assert.ok(!Z.extra.mahrPend);
+  assert.ok(g.act(z, { t: 'leido', nro: carta.nro }).ok); assert.equal(Z.dinares, d0 + MAHR, 'una sola vez');
+  assert.ok(!e.historial.some((c) => c.id === 'mahr' && c.para?.includes(adi)), 'Adí no tiene mahr');
+}
+// Jorge (19 de noviembre): quien ataque a Zein o a Zubayda queda Buscado (robo, ataque a muerte o duelo), gane o pierda. A Zein,
+// siempre; a Zubayda, solo si no lleva armas (la jambiya no cuenta). Zubayda que ataca a Zein, sí; Zein que ataca a Zubayda, no.
+{
+  const caso = (atk, vic, tipo, { armasVic = [], armasAtk = ['jambiya'] } = {}) => {
+    const g = partida([atk, vic]); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, v] = g.ids, A = e.jugadores[a], V = e.jugadores[v];
+    for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; A.buscado = 0; A.destreza = true; A.herido = false; V.herido = false;
+    A.mano = A.mano.filter((c) => c.tipo !== 'item' || !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); V.mano = V.mano.filter((c) => c.tipo !== 'item' || !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref));
+    for (const r of armasAtk) A.mano.push({ uid: 'a' + r, tipo: 'item', ref: r, pub: true });
+    for (const r of armasVic) V.mano.push({ uid: 'v' + r, tipo: 'item', ref: r, pub: true });
+    const r = g.act(a, { t: 'atacar', tipo, objetivo: v }); assert.ok(r.ok, `${atk}→${vic} ${tipo}: ${r.error}`);
+    return { buscado: A.buscado > 0, e, A, V };
+  };
+  for (const tipo of ['robo', 'matar', 'duelo']) {
+    if (tipo !== 'robo') assert.ok(caso('1', '2', tipo, { armasAtk: ['cimitarra'] }).buscado, `Nur: ${tipo} a Zein → Buscado`);   // Nur no roba
+    assert.ok(caso('7', '2', tipo).buscado, `Adí: ${tipo} a Zein → Buscado`);
+    assert.ok(caso('7', '6', tipo).buscado, `Adí: ${tipo} a Zubayda sin armas → Buscado`);
+  }
+  { const { buscado, e, A } = caso('7', '2', 'duelo'); assert.ok(buscado && A.buscado === data.config.buscadoRondas, 'Buscado normal (2 rondas)'); assert.ok(e.log.some((l) => /atacó a .+ \(Zein\): queda Buscado durante 2 rondas\./.test(l.texto)), 'la bitácora lo dice'); }
+  assert.ok(!caso('7', '6', 'robo', { armasVic: ['alfanje'] }).buscado, 'Zubayda con alfanje: no');
+  assert.ok(!caso('7', '6', 'duelo', { armasVic: ['arco'] }).buscado, 'Zubayda con arco: no');
+  assert.ok(caso('7', '6', 'robo', { armasVic: ['jambiya'] }).buscado, 'Zubayda con solo jambiya: sí');
+  assert.ok(caso('7', '2', 'robo', { armasVic: ['alfanje', 'arco'] }).buscado, 'Zein armada: sí');
+  assert.ok(caso('6', '2', 'duelo').buscado, 'Zubayda ataca a Zein: Buscada');
+  assert.ok(!caso('2', '6', 'duelo').buscado, 'Zein ataca a Zubayda: no');
+}
 // quien entra tarde también recibe su idioma y sus objetos de inicio
 {
   const { hablaIdioma } = await import('../shared/retos.js');
@@ -3915,15 +4008,11 @@ console.log('reglas de la casa OK');
   for (const v of [4, 6]) { const { Z, ap } = compania('Yemen', v, null); assert.ok(ap && !Z.herido && !(Z.buscado > 0), `con ${v}, a salvo`); }
   for (const v of [1, 2, 3, 5]) { const { Z } = compania('Damasco', v, 'herido'); assert.ok(Z.herido && Z.buscado > 0, `con ${v}, la apedrean`); }
   { const { ap } = compania('Bagdad', 2, 'herido'); assert.ok(/4 o 6 = a salvo/.test(ap.grupos[0].etq), 'el dado lo dice'); }
-  // también al pagar la caravana con servicios
+  // Jorge (19 de noviembre): Zubayda ya no paga cualquier caravana con servicios: sin dinares no viaja, aunque lo pida
   { const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
-    const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.herido = false; Z.buscado = 0; Z.dinares = 0;
-    forzar(e, 2); const r = g.act(z, { t: 'viajar', destino: 'Basra', servicios: true }); assert.ok(r.ok, r.error);
-    const ap = [e.dados, ...(e.colaDados || [])].find((d) => d?.motivo === 'apedreo'); assert.ok(ap, 'dado de apedreo en la caravana');
-    if (e.pend?.tipo === 'apedreo') g.act(z, { t: 'decidir', id: e.pend.id, opcion: 'herido' });
-    assert.ok(Z.herido, 'con 2, apedreada también en la caravana con servicios');
-    assert.ok(e.log.some((l) => /viaja de Bagdad a Basra y paga la caravana con sexo\./.test(l.texto)), 'la bitácora lo dice claro');
-    const { ACCIONES } = await import('../src/game/protocol.js'); assert.deepEqual(ACCIONES.viajar('Basra', { servicios: true }), { t: 'viajar', destino: 'Basra', servicios: true }, 'la interfaz manda el pago con sexo'); }
+    const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.herido = false; Z.buscado = 0; Z.dinares = 0; Z.turnos = 5;   // ya sin su viaje gratis inicial
+    const r = g.act(z, { t: 'viajar', destino: 'Basra', servicios: true }); assert.ok(!r.ok && /No te alcanzan/.test(r.error), 'no viaja sin dinares');
+    assert.equal(Z.ciudad, 'Bagdad'); assert.ok(![e.dados, ...(e.colaDados || [])].some((d) => d?.motivo === 'apedreo'), 'ni hay apedreo'); }
 }
 
 // Jorge (19 de noviembre): Zein nunca renta su cuerpo; R26 no depende de si Zein es jugadora (quien juega con Zein no puede hacerlo).

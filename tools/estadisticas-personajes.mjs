@@ -40,7 +40,7 @@ const sc = (cfg, pj) => ((porCfg[cfg] ||= {})[pj] ||= nuevo());
 const C = {}; const inc = (k, n = 1) => { C[k] = (C[k] || 0) + n; };
 const cfgRes = {};   // por configuración: partidas, ganadas por jugador, por Yafar NPC, sin ganador, rondas
 const retosIntentos = {}, retosHechos = {}, viajes = {};
-let terminadas = 0, total = 0, lamparas = 0, conMongol = 0, conForja = 0, conYegua = 0, conYeguaEst = 0;
+let terminadas = 0, total = 0, lamparas = 0, conMongol = 0, conForja = 0, conYegua = 0, conYeguaEst = 0; let negFin = 0;
 const bot = {};   // compras útiles, debilidades aprovechadas y fortalezas usadas por los bots (tests/sim.mjs)
 const NPC_NOMBRE = 'Yafar el Bermekí (NPC)';
 const npcRes = {};   // Yafar NPC por dificultad
@@ -88,6 +88,16 @@ const REG = [   // [clave, prueba sobre el texto del registro]
   ['Caballos mongoles comprados', (t) => / compra un caballo mongol /.test(t)],
   ['R50 yeguas compradas en Samarcanda (compras)', (t) => / yeguas? de la estepa en Samarcanda por /.test(t)],
   ['Yeguas vendidas en Estambul', (t) => / vende una yegua de la estepa al mercado de Estambul/.test(t)],
+  ['Atacar a Zein o a Zubayda: Buscado', (t) => / atacó a .+ \((Zein|Zubayda)\): queda Buscado durante /.test(t)],
+  ['Zubayda viaja gratis (paga al camellero con servicios nocturnos)', (t) => / le paga al camellero con servicios nocturnos\.$/.test(t)],
+  ['El camellero se cansó de rogarle a Zubayda', (t) => /^El camellero se cansó de rogarle/.test(t)],
+  ['Zein recibe su mahr (dote)', (t) => / recibe su mahr \(dote\)/.test(t)],
+  ['Zubayda renta su cuerpo (pasan la noche juntos)', (t) => / y .+ pasan la noche juntos\.$/.test(t)],
+  ['Apedreo: tira 30 dinares y se libra', (t) => / lanza 30 dinares y se libra del linchamiento/.test(t)],
+  ['Apedreo: herida y Buscada', (t) => / queda herido por las pedradas/.test(t)],
+  ['Zein no paga alojamiento en Andalucía', (t) => / no paga alojamiento en Andalucía\.$/.test(t)],
+  ['Zein llega a El Cairo: sus dados duran 7', (t) => / llega a El Cairo con sus Dados del Cairo: en vez de 5/.test(t)],
+  ['Un ifrit se robó los Dados del Cairo', (t) => /^Un ifrit se robó los Dados del Cairo /.test(t)],
   ['R52 empieza a forjar', (t) => / empieza a forjar acero de Damasco/.test(t)],
   ['R52 termina: recibe su cimitarra', (t) => / termina de forjar su acero de Damasco/.test(t)],
   ['R52 primero en forjar (abre la venta de cimitarras)', (t) => / termina de forjar su acero de Damasco: .* por ser el primero/.test(t)],
@@ -110,6 +120,7 @@ for (const [i, { cfg, etq }] of CONFIGS.entries()) {
     terminadas++; R.terminadas++;
     const { e, todo, stats } = r;
     if (e.lampara) lamparas++;
+    for (const j of Object.values(e.jugadores)) if (j.pj && j.noches < 0) negFin++;
     if (todo.some((l) => / compra un caballo mongol /.test(l.texto || ''))) conMongol++;
     if (todo.some((l) => / yeguas? de la estepa en Samarcanda por /.test(l.texto || ''))) conYegua++;
     if (todo.some((l) => / vende una yegua de la estepa al mercado de Estambul/.test(l.texto || ''))) conYeguaEst++;
@@ -118,7 +129,7 @@ for (const [i, { cfg, etq }] of CONFIGS.entries()) {
     if ((e.ganadores || []).length) R.jugador++; else if (e.derrota === 'npc') R.npc++; else R.nadie++;
     if (cfg.conYafar === false && !cfg.sinYafar) medirNPC('normal', r);
     for (const [key, n] of Object.entries(stats.acciones)) {
-      if (/^(util|utilVende|explota|fortaleza):/.test(key)) bot[key] = (bot[key] || 0) + n;
+      if (/^(util|utilVende|explota|fortaleza|buscadoMujer):/.test(key)) bot[key] = (bot[key] || 0) + n;
       const m = key.match(/^reto:(R\d+)(?::[^:]+)?:(ok|x)$/);
       if (m) { const o = (retosIntentos[m[1]] ||= { ok: 0, x: 0 }); o[m[2]] += n; }
     }
@@ -155,6 +166,7 @@ for (const dif of ['facil', 'dificil']) for (let k = 0; k < N; k++) { const r = 
 const f = (v, d = 1) => v.toFixed(d);
 console.log(`Partidas terminadas: ${terminadas}/${total} (bots al azar; «Ganar ya» siempre al llegar a 1,001)
 Lámpara mágica encontrada en ${f(100 * lamparas / Math.max(1, terminadas))}% de las partidas
+Jugadores que terminan con noches negativas: ${negFin}
 Partidas en que alguien fue por yeguas (R50): ${conYegua} (${f(100 * conYegua / Math.max(1, terminadas))}%); en que una yegua llegó a Estambul: ${conYeguaEst} (${f(100 * conYeguaEst / Math.max(1, terminadas))}%); en que alguien compró un caballo mongol: ${conMongol} (${f(100 * conMongol / Math.max(1, terminadas))}%); en que alguien terminó de forjar (R52): ${conForja} (${f(100 * conForja / Math.max(1, terminadas))}%)
 `);
 function tabla(est) {
@@ -190,6 +202,7 @@ grupo('util', 'Compras útiles de los bots (artefactos para retos y reglas; ok =
 grupo('utilVende', 'Ventas útiles de los bots (Shatranj y dátiles)');
 grupo('explota', 'Debilidades ajenas aprovechadas');
 grupo('fortaleza', 'Fortalezas propias usadas');
+grupo('buscadoMujer', 'Quedan Buscados por atacar a Zein o a Zubayda (víctima · tipo de ataque; solo jugadores bot)');
 console.log('\n=== Yafar NPC por dificultad (3 jugadores con Yafar NPC; fácil y difícil son 300 partidas extra cada una)');
 console.log('Dificultad | partidas | gana | llega a 1,001 | último en pie | eliminado | noches final | dinares final | robos hechos | le roban | duelos G/P | burros | mongoles | compras | rondas');
 for (const dif of ['facil', 'normal', 'dificil']) { const X = npcRes[dif]; if (!X) continue; const p = X.partidas;

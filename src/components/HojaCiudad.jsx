@@ -50,9 +50,8 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}
         <button className="btn mini sec" aria-expanded={verVentas} onClick={() => setVerVentas((v) => !v)}>{verVentas ? 'Ocultar consejos de venta' : 'Consejos para ganar dinares aquí'}</button>
         {verVentas && <ul className="consejos-venta">{consejosVenta(id).map((x) => <li key={x}>{x}</li>)}</ul>}
-        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>Viajar a {id} ({tarifa} dinares)</button>}
-        {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.{yo.pj === '6' ? ' Puedes pagar la caravana con sexo.' : ''}</p>}
-        {puedeViajar && yo.pj === '6' && tarifa > 0 && <button className="btn sec" onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id, { servicios: true })); onCerrar(); }} title="Pagas la caravana con sexo, sin dinares. Riesgo de apedreo: tiras un dado y solo con 4 o 6 estás a salvo; si no, pagas 30 dinares o quedas herida y Buscada.">Pagar la caravana con sexo (riesgo de apedreo)</button>}
+        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>{viaje?.gratisInicial ? 'Viaje gratis: pagas al camellero con servicios nocturnos' : `Viajar a ${id} (${tarifa} dinares)`}</button>}
+        {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && yo.herido && esRutaMar(yo.ciudad, id) && <p className="it">{HERIDO_BARCO}</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
       </div>

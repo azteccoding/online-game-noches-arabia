@@ -206,6 +206,12 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   return ok();
 }
 
+export function atacaMujer(j, d) {
+  if (!d || d.id === j.id) return false;
+  if (d.pj === '2') return j.pj !== '2';
+  if (d.pj === '6') return j.pj !== '2' && !ARMAS.some((r) => r !== 'jambiya' && tieneItem(d, r));
+  return false;
+}
 export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   const v = validarAtaque(data, e, pid, a, { npc });
   if (!v.ok) return v;
@@ -217,7 +223,13 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid });
   // Jorge (8 de noviembre): si Yafar (NPC o jugador) asalta o ataca a muerte a Zein o a Zubayda y ella no lleva armas a la vista
   // (un arma escondida no cuenta), Yafar queda Buscado, gane o pierda.
-  if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
+  // Jorge (19 de noviembre): quien ataque a Zein o a Zubayda (robo, ataque a muerte o duelo) queda Buscado, gane o pierda. A Zein,
+  // siempre, lleve las armas que lleve; a Zubayda, solo si ella no lleva armas (la jambiya no cuenta). Si Zubayda ataca a Zein, sí;
+  // si Zein ataca a Zubayda, no.
+  if (atacaMujer(j, d)) {
+    marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
+    log(e, `${j.nombre} atacó a ${d.nombre} (${d.pj === '2' ? 'Zein' : 'Zubayda'}): queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
+  } else if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
     marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
     log(e, `${j.nombre} atacó a ${d.nombre}, que iba sin armas: queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
   }

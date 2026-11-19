@@ -54,13 +54,16 @@
    "cartasInicio": ["dadosCairo"],
    "idiomasInicio": ["árabe"],
    "destreza": false,
+   "mahr": 15,
    "habilidades": [
     "Dados del Cairo: empieza con esta carta, regalo de Zacaría al Ansari. Una vez por ronda, si va a perder una pelea, repite sus dados. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 35 dinares (el mercado la revende en 75).",
     "Habla árabe desde el inicio (como si hubiera hecho el reto R47).",
     "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya.",
     "No puede hacer el reto «Acostarse con Zein en la Giralda» (R26).",
     "Sus Dados del Cairo duran 5 turnos; si llega a El Cairo con ellos, le duran 7 en total (contados desde el inicio).",
-    "No paga alojamiento en Andalucía."
+    "No paga alojamiento en Andalucía.",
+    "Empieza con 15 dinares más: su mahr (dote), que le da su esposo (sale una carta al empezar).",
+    "Quien la ataque (robo, ataque a muerte o duelo) queda Buscado, lleve ella las armas que lleve; también Zubayda."
    ],
    "limite": "Si vende los Dados del Cairo, queda en apuros financieros: vende sus alhajas y se costea un viaje gratis (un tramo, una sola vez por partida).",
    "stats": [
@@ -207,8 +210,9 @@
    "arma": [],
    "destreza": false,
    "habilidades": [
-    "Harén del Califa en Bagdad: termina su turno, gana 15 dinares y no puede ser robada ni asesinada allí.",
-    "Paga caravanas con servicios (riesgo de apedreo)."
+    "Harén del Califa en Bagdad: termina su turno, gana 16 dinares y no puede ser robada ni asesinada allí.",
+    "La primera vez que sale de Bagdad, en su primer o segundo turno, la caravana no le cuesta: paga al camellero con servicios nocturnos.",
+    "Quien la ataque (robo, ataque a muerte o duelo) queda Buscado si ella no lleva armas (la jambiya no cuenta); Zein no."
    ],
    "limite": "Riesgo de apedreo al prostituirse, igual en todas las ciudades; si la apedrean, queda herida y Buscada.",
    "stats": [

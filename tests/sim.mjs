@@ -4,6 +4,7 @@
 import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
 import { tieneItem, tieneObj, SHATRANJ, DATILES } from '../shared/base.js';
+import { atacaMujer } from '../shared/pelea.js';
 
 const data = cargarDatos();
 const PJS = ['1', '2', '3', '4', '5', '6', '7'];
@@ -76,6 +77,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   const atractivo = (pid, tipo, x) => {
     const A = e.jugadores[pid], D = e.jugadores[x];
     if (A.pj === 'B' && ['2', '6'].includes(D.pj) && tipo !== 'duelo' && desarmado(D)) return [R() < 0.1 ? 0.2 : 0, null];   // Yafar quedaría Buscado
+    if (atacaMujer(A, D)) return [A.buscado > 0 ? 1 : 0.25, 'costo:ataca a ' + (D.pj === '2' ? 'Zein' : 'Zubayda') + ' aunque quede Buscado'];   // Jorge (19 de noviembre): quedaría Buscado
     if (tipo === 'matar' && D.buscado > 0) return [4, 'explota:mata a un Buscado'];
     if (D.pj === 'B' && tipo !== 'robo') return [3, 'explota:ataca a Yafar (blanco de todos)'];
     if (A.pj === 'B') return [1 + Math.min(3, D.dinares / 20), 'fortaleza:Yafar ataca con jambiya y destreza' + (A.ciudad === 'Bagdad' ? ' (con su Firmán en Bagdad)' : '')];
@@ -108,6 +110,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   };
   const porViaje = (pid, x) => {
     const j = e.jugadores[pid];
+    if (x.gratisInicial) return 'fortaleza:Zubayda usa su viaje gratis (primera salida de Bagdad)';
     { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return 'meta:' + (m === 'Estambul' ? 'lleva la yegua a Estambul' : m === 'Damasco' ? 'va a Damasco a forjar' : 'va a Samarcanda por yeguas'); }
     if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return 'explota:viaja a donde está Ruyán';
     if (j.pj === '6' && x.destino === 'Bagdad' && apuros(j)) return 'fortaleza:Zubayda vuelve a Bagdad (harén)';
@@ -140,6 +143,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       return w;
     }
     if (x.k === 'viajar') {
+      if (x.gratisInicial) return 0.5 + (x.tarifaNormal || 0) / 4;                              // Zubayda: su primera salida de Bagdad es gratis, mejor si es cara
       if (j.ciudad === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(j, 'caballoMongol') && j.dinares >= 40) return base * 0.05;   // espera a comprar su mongol
       { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return base * (m === 'Estambul' ? 20 : 6); }   // con la yegua, derecho a Estambul
       if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return base * 3;
@@ -208,9 +212,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         case 'tirarDados': a = { t: 'tirarDados' }; break;
         case 'cc': { const cc = t.ccActual; a = cc?.tipo === 'trivia' ? { t: 'responderCC', opcion: Math.floor(R() * (data.trivias.trivias.find((x) => x.id === cc.id)?.opciones.length || 3)) } : { t: 'resolverMesa', ok: R() < 0.5 }; break; }
         case 'viajar': { a = { t: 'viajar', destino: elegida.destino }; const j = e.jugadores[pid];
-          if (j.pj === '6' && elegida.precio > 0 && j.dinares < elegida.precio) { a.servicios = true; a._por = 'fortaleza:Zubayda paga la caravana con servicios'; }
-          else if (j.pj === '6' && R() < 0.1) a.servicios = true;
-          else a._por = porViaje(pid, elegida); break; }
+          a._por = porViaje(pid, elegida); break; }
         case 'atacar': if (elegida.tipo === 'duelo' && e.jugadores[pid].herido) a = { t: 'terminarTurno' };   // herido, no se arriesga a un duelo
           else { const [obj, por] = objetivoAtaque(pid, elegida); a = { t: 'atacar', tipo: elegida.tipo, objetivo: obj, pedirDinares: e.jugadores[pid].pj === '1' && HONOR.includes(e.jugadores[pid].ciudad) ? 10 + Math.floor(R() * 11) : 5, pedirNoches: 0, _por: por }; }
           break;
@@ -296,7 +298,8 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       const por = a._por; delete a._por;
       const r = act(pid, a);
       cuenta(stats.acciones, a.t + (a.sub ? ':' + a.sub : '') + ':' + (r.ok ? 'ok' : 'x'));
-      if (r.ok && por) cuenta(stats.acciones, por.startsWith('meta:') ? 'fortaleza:' + por.slice(5) : por);
+      if (r.ok && por) cuenta(stats.acciones, por.startsWith('meta:') ? 'fortaleza:' + por.slice(5) : por.startsWith('costo:') ? 'explota:' + por.slice(6) : por);
+      if (r.ok && a.t === 'atacar' && e.jugadores[a.objetivo] && ['2', '6'].includes(e.jugadores[a.objetivo].pj) && e.log.slice(-6).some((l) => / \((Zein|Zubayda)\): queda Buscado durante /.test(l.texto || ''))) cuenta(stats.acciones, 'buscadoMujer:' + (e.jugadores[a.objetivo].pj === '2' ? 'Zein' : 'Zubayda') + ' · ' + a.tipo);
       if (!r.ok) {
         cuenta(stats.errores, a.t + ':' + r.error);
         if (fin) { const r2 = act(pid, { t: 'terminarTurno' }); if (!r2.ok) cuenta(stats.errores, 'FIN:' + r2.error); }

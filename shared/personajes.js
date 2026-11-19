@@ -52,6 +52,7 @@ registrar('pj.ruyan', (data, e, args, resp) => {
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
 export const PRECIO_ZUBAYDA = 7;
+export const HAREN_DINARES = 16;   // Jorge (19 de noviembre): 16 dinares por pasar la noche en el harén (antes 15)
 // Jorge (19 de noviembre): más riesgo de apedreo: a salvo solo con 4 o 6 (con 1, 2, 3 o 5 intentan apedrearla).
 export const salvoApedreo = (x) => x === 4 || x === 6;
 export function apedreo(data, e, pid) {
@@ -90,7 +91,7 @@ export function disponibles(data, e, pid) {
   const j = jug(e, pid), t = e.turno, r = [];
   if (!puedePrincipal(t) || j.transito || j.perdido) return r;
   const aqui = enCiudad(e, j.ciudad, pid).filter((x) => !jug(e, x).npc);
-  if (j.pj === '6' && j.ciudad === 'Bagdad') r.push({ k: 'pj', sub: 'haren', titulo: 'Pasar la noche en el harén del Califa (+15 dinares, termina tu turno)' });
+  if (j.pj === '6' && j.ciudad === 'Bagdad') r.push({ k: 'pj', sub: 'haren', titulo: `Pasar la noche en el harén del Califa (+${HAREN_DINARES} dinares, termina tu turno)` });
   if (j.pj === '6' && aqui.length) r.push({ k: 'pj', sub: 'prost', titulo: 'Rentar tu cuerpo (R 12.6)', objetivos: aqui, pidePrecio: j.pj !== '6', texto: j.pj === '6' ? `Entregas al cliente 50 noches de tu haber (o las que tengas) y te paga ${PRECIO_ZUBAYDA} dinares.` : undefined });
   if (j.pj === '7') { const o = aqui.filter((x) => jug(e, x).pj !== '2'); if (o.length) r.push({ k: 'pj', sub: 'cuentos', titulo: 'Cuentos de noche (ambos +5 dinares, el compañero +10 noches)', objetivos: o }); }
   // Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (el otro pierde 10
@@ -112,9 +113,9 @@ export function accion(data, e, pid, a) {
   switch (a.sub) {
     case 'haren': {
       if (j.pj !== '6' || j.ciudad !== 'Bagdad') return err('Solo Zubayda, en Bagdad.');
-      j.dinares += 15; j.extra.bajoTecho = true; j.extra.techoRonda = e.ronda;
+      j.dinares += HAREN_DINARES; j.extra.bajoTecho = true; j.extra.techoRonda = e.ronda;
       t.principal = true; t.sinAlojamiento = true; t.fin = true;
-      log(e, `${j.nombre} pasa la noche en el harén del Califa: gana 15 dinares y queda bajo su techo.`, { pid });
+      log(e, `${j.nombre} pasa la noche en el harén del Califa: gana ${HAREN_DINARES} dinares y queda bajo su techo.`, { pid });
       return ok();
     }
     case 'cuentos': {
