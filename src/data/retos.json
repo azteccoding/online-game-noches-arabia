@@ -197,7 +197,7 @@
   },
   {
    "id": "R17",
-   "nombre": "Llevar alfombras del bazar de Isfahán",
+   "nombre": "Comprar alfombras en el bazar de Isfahán",
    "ciudad": "Isfahán",
    "tipo": "V",
    "requisito": "Comprar de 2 a 4 alfombras a 20 dinares cada una (quedan 20 en todo el juego)",
@@ -374,7 +374,7 @@
    "ciudad": "Andalucía",
    "tipo": "V",
    "requisito": "Tener una Balanza de mercader y pagar 5 dinares al escriba.",
-   "resolucion": "Recibes un pergamino sellado (cuenta como Pergamino sellado, objeto de carga). Entrégalo en Bagdad en 3 turnos o menos. Al salir tira 1 dado: con 1 a 3 un guardia exige 15 dinares de peaje; sin pagarlos pierdes el reto. Se puede repetir.",
+   "resolucion": "Recibes un pergamino sellado (objeto de carga). Entrégalo en Bagdad en 3 turnos o menos. Al salir tira 1 dado: con 1 a 3 un guardia exige 15 dinares de peaje; sin pagarlos pierdes el reto. Se puede repetir.",
    "premio": "68 dinares (60 más 8 por la Balanza) y 15 noches.",
    "riesgo": "Si llegas tarde o te lo roban: pierdes el reto y pagas 10 dinares al escriba.",
    "objetos": "Sobre de sobornos o Caja de baratijas (pagan el peaje); Pastel de pistachos (el guardia te deja pasar); Cuaderno de ruta (+1 turno de plazo); Balanza de mercader (obligatoria; 8 dinares más al entregar).",
