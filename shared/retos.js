@@ -60,7 +60,7 @@ const tieneArma = (data, e, j) => armasUsables(data, e, j, j.ciudad).length > 0 
 // ---------------------------------------------------------------- catálogo (ciudad, objetos usables, requisito, ejecución)
 const T = {};   // T[id] = { ciudad, objs, req(data,e,pid)->string|null, run(data,e,pid,ctx,usados) }
 const OBJS = {
-  R28: ['OB07', 'OB43', 'OB08', 'OB06', 'OB09'], R29: ['OB05', 'OB18'], R30: ['OB14', 'OB17', 'OB21'], R31: ['OB07', 'OB41', 'OB14', 'OB43', 'OB08', 'OB21', 'OB30', 'OB06'], R33: ['OB10', 'OB05', 'OB08'],
+  R28: ['OB07', 'OB21', 'OB43', 'OB08', 'OB06', 'OB09'], R29: ['OB05', 'OB18'], R30: ['OB14', 'OB17', 'OB21'], R31: ['OB07', 'OB41', 'OB14', 'OB43', 'OB08', 'OB21', 'OB30', 'OB06'], R33: ['OB10', 'OB05', 'OB08'],
   R34: ['OB09', 'OB06', 'OB26'], R35: ['OB30'], R37: ['OB21', 'OB30'], R38: ['OB13'],
 };
 const hecho = (j, id) => j.retosHechos.includes(id);
@@ -628,7 +628,9 @@ T.R27 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 
 const aplic = (data, e, pid, usados, id) => usa(data, e, pid, usados, id);
 T.R28 = { ciudad: 'Estambul', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R28');
+  // Jorge (19 de noviembre): el Pastel de pistachos supera al guardia sin tirar (se gasta), como la Ganzúa.
   let ganz = aplic(data, e, pid, us, 'OB07'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0);
+  if (!ganz && aplic(data, e, pid, us, 'OB21')) { ganz = true; ctx.say('Le das un pastel de pistachos al guardia: te deja pasar sin tirar.'); log(e, `${j.nombre} convence al guardia con un pastel de pistachos.`, { pid }); }
   if (!ganz) { const v = ctx.t(`${j.nombre}: el guardia`, 2); if (suma(v) + b1 < 7) { j.noches -= 20; j.herido = true; ctx.say('El guardia te sorprende: -20 noches, herido.'); ctx.fallo = true; return; } ctx.say('Pasas al guardia.'); } else ctx.say('La ganzúa neutraliza al guardia.');
   const llave = aplic(data, e, pid, us, 'OB06'), lin = aplic(data, e, pid, us, 'OB09') ? 1 : 0;
   if (!llave) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x + lin < 4) { pagar(data, e, pid, 10); ctx.say('La cerradura no cede: huyes y pagas 10 dinares.'); ctx.fallo = true; return; } }
@@ -650,7 +652,7 @@ T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (!tieneObj(e.jugadores[pid],
   const j = e.jugadores[pid]; j.dinares -= 5; const c = darItem(e, j, 'pergaminoSellado');
   const [x] = ctx.t(`${j.nombre}: el guardia del camino`, 1);
   if (x <= 3) {
-    if (aplic(data, e, pid, us, 'OB21')) ctx.say('El pastel de pistachos suaviza al guardia.');
+    if (aplic(data, e, pid, us, 'OB21')) { ctx.say('Le das un pastel de pistachos al guardia: te deja pasar sin pagar el peaje.'); log(e, `${j.nombre} pasa al guardia del camino con un pastel de pistachos.`, { pid }); }
     else if (aplic(data, e, pid, us, 'OB14') || aplic(data, e, pid, us, 'OB17')) ctx.say('Pagas el peaje con tu objeto.');
     else if (j.dinares >= 15) { j.dinares -= 15; ctx.say('Pagas 15 dinares de peaje.'); } else { quitarCarta(j, c.uid); ctx.say('No puedes pagar el peaje: pierdes el reto.'); return; }
   }
@@ -659,7 +661,10 @@ T.R30 = { ciudad: 'Andalucía', req: (d, e, pid) => (!tieneObj(e.jugadores[pid],
 T.R31 = { ciudad: 'Isfahán', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R31');
   // Jorge (18 de noviembre): el Sobre de sobornos cambia el dado del guardia a lo que necesitas (pasas sin tirar); el Pastel de pistachos y la Carta de recomendación suman +1
-  const ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41') || aplic(data, e, pid, us, 'OB14'), b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0) + (aplic(data, e, pid, us, 'OB21') ? 1 : 0) + (aplic(data, e, pid, us, 'OB30') ? 1 : 0);
+  // Jorge (19 de noviembre): el Pastel de pistachos también supera al capitán de la guardia sin tirar (antes, +1).
+  let ganz = aplic(data, e, pid, us, 'OB07') || aplic(data, e, pid, us, 'OB41') || aplic(data, e, pid, us, 'OB14');
+  if (!ganz && aplic(data, e, pid, us, 'OB21')) { ganz = true; ctx.say('Le das un pastel de pistachos al capitán de la guardia: te deja pasar sin tirar.'); log(e, `${j.nombre} convence al capitán de la guardia con un pastel de pistachos.`, { pid }); }
+  const b1 = (aplic(data, e, pid, us, 'OB43') ? 1 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0) + (aplic(data, e, pid, us, 'OB30') ? 1 : 0);
   if (!ganz) { const v = ctx.t(`${j.nombre}: el capitán`, 2); if (suma(v) + b1 < 8) { j.noches -= 30; j.herido = true; ctx.say('Te sorprenden: -30 noches, herido.'); ctx.fallo = true; return; } }
   if (!aplic(data, e, pid, us, 'OB06')) { const [x] = ctx.t(`${j.nombre}: la cerradura`, 1); if (x < 5) { ctx.say('La cerradura resiste: huyes sin botín.'); ctx.fallo = true; return; } }
   premio(data, e, pid, { dinares: 80, noches: 15 }, `${j.nombre} despoja la cámara del emir:`); robarBotin(data, e, pid);
@@ -967,6 +972,8 @@ T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo y
     if (j.destreza || duas.length) ctx.say(`${[j.destreza && 'destreza +1', duas.length && `duas del sheij +1 (${duas[0]})`].filter(Boolean).join(', ')} → ${r}.`);
     if (r >= 5) { e.idolo = 'robado'; hacer(e, pid, 'R41'); darItem(e, j, 'idolo'); ctx.say('Te llevas el ídolo: ganas la carta «Ídolo de Toledo».'); log(e, `${j.nombre} roba el Ídolo de Toledo.`, { pid, aviso: true }); }
     else if (r >= 3) ctx.say('Los guardias te ven y huyes con las manos vacías.');
+    // Jorge (19 de noviembre): si te iban a atrapar y llevas un Pastel de pistachos, distraes a los guardias: huyes con las manos vacías (se gasta).
+    else if (consumirObj(data, e, pid, 'OB21')) { ctx.say('El pastel de pistachos distrae a los guardias: huyes con las manos vacías.'); log(e, `${j.nombre} distrae a los guardias de Toledo con un pastel de pistachos y huye con las manos vacías.`, { pid }); }
     else { j.herido = true; pagar(data, e, pid, 20); ctx.say('Te atrapan: quedas herido y pagas 20 dinares de rescate.'); log(e, `${j.nombre} intenta robar el ídolo de Toledo y lo atrapan: queda herido y paga 20 dinares de rescate.`, { pid, aviso: true }); }
   } };
 

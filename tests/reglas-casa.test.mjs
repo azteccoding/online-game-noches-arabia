@@ -4043,6 +4043,33 @@ console.log('reglas de la casa OK');
   assert.ok(e.log.some((l) => /cobra 45 dinares por su camello amarrado en Basra/.test(l.texto)), 'el dueño cobra al llegar');
   assert.ok(!(e.amarrados || []).length, 'ya no queda amarrado');
 }
+// Jorge (19 de noviembre): el Pastel de pistachos cuesta 9 (antes 4) y supera sin tirar a los guardias de R28 y R31 (en R30 ya pasabas
+// sin peaje). Se gasta al usarlo; la cerradura sigue igual.
+{
+  assert.equal(data.objetos.mazo.find((o) => o.id === 'OB21').valor, 9, 'cuesta 9');
+  const prep = (ciudad, id, din = 100) => { const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a]; A.ciudad = ciudad; turnoDe(e, a, ciudad); e.turno.fase = 'acciones'; A.dinares = din; A.herido = false;
+    A.mano.push({ uid: 'pastel', tipo: 'objeto', ref: 'OB21', pub: true }); return { g, e, a, A, id }; };
+  const jugar = ({ g, e, a, id }, dados) => { forzar(e, ...dados); assert.ok(g.act(a, { t: 'reto', id }).ok); assert.equal(e.pend?.cont?.fn, 'reto.obj');
+    assert.ok(e.pend.opciones.some((o) => o.id === 'pastel'), 'se ofrece el pastel'); assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, valores: ['pastel'] }).ok); while (e.dados) g.act(a, { t: 'cerrarDados' }); };
+  { const c = prep('Estambul', 'R28'); const n0 = c.A.noches; jugar(c, [6]);   // sin pastel, el guardia pedía 2 dados con 7 o más; la cerradura (1 dado) con 6 se abre
+    assert.ok(!c.A.mano.some((x) => x.uid === 'pastel'), 'se gasta'); assert.ok(!c.A.herido && c.A.noches >= n0, 'el guardia no lo sorprende');
+    assert.ok(c.e.log.some((l) => /convence al guardia con un pastel de pistachos/.test(l.texto))); assert.ok(c.e.log.some((l) => /vacía el cofre del tesorero/.test(l.texto)), 'y con la cerradura abierta gana'); }
+  { const c = prep('Estambul', 'R28'); const d0 = c.A.dinares; jugar(c, [1]); assert.ok(!c.A.herido, 'pasa al guardia'); assert.equal(c.A.dinares, d0 - 10 - 10, 'pero la cerradura (1) no cede: paga los 10 del reto y 10 al huir'); }
+  { const c = prep('Isfahán', 'R31'); jugar(c, [6]); assert.ok(!c.A.herido, 'pasa al capitán sin tirar'); assert.ok(c.e.log.some((l) => /convence al capitán de la guardia con un pastel/.test(l.texto)));
+    assert.ok(c.e.log.some((l) => /despoja la cámara del emir/.test(l.texto)), 'con la cerradura (6) gana'); }
+  { const c = prep('Andalucía', 'R30', 20); c.A.mano.push({ uid: 'bal', tipo: 'objeto', ref: 'OB12', pub: true }); const d0 = c.A.dinares; jugar(c, [1]);
+    assert.equal(c.A.dinares, d0 - 5, 'solo paga los 5 del reto, no los 15 del peaje'); assert.ok(c.e.log.some((l) => /pasa al guardia del camino con un pastel/.test(l.texto))); }
+  // R41: si te iban a atrapar (1 o 2), el pastel distrae a los guardias y huyes con las manos vacías (se gasta); con 3 o 4 no se usa
+  for (const [dado, usa] of [[1, true], [3, false]]) {
+    const c = prep('Andalucía', 'R41', 50); c.A.destreza = false; forzar(c.e, dado); const d0 = c.A.dinares;
+    assert.ok(c.g.act(c.a, { t: 'reto', id: 'R41' }).ok); while (c.e.dados) c.g.act(c.a, { t: 'cerrarDados' });
+    assert.ok(!c.A.herido && c.A.dinares === d0, `con ${dado}: sin daño`); assert.equal(c.A.mano.some((x) => x.uid === 'pastel'), !usa, usa ? 'el pastel se gasta' : 'el pastel no se usa');
+    if (usa) assert.ok(c.e.log.some((l) => /distrae a los guardias de Toledo con un pastel de pistachos/.test(l.texto)));
+  }
+  { const c = prep('Andalucía', 'R41', 50); c.A.mano = c.A.mano.filter((x) => x.uid !== 'pastel'); c.A.destreza = false; forzar(c.e, 1);
+    assert.ok(c.g.act(c.a, { t: 'reto', id: 'R41' }).ok); while (c.e.dados) c.g.act(c.a, { t: 'cerrarDados' }); assert.ok(c.A.herido, 'sin pastel, lo atrapan'); }
+}
 // quien entra tarde también recibe su idioma y sus objetos de inicio
 {
   const { hablaIdioma } = await import('../shared/retos.js');
