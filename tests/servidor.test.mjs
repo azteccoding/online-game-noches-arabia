@@ -91,7 +91,7 @@ assert.ok(!B.crudos.some((r) => r.includes('"t":"hecho"')), 'la confirmación so
 const objetoId = (B.s.mano.find((c) => c.tipo === 'objeto') || {}).uid;
 if (!objetoId) console.log('  (aviso) el id de objeto de prueba no existe en el mazo; se omite la comprobación de mano de B:', B.errores.slice(-1));
 else {
-  assert.equal(A.s.mano.filter((c) => c.tipo === 'objeto').length, 0); assert.equal(C.s.mano.filter((c) => c.tipo === 'objeto').length, 0);
+  assert.equal(A.s.mano.filter((c) => c.tipo === 'objeto').length, 0); assert.equal(C.s.mano.filter((c) => c.tipo === 'objeto' && c.ref !== 'OB42').length, 0);   // C es Anís: empieza con su Disfraz de mendigo (Jorge, 19 de noviembre)
   for (const x of [A, C]) assert.ok(!x.crudos.some((r) => r.includes(objetoId)), 'el uid del objeto de B nunca viaja a otros jugadores');
   assert.equal(A.s.jugadores[B.pid].nMano.objeto, 1, 'los demás solo ven el CONTEO');
 }
