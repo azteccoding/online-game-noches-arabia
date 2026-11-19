@@ -33,7 +33,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {s.noSalir && <p className="aviso-mal">⛔ No puedes salir de tu ciudad: {s.noSalir}</p>}
         <p><b>Llegada:</b> {c.nochesLlegada === c.nochesLuego ? `${c.nochesLlegada}` : `${c.nochesLlegada} la primera vez, luego ${c.nochesLuego}`} noches (×{mult} esta ronda) · <b>Alojamiento:</b> {c.alojamiento} dinares · <b>Impuesto de venta:</b> {c.impuestoVenta}%</p>
         {c.notas && <p className="it">{c.notas}</p>}
-        {id === 'Bagdad' && <p className={s.armasBagdad ? '' : 'aviso-mal'}><b>Pelear aquí:</b> {s.armasBagdad ? 'esta ronda el Califa permite armas en Bagdad (Torneo del Califa): se puede pelear como en cualquier ciudad.' : 'solo con el Firmán del Califa (robos, ataques a muerte y duelos). Con Firmán solo sirven el arco y la jambiya; el alfanje y la cimitarra no se usan en Bagdad.'}</p>}
+        {id === 'Bagdad' && <p className={s.armasBagdad ? '' : 'aviso-mal'}><b>Pelear aquí:</b> {s.armasBagdad ? 'esta ronda el Califa permite armas en Bagdad (Torneo del Califa): se puede pelear como en cualquier ciudad.' : 'sin Firmán del Califa solo puedes retar a duelo (sin armas: aquí no se portan); robar y atacar a muerte, solo con el Firmán. Con Firmán sirven el arco (su disparo) y la jambiya; el alfanje y la cimitarra no se usan en Bagdad.'}</p>}
         <p><b>Entrenamiento:</b> {entrenamientos(c, yo).join(' · ') || 'esta ciudad no ofrece entrenamiento'}{c.retos.includes('R51') ? ' · Torneo de Murcia (16 dinares): campeón de arco' : ''}</p>
         {(() => {   // Jorge (12 de noviembre): qué armas vende la ciudad (de las existencias del mercado), con su precio
           const a = s.armasCiudades?.[id];

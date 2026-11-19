@@ -201,7 +201,8 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
     if (t.principal || t.bloqueoPrincipal) return err(t.bloqueoPrincipal ? 'Estás herido o inhabilitado: sin acción principal este turno.' : 'Ya usaste tu acción principal.');
   }
   const libre = e.mods?.armasBagdad;
-  if (j.ciudad === 'Bagdad' && !libre && !tieneEsp(j, 'F1')) return err('En Bagdad solo se ataca con un Firmán del Califa.');
+  // Jorge (19 de noviembre): en Bagdad, sin Firmán, solo se reta a duelo; robar y atacar a muerte, solo con el Firmán del Califa.
+  if (a.tipo !== 'duelo' && j.ciudad === 'Bagdad' && !libre && !tieneEsp(j, 'F1')) return err('En Bagdad, sin Firmán del Califa, solo puedes retar a duelo: robar y atacar a muerte, no.');
   const pa = perfil(data, e, pid);
   if (a.tipo === 'robo') {
     if (data.config.sinRobarPrimerasRondas && e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede robar en las 2 primeras rondas.');
@@ -214,8 +215,6 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
     if (!npc && !(pa.armas.length && (pa.destreza || j.pj === '1'))) return err(j.pj === '1' ? 'Para matar necesitas un arma que puedas usar aquí.' : 'Para matar necesitas un arma y destreza con armas: sin ellas solo puedes robar.');   // Nur al Din, guerrero: ataca a muerte sin destreza
   }
   if (a.tipo === 'duelo' && tieneEsp(d, 'K1')) return err('Quien porta el Ejército de Kanmakán no puede ser desafiado a duelo.');
-  // Jorge (19 de noviembre): en Bagdad, con el Firmán, para retar a duelo (como para robar o matar) hace falta la jambiya: el arco no basta.
-  if (a.tipo === 'duelo' && !npc && j.ciudad === 'Bagdad' && !libre && !pa.armas.length) return err('En Bagdad, para retar a duelo necesitas la jambiya (con tu Firmán): el arco no cuenta como arma.');
   return ok();
 }
 
