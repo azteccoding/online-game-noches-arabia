@@ -4383,3 +4383,27 @@ console.log('reglas de la casa OK');
   assert.deepEqual(perfil(data, e, a).armas, ['alfanje'], 'repetida cuenta como una sola arma');
   assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0, 'el bono del alfanje no se duplica');
 }
+// Jorge (19 de noviembre): con solo arco y flechas te defiendes de un robo o un ataque a muerte y aceptas duelos (el arco dispara; por lo demás, sin arma);
+// en Bagdad, con el Firmán, para retar a duelo (o robar o matar) hace falta la jambiya.
+{
+  const prep = (ciudad = 'Damasco') => {
+    const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b];
+    for (const x of [A, Bj]) { x.ciudad = ciudad; x.extra.clienteWeb = true; x.dinares = 60; x.mano = x.mano.filter((c) => !['arco', 'flechas', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); }
+    e.ronda = 5; turnoDe(e, a, ciudad); e.turno.fase = 'acciones'; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+    return { g, e, a, b, A, Bj };
+  };
+  { const { g, e, a, b, A, Bj } = prep(); darItem(e, A, 'alfanje'); darItem(e, Bj, 'arco'); darItem(e, Bj, 'flechas');
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok);
+    if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' });
+    assert.ok([e.dados, ...(e.colaDados || [])].some((d) => d && d.boton === 'Disparar flecha' && d.por === b), 'con solo arco y flechas se defiende disparando'); }
+  { const { g, e, a, b, Bj } = prep(); darItem(e, Bj, 'arco'); darItem(e, Bj, 'flechas');   // Jorge: con solo arco SÍ aceptas el duelo; el arco dispara y por lo demás peleas sin arma
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: b }).ok);
+    const p = e.pend; assert.equal(p?.tipo, 'defensa'); assert.ok(!p.opciones.find((o) => o.id === 'luchar').desactivada, 'puede aceptar el duelo');
+    assert.ok(g.act(b, { t: 'decidir', id: p.id, opcion: 'luchar' }).ok);
+    assert.ok([e.dados, ...(e.colaDados || [])].some((d) => d && d.boton === 'Disparar flecha' && d.por === b), 'en el duelo su arco dispara');
+    const { perfil } = await import('../shared/pelea.js'); assert.deepEqual(perfil(data, e, b).armas, [], 'y por lo demás pelea sin arma'); }
+  { const { g, e, a, b, A } = prep('Bagdad'); A.mano.push({ uid: 'f1', tipo: 'especial', ref: 'F1' }); darItem(e, A, 'arco'); darItem(e, A, 'flechas');
+    assert.match(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: b }).error || '', /necesitas la jambiya/, 'en Bagdad con Firmán y solo arco no retas a duelo');
+    darItem(e, A, 'jambiya'); assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: b }).ok, 'con la jambiya sí'); }
+}
