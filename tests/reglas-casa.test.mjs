@@ -4359,3 +4359,19 @@ console.log('reglas de la casa OK');
     assert.ok(ps.some((p) => p.tipo === 'info' && p.texto === MSJ_ULTIMA_FLECHA && p.para[0] === a), 'avisa que usó su última flecha');
     assert.ok(!e.historial.some((h) => h.id === 'sinFlechas'), 'con flecha no sale el aviso de «sin flechas»'); }
 }
+// Jorge (19 de noviembre): el arma que regala el genio se recibe aunque ya la tengas y aunque vayas cargado; repetida cuenta una sola
+// vez en las peleas, pero cada copia pesa.
+{
+  const { CONT, nCarga, LIMITE_OBJETOS } = await import('../shared/base.js');
+  const { perfil, bonosCombate } = await import('../shared/pelea.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['arco', 'flechas', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref));
+  darItem(e, A, 'alfanje'); while (nCarga(A) < (LIMITE_OBJETOS ?? 7)) darItem(e, A, 'citricos');
+  A.destreza = true; const antes = nCarga(A), b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  CONT['tes.E'](data, e, {}, { pid: a, opcion: 'alfanje' });
+  assert.equal(A.mano.filter((c) => c.ref === 'alfanje').length, 2, 'recibe el alfanje aunque ya tenía uno y aunque iba cargado');
+  assert.equal(nCarga(A), antes + 1, 'la copia pesa');
+  assert.deepEqual(perfil(data, e, a).armas, ['alfanje'], 'repetida cuenta como una sola arma');
+  assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0, 'el bono del alfanje no se duplica');
+}

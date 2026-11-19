@@ -442,7 +442,9 @@ registrar('tes.A', (data, e, args, resp) => {
   const origen = j.ciudad; j.ciudad = resp.opcion; if (t && t.pid === pid) { t.movio = true; HOOK.llegada(data, e, pid, origen); }
 });
 registrar('tes.E', (data, e, args, resp) => { const j = e.jugadores[resp.pid]; darDestreza(j);   // Zein y Ruyán: solo con jambiya
-  if (!tieneItem(j, resp.opcion)) darItem(e, j, resp.opcion); retoma(data, e, resp.pid, args); });
+  // Jorge (19 de noviembre): el arma del genio se recibe siempre, aunque ya la tengas o vayas cargado; repetida solo cuenta una en las
+  // peleas (armasUsables) y cada copia pesa (nCarga) como cualquier objeto.
+  darItem(e, j, resp.opcion); retoma(data, e, resp.pid, args); });
 registrar('tes.I', (data, e, args, resp) => { darItem(e, e.jugadores[resp.pid], 'mapa', { tesoro: resp.opcion }); retoma(data, e, resp.pid, args); });
 registrar('tes.J', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], o = e.jugadores[resp.opcion];
