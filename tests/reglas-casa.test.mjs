@@ -2474,11 +2474,12 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!g.act(a, { t: 'reto', id: 'R49' }).ok, 'una vez por turno (gasta la acción principal)');
 }
 
-// Jorge (17 de noviembre): R52 «Forjar acero de Damasco»: 18 dinares, dado par 1 turno / impar 2; no sales de Damasco; luego la cimitarra.
+// Jorge (17 y 19 de noviembre): R52 «Forjar acero de Damasco»: 18 dinares, dado par 1 turno / impar 2, exactamente como estudiar árabe:
+// esos turnos sin acción principal y sin salir de Damasco; la cimitarra llega al terminar el último.
 {
   const { motivoNoSalir, tieneItem } = await import('../shared/base.js');
-  const { turnoForja } = await import('../shared/retos.js');
-  for (const [valor, extra] of [[4, 0], [3, 1]]) {
+  const { turnoForja, finForja } = await import('../shared/retos.js');
+  for (const [valor, extra] of [[4, 1], [3, 2]]) {
     const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
     const e = g.e, [a] = g.ids, A = e.jugadores[a];
     A.mano = A.mano.filter((c) => c.ref !== 'cimitarra');
@@ -2487,9 +2488,16 @@ for (let k = 0; k < 6; k++) {
     A.dinares = 30; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; forzar(e, valor);
     const r = g.act(a, { t: 'reto', id: 'R52' }); assert.ok(r.ok, r.error); assert.equal(A.dinares, 12, 'paga 18');
     assert.match(motivoNoSalir(e, A) || '', /forjando acero/, 'no puede salir de Damasco');
-    for (let k = 0; k < extra; k++) { A.turnos++; turnoDe(e, a, 'Damasco'); turnoForja(data, e, a); assert.ok(e.turno.principal, 'turno de forja: sin acción principal'); assert.ok(!tieneItem(A, 'cimitarra')); }
+    finForja(data, e, a); assert.ok(!tieneItem(A, 'cimitarra'), 'el turno del reto no cuenta como turno de forja');
+    for (let k = 0; k < extra; k++) {
+      A.turnos++; turnoDe(e, a, 'Damasco'); turnoForja(data, e, a);
+      assert.ok(e.turno.principal, `turno de forja ${k + 1} de ${extra}: sin acción principal`); assert.ok(!tieneItem(A, 'cimitarra'), 'durante el turno todavía no');
+      assert.match(motivoNoSalir(e, A) || '', /forjando acero/, 'no puede salir de Damasco');
+      finForja(data, e, a);
+      assert.equal(!!tieneItem(A, 'cimitarra'), k === extra - 1, k === extra - 1 ? 'al terminar el último turno de forja recibe la cimitarra' : 'falta otro turno');
+    }
     A.turnos++; turnoDe(e, a, 'Damasco'); turnoForja(data, e, a);
-    assert.ok(tieneItem(A, 'cimitarra'), 'al iniciar el turno siguiente recibe la cimitarra'); assert.ok(!e.turno.principal, 'ese turno sí tiene acción principal');
+    assert.ok(!e.turno.principal, 'el turno siguiente sí tiene acción principal');
     assert.equal(motivoNoSalir(e, A), null, 'ya puede salir');
   }
   // sin forja no hay cimitarras en los mercados; el primero que forja gana 50 noches y las habilita; Yafar no forja; con cimitarra no se repite
@@ -2502,7 +2510,7 @@ for (let k = 0; k < 6; k++) {
   assert.match(g.act(b, { t: 'comprar', ref: 'cimitarra' }).error || '', /forje acero de Damasco/, 'no se venden cimitarras antes de la forja');
   Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.fase = 'acciones';
   assert.match(g.act(y, { t: 'reto', id: 'R52' }).error || '', /Yafar no forja/, 'Yafar jugador no forja');
-  const forjar = (pid) => { const J = e.jugadores[pid]; J.ciudad = 'Damasco'; turnoDe(e, pid, 'Damasco'); e.turno.fase = 'acciones'; forzar(e, 2); const r = g.act(pid, { t: 'reto', id: 'R52' }); assert.ok(r.ok, r.error); const n0 = J.noches; J.turnos++; turnoDe(e, pid, 'Damasco'); turnoForja(data, e, pid); return J.noches - n0; };
+  const forjar = (pid) => { const J = e.jugadores[pid]; J.ciudad = 'Damasco'; turnoDe(e, pid, 'Damasco'); e.turno.fase = 'acciones'; forzar(e, 2); const r = g.act(pid, { t: 'reto', id: 'R52' }); assert.ok(r.ok, r.error); const n0 = J.noches; J.turnos++; turnoDe(e, pid, 'Damasco'); turnoForja(data, e, pid); finForja(data, e, pid); return J.noches - n0; };
   assert.equal(forjar(a), 50, 'el primero que forja gana 50 noches'); assert.ok(e.forjaDamasco, 'y habilita las cimitarras');
   turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
   assert.match(g.act(a, { t: 'reto', id: 'R52' }).error || '', /Ya tienes una cimitarra/, 'con cimitarra no se vuelve a forjar');

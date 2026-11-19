@@ -882,23 +882,27 @@ T.R52 = { ciudad: FORJA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]
     const [x] = ctx.t(`${j.nombre}: forjar acero de Damasco (par, 1 turno; impar, 2)`, 1);
     const n = x % 2 === 0 ? 1 : 2;
     j.extra.forja = { desde: j.turnos, entrega: j.turnos + n };
-    ctx.say(`Pagas ${FORJA.costo} dinares. ${n === 1 ? 'Te quedas este turno en Damasco forjando: al iniciar tu siguiente turno te dan la cimitarra.' : 'Tardas dos turnos: este y el siguiente te quedas en Damasco forjando (en el siguiente tu acción principal se va en la forja) y al iniciar el tercero te dan la cimitarra.'}`);
+    ctx.say(`Pagas ${FORJA.costo} dinares. Te quedas ${n === 1 ? '1 turno' : '2 turnos'} en Damasco forjando: no puedes salir y tu acción principal se va en el acero; al terminar ${n === 1 ? 'ese turno' : 'el segundo'} te dan la cimitarra.`);
     log(e, `${j.nombre} empieza a forjar acero de Damasco: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
   } };
+// Jorge (19 de noviembre): la forja funciona exactamente como estudiar árabe (turnoEstudio / finEstudio): en cada turno de forja tu
+// acción principal se va en el acero (no puedes salir de Damasco) y la cimitarra llega al TERMINAR el último. Par: 1 turno; impar: 2.
 export function turnoForja(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, f = j?.extra?.forja;
   if (!f || !t) return;
   if (j.ciudad !== FORJA.ciudad) { j.extra.forja = null; log(e, `${j.nombre} tuvo que dejar Damasco: pierde su acero a medio forjar.`, { pid }); return; }   // si un evento lo sacó de la ciudad
-  if (j.turnos >= f.entrega) {
-    j.extra.forja = null; darItem(e, j, 'cimitarra');
-    const primero = !e.forjaDamasco;   // Jorge (17 de noviembre): el primero que forja gana 50 noches y abre la venta de cimitarras
-    if (primero) { e.forjaDamasco = true; j.noches += 50; }
-    publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ''}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
-    log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ''}.`, { pid, aviso: true });
-    return;
-  }
   t.principal = true; t.forjando = true;
-  log(e, `${j.nombre} pasa este turno en la forja de Damasco: su acción principal se va en el acero.`, { pid });
+  log(e, `${j.nombre} pasa este turno en la forja de Damasco: su acción principal se va en el acero (${j.turnos - f.desde} de ${f.entrega - f.desde}).`, { pid });
+}
+export function finForja(data, e, pid) {
+  const j = e.jugadores[pid], f = j?.extra?.forja;
+  if (!f || j.turnos < f.entrega) return;
+  if (j.ciudad !== FORJA.ciudad) { j.extra.forja = null; log(e, `${j.nombre} tuvo que dejar Damasco: pierde su acero a medio forjar.`, { pid }); return; }
+  j.extra.forja = null; darItem(e, j, 'cimitarra');
+  const primero = !e.forjaDamasco;   // Jorge (17 de noviembre): el primero que forja gana 50 noches y abre la venta de cimitarras
+  if (primero) { e.forjaDamasco = true; j.noches += 50; }
+  publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ''}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
+  log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ''}.`, { pid, aviso: true });
 }
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán
 // otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, quedas entrenado (+1)

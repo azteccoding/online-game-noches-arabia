@@ -341,7 +341,7 @@ function volver(e, pid) {
 function siguienteTurno(data, e, desde) {
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
   if (e.turno) camelleroCansado(e, e.turno.pid);
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); RET.finForja(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
