@@ -648,12 +648,12 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(destinosTransporte(data, 'alfombra', 'Bagdad').includes('Andalucía'), 'la alfombra sigue llegando a Andalucía');
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, j = e.jugadores[a];
-  // R1: 17 por sirviente (Jorge, 10 de noviembre: antes 12), máximo 3, se pagan al contratar; sin dinero se busca solo
+  // R1: 12 por sirviente (Jorge, 19 de noviembre; antes 17), máximo 4, se pagan al contratar; sin dinero se busca solo
   turnoDe(e, a, 'Bagdad'); j.ciudad = 'Bagdad'; j.dinares = 40;
   assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
-  assert.equal(e.pend.max, 2, 'con 40 dinares alcanzan 2 sirvientes');
+  assert.equal(e.pend.max, 3, 'con 40 dinares alcanzan 3 sirvientes');
   g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 });
-  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 34 dinares')), 'paga 34 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
+  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 24 dinares')), 'paga 24 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
   // no puede salir: sin destinos y con motivo
   if (j.misiones.some((m) => m.id === 'R1')) { turnoDe(e, a, 'Bagdad'); e.turno.fase = 'mov'; const v = vistaDe(e, a); assert.ok(!v.acciones.some((x) => x.k === 'viajar') && /deuda con Bagdad/.test(v.noSalir)); }
   // entrenamientos: hay que tener el arma; entrenado suma +1
@@ -2541,7 +2541,7 @@ for (let k = 0; k < 6; k++) {
 {
   const { tienda, ARMAS_CIUDAD } = await import('../shared/objetos.js');
   const { LAMPARA } = await import('../shared/tesoros.js');
-  assert.equal(LAMPARA.prob, 0.06); assert.equal(data.config.r1.maxAyudantes, 4); assert.equal(data.config.r1.costoAyudante, 17);
+  assert.equal(LAMPARA.prob, 0.06); assert.equal(data.config.r1.maxAyudantes, 4); assert.equal(data.config.r1.costoAyudante, 12);
   assert.deepEqual(ARMAS_CIUDAD, { alfanje: ['Yemen', 'Estambul', 'Isfahán', 'Samarcanda'], cimitarra: ['Andalucía', 'El Cairo', 'Estambul', 'Samarcanda'] });
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
@@ -2577,7 +2577,7 @@ for (let k = 0; k < 6; k++) {
   turnoDe(f, c, 'Bagdad'); C.ciudad = 'Bagdad'; C.dinares = 100;
   assert.ok(h.act(c, { t: 'reto', id: 'R1' }).ok); h.act(c, { t: 'decidir', id: f.pend.id, opcion: 'si' });
   assert.equal(f.pend.max, 4, 'hasta 4 sirvientes');
-  h.act(c, { t: 'decidir', id: f.pend.id, numero: 4 }); assert.ok(f.log.some((l) => l.texto.includes('contrata 4 sirviente(s) por 68 dinares')));
+  h.act(c, { t: 'decidir', id: f.pend.id, numero: 4 }); assert.ok(f.log.some((l) => l.texto.includes('contrata 4 sirviente(s) por 48 dinares')));
 }
 
 // Jorge (11 de noviembre): en los retos, las cartas de consecuencia (un camello en R5, caballo y camello en R1, una carta de Ifrit en R40)
@@ -3939,7 +3939,7 @@ console.log('reglas de la casa OK');
   assert.ok(!caso('2', '6', 'duelo').buscado, 'Zein ataca a Zubayda: no');
 }
 // Jorge (19 de noviembre): «en el reto del cofre del Califa no se te cobra por los sirvientes». R1 por la misma vía que el
-// cliente: aceptar y elegir el número de sirvientes (17 dinares cada uno, se pagan al contratarlos).
+// cliente: aceptar y elegir el número de sirvientes (12 dinares cada uno desde el 19 de noviembre; se pagan al contratarlos).
 {
   const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, J = e.jugadores[a];
@@ -3949,14 +3949,14 @@ console.log('reglas de la casa OK');
   const pend = () => [e.pend, ...(e.colaPend || [])].find((p) => p && p.cont?.fn);
   while (e.dados) g.act(a, { t: 'cerrarDados' });
   assert.equal(e.pend?.cont?.fn, 'r1.acepta', 'pregunta si acepta: ' + JSON.stringify(e.pend?.titulo));
-  assert.match(e.pend.texto, /a 17 dinares cada uno/, 'el texto dice 17');
+  assert.match(e.pend.texto, /a 12 dinares cada uno/, 'el texto dice 12');
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
   while (e.dados) g.act(a, { t: 'cerrarDados' });
-  assert.equal(e.pend?.cont?.fn, 'r1.ayudantes', 'pregunta cuántos sirvientes'); assert.equal(e.pend.max, 3, 'con 60 dinares le alcanzan 3');
+  assert.equal(e.pend?.cont?.fn, 'r1.ayudantes', 'pregunta cuántos sirvientes'); assert.equal(e.pend.max, 4, 'con 60 dinares le alcanzan 4 (el máximo)');
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 }).ok);
   while (e.dados) { if (!e.dados.lanzado && e.dados.boton) g.act(e.dados.por, { t: 'lanzarDados' }); g.act(a, { t: 'cerrarDados' }); }
-  assert.equal(J.dinares, 60 - 34, 'paga 2 × 17 = 34 dinares al contratarlos');
-  assert.ok(e.log.some((l) => /contrata 2 sirviente\(s\) por 34 dinares/.test(l.texto)), 'la bitácora lo dice');
+  assert.equal(J.dinares, 60 - 24, 'paga 2 × 12 = 24 dinares al contratarlos');
+  assert.ok(e.log.some((l) => /contrata 2 sirviente\(s\) por 24 dinares/.test(l.texto)), 'la bitácora lo dice');
 }
 // Jorge (19 de noviembre): la Red de pescador gana automáticamente el reto del ladrón del zoco (R33, Damasco); la red se gasta.
 {

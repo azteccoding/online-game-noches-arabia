@@ -295,7 +295,7 @@ registrar('r1.acepta', (data, e, args, resp) => {
     log(e, `${j.nombre} rechaza el reto y se va en burro a Basra.`, { pid });
     j.extra.noBagdad = j.turnos + 2; j.ciudad = 'Basra'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Bagdad'); return;
   }
-  // Regla de la casa: cada sirviente cuesta 17 dinares (Jorge, 10 de noviembre: antes 12) y se pueden contratar hasta 4 (antes 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
+  // Regla de la casa: cada sirviente cuesta 12 dinares (Jorge, 19 de noviembre; del 10 al 19 de noviembre costaba 17) y se pueden contratar hasta 4 (antes 3) y se paga al contratarlo; sin dinares no hay trato y se busca solo.
   const cA = data.config.r1?.costoAyudante ?? 12, mA = data.config.r1?.maxAyudantes ?? 3, alcanza = Math.min(mA, Math.floor(Math.max(0, j.dinares) / cA));
   if (!alcanza) { log(e, `${j.nombre} no tiene ${cA} dinares para contratar sirvientes: busca solo.`, { pid }); return CONT['r1.ayudantes'](data, e, {}, { pid, numero: 0 }); }
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Sirvientes', texto: `Cada sirviente añade un dado de búsqueda y cuesta ${cA} dinares, que se pagan ahora (máximo ${mA}). El cofre aparece con un 1 o un 2 en cualquier dado.`, nota: `Te alcanza para contratar hasta ${alcanza} ${alcanza === 1 ? 'sirviente' : 'sirvientes'}.`, modo: 'numero', min: 0, max: alcanza, porDefecto: 0, cont: { fn: 'r1.ayudantes', args: {} } });
