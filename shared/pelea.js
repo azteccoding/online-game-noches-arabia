@@ -7,6 +7,9 @@ import {
 marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
+// Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
+// solo cuentan las demás. El arco conserva su uso propio: la flecha antes de la pelea (tiroDeArco), R43 y el Torneo de Murcia.
+export const ARMAS_ATAQUE = ARMAS.filter((r) => r !== 'arco');
 const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
 const bonoArma = (data, ref) => data.config.armas?.[ref]?.bono ?? BONO[ref];
 
@@ -34,7 +37,7 @@ function usarKanmakan(e, j) {
 }
 export function perfil(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
-  const armas = armasUsables(data, e, j, ciudad || j.ciudad);
+  const armas = armasUsables(data, e, j, ciudad || j.ciudad).filter((r) => ARMAS_ATAQUE.includes(r));   // el arco no cuenta como arma
   const destreza = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
   return { pid, armas, destreza, cat };
@@ -209,7 +212,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
 export function atacaMujer(j, d) {
   if (!d || d.id === j.id) return false;
   if (d.pj === '2') return j.pj !== '2';
-  if (d.pj === '6') return j.pj !== '2' && !ARMAS.some((r) => r !== 'jambiya' && tieneItem(d, r));
+  if (d.pj === '6') return j.pj !== '2' && !ARMAS_ATAQUE.some((r) => r !== 'jambiya' && tieneItem(d, r));   // con solo un arco va «sin armas»
   return false;
 }
 export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
@@ -229,7 +232,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   if (atacaMujer(j, d)) {
     marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
     log(e, `${j.nombre} atacó a ${d.nombre} (${d.pj === '2' ? 'Zein' : 'Zubayda'}): queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
-  } else if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
+  } else if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS_ATAQUE.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
     marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
     log(e, `${j.nombre} atacó a ${d.nombre}, que iba sin armas: queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
   }

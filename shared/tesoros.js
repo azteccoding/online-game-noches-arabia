@@ -422,7 +422,7 @@ export function deseo(data, e, pid, letra, { alTerminar = null }) {
       return;
     }
     case 'B': { if (e.asesinos.actuaron) { log(e, 'Los Asesinos ya actuaron: el deseo se pierde.'); break; } fin(); HOOK.contratarAsesinos(data, e, pid, { comodin: true }); return; }
-    case 'E': pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Entrenamiento instantáneo', texto: 'Obtienes destreza con armas y un arma de hasta 35 dinares.', opciones: ['arco', 'alfanje', 'cimitarra', 'jambiya'].map((x) => ({ id: x, texto: ITEMS[x].nombre })), porDefecto: 'cimitarra', cont: { fn: 'tes.E', args: { alTerminar } } }); return;
+    case 'E': pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Entrenamiento instantáneo', texto: 'Obtienes destreza con armas y un arma de hasta 35 dinares.', opciones: ['alfanje', 'cimitarra', 'jambiya'].map((x) => ({ id: x, texto: ITEMS[x].nombre }))   /* el arco no cuenta como arma (Jorge, 19 de noviembre) */, porDefecto: 'cimitarra', cont: { fn: 'tes.E', args: { alTerminar } } }); return;
     case 'I': pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Mapa de tesoro', texto: '¿Qué tesoro?', opciones: [{ id: 'persia', texto: 'Persia (Isfahán)' }, { id: 'ruman', texto: 'Rumán (Estambul)' }, { id: 'mansa', texto: 'Mansa Musa (Magreb)' }], porDefecto: 'persia', cont: { fn: 'tes.I', args: { alTerminar } } }); return;
     case 'J': {
       const op = activos(e).filter((x) => x !== pid).map((x) => ({ id: x, texto: nombre(e, x) }));

@@ -15,7 +15,7 @@ const OBJ_RETOS = { OB18: 2, OB12: 2, OB20: 2, OB21: 1.5, OB30: 1.5, OB14: 1.5, 
 // Debilidades ajenas y fortalezas propias (Jorge, 19 de noviembre: «enséñale a los bots a aprovecharse de la debilidad de Zein o de
 // que Ruyán se deja comprar noches», «que jueguen con las fortalezas de su personaje» y «que Yafar aproveche todas sus ventajas»).
 // Solo el bot: el juego no cambia. Lo que se aprovecha se cuenta en stats.acciones como explota:* y fortaleza:*.
-const ARMAS_BOT = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
+const ARMAS_BOT = ['alfanje', 'cimitarra', 'jambiya'];   // el arco no cuenta como arma (Jorge, 19 de noviembre)
 const desarmado = (j) => !ARMAS_BOT.some((r) => tieneItem(j, r));
 const sinDestreza = (j) => !j.destreza;
 const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];

@@ -55,7 +55,8 @@ function tomarDeBotin(data, e, pid, id) {
   publicarCarta(e, cartaDatos(data, 'objeto', id), pid, [pid]);
   return c;
 }
-const tieneArma = (data, e, j) => armasUsables(data, e, j, j.ciudad).length > 0 || ['arco', 'alfanje', 'cimitarra', 'jambiya'].some((r) => tieneItem(j, r));
+// Jorge (19 de noviembre): el arco no cuenta como arma (R8, R32, R36 y alistarse en R54 piden otra).
+const tieneArma = (data, e, j) => ['alfanje', 'cimitarra', 'jambiya'].some((r) => tieneItem(j, r));
 
 // ---------------------------------------------------------------- catálogo (ciudad, objetos usables, requisito, ejecución)
 const T = {};   // T[id] = { ciudad, objs, req(data,e,pid)->string|null, run(data,e,pid,ctx,usados) }
@@ -443,7 +444,7 @@ T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ?
 T.R13 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R12') ? null : 'Debes haber completado R12.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R13');
   if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150, noches: 80 }, 'Vences al gigante:');
-  else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'arco', 'jambiya'].find((r) => tieneItem(j, r)); if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
+  else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'jambiya'].find((r) => tieneItem(j, r)); /* el arco no cuenta como arma */ if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
   sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R14 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R13') ? null : 'Debes haber completado R13.'), run(data, e, pid, ctx) {
@@ -904,7 +905,7 @@ export function turnoForja(data, e, pid) {
 // con el arma que llevas, como en R18, R19, R42 y R43 (si ya lo estás con todas las que llevas, solo las noches), y 10 noches.
 // Si llevas varias armas sin entrenar, eliges cuál antes de tirar. Segundo dado: 1 a 3, el siguiente turno estás libre; 4 a 6, sigues
 // en batalla y pierdes ese turno. Una sola vez por jugador; gasta la acción principal; herido no te alistas; Yafar NPC no lo hace.
-const ARMAS_R54 = ['cimitarra', 'alfanje', 'arco', 'jambiya'];
+const ARMAS_R54 = ['cimitarra', 'alfanje', 'jambiya'];   // el arco no cuenta como arma (Jorge, 19 de noviembre); se entrena en R43
 T.R54 = { ciudad: 'Estambul', req: (d, e, pid) => { const j = e.jugadores[pid];
     return j.npc ? 'Yafar NPC no se alista en el ejército del sultán.' : j.herido ? 'Herido no puedes alistarte.' : !tieneArma(d, e, j) ? 'Necesitas llevar un arma (la que sea) para alistarte.' : null; },
   run(data, e, pid, ctx) {

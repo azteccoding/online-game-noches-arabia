@@ -335,7 +335,7 @@ function firmar(data, e, pid, v, precio, args = {}) {
 }
 // Regla de la casa: el contratante gana las 200 noches solo si cumple el encargo que elige de los Asesinos (plazo: 3 rondas).
 export const ENCARGO_RONDAS = 3, LEJANAS = ['Andalucía', 'Magreb', 'Yemen', 'India'];
-const ARMAS_ORDEN = ['cimitarra', 'alfanje', 'jambiya', 'arco'];
+const ARMAS_ORDEN = ['cimitarra', 'alfanje', 'jambiya'];   // el arco no cuenta como arma (Jorge, 19 de noviembre)
 function pedirEncargo(data, e, pid) {
   const j = e.jugadores[pid], arma = ARMAS_ORDEN.find((r) => tieneItem(j, r));
   const ciudad = LEJANAS.filter((c) => c !== j.ciudad)[Math.floor(rnd(e) * 3)];

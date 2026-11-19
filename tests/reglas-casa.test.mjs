@@ -3131,7 +3131,7 @@ console.log('reglas de la casa OK');
   { const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
     const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
     for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco'; e.ronda = 5;
-    A.extra.arcoMaximo = true; A.mano.push({ uid: 9901, tipo: 'item', ref: 'arco' }, { uid: 9902, tipo: 'item', ref: 'flechas' }, { uid: 9903, tipo: 'item', ref: 'flechas' });
+    A.extra.arcoMaximo = true; A.mano.push({ uid: 9901, tipo: 'item', ref: 'arco' }, { uid: 9902, tipo: 'item', ref: 'flechas' }, { uid: 9903, tipo: 'item', ref: 'flechas' }, { uid: 9905, tipo: 'item', ref: 'alfanje' });   // el arco no es arma: para asaltar hace falta otra (Jorge, 19 de noviembre)
     const asalto = () => { turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; const m0 = e.logN || 0; assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); return JSON.stringify(e.log.filter((h) => h.n > m0)); };
     forzar(e, 1, 1, 6, 6); let t = asalto(); assert.match(t, /destreza máxima en arco: la flecha acierta/); A.buscado = 0;
     B.mano.push({ uid: 9904, tipo: 'objeto', ref: 'OB04' }); forzar(e, 1, 1, 6, 6); t = asalto(); assert.match(t, /se clava en el escudo/, 'el escudo la para'); }
@@ -3977,7 +3977,7 @@ console.log('reglas de la casa OK');
   }
   { const { buscado, e, A } = caso('7', '2', 'duelo'); assert.ok(buscado && A.buscado === data.config.buscadoRondas, 'Buscado normal (2 rondas)'); assert.ok(e.log.some((l) => /atacó a .+ \(Zein\): queda Buscado durante 2 rondas\./.test(l.texto)), 'la bitácora lo dice'); }
   assert.ok(!caso('7', '6', 'robo', { armasVic: ['alfanje'] }).buscado, 'Zubayda con alfanje: no');
-  assert.ok(!caso('7', '6', 'duelo', { armasVic: ['arco'] }).buscado, 'Zubayda con arco: no');
+  assert.ok(caso('7', '6', 'duelo', { armasVic: ['arco'] }).buscado, 'Zubayda con solo arco va sin armas: sí (el arco no cuenta como arma, Jorge, 19 de noviembre)');
   assert.ok(caso('7', '6', 'robo', { armasVic: ['jambiya'] }).buscado, 'Zubayda con solo jambiya: sí');
   assert.ok(caso('7', '2', 'robo', { armasVic: ['alfanje', 'arco'] }).buscado, 'Zein armada: sí');
   assert.ok(caso('6', '2', 'duelo').buscado, 'Zubayda ataca a Zein: Buscada');
@@ -4314,4 +4314,23 @@ console.log('reglas de la casa OK');
     for (const pid of g.ids) assert.ok(vistaCongelada(null, vistaDe(e, pid), dadosPendientes(e)).historial.some((h) => h.nro === carta.nro), `${id}: ${e.jugadores[pid].nombre} ve la carta antes de tirar`);
   }
   assert.ok(revisados >= 1, 'al menos la Ira del cornudo tira dados al empezar la ronda: ' + revisados);
+}
+// Jorge (19 de noviembre): el arco no cuenta como arma; solo sirve para su disparo
+{
+  const { perfil, atacaMujer } = await import('../shared/pelea.js');
+  const g = partida(['4', '6', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, zub, adi] = g.ids, J = e.jugadores[jamil], Z = e.jugadores[zub];
+  e.jugadores[adi].ciudad = 'Damasco';
+  for (const x of [J, Z]) { x.ciudad = 'Damasco'; x.mano = x.mano.filter((c) => !['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas'].includes(c.ref)); }
+  darItem(e, J, 'arco'); darItem(e, J, 'flechas');
+  const p = perfil(data, e, jamil);
+  assert.deepEqual(p.armas, [], 'con solo un arco va sin armas');
+  assert.ok(p.cat === 'A' || p.cat === 'B', 'pelea como sin armas: ' + p.cat);
+  e.ronda = 5; turnoDe(e, jamil, 'Damasco'); e.turno.fase = 'acciones';
+  const r = g.act(jamil, { t: 'atacar', tipo: 'robo', objetivo: adi });
+  assert.ok(!r.ok && /arma/.test(r.error), 'con solo un arco no puede robar: ' + r.error);
+  darItem(e, Z, 'arco'); darItem(e, Z, 'flechas');
+  assert.ok(atacaMujer(J, Z), 'Zubayda con solo un arco va «sin armas»: quien la ataque queda Buscado');
+  darItem(e, Z, 'alfanje');
+  assert.ok(!atacaMujer(J, Z), 'con un alfanje sí lleva armas');
 }
