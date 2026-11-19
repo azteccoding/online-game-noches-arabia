@@ -669,7 +669,7 @@ T.R32 = { ciudad: 'Aleppo', req: (data, e, pid) => (tieneArma(data, e, e.jugador
 } };
 T.R33 = { ciudad: 'Damasco', run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R33');
-  if (aplic(data, e, pid, us, 'OB10')) { premio(data, e, pid, { dinares: 35, noches: 10 }, 'La red atrapa al ladrón:'); return; }
+  if (aplic(data, e, pid, us, 'OB10')) { ctx.say('Lanzas tu Red de pescador y atrapas al ladrón sin tirar (la red se gasta).'); premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} atrapa al ladrón con su Red de pescador:`); return; }
   const v = ctx.t(`${j.nombre}: persecución`, 2); const b = (aplic(data, e, pid, us, 'OB05') ? 2 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0); const s = suma(v) + b;
   if (s >= 8) premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} alcanza al ladrón:`);
   else if (s >= 5) { ctx.say('El ladrón se escapa.'); ctx.fallo = true; } else { pagar(data, e, pid, 5); ctx.say('Tropiezas y pagas 5 dinares por los puestos.'); ctx.fallo = true; }

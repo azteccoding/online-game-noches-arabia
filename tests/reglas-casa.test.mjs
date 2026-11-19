@@ -3938,6 +3938,41 @@ console.log('reglas de la casa OK');
   assert.ok(caso('6', '2', 'duelo').buscado, 'Zubayda ataca a Zein: Buscada');
   assert.ok(!caso('2', '6', 'duelo').buscado, 'Zein ataca a Zubayda: no');
 }
+// Jorge (19 de noviembre): «en el reto del cofre del Califa no se te cobra por los sirvientes». R1 por la misma vía que el
+// cliente: aceptar y elegir el número de sirvientes (17 dinares cada uno, se pagan al contratarlos).
+{
+  const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, J = e.jugadores[a];
+  J.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; J.dinares = 60;
+  forzar(e, 6, 6, 6);
+  const r = g.act(a, { t: 'reto', id: 'R1' }); assert.ok(r.ok, r.error);
+  const pend = () => [e.pend, ...(e.colaPend || [])].find((p) => p && p.cont?.fn);
+  while (e.dados) g.act(a, { t: 'cerrarDados' });
+  assert.equal(e.pend?.cont?.fn, 'r1.acepta', 'pregunta si acepta: ' + JSON.stringify(e.pend?.titulo));
+  assert.match(e.pend.texto, /a 17 dinares cada uno/, 'el texto dice 17');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  while (e.dados) g.act(a, { t: 'cerrarDados' });
+  assert.equal(e.pend?.cont?.fn, 'r1.ayudantes', 'pregunta cuántos sirvientes'); assert.equal(e.pend.max, 3, 'con 60 dinares le alcanzan 3');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 }).ok);
+  while (e.dados) { if (!e.dados.lanzado && e.dados.boton) g.act(e.dados.por, { t: 'lanzarDados' }); g.act(a, { t: 'cerrarDados' }); }
+  assert.equal(J.dinares, 60 - 34, 'paga 2 × 17 = 34 dinares al contratarlos');
+  assert.ok(e.log.some((l) => /contrata 2 sirviente\(s\) por 34 dinares/.test(l.texto)), 'la bitácora lo dice');
+}
+// Jorge (19 de noviembre): la Red de pescador gana automáticamente el reto del ladrón del zoco (R33, Damasco); la red se gasta.
+{
+  const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, J = e.jugadores[a];
+  J.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; const d0 = J.dinares, n0 = J.noches;
+  J.mano.push({ uid: 'red1', tipo: 'objeto', ref: 'OB10', pub: true });
+  forzar(e, 1, 1);   // sin la red, con 1 + 1 tropezaría
+  assert.ok(g.act(a, { t: 'reto', id: 'R33' }).ok);
+  assert.equal(e.pend?.cont?.fn, 'reto.obj', 'ofrece usar objetos'); assert.ok(e.pend.opciones.some((o) => o.id === 'red1'), 'entre ellos la red');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, valores: ['red1'] }).ok);
+  while (e.dados) g.act(a, { t: 'cerrarDados' });
+  assert.equal(J.dinares, d0 + 35, '35 dinares'); assert.ok(J.noches >= n0 + 10, 'y noches');
+  assert.ok(!J.mano.some((c) => c.ref === 'OB10'), 'la red se gasta');
+  assert.ok(e.log.some((l) => / atrapa al ladrón con su Red de pescador:/.test(l.texto)), 'la bitácora lo dice');
+}
 // quien entra tarde también recibe su idioma y sus objetos de inicio
 {
   const { hablaIdioma } = await import('../shared/retos.js');
