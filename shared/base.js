@@ -63,10 +63,11 @@ export const ITEMS = {
   cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos, y en duelo +2 más cuando eres tú quien ataca. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
   jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear (duelo: +3 con par)', texto: '+1 en robos y ataques a muerte (se suma a las demás armas). En duelo, +3 si el dado de sorpresa (lo tira quien la lleva) sale par. En Bagdad solo con Firmán.' },
   flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco: cada disparo gasta 1 flecha. Se compran aparte, en cualquier ciudad.' },
-  caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde las ciudades cercanas); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
+  caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde Isfahán o Basra); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },
   idolo: { nombre: 'Ídolo de Toledo', texto: 'Ídolo cubierto de oro y pedrería robado en Toledo. Destrúyelo en cualquier ciudad (acción libre): ganas 100 noches. O véndelo en Estambul a los mercaderes venecianos: 100 dinares, pero con 1 o 2 en el dado te acusan de herejía y acabas herido en el Jorasán sin dinares. Se puede robar e intercambiar.' },
-  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra en el mercado de Basra por 35 dinares y al comprarlo recibes 20 noches; vive 3 turnos. Transporte propio para viajes cortos entre Bagdad y las ciudades cercanas (Damasco, Aleppo y Basra) y entre El Cairo y Damasco (visitar al-Quds: +40 noches, máximo 2 veces), sin tarifa. No termina tu turno. Cada turno pagas 1 dinar de albéitar y comida; al morir llega otro a Basra. Se vende al mercado por 15 dinares (por desnutrido) y ahí se revende a 35 con su vida completa. Puedes tener varios animales a la vez, también del mismo tipo.' },
+  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra por 25 dinares y al comprarlo recibes 20 noches; vive 2 turnos. Hay 2 en el mercado de Basra; cuando se venden los dos, aparece uno en Aleppo y otro en Damasco. Transporte propio solo para viajes cortos por tierra, ida y vuelta: Estambul–Aleppo, El Cairo–Damasco (visitar al-Quds: +40 noches, máximo 2 veces), Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad, sin tarifa. No gasta tu acción principal, pero solo lo puedes usar una vez por turno (luego está cansado). Si lo llevas a otra ciudad no muere, pero ahí no te mueve. Cada turno pagas 1 dinar de albéitar y comida; al morir ya no hay más (no se repone). Se vende al mercado de cualquier ciudad por 15 dinares (por desnutrido) y ahí se revende a 25 con sus 2 turnos de vida. Puedes tener varios animales a la vez, también del mismo tipo. Yafar NPC nunca monta burros: en fácil no los compra; en normal compra los de su ciudad para que nadie más pueda; en difícil los compra todos y los deja morir.' },
+  citricos: { nombre: 'Cítricos', precio: 5, texto: 'Se venden en el mercado de cualquier ciudad a 5 dinares. Te protegen del escorbuto en un viaje por mar y se gastan en el primero que hagas: El Cairo–Andalucía, El Cairo–Yemen, Magreb–Andalucía (ida o vuelta), el cruce a Abisinia, los piratas de Yemen al Jorasán y el barco que te regresa a Basra desde India (Sindbad o el monzón). Sin cítricos, cada viaje por mar te deja herido por escorbuto, y herido no puedes embarcarte.' },
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Gana 6 dinares de valor por turno; otras ciudades la compran a la mitad.' },
@@ -74,6 +75,7 @@ export const ITEMS = {
   tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 30, texto: 'Mercancía de Isfahán: el mercado de Isfahán la vende a 30 y la recompra a 15; los demás mercados la compran a 35 (Andalucía a 40) y la revenden 3 dinares más cara. La tinta de pulpo la destruye. Pesa y ocupa las manos: no puedes huir con un objeto.' },
+  almudDatiles: { nombre: 'Almud de dátiles', precio: 2, texto: 'Mercancía: se compra en Yemen y Basra a 2 dinares y el mercado de Bagdad la compra a 4. Pesa. La primera vez que vendes dátiles en Bagdad cumples el reto R53 y ganas 20 noches.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
   velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
@@ -246,7 +248,46 @@ export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'difi
 export const TINTA = { india: 3, bagdad: 6, venta: 9, reventa: 10, ciudadesVenta: ['Andalucía', 'Samarcanda'] };
 export const PAPELES_ITEM = ['libro', 'papiro', 'libroIbnHazm', 'amate', 'mapa', 'alfombraIsfahan'], PAPELES_OBJ = ['OB46', 'OB47'];   // libros, papiros, manuscritos, papel amate y mapas de tesoro
 export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de Kufa en la mano
-export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan'];   // las alfombras de Isfahán pesan (18 de noviembre)
+// Jorge (19 de noviembre): pesa todo lo que se carga: armas (arco, jambiya, alfanje, cimitarra; las flechas cuentan como 1 aunque tengas
+// varias), libros (no los Manuscritos de la India ni los papeles), cálamos, cesta de manzanas, almudes de dátiles, dados, brújula, astrolabio,
+// ídolo, velo, veneno, especias y sal. No pesan los papeles (papiro, amate, pergaminos, mapas, cartas, recetas), los animales, las
+// esclavas, el Ejército de Kanmakán ni la Bendición de Abu Madyan.
+export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan',   // las alfombras de Isfahán pesan (18 de noviembre)
+  'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
+  'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos'];
+export const OBJ_SIN_PESO = ['OB46'];   // Manuscritos de la India (Jorge, 19 de noviembre)
+export const pesaCarta = (c) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && CARGA_ITEMS.includes(c.ref));
+// Dátiles (Jorge, 19 de noviembre): almudes en Yemen y Basra a 2, sin límite (solo te frena el peso); el mercado de Bagdad los compra a 4.
+// La primera vez que cada jugador los vende en Bagdad cumple R53 (20 noches). Hasta que alguien lo cumple, ningún mercado vende «Dátiles y pan de viaje» (OB19).
+export const DATILES = { compra: 2, venta: 4, ciudades: ['Yemen', 'Basra'], ciudadVenta: 'Bagdad', reto: 'R53', noches: 20, obj: 'OB19' };
+// Burros (Jorge, 19 de noviembre): 2 en el mercado de Basra desde el principio; cuando se compran los dos, aparece uno en Aleppo y otro en
+// Damasco (anuncio para todos). Un burro que muere ya no vuelve («si el burro muere ya no hay más»); el de un jugador eliminado sí vuelve
+// al mercado de donde salió.
+export const BURROS = { Basra: 2, norte: { Aleppo: 1, Damasco: 1 } };
+export const burrosEn = (e, ciudad) => (ciudad === 'Basra' ? e.burros || 0 : e.burrosNorte?.[ciudad] || 0);
+export function devolverBurro(e, c) {
+  const o = c?.extra?.origen;
+  if (o && o !== 'Basra' && e.burrosNorte) { e.burrosNorte[o] = (e.burrosNorte[o] || 0) + 1; return o; }
+  e.burros = (e.burros || 0) + 1; return 'Basra';
+}
+// Escorbuto (Jorge, 19 de noviembre): todo viaje por mar te deja herido salvo que lleves Cítricos (5 dinares en cualquier mercado), que
+// se gastan en el primero. Por mar: El Cairo–Andalucía, El Cairo–Yemen y Magreb–Andalucía (ida y vuelta), el cruce a Abisinia (R40), los
+// piratas de Yemen al Jorasán y el barco que te regresa a Basra desde India (Sindbad R11–R14, monzón H11). Se avisa antes de pagar.
+// Herido no puedes embarcarte (Jorge, 19 de noviembre): ni caravana por mar, ni R11–R14, ni R40, ni los piratas, ni el barco del monzón.
+export const RUTAS_MAR = [['El Cairo', 'Andalucía'], ['El Cairo', 'Yemen'], ['Magreb', 'Andalucía']];   // sin ruta Basra–India (Jorge)
+export const esRutaMar = (a, b) => RUTAS_MAR.some(([x, y]) => (a === x && b === y) || (a === y && b === x));
+export const HERIDO_BARCO = 'Herido no puedes viajar en barco.';   // Jorge (19 de noviembre)
+export const AVISO_ESCORBUTO = 'Es un viaje por mar y no llevas cítricos: quedarás herido por escorbuto. Los cítricos se venden en cualquier mercado a 5 dinares.';
+export const avisoEscorbuto = (j) => (j && !tieneItem(j, 'citricos') ? AVISO_ESCORBUTO : '');
+export function viajePorMar(e, pid, que) {
+  const j = e.jugadores[pid];
+  if (!j || j.eliminado) return '';
+  if (quitarPrimero(j, 'item', 'citricos')) { const m = `Comes tus cítricos ${que}: no te da escorbuto.`; log(e, `${j.nombre} come sus cítricos ${que} y no le da escorbuto.`, { pid }); return m; }
+  if (j.herido) { log(e, `${j.nombre} no llevaba cítricos ${que}, pero ya estaba herido.`, { pid }); return ''; }
+  j.herido = true;
+  log(e, `${j.nombre} no llevaba cítricos ${que} y queda herido por escorbuto.`, { pid, aviso: true });
+  return 'No llevabas cítricos: quedas herido por escorbuto.';
+}
 // Alfombras de Isfahán (Jorge, 18 de noviembre): 20 en todo el juego, empiezan en el mercado de Isfahán. Ahí cuestan 30 (20 en el reto R17).
 // Los demás mercados las compran a 35 (Andalucía a 40) y las revenden 3 dinares más caras; el de Isfahán las recompra a 15 (y las vende a 30).
 // La tinta de pulpo las destruye (dejan de existir); la del banquete H14 es aparte de las 20; si fallas R17 por plazo te quedas las tuyas.
@@ -263,7 +304,7 @@ export function moverAlfombras(e, ciudad, n) { alfombrasEn(e, ciudad); e.alfombr
 // se pasa en tratos como cualquier objeto; vendido en Bagdad queda a la venta ahí de inmediato; vendido en otro mercado (o gastado),
 // desaparece y los escribas de Bagdad hacen otro: vuelve a la venta allí 2 rondas después. Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los 2.
 export const MAPA_JORASAN = { precio: 20, ciudad: 'Bagdad', envio: 5, impar: 'Basra', par: 'Samarcanda', seGasta: true, stock: 2, envioPrincipal: false, reponeRondas: 2, usadoRepone: true, npc: { facil: 0, normal: 1, dificil: 2 } };
-export const nCarga = (j) => j.mano.filter((c) => c.tipo === 'objeto' || (c.tipo === 'item' && CARGA_ITEMS.includes(c.ref))).length;
+export const nCarga = (j) => { const p = j.mano.filter(pesaCarta), f = p.filter((c) => c.ref === 'flechas').length; return p.length - Math.max(0, f - 1); };   // las flechas, 1 aunque sean varias
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;
 export const MSJ_COMPRA_LLENO = 'Ya cargas 7 objetos y sin animal no puedes llevar más, así que el mercado ya no te vende. Compra un caballo, burro o camello, o vende algo para hacer espacio.';   // Jorge (10 de noviembre): decir que por eso el mercado ya no te vende
@@ -386,7 +427,7 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
     for (const c of cartas) {
       if (c.tipo === 'objeto') devolverObjeto(data, e, c.ref);
       else if (c.tipo === 'especial' && c.ref === 'K1') e.kanmakan = { dueno: null, usada: false };
-      else if (c.tipo === 'item' && c.ref === 'burro') e.burros = (e.burros || 0) + 1;   // el burro vuelve al mercado de Basra
+      else if (c.tipo === 'item' && c.ref === 'burro') devolverBurro(e, c);   // el burro vuelve al mercado de donde salió
     }
   }
   j.noches = 0; j.dinares = 0; j.buscado = 0; j.herido = false; j.transito = null;

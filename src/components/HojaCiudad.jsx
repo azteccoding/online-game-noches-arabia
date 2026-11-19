@@ -12,6 +12,7 @@ const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
 const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
 import { confirmarViajeBurro } from '../game/burro.js';
+import { esRutaMar, HERIDO_BARCO } from '../../shared/base.js';
 
 // Ficha de ciudad (al tocar un pin) con la acción de viajar si procede.
 export default function HojaCiudad({ s, id, onCerrar }) {
@@ -49,9 +50,10 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}
         <button className="btn mini sec" aria-expanded={verVentas} onClick={() => setVerVentas((v) => !v)}>{verVentas ? 'Ocultar consejos de venta' : 'Consejos para ganar dinares aquí'}</button>
         {verVentas && <ul className="consejos-venta">{consejosVenta(id).map((x) => <li key={x}>{x}</li>)}</ul>}
-        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>Viajar a {id} ({tarifa} dinares)</button>}
+        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>Viajar a {id} ({tarifa} dinares)</button>}
         {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.</p>}
-        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
+        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && yo.herido && esRutaMar(yo.ciudad, id) && <p className="it">{HERIDO_BARCO}</p>}
+        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
       </div>
     </div>
   );

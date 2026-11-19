@@ -3,9 +3,9 @@ import {
   ok, err, rnd, dado, dados, suma, log, nombre, ciudadDe, pjDe, activos, humanosVivos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, tarifa, HOOK,
   puedePrincipal, tieneItem, tieneObj, consumirObj, uid, vivos, patrimonio, info, quitarPrimero,
 marcarBuscado,
-enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, } from './base.js';
+enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, pesaCarta, burrosEn, esRutaMar, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
-import { vender, existenciaArma, quitarArma, RECARGO_ARMA, comprar, motivoNoMongol, destinosTransporte } from './objetos.js';
+import { vender, existenciaArma, quitarArma, RECARGO_ARMA, comprar, motivoNoMongol, destinosTransporte, burroDelMercado, VENTA_BURRO_MERCADO } from './objetos.js';
 import { retoNPC, puedeRetoNPC } from './retos.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
@@ -64,7 +64,7 @@ export function aligerar(data, e, pid) {
   const valor = (c) => (c.tipo === 'objeto' ? objDe(data, c.ref)?.valor : ITEMS[c.ref]?.precio) || 0;
   const intentados = new Set();
   for (let k = 0; k < 60 && cargaExcedida(j, e); k++) {
-    const c = j.mano.filter((x) => !intentados.has(x.uid) && (x.tipo === 'objeto' || (x.tipo === 'item' && CARGA_ITEMS.includes(x.ref)))).sort((a, b) => valor(a) - valor(b))[0];
+    const c = j.mano.filter((x) => !intentados.has(x.uid) && pesaCarta(x)).sort((a, b) => valor(a) - valor(b))[0];
     if (!c) break;
     intentados.add(c.uid); vender(data, e, pid, { uid: c.uid });
   }
@@ -136,7 +136,7 @@ function hacerRetoNPC(data, e, pid) {
   if (id !== 'R51') j.extra.retosNPC[j.ciudad] = id;
   return retoNPC(data, e, pid, id);
 }
-const ANIMALES_NPC = ['caballo', 'camello', 'caballoMongol'];   // nunca burro (Jorge, punto 9)
+const ANIMALES_NPC = ['caballo', 'camello', 'caballoMongol'];   // nunca el burro (Jorge, 19 de noviembre)
 function comprasNPC(data, e, pid) {
   const j = e.jugadores[pid];
   if (j.dinares > 60 && !j.mano.some((c) => c.tipo === 'item' && ANIMALES_NPC.includes(c.ref))) {
@@ -144,9 +144,15 @@ function comprasNPC(data, e, pid) {
     if (est) comprar(data, e, pid, { ref: 'establo:' + est.carta.uid });
     else if (j.ciudad === 'Estambul' && !motivoNoMongol(e, j)) comprar(data, e, pid, { ref: 'caballoMongol' });
   }
+  // Burros (Jorge, 19 de noviembre): en normal y difícil compra todos los que haya en su ciudad, del mercado y de segunda mano, para que
+  // ningún jugador los tenga; en fácil, ninguno.
+  if (dif(e) === 'facil') return;
+  const P = VENTA_BURRO_MERCADO;
+  while (burrosEn(e, j.ciudad) > 0 && j.dinares >= P) burroDelMercado(e, pid, P);
+  for (const x of (e.establo || []).filter((q) => q.carta.ref === 'burro' && (q.ciudad || 'Bagdad') === j.ciudad)) if (j.dinares >= x.precio) comprar(data, e, pid, { ref: 'establo:' + x.carta.uid });
 }
 // Viaje en su animal: si alguno lo lleva directo al siguiente paso de su ruta (con las reglas de siempre de cada animal).
-function animalPara(data, j, destino) {
+function animalPara(data, j, destino, e) {
   return j.mano.find((c) => c.tipo === 'item' && ANIMALES_NPC.includes(c.ref) && destinosTransporte(data, c.ref, j.ciudad).includes(destino)) || null;
 }
 
@@ -160,7 +166,9 @@ function movimiento(data, e, pid) {
   log(e, `Yafar NPC (dado ${d}) ${motivo}: rumbo a ${destino}.`, { pid });
   for (const paso of ruta.slice(1, 3)) {
     if (j.eliminado || t.fin) return;
-    const an = animalPara(data, j, destino) || animalPara(data, j, paso);
+    const an = animalPara(data, j, destino, e) || animalPara(data, j, paso, e);
+    if (an?.ref === 'burro') t.burroUsado = true;
+    if (!an && j.herido && esRutaMar(j.ciudad, paso)) { log(e, 'Yafar NPC está herido y no puede embarcarse.', { pid }); return; }   // Jorge (19 de noviembre)
     if (an) { const dst = destinosTransporte(data, an.ref, j.ciudad).includes(destino) ? destino : paso; HOOK.viajarPropio(data, e, pid, { destino: dst, motivo: ITEMS[an.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[an.ref]?.terminaTurno }); if (dst === destino) return; continue; }
     HOOK.partir(data, e, pid, { destino: paso, precio: 0, servicios: false, hilo: false });
   }

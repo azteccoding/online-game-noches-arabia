@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -101,7 +101,7 @@ function incorporarTarde(data, e, pid) {
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
   if (e.turno) e.turno.idx = e.orden.indexOf(e.turno.pid);
   e.participantes = (e.participantes || 0) + 1; e.solitario = false;
-  if (j.pj !== 'B') e.burros = (e.burros || 0) + 1;
+  // Jorge (19 de noviembre): los burros ya no dependen del número de jugadores (2 en Basra, luego 1 en Aleppo y 1 en Damasco)
   log(e, `${j.nombre} se une a la partida con ${p.nombre}: jugará al final de esta ronda.`, { pid, aviso: true });
   return ok();
 }
@@ -205,7 +205,7 @@ function iniciar(data, e) {
   orden = yafarAlFinal(e, orden);
   e.solitario = ids.length === 1 && conNPC;
   e.participantes = ids.length + (conNPC ? 1 : 0);
-  e.burros = Math.max(0, ids.filter((id) => e.jugadores[id].pj !== 'B').length - 1);
+  e.burros = BURROS.Basra; e.burrosNorte = null;   // Jorge (19 de noviembre)
   e.firmanes = firmanesEnVenta(ids.length);                                                  // regla de la casa: 1 Firmán a la venta por cada 3 jugadores (el de Yafar aparte)          // regla de la casa: N − 1 burros (Yafar no cuenta)
   // Regla de la casa: cada carrera de «dos noches» sale una sola vez, en una ronda al azar entre la 3 y la 12 (sin coincidir).
   const rondas = barajar(e, [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
@@ -831,6 +831,7 @@ export function viajar(data, e, pid, a) {
   const origen = j.ciudad;
   if (e.sinCaravanasBagdad && origen === 'Bagdad') return err('Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).');
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
+  if (j.herido && esRutaMar(origen, destino)) return err(HERIDO_BARCO);
   let precio = tarifa(data, e, j, origen, destino);
   if (precio === null) return err('No hay ruta directa o está cortada: usa un transbordo (R 7.3).');
   let gratis = false;
@@ -867,6 +868,7 @@ export function partir(data, e, pid, args) {
   if (!e.caravanas.includes(destino + '>' + origen) && data.rutas.tarifas[destino + '>' + origen] !== undefined) e.caravanas.push(destino + '>' + origen);
   j.ciudad = destino;
   log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}.`, { pid });
+  if (esRutaMar(origen, destino)) { const m = viajePorMar(e, pid, 'en el viaje por mar'); if (m) info(e, pid, 'Viaje por mar', m); }   // escorbuto (Jorge, 19 de noviembre)
   if (args.servicios) PJ.apedreo(data, e, pid);
   return llegada(data, e, pid, origen);
 }
@@ -1285,8 +1287,8 @@ export function acciones(data, e, pid) {
   if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
-      .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos));
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d) });
+      .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);

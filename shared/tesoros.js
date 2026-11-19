@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
-} from './base.js';
+viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, } from './base.js';
 import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -29,7 +29,7 @@ export function disponibles(data, e, pid) {
   const perdidos = j.npc ? [] : Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.npc).map((x) => x.nombre);
   const ayuda = perdidos.length ? { texto: `Puedes entrar a ayudar a ${perdidos.join(' y ')}: al llegar, intenten salir juntos.`, aviso: `Al entrar quedarás perdido en el Jorasán. Desde ahí podrás intentar salir junto con ${perdidos.join(' o ')}. ¿Entrar?` } : {};
   if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: (perdidos.length ? `Entrar al Jorasán a ayudar a ${perdidos.join(' y ')} con ` : 'Viajar al Jorasán con ') + ITEMS[transp].nombre, ...ayuda });
-  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: perdidos.length ? `Pagar a los piratas de Yemen para entrar a ayudar a ${perdidos.join(' y ')}` : 'Pagar a los piratas de Yemen para ir al Jorasán', ...ayuda });
+  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: perdidos.length ? `Pagar a los piratas de Yemen para entrar a ayudar a ${perdidos.join(' y ')}` : 'Pagar a los piratas de Yemen para ir al Jorasán', ...ayuda, ...(j.herido ? { bloqueado: HERIDO_BARCO } : {}), ...(avisoEscorbuto(j) ? { aviso: [ayuda.aviso, AVISO_ESCORBUTO].filter(Boolean).join(' ') } : {}) });
   return r;
 }
 
@@ -62,10 +62,12 @@ export function accion(data, e, pid, a) {
     }
     if (a.via === 'piratas') {
       if (j.ciudad !== 'Yemen') return err('Los piratas salen de Yemen.');
+      if (j.herido) return err(HERIDO_BARCO);   // Jorge (19 de noviembre)
       const v = dados(e, 2), costo = suma(v);
       mostrarDados(e, { por: pid, motivo: 'piratas', grupos: [{ etq: `${j.nombre}: precio de los piratas`, valores: v }], resumen: [`Los piratas piden ${costo} dinares.`, ...(j.dinares < costo ? ['No te alcanzan: no hay viaje ni noches, y no gastas tu acción (puedes volver a preguntar).'] : [])] });   // Jorge (8 de noviembre): sin los dinares, no hay trato
       if (j.dinares < costo) return err(`Los piratas piden ${costo} dinares y no los tienes.`);
       j.dinares -= costo; t.principal = true;
+      viajePorMar(e, pid, 'en el barco de los piratas');   // escorbuto (Jorge, 19 de noviembre)
       return HOOK.viajarTransporte(data, e, pid, { destino: 'Jorasán', motivo: 'piratas de Yemen', turnos: 1, jorasan: true });
     }
     return err('Vía inválida.');

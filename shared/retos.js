@@ -3,7 +3,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, } from './base.js';
+itemDatos, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -91,8 +91,8 @@ export function disponibles(data, e, pid) {
     }
     if (esperaVolver(j, id)) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
-    const msg = T[id].req ? T[id].req(data, e, pid) : null;
-    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined });
+    const msg = (RETOS_MAR.includes(id) && j.herido ? HERIDO_BARCO : null) || (T[id].req ? T[id].req(data, e, pid) : null);   // herido no te embarcas (Jorge, 19 de noviembre)
+    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined, aviso: RETOS_MAR.includes(id) ? avisoEscorbuto(j) || undefined : undefined });
   }
   return r;
 }
@@ -123,6 +123,7 @@ export function iniciarReto(data, e, pid, a) {
   if (yaNoSePuede(j, a.id)) return err(REPITE_AL_VOLVER.includes(a.id) ? 'Ya lo hiciste: sal de la ciudad y vuelve para repetirlo.' : 'Ya completaste ese reto: cada reto se hace una sola vez.');
   if (esperaVolver(j, a.id)) return err('Fallaste este reto: sal de la ciudad y vuelve para intentarlo otra vez.');
   if (j.misiones.some((m) => m.id === a.id)) return err('Ya lo tienes en curso.');
+  if (RETOS_MAR.includes(a.id) && j.herido) return err(HERIDO_BARCO);   // Jorge (19 de noviembre)
   const msg = def.req ? def.req(data, e, pid) : null;
   if (msg) return err(msg);
   t.principal = true;
@@ -415,26 +416,28 @@ T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
   ctx.say('El escriba te confía 2 papiros: entrégalos en Bagdad en 2 turnos.');
 } };
 // ---------------------------------------------------------------- Sindbad R11-R14
-function sindbadFin(data, e, pid) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; HOOK.llegada(data, e, pid, 'India'); }
+// Escorbuto (Jorge, 19 de noviembre): el barco que te regresa a Basra es viaje por mar; sin cítricos llegas herido.
+const RETOS_MAR = ['R11', 'R12', 'R13', 'R14', 'R40'];
+function sindbadFin(data, e, pid, ctx) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; const m = viajePorMar(e, pid, 'en el barco de regreso a Basra'); if (m) ctx?.say(m); HOOK.llegada(data, e, pid, 'India'); }
 T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
   // Regla de la casa (noviembre de 2026): las noches de Sindbad no se multiplican por ronda; al naufragar no hay dinares pero se ganan 30 noches por la historia vivida.
   if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100, noches: 50 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos: +100 dinares y +50 noches.'); }
   else { premio(data, e, pid, { noches: 30 }, 'Naufragio, pero qué historia:'); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: sin dinares, pero +30 noches por la historia vivida; pierdes tu siguiente turno.'); }
-  sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
+  sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ? null : 'Debes haber completado R11.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R12');
   // Regla de la casa (noviembre de 2026): noches por la historia, sin multiplicar por ronda.
   if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 0 })) premio(data, e, pid, { dinares: 120, noches: 60 }, 'Vences a los piratas:');
   else { pagar(data, e, pid, 60); j.herido = true; j.noches += 20; log(e, `${j.nombre} pierde ante los piratas y queda herido, pero gana 20 noches por la historia.`, { pid }); }
-  sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
+  sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R13 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R12') ? null : 'Debes haber completado R12.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R13');
   if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150, noches: 80 }, 'Vences al gigante:');
   else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'arco', 'jambiya'].find((r) => tieneItem(j, r)); if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
-  sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
+  sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R14 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R13') ? null : 'Debes haber completado R13.'), run(data, e, pid, ctx) {
   const otros = humanosVivos(e).filter((x) => x !== pid);
@@ -453,7 +456,7 @@ function r14Fin(data, e, pid, convence) {
   const ctx = nuevoCtx(e, pid, 'R14');
   if (convence) { const [x] = ctx.t(`${j.nombre}: relato convincente`, 1); const din = Math.min(200, 50 + 25 * x); premio(data, e, pid, { dinares: din }, 'El relato convence:'); ctx.say(`Dado ${x}: ${din} dinares.`); }
   else { premio(data, e, pid, { dinares: 50 }, 'El relato no convence:'); ctx.say('El público no se convence.'); }
-  ctx.fin(); sindbadFin(data, e, pid); chequeoSindbad(data, e, pid);
+  sindbadFin(data, e, pid, ctx); ctx.fin(); chequeoSindbad(data, e, pid);
 }
 function chequeoSindbad(data, e, pid) {
   const j = e.jugadores[pid];
@@ -579,8 +582,14 @@ registrar('r23.banditos', (data, e, args, resp) => {
   }
   if (carga.length) nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
 });
-T.R24 = { ciudad: 'Basra', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= 10; const c = darItem(e, j, 'cesta');
+// Jorge (19 de noviembre): si ya traes una cesta de manzanas (la del mercado), R24 usa esa y solo cobra 5; si no, cobra 10 y te da la suya.
+// La cesta se gasta al entregarla en Bagdad (o al perder el reto).
+export const R24 = { conCesta: 5, sinCesta: 10 };
+const cestaLibre = (j) => j.mano.find((c) => c.tipo === 'item' && c.ref === 'cesta' && !j.misiones.some((m) => (m.carga || []).some((x) => x.uid === c.uid)));
+const costoR24 = (j) => (cestaLibre(j) ? R24.conCesta : R24.sinCesta);
+T.R24 = { ciudad: 'Basra', req: (d, e, pid) => { const j = e.jugadores[pid], k = costoR24(j); return j.dinares >= k ? null : `Cuesta ${k} dinares${k === R24.conCesta ? ' (con tu cesta)' : ''}.`; }, run(data, e, pid) {
+  const j = e.jugadores[pid], propia = cestaLibre(j); j.dinares -= costoR24(j); const c = propia || darItem(e, j, 'cesta');
+  if (propia) log(e, `${j.nombre} lleva su propia cesta de manzanas a R24 y paga ${R24.conCesta} dinares.`, { pid });
   nuevaMision(e, pid, { id: 'R24', destino: 'Bagdad', carga: [{ uid: c.uid }], texto: 'Entrega la cesta en Bagdad este turno.' }, 1);
 } };
 T.R26 = { ciudad: 'Andalucía', req: (data, e) => (activos(e).some((x) => e.jugadores[x].pj === '2') ? 'Zein juega: se usan las reglas de Zein (R 10.3).' : null), run(data, e, pid, ctx) {
@@ -874,6 +883,7 @@ T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
       else { j.dinares += 40; ctx.say('Llegas a Abisinia, pero los genios ya se fueron: te llevas 40 dinares. Vuelves a Yemen.'); }
     } else if (r >= 4) ctx.say('Las corrientes te regresan a Moca: pierdes el pasaje.');
     else { j.herido = true; ctx.say('Tormenta en el estrecho: pierdes el pasaje y quedas herido.'); }
+    { const m = viajePorMar(e, pid, 'en el cruce del estrecho'); if (m) ctx.say(m); }   // escorbuto (Jorge, 19 de noviembre)
   } };
 // R41 (regla de la casa): el ídolo de Toledo, uno solo por partida. 1 dado +1 destreza: 5+ lo robas; 3–4 nada; 1–2 herido y 20 de rescate.
 T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo ya no está en su iglesia.' : null),

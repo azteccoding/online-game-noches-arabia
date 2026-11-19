@@ -4,7 +4,7 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 marcarBuscado,
-enPartida, } from './base.js';
+enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
 import { burroFueraDeZona, etiquetaBurro, destinosBurro } from './objetos.js';
@@ -17,8 +17,10 @@ const mover = (data, e, pid, destino, costo = 0, motivo = '') => {
   const o = j.ciudad; j.ciudad = destino; j.extra.ciudadPrevia = o;
   log(e, `${j.nombre} ${motivo || 'viaja'} de ${o} a ${destino}${costo ? ` (paga ${costo})` : ''}.`, { pid });
   if (!j.visitadas.includes(destino)) j.visitadas.push(destino);
+  if (esRutaMar(o, destino) || (o === 'India' && destino === 'Basra')) viajePorMar(e, pid, o === 'India' ? 'en el barco de Sindbad' : 'en el viaje por mar');   // escorbuto (Jorge, 19 de noviembre)
   burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
 };
+const conEscorbuto = (j) => (avisoEscorbuto(j) ? ' · sin cítricos quedarás herido por escorbuto' : '');
 const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]) => k.startsWith(ciudad + '>')).map(([k, v]) => ({ id: k.split('>')[1], tarifa: v }));
 const vecinaBarata = (data, ciudad, excl = []) => vecinas(data, ciudad).filter((x) => !excl.includes(x.id)).sort((a, b) => a.tarifa - b.tarifa)[0]?.id || 'Bagdad';
 
@@ -91,7 +93,7 @@ function aplicarHistorico0(data, e, id) {
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
     }); break;
     case 'H2': cola(humanosEn(e, ['Andalucía']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los cristianos toman Toledo', texto: 'Paga 20 dinares a un rey cristiano para quedarte o abandona al-Ándalus.',
-      opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme al Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
+      opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme al Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})${conEscorbuto(jug(e, pid))}` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})${conEscorbuto(jug(e, pid))}` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
     case 'H3': e.mods.premioDuelo = 30; break;
     case 'H4': {
       const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Bagdad']).filter((x) => !jug(e, x).npc));
@@ -113,7 +115,7 @@ function aplicarHistorico0(data, e, id) {
     case 'H8': e.mods.sabiduria = true; break;
     case 'H9': e.mods.oroMali = true; break;
     case 'H10': e.mods.seda = true; break;
-    case 'H11': cola(humanosEn(e, ['India']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Vientos del monzón', texto: 'Debes irte de India o quedarás varado.', opciones: [{ id: 'Isfahán', texto: `Irme a Isfahán (${Math.ceil((data.rutas.tarifas['India>Isfahán'] || 0) / 2)} dinares)` }, { id: 'Basra', texto: 'Irme a Basra (barco de Sindbad, gratis)' }, { id: 'varado', texto: 'Quedarme varado (alojamiento doble)' }], porDefecto: 'Basra', cont: { fn: 'ev.h11', args: {} } })); break;
+    case 'H11': cola(humanosEn(e, ['India']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Vientos del monzón', texto: 'Debes irte de India o quedarás varado.', opciones: [{ id: 'Isfahán', texto: `Irme a Isfahán (${Math.ceil((data.rutas.tarifas['India>Isfahán'] || 0) / 2)} dinares)` }, ...(jug(e, pid).herido ? [] : [{ id: 'Basra', texto: `Irme a Basra (barco de Sindbad, gratis)${conEscorbuto(jug(e, pid))}` }]), { id: 'varado', texto: 'Quedarme varado (alojamiento doble)' }], porDefecto: jug(e, pid).herido ? 'varado' : 'Basra', cont: { fn: 'ev.h11', args: {} } })); break;
     case 'H12': {
       const ids = humanosEn(e, ['Bagdad']);
       if (ids.length === 1) {
@@ -152,7 +154,7 @@ function aplicarHistorico0(data, e, id) {
           // una sola vez por animal (antes el bucle seguía cobrando hasta dejarte sin dinares y perdías el animal igual)
           for (const c of j.mano.filter((x) => x.tipo === 'item' && x.ref === animal)) {
             if (tieneObj(j, 'OB18') && !j.extra.odreH20) { j.extra.odreH20 = true; consumirObj(data, e, pid, 'OB18'); log(e, `${j.nombre} paga el agua con su Odre.`, { pid }); continue; }
-            if (j.dinares >= 5) { j.dinares -= 5; log(e, `${j.nombre} paga 5 dinares por el agua de su ${nom}.`, { pid }); } else { quitarCarta(j, c.uid); if (animal === 'burro') e.burros = (e.burros || 0) + 1; log(e, `${j.nombre} pierde su ${nom} por la sequía.`, { pid }); }
+            if (j.dinares >= 5) { j.dinares -= 5; log(e, `${j.nombre} paga 5 dinares por el agua de su ${nom}.`, { pid }); } else { quitarCarta(j, c.uid); /* el burro que muere de sed no se repone (Jorge, 19 de noviembre) */ log(e, `${j.nombre} pierde su ${nom} por la sequía.`, { pid }); }
           }
         }
         for (const c of j.mano) if (c.extra?.h20) delete c.extra.h20;
@@ -208,6 +210,7 @@ registrar('ev.h7', (data, e, args, resp) => {
 registrar('ev.h11', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'varado') { (e.mods.varado ||= {})[pid] = true; (e.mods.alojDoble ||= []).push('India'); log(e, `${j.nombre} queda varado en India.`, { pid }); return; }
+  if (resp.opcion === 'Basra' && j.herido) { (e.mods.varado ||= {})[pid] = true; (e.mods.alojDoble ||= []).push('India'); log(e, `${j.nombre} está herido y no puede embarcarse: queda varado en India.`, { pid }); return; }
   if (resp.opcion === 'Basra') mover(data, e, pid, 'Basra', 0, 'embarca con Sindbad'); else mover(data, e, pid, 'Isfahán', Math.ceil(tarifa(data, e, j, 'India', 'Isfahán') / 2), 'se va de India');
 });
 registrar('ev.h12', (data, e, args, resp) => {

@@ -288,7 +288,7 @@
    "valor": 3,
    "duracion": "1 vez",
    "momento": "Cuando quieras",
-   "efecto": "Quitas tu marcador \"herido\".",
+   "efecto": "Quitas tu marcador \"herido\". No se vende en ningún mercado hasta que alguien lleve dátiles de Basra o Yemen al mercado de Bagdad (reto R53).",
    "sirvePara": "Cualquier pelea",
    "seConsigueEn": "Todas",
    "humor": "Medicina barata con sabor a viaje.",
@@ -1114,17 +1114,28 @@
   "reposicionPorRonda": 2
  },
  "transportes": {
-  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro: viajes cortos entre Bagdad y las ciudades cercanas y entre El Cairo y Damasco, no termina el turno; 1 dinar por turno y muere a los 4 turnos. Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad (ni de regreso desde India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Ningún transporte te lleva a Bagdad salvo el burro desde las ciudades cercanas. Camello: solo al Magreb, a Samarcanda y a Yemen (no sale de India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Alfombra mágica (no se gasta): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
+  "nota": "Regla de la casa del juego en línea: cada transporte propio llega en el mismo turno, pero solo a ciertos destinos. Burro (Jorge, 19 de noviembre): solo viajes cortos por tierra, ida y vuelta, entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, y Basra y Bagdad; no gasta la acción principal, pero solo se usa una vez por turno; cuesta 25 en Basra, 1 dinar por turno y muere a los 2 turnos; se vende a 15 en cualquier mercado y ahí se revende a 25 con sus 2 turnos. Si lo llevas a otra ciudad no muere, pero ahí no te mueve (se puede vender). Caballo: viajes largos, menos a Samarcanda, al Magreb, a India y a Bagdad (ni de regreso desde India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Ningún transporte te lleva a Bagdad salvo el burro desde Isfahán o Basra. Camello: solo al Magreb, a Samarcanda y a Yemen (no sale de India); termina el turno; 3 dinares por turno y muere a los 5 turnos. Alfombra mágica (no se gasta): a cualquier ciudad menos Bagdad, incluida India; termina el turno.",
   "burro": {
-   "cercanas": [
-    "Damasco",
-    "Aleppo",
-    "Basra"
-   ],
    "rutas": [
+    [
+     "Estambul",
+     "Aleppo"
+    ],
     [
      "El Cairo",
      "Damasco"
+    ],
+    [
+     "Damasco",
+     "Aleppo"
+    ],
+    [
+     "Isfahán",
+     "Bagdad"
+    ],
+    [
+     "Basra",
+     "Bagdad"
     ]
    ],
    "terminaTurno": false
