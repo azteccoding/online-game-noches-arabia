@@ -4334,3 +4334,28 @@ console.log('reglas de la casa OK');
   darItem(e, Z, 'alfanje');
   assert.ok(!atacaMujer(J, Z), 'con un alfanje sí lleva armas');
 }
+// Jorge (19 de noviembre): si llevas arco sin flechas, se te avisa antes de los dados de la pelea; y al gastar la última flecha
+{
+  const { MSJ_SIN_FLECHAS, MSJ_ULTIMA_FLECHA } = await import('../shared/pelea.js');
+  const prep = (flechas) => {
+    const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+    for (const id of g.ids) { const x = e.jugadores[id]; x.ciudad = 'Damasco'; x.extra.clienteWeb = true; x.mano = x.mano.filter((c) => !['arco', 'flechas', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); }
+    darItem(e, A, 'arco'); darItem(e, A, 'alfanje'); for (let k = 0; k < flechas; k++) darItem(e, A, 'flechas');
+    e.ronda = 5; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok);
+    for (let k = 0; k < 4 && e.pend && e.pend.tipo !== 'info'; k++) { const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: p.opciones?.find((o) => o.id === 'luchar')?.id || p.opciones?.[0]?.id }); }
+    return { e, a, b };
+  };
+  { const { e, a, b } = prep(0);
+    const c = e.historial.find((h) => h.id === 'sinFlechas');
+    assert.ok(c && c.texto === MSJ_SIN_FLECHAS && c.para?.length === 1 && c.para[0] === a, 'aviso solo para quien lleva el arco sin flechas');
+    const ds = [e.dados, ...(e.colaDados || [])].filter(Boolean);
+    assert.ok(ds.length && ds.every((d) => d.id > c.nro) && !c.trasDados, 'sale antes que los dados de la pelea');
+    assert.ok(!ds.some((d) => d.boton === 'Disparar flecha'), 'sin flechas no hay disparo');
+    void b; }
+  { const { e, a } = prep(1);
+    const ps = [e.pend, ...(e.colaPend || [])].filter(Boolean);
+    assert.ok(ps.some((p) => p.tipo === 'info' && p.texto === MSJ_ULTIMA_FLECHA && p.para[0] === a), 'avisa que usó su última flecha');
+    assert.ok(!e.historial.some((h) => h.id === 'sinFlechas'), 'con flecha no sale el aviso de «sin flechas»'); }
+}

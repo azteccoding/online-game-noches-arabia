@@ -4,12 +4,20 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
 // solo cuentan las demás. El arco conserva su uso propio: la flecha antes de la pelea (tiroDeArco), R43 y el Torneo de Murcia.
 export const ARMAS_ATAQUE = ARMAS.filter((r) => r !== 'arco');
+// Jorge (19 de noviembre): si llevas arco pero ya no tienes flechas, se te avisa antes de los dados de la pelea (solo a ti; no a Yafar NPC).
+export const MSJ_SIN_FLECHAS = 'Llevas arco pero no te quedan flechas: no puedes dispararlo.', MSJ_ULTIMA_FLECHA = 'Usaste tu última flecha.';
+function avisoSinFlechas(data, e, pid, ciudad) {
+  const j = e.jugadores[pid]; if (!j || j.npc || !tieneItem(j, 'arco') || tieneItem(j, 'flechas')) return;
+  if ((ciudad || j.ciudad) === 'Bagdad' && !e.mods?.armasBagdad && !tieneEsp(j, 'F1')) return;   // ahí tampoco podría usarlo con flechas
+  publicarCarta(e, { id: 'sinFlechas', deck: 'especial', titulo: 'Sin flechas', sub: 'Arco', texto: MSJ_SIN_FLECHAS, arte: 'es', causa: true }, pid, [pid]);
+}
+function avisoUltimaFlecha(e, pid) { const j = e.jugadores[pid]; if (j && !j.npc && tieneItem(j, 'arco') && !tieneItem(j, 'flechas')) info(e, pid, 'Arco', MSJ_ULTIMA_FLECHA); }
 const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
 const bonoArma = (data, ref) => data.config.armas?.[ref]?.bono ?? BONO[ref];
 
@@ -281,7 +289,7 @@ export const ARCO_ACIERTA = 5, ESCUDO_PARA = 5;
 export function tiroDeArco(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
   if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
-  quitarPrimero(j, 'item', 'flechas');
+  quitarPrimero(j, 'item', 'flechas'); avisoUltimaFlecha(e, pid);
   const x = dado(e);
   return { x, acierta: x >= ARCO_ACIERTA, cubre: !!j.extra?.entrenado?.arco && x >= 3 && x < ARCO_ACIERTA, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
 }
@@ -412,6 +420,7 @@ function pasoCategoria(data, e) {
   if (!P.mods) {
     const tit = `Duelo: ${nombre(e, P.atk)} contra ${nombre(e, P.def)}`;
     P.mods = { atk: {}, def: {} };
+    avisoSinFlechas(data, e, P.atk, P.ciudad); avisoSinFlechas(data, e, quien, P.ciudad);
     if (conArco(data, e, P.atk, P.ciudad)) P.mods.def = disparo(data, e, P.atk, quien, tit);
     if (conArco(data, e, quien, P.ciudad)) P.mods.atk = disparo(data, e, quien, P.atk, tit);
   }
@@ -494,7 +503,7 @@ function romperEscudo(data, e, pid, u) {
 // Disparo a distancia (antes del choque): devuelve los efectos sobre el blanco; se muestra con su dado y botón.
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
-  quitarPrimero(T, 'item', 'flechas');
+  quitarPrimero(T, 'item', 'flechas'); avisoUltimaFlecha(e, tirador);
   if (T.extra?.arcoMaximo) {   // R51 Torneo de Murcia: siempre acierta, el rival pelea con −1 (un escudo la sigue parando)
     const escudo = !!tieneObj(B, 'OB04');
     log(e, escudo ? `${T.nombre} dispara con destreza máxima en arco, pero la flecha se clava en el escudo de ${B.nombre}.${flechazoAlEscudo(data, e, B)}` : `${T.nombre} dispara con destreza máxima en arco: la flecha acierta y ${B.nombre} pelea con −1.`, { pid: tirador });
@@ -523,6 +532,7 @@ function resolverNuevo(data, e) {
   const atk = P.atk, def = P.ayudante || P.def, nA = nombre(e, atk), nD = nombre(e, def);
   const titulo = `${P.tipo === 'robo' ? 'Asalto' : 'Ataque a muerte'}: ${nA} contra ${nombre(e, P.def)}`;
   const modA = {}, modD = {};
+  avisoSinFlechas(data, e, atk, P.ciudad); avisoSinFlechas(data, e, def, P.ciudad);
   if (conArco(data, e, atk, P.ciudad)) Object.assign(modD, disparo(data, e, atk, def, titulo));
   if (conArco(data, e, def, P.ciudad)) Object.assign(modA, disparo(data, e, def, atk, titulo));
   Object.assign(modA, escudoContraGolpe(data, e, P, atk, def, titulo));
@@ -719,6 +729,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
   const n0 = nombre(e, pid);
+  avisoSinFlechas(data, e, pid);
   // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.
   const maxArco = !!e.jugadores[pid].extra?.arcoMaximo && armasUsables(data, e, e.jugadores[pid], e.jugadores[pid].ciudad).includes('arco');
   if (maxArco) { quitarPrimero(e.jugadores[pid], 'item', 'flechas'); log(e, `${n0} dispara con destreza máxima en arco: la flecha acierta y ${npc.etq} pelea con −1.`, { pid }); }
