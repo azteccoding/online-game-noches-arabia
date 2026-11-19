@@ -270,7 +270,7 @@ export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de
 export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan', 'shatranj',   // las alfombras de Isfahán pesan (18 de noviembre)
   'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
   'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos'];
-export const OBJ_SIN_PESO = ['OB46'];   // Manuscritos de la India (Jorge, 19 de noviembre)
+export const OBJ_SIN_PESO = ['OB46', 'OB05'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre)
 export const pesaCarta = (c) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && CARGA_ITEMS.includes(c.ref));
 // Dátiles (Jorge, 19 de noviembre): almudes en Yemen y Basra a 2, sin límite (solo te frena el peso); el mercado de Bagdad los compra a 4.
 // La primera vez que cada jugador los vende en Bagdad cumple R53 (20 noches). Hasta que alguien lo cumple, ningún mercado vende «Dátiles y pan de viaje» (OB19).
@@ -335,7 +335,8 @@ export function recortarMano(data, e, pid) {
 // Pala de zapador y Linterna de aceite (Jorge, 10 de noviembre): una copia en cada mercado que la vende, con su propia existencia.
 // Disfraz de mendigo (Jorge, 19 de noviembre): uno en el mercado de cada ciudad (el Jorasán no tiene mercado).
 const MERCADOS = ['Andalucía', 'Magreb', 'El Cairo', 'Estambul', 'Aleppo', 'Damasco', 'Yemen', 'Basra', 'Bagdad', 'Isfahán', 'Samarcanda', 'India'];
-export const POR_CIUDAD = { OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'], OB42: MERCADOS };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
+// Lazo de camellero (Jorge, 19 de noviembre): uno en cada mercado de Basra, Bagdad, El Cairo, Yemen y Samarcanda, nada más.
+export const POR_CIUDAD = { OB05: ['Basra', 'Bagdad', 'El Cairo', 'Yemen', 'Samarcanda'], OB09: ['Damasco', 'Isfahán'], OB11: ['Damasco', 'El Cairo'], OB22: ['Bagdad', 'Andalucía', 'Damasco', 'Aleppo'], OB14: ['Aleppo', 'Bagdad', 'Damasco'], OB42: MERCADOS };   // Sopa del mesón: 1 en cada una (Jorge, 11 de noviembre)
 // Sobre de sobornos (Jorge, 18 de noviembre): 2 en cada mercado de Aleppo, Bagdad y Damasco; un solo uso y el que se usa no vuelve al mercado.
 export const POR_CIUDAD_N = {};
 export const EN_BOTIN = ['OB42'];   // el Disfraz de mendigo, además de uno en cada mercado, sigue saliendo en el Botín como antes

@@ -164,6 +164,7 @@ export function comprar(data, e, pid, a) {
     log(e, `${j.nombre} compra los ${D.nombre} en el mercado de ${j.ciudad} por ${D.reventa} dinares.`, { pid });
     return ok();
   }
+  if (typeof a.ref === 'string' && a.ref.startsWith('amarrado:')) return comprarAmarrado(e, pid, a.ref.slice(9));
   if (typeof a.ref === 'string' && a.ref.startsWith('establo:')) {
     { const x0 = (e.establo || []).find((x) => x.carta.uid === a.ref.slice(8)); if (x0 && (x0.ciudad || 'Bagdad') !== j.ciudad) return err(`Ese animal está a la venta en ${x0.ciudad || 'Bagdad'}.`); }
     const k = (e.establo || []).findIndex((x) => x.carta.uid === a.ref.slice(8));
@@ -249,6 +250,78 @@ export function impuesto(data, e, ciudad, monto) {
 }
 
 export const LIBROS_SUBASTA = ['OB46', 'OB47'];
+export const MITAD_VENTA = ['OB05'];   // se venden al mercado a la mitad de su precio (redondeo hacia abajo)
+
+// ---------------------------------------------------------------- camello amarrado (Jorge, 19 de noviembre)
+// Con el Lazo de camellero puedes dejar tu camello amarrado en el mercado de la ciudad donde estás (acción libre, en tu turno).
+// Mientras está amarrado no envejece ni paga albéitar y comida. Cualquier otro jugador lo puede comprar ahí al precio de reventa del
+// mercado (45) y lo recibe con las vidas que tenía; tú cobras ese precio cuando llegas a esa ciudad. Si nadie lo compró, al volver lo
+// recuperas pagando 5 dinares por cada turno tuyo que estuvo amarrado; sin el dinero, no te lo llevas. Un camello amarrado por jugador.
+export const AMARRE = { porTurno: 5, ciudadesNo: ['Jorasán'] };
+const precioAmarrado = () => REVENTA_ANIMAL.camello;
+export const amarradoDe = (e, pid) => (e.amarrados || []).find((x) => x.dueno === pid && !x.vendido);
+export const costoRecuperar = (j, x) => AMARRE.porTurno * Math.max(0, j.turnos - x.desde);
+export function opcionesLazo(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno, r = [];
+  if (!t || t.pid !== pid || t.fase === 'ingreso' || j.transito || j.perdido || j.npc) return r;
+  const mio = amarradoDe(e, pid);
+  if (tieneObj(j, 'OB05') && !AMARRE.ciudadesNo.includes(j.ciudad)) {
+    for (const c of j.mano.filter((x) => x.tipo === 'item' && x.ref === 'camello'))
+      r.push({ k: 'lazo', sub: 'amarrar', uid: c.uid, titulo: `Amarrar tu camello en el mercado de ${j.ciudad}`,
+        texto: `No envejece ni paga albéitar mientras está amarrado. Otro lo puede comprar por ${precioAmarrado()} dinares (te los dan al volver aquí); si nadie lo compra, lo recuperas pagando ${AMARRE.porTurno} dinares por cada turno tuyo. No gasta tu acción principal y el lazo no se gasta.`,
+        bloqueado: mio ? `Ya tienes un camello amarrado en ${mio.ciudad}.` : undefined });
+  }
+  if (mio && mio.ciudad === j.ciudad) {
+    const p = costoRecuperar(j, mio);
+    r.push({ k: 'lazo', sub: 'recuperar', titulo: `Recuperar tu camello amarrado (${p} dinares)`, texto: `${AMARRE.porTurno} dinares por cada turno tuyo que estuvo amarrado; conserva sus vidas.`,
+      bloqueado: j.dinares < p ? `Te faltan ${p - j.dinares} dinares: sin el dinero no te lo llevas.` : undefined });
+  }
+  return r;
+}
+export function accionLazo(data, e, pid, a) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (e.fase !== 'juego' || !t || t.pid !== pid) return err('En tu turno.');
+  if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
+  if (a.sub === 'amarrar') {
+    if (!tieneObj(j, 'OB05')) return err('Necesitas el Lazo de camellero.');
+    if (AMARRE.ciudadesNo.includes(j.ciudad) || j.transito || j.perdido) return err('Aquí no hay mercado donde amarrarlo.');
+    if (amarradoDe(e, pid)) return err(`Ya tienes un camello amarrado en ${amarradoDe(e, pid).ciudad}.`);
+    const c = j.mano.find((x) => x.uid === a.uid && x.tipo === 'item' && x.ref === 'camello'); if (!c) return err('No tienes ese camello.');
+    quitarCarta(j, c.uid); (e.amarrados ||= []).push({ carta: c, dueno: pid, ciudad: j.ciudad, desde: j.turnos, vendido: null });
+    log(e, `${j.nombre} deja su camello amarrado en el mercado de ${j.ciudad} con su Lazo de camellero.`, { pid });
+    return ok();
+  }
+  if (a.sub === 'recuperar') {
+    const x = amarradoDe(e, pid); if (!x || x.ciudad !== j.ciudad) return err('No tienes un camello amarrado aquí.');
+    const p = costoRecuperar(j, x); if (j.dinares < p) return err(`Te faltan ${p - j.dinares} dinares: sin el dinero no te lo llevas.`);
+    j.dinares -= p; e.amarrados.splice(e.amarrados.indexOf(x), 1); j.mano.push(x.carta);
+    log(e, `${j.nombre} recupera su camello amarrado en ${j.ciudad}${p ? ` y paga ${p} dinares` : ''}.`, { pid });
+    return ok();
+  }
+  return err('Acción desconocida.');
+}
+function comprarAmarrado(e, pid, uidC) {
+  const j = e.jugadores[pid], x = (e.amarrados || []).find((q) => q.carta.uid === uidC && !q.vendido);
+  if (!x) return err('Ese camello ya no está amarrado aquí.');
+  if (x.ciudad !== j.ciudad) return err(`Ese camello está amarrado en ${x.ciudad}.`);
+  if (x.dueno === pid) return err('Es tu camello: recupéralo desde Acciones en tu turno.');
+  const p = precioAmarrado(); if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
+  j.dinares -= p; x.vendido = p; x.comprador = pid; j.mano.push(x.carta);
+  const d = e.jugadores[x.dueno];
+  log(e, `${j.nombre} compra el camello amarrado de ${d?.nombre || 'otro jugador'} en ${j.ciudad} por ${p} dinares (con las vidas que tenía).`, { pid });
+  cobrarAmarrados(e, x.dueno);   // si el dueño está ahí, cobra en el acto
+  return ok();
+}
+// El dueño cobra cuando llega a la ciudad (o si ya está ahí).
+export function cobrarAmarrados(e, pid) {
+  const j = e.jugadores[pid]; if (!j || j.eliminado || j.transito) return;
+  for (const x of (e.amarrados || []).filter((q) => q.dueno === pid && q.vendido && q.ciudad === j.ciudad)) {
+    e.amarrados.splice(e.amarrados.indexOf(x), 1); j.dinares += x.vendido;
+    const txt = `${e.jugadores[x.comprador]?.nombre || 'Alguien'} compró tu camello amarrado en ${x.ciudad}: recibes ${x.vendido} dinares.`;
+    log(e, `${j.nombre} cobra ${x.vendido} dinares por su camello amarrado en ${x.ciudad}, que compró ${e.jugadores[x.comprador]?.nombre || 'alguien'}.`, { pid });
+    info(e, pid, 'Tu camello amarrado', txt);
+  }
+}
 export function vender(data, e, pid, a) {
   const j = e.jugadores[pid];
   if (!puedeTienda(e, pid)) return err('Solo puedes vender en tu turno.');
@@ -273,6 +346,7 @@ export function vender(data, e, pid, a) {
     if (reventaDe(data, c.ref, ciudad) != null) { precio = reventaDe(data, c.ref, ciudad); sinImp = true; }
     else if (c.ref === 'OB41') { precio = 20; sinImp = true; }                                            // banco: 20
     else if (c.ref === 'OB24' ) { precio = 40; sinImp = true; }                                           // Botella de genio: 40 al banco (R 15.2)
+    else if (MITAD_VENTA.includes(c.ref)) precio = Math.floor(o.valor / 2);                            // Lazo de camellero: a la mitad (Jorge, 19 de noviembre)
     else precio = o.valor;
     if (o.tipo === 'Lujo/Comercio' && tieneObj(j, 'OB12') && (e.turno.gastos.balanza || 0) < 3) { precio += 2; e.turno.gastos.balanza = (e.turno.gastos.balanza || 0) + 1; }
     if (precio <= 0) {   // Jorge (10 de noviembre): un objeto siempre se puede dar al mercado; si no tiene precio, se regala
@@ -419,6 +493,11 @@ export function tienda(data, e, pid) {
   { const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);   // Alfombras de Isfahán (Jorge, 18 de noviembre)
     if (n > 0) r.push({ ref: 'alfombraIsfahan', nombre: ITEMS.alfombraIsfahan.nombre, tipo: 'Objeto original', texto: ITEMS.alfombraIsfahan.texto, precio: p, stock: n, puede: j.dinares >= p && !lleno, motivo: lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
+  for (const x of (e.amarrados || []).filter((q) => q.ciudad === j.ciudad && !q.vendido)) {   // camellos amarrados con lazo (Jorge, 19 de noviembre)
+    const p = REVENTA_ANIMAL.camello, mio = x.dueno === pid;
+    r.push({ ref: 'amarrado:' + x.carta.uid, nombre: `Camello amarrado de ${e.jugadores[x.dueno]?.nombre || 'otro jugador'}`, tipo: 'Transporte', texto: `Con las vidas que le quedan. ${ITEMS.camello.texto || ''}`, precio: p, stock: 1,
+      puede: !mio && j.dinares >= p, motivo: mio ? 'Es tu camello: recupéralo desde Acciones en tu turno' : j.dinares < p ? 'No te alcanza' : undefined });
+  }
   for (const x of (e.establo || []).filter((q) => (q.ciudad || 'Bagdad') === j.ciudad)) {
     r.push({ ref: 'establo:' + x.carta.uid, nombre: `${ITEMS[x.carta.ref].nombre} (de segunda mano)`, tipo: 'Transporte', texto: `De segunda mano. ${ITEMS[x.carta.ref].texto || ''}`, precio: x.precio, stock: 1, puede: j.dinares >= x.precio && !(x.carta.ref === 'burro' && j.pj === 'B' && j.npc), motivo: j.dinares < x.precio ? 'No te alcanza' : undefined });
   }
@@ -449,7 +528,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.tipo === 'objeto') {
       const o = objDe(data, c.ref); let p = o.valor, sin = false;
       if (c.ref === 'OB12' && ciudad !== 'Bagdad') return null;   // la Balanza solo se vende en Bagdad
-      if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; }
+      if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; } else if (MITAD_VENTA.includes(c.ref)) p = Math.floor(o.valor / 2);
       return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : 0;   // 0: sin precio, se regala
     }
     if (c.tipo === 'ifrit') return 40;
@@ -713,7 +792,9 @@ export function usar(data, e, pid, a) {
     case 'OB05': {
       const o = e.jugadores[a.objetivo];
       if (!o || o.eliminado || o.ciudad !== j.ciudad || a.objetivo === pid || o.transito) return err('Objetivo inválido.');
-      consumirObj(data, e, pid, 'OB05');
+      // Jorge (19 de noviembre): el lazo no se gasta; para que no se lance sin fin, una vez por turno.
+      if (j.extra.lazoTurno === j.turnos) return err('Ya lanzaste tu lazo este turno.');
+      j.extra.lazoTurno = j.turnos;
       const x = dado(e);
       const inmune = tieneObj(o, 'OB23') || tieneObj(o, 'OB25');
       mostrarDados(e, { por: pid, motivo: 'lazo', grupos: [{ etq: `${j.nombre} lanza el lazo`, valores: [x] }], resumen: [x >= 4 && !inmune ? `${o.nombre} no podrá viajar en su siguiente turno.` : `El lazo no atrapa a ${o.nombre}.`] });

@@ -759,6 +759,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'comprar': return OBJ.comprar(data, e, pid, a);
     case 'vender': return OBJ.vender(data, e, pid, a);
     case 'usar': return OBJ.usar(data, e, pid, a);
+    case 'lazo': return OBJ.accionLazo(data, e, pid, a);   // camello amarrado (Jorge, 19 de noviembre)
     case 'datiles': return OBJ.comerDatiles(data, e, pid);
     case 'proponerTrato': return proponerTrato(data, e, pid, a);
     case 'responderTrato': return responderTrato(data, e, pid, a);
@@ -1000,7 +1001,8 @@ export function viajarTransporte(data, e, pid, { destino, motivo = 'transporte',
 export function llegada(data, e, pid, origen) {
   OBJ.burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
   if (e.jugadores[pid]?.ciudad === 'Isfahán') e.jugadores[pid].extra.isfahanTurno = e.jugadores[pid].turnos;   // Kanmakán (punto 7)
-  OBJ.renovarDadosZein(e, pid);   // Zein llega a El Cairo con sus Dados del Cairo: duran 7 turnos en vez de 5 (Jorge, 19 de noviembre)
+  OBJ.renovarDadosZein(e, pid);
+  OBJ.cobrarAmarrados(e, pid);    // le compraron su camello amarrado: cobra al llegar   // Zein llega a El Cairo con sus Dados del Cairo: duran 7 turnos en vez de 5 (Jorge, 19 de noviembre)
   const t = e.turno, j = e.jugadores[pid], c = ciudadDe(data, j.ciudad);
   const primera = !j.visitadas.includes(j.ciudad);
   const nadieAntes = !Object.values(e.jugadores).some((x) => x.visitadas.includes(j.ciudad));
@@ -1384,6 +1386,7 @@ export function acciones(data, e, pid) {
   } else if (!t.ccActual) for (const x of RET.disponibles(data, e, pid)) r.push(x);   // con la acción principal usada, los retos se ven apagados con su motivo (Jorge, 11 de noviembre)
   { const x = opcionSinDinares(data, e, pid); if (x) r.push(x); }
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
+  for (const x of OBJ.opcionesLazo(data, e, pid)) r.push(x);   // amarrar o recuperar el camello
   for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x);   // en Yemen: mandar el mapa del Jorasán con los piratas
   if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
   r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' });

@@ -152,7 +152,7 @@ function porQueNoAtacar(s, mi) {
   return 'Ahora no puedes desafiar ni atacar a nadie aquí (por ejemplo, por estar herido o porque nadie puede ser atacado en este momento).';
 }
 
-const SECCIONES = [['atacar', 'Combate y robos'], ['reto', 'Retos y misiones'], ['pj', 'Tu personaje'], ['tesoro', 'Tesoros y Jorasán'], ['asesinos', 'Los Asesinos'], ['venderFirmanYafar', 'Tu Firmán'], ['usar', 'Usar objetos']];
+const SECCIONES = [['atacar', 'Combate y robos'], ['reto', 'Retos y misiones'], ['pj', 'Tu personaje'], ['tesoro', 'Tesoros y Jorasán'], ['asesinos', 'Los Asesinos'], ['venderFirmanYafar', 'Tu Firmán'], ['lazo', 'Camello amarrado'], ['usar', 'Usar objetos']];
 
 export default function AccionesTurno({ s, onCerrar }) {
   const mi = s.jugadores[s.yo];
@@ -184,7 +184,7 @@ export default function AccionesTurno({ s, onCerrar }) {
                 return (
                   <div key={k + i} className="accion-fila">
                     <div className="accion-txt"><b>{a.titulo}</b>{a.texto && <small>{a.texto}</small>}{a.bloqueado && <small className="error">{a.bloqueado}</small>}</div>
-                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados || !!a.bloqueado} onClick={() => { if (k === 'tesoro' && a.sub === 'jorasan' && !confirmarViajeBurro(s, 'Jorasán')) return; if (a.aviso && !window.confirm(a.aviso)) return; enviar(k === 'asesinos' ? ACCIONES.asesinos() : k === 'venderFirmanYafar' ? ACCIONES.venderFirmanYafar() : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via, con: a.con })); }}>{k === 'asesinos' ? 'Contratar' : 'Hacerlo'}</button></div>
+                    <div className="accion-ctl"><button className="btn mini" disabled={!!s.pend || !!s.dados || !!a.bloqueado} onClick={() => { if (k === 'tesoro' && a.sub === 'jorasan' && !confirmarViajeBurro(s, 'Jorasán')) return; if (a.aviso && !window.confirm(a.aviso)) return; enviar(k === 'asesinos' ? ACCIONES.asesinos() : k === 'venderFirmanYafar' ? ACCIONES.venderFirmanYafar() : k === 'lazo' ? ACCIONES.lazo(a.sub, a.uid) : ACCIONES.tesoro(a.sub, { uid: a.uid, via: a.via, con: a.con })); }}>{k === 'asesinos' ? 'Contratar' : k === 'lazo' ? (a.sub === 'amarrar' ? 'Amarrar' : 'Recuperar') : 'Hacerlo'}</button></div>
                   </div>
                 );
               })}

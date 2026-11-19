@@ -422,7 +422,7 @@
    "resolucion": "Persigues a un ladrón por el zoco. Tira 2 dados: con 8 o más lo alcanzas; con 5 a 7 se escapa y pierdes tu acción; con 4 o menos tropiezas y pagas 5 dinares por los puestos que derribaste.",
    "premio": "35 dinares y 10 noches.",
    "riesgo": "Ver resolución.",
-   "objetos": "Red de pescador (alcanzas al ladrón sin tirar); Lazo de camellero (+2 a la tirada); Cuerda con garfio (+1 a la tirada).",
+   "objetos": "Red de pescador (alcanzas al ladrón sin tirar); Lazo de camellero (también atrapas al ladrón sin tirar); Cuerda con garfio (+1 a la tirada).",
    "humor": "El ladrón corre bien; tú, con la cartera, mejor.",
    "refReglamento": "14.7",
    "añadido": true,

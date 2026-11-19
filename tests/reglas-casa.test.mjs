@@ -192,7 +192,7 @@ function forzar(e, ...valores) {
     assert.ok(e.stock[o.id] >= Math.max(1, o.copias - 2) && e.stock[o.id] <= o.copias - 1, 'stock inicial escaso ' + o.id);
     assert.equal(e.stock[o.id] + enRepo(o.id), o.copias - 1, 'las copias que faltan esperan en la reposición: ' + o.id);
   }
-  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 72 + 2, 'empieza con 72 (sin el Pergamino sellado y con 3 sobres de sobornos; con los libros de la India y de Córdoba, la pala y la linterna en dos mercados, la sopa en cuatro y un disfraz de mendigo en cada uno de los 12 mercados) y en la ronda 1 ya vuelven 2');
+  assert.equal(Object.values(e.stock).reduce((a, b) => a + b, 0), 72 + 2 + 4, 'empieza con 72 (+4 porque ahora hay exactamente 5 lazos de camellero, uno por mercado; sin el Pergamino sellado y con 3 sobres de sobornos; con los libros de la India y de Córdoba, la pala y la linterna en dos mercados, la sopa en cuatro y un disfraz de mendigo en cada uno de los 12 mercados) y en la ronda 1 ya vuelven 2');
   const seda = data.objetos.mazo.find((o) => o.id === 'OB34');
   assert.ok(seda.reventa.Bagdad && seda.reventa['Andalucía'] > seda.reventa.Bagdad, 'la seda se vende más cara lejos');
   turnoDe(e, pid, 'Andalucía'); j.ciudad = 'Andalucía'; e.turno.fase = 'acciones';
@@ -3972,6 +3972,76 @@ console.log('reglas de la casa OK');
   assert.equal(J.dinares, d0 + 35, '35 dinares'); assert.ok(J.noches >= n0 + 10, 'y noches');
   assert.ok(!J.mano.some((c) => c.ref === 'OB10'), 'la red se gasta');
   assert.ok(e.log.some((l) => / atrapa al ladrón con su Red de pescador:/.test(l.texto)), 'la bitácora lo dice');
+}
+// Jorge (19 de noviembre): Lazo de camellero. Uno en cada mercado de Basra, Bagdad, El Cairo, Yemen y Samarcanda (ya no en Damasco);
+// se vende en cualquier mercado a la mitad de su precio; no pesa; atrapa al ladrón de R33 sin tirar; sigue inmovilizando con 4-6.
+{
+  const { existencia, nCarga } = await import('../shared/base.js');
+  const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  for (const c of ['Basra', 'Bagdad', 'El Cairo', 'Yemen', 'Samarcanda']) assert.equal(existencia(e, 'OB05', c), 1, 'uno en ' + c);
+  for (const c of ['Damasco', 'Aleppo', 'Estambul', 'Isfahán', 'India', 'Andalucía', 'Magreb']) assert.equal(existencia(e, 'OB05', c), 0, 'ninguno en ' + c);
+  assert.equal(e.stock.OB05, 5, '5 en total');
+  // comprar (fuera de su turno) en Yemen: el segundo ya no hay
+  turnoDe(e, b, 'Bagdad'); A.ciudad = 'Yemen'; A.dinares = 100;
+  assert.ok(g.act(a, { t: 'comprar', id: 'OB05' }).ok); assert.equal(A.dinares, 88, 'cuesta 12');
+  assert.ok(!g.act(a, { t: 'comprar', id: 'OB05' }).ok, 'solo había uno en Yemen');
+  // no pesa
+  const c0 = nCarga(A); A.mano.push({ uid: 'lz2', tipo: 'objeto', ref: 'OB05', pub: true }); assert.equal(nCarga(A), c0, 'no pesa');
+  A.mano = A.mano.filter((x) => x.uid !== 'lz2');
+  // venderlo en cualquier mercado a la mitad (6), menos el impuesto de venta de cada ciudad (Bagdad 0, Samarcanda 50 %)
+  const { impuesto } = await import('../shared/objetos.js');
+  for (const [ciudad, esperado] of [['Damasco', 6 - impuesto(data, e, 'Damasco', 6)], ['Bagdad', 6], ['Samarcanda', 3]]) {
+    A.ciudad = ciudad; turnoDe(e, a, ciudad); e.turno.fase = 'acciones';
+    if (!A.mano.some((x) => x.ref === 'OB05')) A.mano.push({ uid: 'lz' + ciudad, tipo: 'objeto', ref: 'OB05', pub: true });
+    const d0 = A.dinares, c = A.mano.find((x) => x.ref === 'OB05');
+    const r = g.act(a, { t: 'vender', uid: c.uid }); assert.ok(r.ok, r.error); assert.equal(A.dinares - d0, esperado, `vendido en ${ciudad}: ${esperado}`);
+  }
+  // R33: el lazo atrapa al ladrón sin tirar (se gasta)
+  A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; A.retosHechos = A.retosHechos.filter((x) => x !== 'R33');
+  A.mano.push({ uid: 'lzR', tipo: 'objeto', ref: 'OB05', pub: true }); forzar(e, 1, 1); const d1 = A.dinares;
+  assert.ok(g.act(a, { t: 'reto', id: 'R33' }).ok); assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, valores: ['lzR'] }).ok);
+  while (e.dados) g.act(a, { t: 'cerrarDados' });
+  assert.equal(A.dinares, d1 + 35, 'atrapa al ladrón: 35 dinares'); assert.ok(A.mano.some((x) => x.uid === 'lzR'), 'el lazo no se gasta');
+  assert.ok(e.log.some((l) => / atrapa al ladrón con su Lazo de camellero:/.test(l.texto)));
+  // sigue inmovilizando con 4 a 6
+  const B = e.jugadores[b]; B.ciudad = A.ciudad = 'Basra'; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
+  A.mano.push({ uid: 'lzU', tipo: 'objeto', ref: 'OB05', pub: true }); forzar(e, 5);
+  assert.ok(g.act(a, { t: 'usar', uid: 'lzU', objetivo: b }).ok); assert.equal(B.extra.lazoTurno, (B.turnos || 0) + 1, 'con 5 no podrá viajar');
+  assert.ok(A.mano.some((x) => x.uid === 'lzU'), 'tampoco se gasta al inmovilizar');
+  while (e.dados) g.act(a, { t: 'cerrarDados' });
+  assert.match(g.act(a, { t: 'usar', uid: 'lzU', objetivo: b }).error || '', /Ya lanzaste tu lazo este turno/, 'una vez por turno');
+}
+// Camello amarrado con el lazo (Jorge, 19 de noviembre)
+{
+  const { costoRecuperar } = await import('../shared/objetos.js');
+  const g = partida(['7', '4']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  const turno = (pid, ciudad) => { e.jugadores[pid].ciudad = ciudad; turnoDe(e, pid, ciudad); e.turno.fase = 'acciones'; };
+  A.mano.push({ uid: 'lazoA', tipo: 'objeto', ref: 'OB05', pub: true }, { uid: 'cam1', tipo: 'item', ref: 'camello', pub: true, extra: { usados: 2 } });
+  A.turnos = 4; turno(a, 'Basra');
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'lazo' && x.sub === 'amarrar'); assert.ok(op && !op.bloqueado, 'aparece «Amarrar tu camello»');
+  const pr0 = e.turno.principal;
+  assert.ok(g.act(a, { t: 'lazo', sub: 'amarrar', uid: 'cam1' }).ok); assert.ok(!A.mano.some((x) => x.uid === 'cam1') && A.mano.some((x) => x.uid === 'lazoA'), 'el camello queda amarrado y el lazo sigue');
+  assert.equal(e.turno.principal, pr0, 'no gasta la acción principal');
+  assert.ok(e.log.some((l) => /deja su camello amarrado en el mercado de Basra/.test(l.texto)));
+  // vuelve 3 turnos después: paga 15 y el camello conserva sus vidas (usados 2)
+  A.turnos = 7; turno(a, 'Basra'); A.dinares = 10;
+  assert.equal(costoRecuperar(A, e.amarrados[0]), 15);
+  assert.match(vistaDe(e, a).acciones.find((x) => x.sub === 'recuperar').bloqueado || '', /Te faltan 5 dinares/);
+  assert.ok(!g.act(a, { t: 'lazo', sub: 'recuperar' }).ok, 'sin dinero no se lo lleva'); assert.equal(e.amarrados.length, 1);
+  A.dinares = 20; assert.ok(g.act(a, { t: 'lazo', sub: 'recuperar' }).ok); assert.equal(A.dinares, 5);
+  const cam = A.mano.find((x) => x.uid === 'cam1'); assert.ok(cam && cam.extra.usados === 2, 'conserva sus vidas');
+  // lo amarra otra vez en Basra y se va; Carolina lo compra a 45 con sus vidas; el dueño cobra al llegar
+  assert.ok(g.act(a, { t: 'lazo', sub: 'amarrar', uid: 'cam1' }).ok);
+  A.ciudad = 'Bagdad'; turno(a, 'Bagdad'); B.ciudad = 'Basra'; B.dinares = 50;
+  const tien = (await import('../shared/objetos.js')).tienda(data, e, b).find((x) => x.ref === 'amarrado:cam1'); assert.ok(tien && tien.precio === 45 && tien.puede, 'a la venta en Basra por 45');
+  assert.ok(g.act(b, { t: 'comprar', ref: 'amarrado:cam1' }).ok); assert.equal(B.dinares, 5); assert.equal(B.mano.find((x) => x.uid === 'cam1')?.extra.usados, 2, 'con las vidas que tenía');
+  turno(a, 'Bagdad'); A.dinares = 50; const d0 = A.dinares;
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Basra' }).ok); assert.equal(A.ciudad, 'Basra');
+  assert.ok(A.dinares >= d0 - 20 + 45, 'cobra los 45 al llegar (menos el pasaje)');
+  assert.ok(e.log.some((l) => /cobra 45 dinares por su camello amarrado en Basra/.test(l.texto)), 'el dueño cobra al llegar');
+  assert.ok(!(e.amarrados || []).length, 'ya no queda amarrado');
 }
 // quien entra tarde también recibe su idioma y sus objetos de inicio
 {

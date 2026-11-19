@@ -158,7 +158,9 @@ function ejecutar(data, e, pid, id, usados) {
   }
   ctx.fin();
 }
-const usa = (data, e, pid, usados, id) => { if (!usados.includes(id)) return false; return consumirObj(data, e, pid, id); };
+// Lazo de camellero (Jorge, 19 de noviembre): no se gasta en ningún caso.
+const NO_SE_GASTA = ['OB05'];
+const usa = (data, e, pid, usados, id) => { if (!usados.includes(id)) return false; if (NO_SE_GASTA.includes(id)) return !!e.jugadores[pid].mano.find((c) => c.tipo === 'objeto' && c.ref === id); return consumirObj(data, e, pid, id); };
 
 // ---------------------------------------------------------------- misiones con plazo
 function nuevaMision(e, pid, m, turnosPlazo) {
@@ -670,7 +672,9 @@ T.R32 = { ciudad: 'Aleppo', req: (data, e, pid) => (tieneArma(data, e, e.jugador
 T.R33 = { ciudad: 'Damasco', run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R33');
   if (aplic(data, e, pid, us, 'OB10')) { ctx.say('Lanzas tu Red de pescador y atrapas al ladrón sin tirar (la red se gasta).'); premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} atrapa al ladrón con su Red de pescador:`); return; }
-  const v = ctx.t(`${j.nombre}: persecución`, 2); const b = (aplic(data, e, pid, us, 'OB05') ? 2 : 0) + (aplic(data, e, pid, us, 'OB08') ? 1 : 0); const s = suma(v) + b;
+  // Jorge (19 de noviembre): el Lazo de camellero también atrapa al ladrón sin tirar, como la Red de pescador; el lazo no se gasta.
+  if (aplic(data, e, pid, us, 'OB05')) { ctx.say('Lanzas tu Lazo de camellero y atrapas al ladrón sin tirar (el lazo no se gasta).'); premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} atrapa al ladrón con su Lazo de camellero:`); return; }
+  const v = ctx.t(`${j.nombre}: persecución`, 2); const b = aplic(data, e, pid, us, 'OB08') ? 1 : 0; const s = suma(v) + b;
   if (s >= 8) premio(data, e, pid, { dinares: 35, noches: 10 }, `${j.nombre} alcanza al ladrón:`);
   else if (s >= 5) { ctx.say('El ladrón se escapa.'); ctx.fallo = true; } else { pagar(data, e, pid, 5); ctx.say('Tropiezas y pagas 5 dinares por los puestos.'); ctx.fallo = true; }
 } };

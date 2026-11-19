@@ -42,6 +42,7 @@ export const ACCIONES = {
   recuperar: (uid) => ({ t: 'recuperar', uid }),
   asesinos: () => ({ t: 'asesinos' }),
   venderFirmanYafar: () => ({ t: 'venderFirmanYafar' }),
+  lazo: (sub, uid) => ({ t: 'lazo', sub, uid }),   // amarrar o recuperar el camello (Jorge, 19 de noviembre)
   pj: (sub, extra = {}) => ({ t: 'pj', sub, ...extra }),
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
   votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),
