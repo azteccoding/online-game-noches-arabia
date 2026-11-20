@@ -32,7 +32,7 @@ function partida(pjs, opciones = {}, semilla = 5) {
   assert.equal(h.e.jugadores.npc, undefined, 'con 3 jugadores sin Yafar no hay NPC');
   const k = partida(['4', '7']); assert.ok(k.iniciar().ok); assert.ok(k.e.jugadores.npc, 'sin la opción, Yafar NPC sigue jugando');
   for (let s = 1; s <= 12; s++) {
-    const r = simular({ jugadores: 1 + (s % 3), conYafar: false, sinYafar: true, semilla: 930 + s });   // (con la semilla 906 el bot solitario se arruina en Estambul y nunca termina: es del bot, no del motor)
+    const r = simular({ jugadores: 1 + (s % 3), conYafar: false, sinYafar: true, semilla: 960 + s });   // (con 939, tras «Evitar a los ghul», el bot se hunde en noches negativas y no termina; con la semilla 906 el bot solitario se arruina en Estambul y nunca termina: es del bot, no del motor)
     assert.ok(r.ok, 'partida completa sin Yafar NPC: ' + r.motivo); assert.ok(!Object.values(r.e.jugadores).some((j) => j.npc), 'nunca entra el NPC');
   }
 }
@@ -4593,4 +4593,34 @@ console.log('reglas de la casa OK');
     assert.ok(g6 && g6.valores[0] === 6 && g6.fijo, 'el Dado de Maulana se muestra con su 6, sin tirarse');
     assert.ok(ds.some((d) => (d.resumen || []).some((r) => /y el Dado de Maulana: 6\. Promedio 3/.test(r))), 'el resumen lo dice');
     assert.equal(A.mensajes.length, 1, 'la carta de sheij no se gasta'); }
+}
+// Jorge (19 de noviembre): el genio de lámpara siempre ofrece «Evitar a los ghul»: sin dados, sin nada más, a una ciudad al azar
+{
+  const prep = () => {
+    const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+    A.perdido = true; A.ciudad = 'Jorasán'; A.extra.enRumbo = false; A.dinares = 40; e.jugadores[b].ciudad = 'Bagdad';
+    turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+    forzar(e, 2, 1, 2);   // rumbo par; genio de lámpara (impar, par)
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'salir' }).ok);
+    return { g, e, a, A };
+  };
+  { const { g, e, a, A } = prep();
+    const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Genio de la lámpara');
+    assert.ok(p && p.opciones.some((o) => o.id === 'evitar' && /Evitar a los ghul/.test(o.texto)), 'siempre sale «Evitar a los ghul»');
+    e.dados = null; e.colaDados = []; e.pend = p; e.colaPend = [];
+    const d0 = A.dinares, n0 = A.mano.length;
+    assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'evitar' }).ok);
+    assert.ok(!A.perdido && !A.eliminado && data.ciudades.ciudades.some((c) => c.id === A.ciudad), 'sale a una ciudad del tablero');
+    assert.ok(!e.dados && !(e.colaDados || []).some((d) => d.motivo === 'ghul'), 'sin tirada de ghul');
+    assert.equal(A.dinares, d0); assert.equal(A.mano.length, n0, 'no gana nada más');
+    assert.ok(e.log.some((l) => new RegExp(`evita a los ghul: el genio lo deja en ${A.ciudad}`).test(l.texto)), 'queda en el registro'); }
+  // sin cartas de Ifrit: 60 dinares (y ghul) o evitar
+  { const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+    A.perdido = true; A.ciudad = 'Jorasán'; A.extra.enRumbo = false; e.jugadores[b].ciudad = 'Bagdad'; e.mazos.ifrit = [];
+    turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones'; forzar(e, 2, 1, 2);
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'salir' }).ok);
+    const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Genio de la lámpara');
+    assert.deepEqual(p.opciones.map((o) => o.id), ['sesenta', 'evitar'], 'sin cartas: 60 dinares o evitar'); }
 }

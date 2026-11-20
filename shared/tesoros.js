@@ -278,10 +278,10 @@ function salirJuntos(data, e, a, b) {
   e.jorJunto = { ids: [a, b], faltan: 2 };
   for (const x of ambos) {
     const id = robar(e, 'ifrit');
-    if (!id) { x.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${x.nombre}.`, { pid: x.id }); juntoListo(data, e); continue; }
+    if (!id) { pedirSinCartas(e, x.id, 'tes.sinCartasJ'); continue; }
     const card = data.objetos.ifrit.cartas.find((q) => q.id === id);
     pedir(e, { tipo: 'ifrit', para: [x.id], titulo: 'Genio de la lámpara', texto: 'Elige un deseo (se usa ya) o conserva la carta para usarla más tarde o venderla (40 dinares).',
-      opciones: [...opcionesIfrit(data, x, card), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseoJ', args: { carta: id } } });
+      opciones: [...opcionesIfrit(data, x, card), { id: 'guardar', texto: 'Conservar la carta para después' }, { id: 'evitar', texto: EVITAR_TXT }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseoJ', args: { carta: id } } });
   }
   return ok();
 }
@@ -297,6 +297,7 @@ registrar('tes.eligeDeseoJ', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
   if (resp.opcion === 'guardar') { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: args.carta }); log(e, `${j.nombre} conserva una carta de Ifrit.`, { pid }); return juntoListo(data, e); }
   e.mazos.descarte.ifrit.push(args.carta);
+  if (resp.opcion === 'evitar') { evitarGhul(data, e, pid, { juntos: true }); return juntoListo(data, e); }
   gastarVeloSiAlfombra(e, j, data.objetos.ifrit.cartas.find((q) => q.id === args.carta), resp.opcion);
   deseo(data, e, pid, resp.opcion, { alTerminar: 'juntos' });
 });
@@ -310,6 +311,36 @@ function tiradaGhul(e, buscados) {
   const grupoMaulana = maulana ? [{ etq: 'Dado de Maulana', valores: [6], fijo: true }] : [];
   return { act, v, todos, prom, maulana, grupoMaulana, texto: (nom) => `Dados: ${v.join(', ')}${maulana ? ' y el Dado de Maulana: 6' : ''}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${nom}` : `los ghul encuentran a ${nom}`}.` };
 }
+// «Evitar a los ghul» (Jorge, 19 de noviembre): el genio de lámpara siempre lo ofrece. Sin dados de nadie, no ganas nada más (ni deseo
+// ni carta: la carta va al descarte) y el genio te deja en una ciudad al azar, de las 12 del tablero. En el juego de mesa la ciudad la
+// eligen los jugadores al azar como acuerden («de tin marín» o lo que decidan). Al salir juntos, cada uno elige por su cuenta.
+const EVITAR_TXT = 'Evitar a los ghul: sales sin tirar dados, no ganas nada más y el genio te deja en una ciudad al azar';
+function evitarGhul(data, e, pid, { juntos = false } = {}) {
+  const j = e.jugadores[pid], cs = data.ciudades.ciudades.map((c) => c.id);
+  const dest = cs[Math.floor(rnd(e) * cs.length) % cs.length];
+  j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
+  log(e, `${j.nombre} evita a los ghul: el genio lo deja en ${dest}.`, { pid, aviso: true });
+  info(e, pid, 'Evitas a los ghul', `El genio te saca del Jorasán sin dados y te deja en ${dest}.`);
+  if (!juntos && e.turno) { e.turno.movio = true; e.turno.fin = true; }
+  return ok();
+}
+// Sin cartas de Ifrit en el mazo: el genio da 60 dinares (y después vienen los ghul) o, si lo prefieres, evitas a los ghul sin nada.
+function pedirSinCartas(e, pid, fn) {
+  pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Genio de la lámpara', texto: 'Ya no quedan cartas de Ifrit: el genio te ofrece 60 dinares (y luego te buscan los ghul) o sacarte del Jorasán sin nada.',
+    opciones: [{ id: 'sesenta', texto: 'Recibir 60 dinares (después, la tirada de los ghul)' }, { id: 'evitar', texto: EVITAR_TXT }], porDefecto: 'sesenta', limiteMs: 120000, cont: { fn, args: {} } });
+  return ok();
+}
+registrar('tes.sinCartas', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  if (resp.opcion === 'evitar') return evitarGhul(data, e, pid);
+  j.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${j.nombre}.`, { pid }); return ghul(data, e, pid);
+});
+registrar('tes.sinCartasJ', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  if (resp.opcion === 'evitar') evitarGhul(data, e, pid, { juntos: true });
+  else { j.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${j.nombre}.`, { pid }); }
+  return juntoListo(data, e);
+});
 function ghulJuntos(data, e, ambos) {
   const nom = ambos.map((x) => x.nombre).join(' y '), { act, v, prom, grupoMaulana, texto } = tiradaGhul(e, ambos);
   act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }, ...(i === act.length - 1 ? grupoMaulana : [])],
@@ -348,16 +379,17 @@ function salirJorasan(data, e, pid) {
   ctx.res.push('Genio de lámpara: robas una carta de Ifrit.');
   mostrarDados(e, { por: pid, motivo: 'jorasan', grupos: ctx.grupos, resumen: ctx.res });
   const id = robar(e, 'ifrit');
-  if (!id) { j.dinares += 60; log(e, 'No quedan cartas de Ifrit: el genio entrega 60 dinares.'); return ghul(data, e, pid); }
+  if (!id) return pedirSinCartas(e, pid, 'tes.sinCartas');
   const card = data.objetos.ifrit.cartas.find((x) => x.id === id);
   pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Genio de la lámpara', texto: 'Elige un deseo (se usa ya) o conserva la carta para usarla más tarde o venderla (40 dinares).',
-    opciones: [...opcionesIfrit(data, j, card), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseo', args: { carta: id } } });
+    opciones: [...opcionesIfrit(data, j, card), { id: 'guardar', texto: 'Conservar la carta para después' }, { id: 'evitar', texto: EVITAR_TXT }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseo', args: { carta: id } } });
   return ok();
 }
 registrar('tes.eligeDeseo', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
   if (resp.opcion === 'guardar') { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: args.carta }); log(e, `${j.nombre} conserva una carta de Ifrit.`, { pid }); return ghul(data, e, pid); }
   e.mazos.descarte.ifrit.push(args.carta);
+  if (resp.opcion === 'evitar') return evitarGhul(data, e, pid);
   gastarVeloSiAlfombra(e, j, data.objetos.ifrit.cartas.find((q) => q.id === args.carta), resp.opcion);
   deseo(data, e, pid, resp.opcion, { alTerminar: 'ghul' });
 });

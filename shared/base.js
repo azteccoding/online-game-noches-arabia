@@ -81,7 +81,7 @@ export const ITEMS = {
   almudDatiles: { nombre: 'Almud de dátiles', precio: 2, texto: 'Mercancía: se compra en Yemen y Basra a 2 dinares y el mercado de Bagdad la compra a 4. Pesa. La primera vez que vendes dátiles en Bagdad cumples el reto R53 y ganas 20 noches.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
-  velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar.' },
+  velo: { nombre: 'Velo quemado', precio: 30, texto: 'Descártalo para ignorar un genio malo o «ignorarte» en el Jorasán y volver a tirar. Además, mientras lo tengas, toda carta de Ifrit te ofrece la alfombra mágica (si la pides así, el velo se gasta).' },
   veneno: { nombre: 'Veneno', texto: 'Caduca a los 3 turnos. Cuesta 20 dinares y el viaje desde Bagdad usarlo.' },
   mapaJorasan: { nombre: 'Mapa del Jorasán', precio: 20, texto: 'Se compra en el mercado de Bagdad por 20 dinares y no pesa. Si estás perdido en el Jorasán, úsalo en tu turno: tiras un dado y sales con cualquier resultado: impar, a Basra; par, a Samarcanda. Desde Yemen, los piratas se lo llevan por 5 dinares a un jugador perdido en el Jorasán: le llega en su próximo turno.' },
   yegua: { nombre: 'Yegua de la estepa', texto: 'Del reto R50 (Samarcanda). El mercado de Estambul paga 150 dinares por cada una, o véndesela a otro jugador en un trato, en cualquier ciudad, al precio que acuerden. No pesa ni carga nada y no sirve de transporte; te la pueden robar. Cada turno pagas albéitar y comida.' },
