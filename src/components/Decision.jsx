@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { decisionVisible } from '../game/orden.js';
 
 // Decisión pendiente (pend del motor): defensa en una pelea, trato, elegir objetos, contratos, etc. Solo la ve quien debe decidir;
 // los demás ven un aviso «esperando a…». Si se agota el tiempo el servidor decide por la opción por defecto.
@@ -30,8 +31,9 @@ export default function Decision({ s }) {
   }
   // Jorge (19 de noviembre): los botones de una decisión nunca salen antes que la carta que la provoca ni antes de los dados:
   // primero se lee (y se cierra) la carta, luego se lanzan y se cierran los dados, y solo entonces se elige.
-  if ((leyendo != null && leyendo < p.id) || (porLeer != null && porLeer < p.id)) return null;
-  if (s.dados && !s.dados.cerrados?.includes(s.yo)) return null;
+  // Y ninguna decisión sale encima de una carta, aunque la carta sea posterior (p. ej. la Temporada de especias al llegar a Basra con
+  // la carta de Cuentos de la llegada): primero se cierran todas las cartas por leer.
+  if (!decisionVisible({ leyendo, porLeer, dados: s.dados, yo: s.yo })) return null;
   const responder = (r) => enviar(ACCIONES.decidir(p.id, r));
   const pct = Math.min(100, Math.max(0, (resta / (p.limiteMs / 1000)) * 100));
   const nMin = p.min ?? 0, nMax = p.max ?? 6;

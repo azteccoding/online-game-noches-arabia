@@ -11,6 +11,15 @@ import { textoEquipo } from '../game/equipo.js';
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
 // Barra inferior: quién juega y los botones del turno. El detalle de acciones (combate, retos, objetos…) vive en el panel «Acciones».
+// Qué esperan los dados: tu cierre, la carta que los explica o a otro jugador (antes siempre decía «cierra los dados», aunque ya los
+// hubieras cerrado o la ventana aún no saliera; Jorge, 19 de noviembre).
+function dadosTexto(s, enPantalla) {
+  const d = s.dados, por = s.jugadores[d.por];
+  if (enPantalla != null) return 'Primero cierra la carta en pantalla; luego salen los dados.';
+  if (d.cerrados?.includes(s.yo) || (d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || ['ingreso', 'tumba'].includes(d.motivo))) || (d.motivo === 'npc:Yafar' && !d.alerta))
+    return `Esperando a que ${por?.nombre || 'el otro jugador'} cierre sus dados.`;
+  return d.lanzado ? 'Primero cierra los dados en pantalla.' : d.por === s.yo ? 'Primero lanza los dados en pantalla.' : `Esperando a que ${por?.nombre || 'el otro jugador'} lance sus dados.`;
+}
 export default function PanelAcciones({ s, abrir, panel }) {
   const t = s.turno, yo = s.jugadores[s.yo];
   const memSaldo = useRef({});
@@ -28,7 +37,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const cc = miTurno && t.ccActual ? s.historial.find((h) => h.nro === t.ccActual.nro) : null;
   const bloqueo = s.pend?.mia && !s.pend.respondiste ? { texto: `Primero responde: «${s.pend.titulo}»` }
     : s.pend ? { texto: `Esperando a ${s.pend.faltan.map((x) => s.jugadores[x]?.nombre || x).join(', ')}: «${s.pend.titulo}»` }
-    : s.dados ? { texto: 'Primero cierra los dados en pantalla.' }
+    : s.dados ? { texto: dadosTexto(s, enPantalla) }
     : cc ? { texto: `Primero responde: «${cc.titulo}»`, carta: cc.nro } : null;
   const intentar = (fn) => () => { if (!bloqueo) return fn(); avisar('⚠ ' + bloqueo.texto); if (bloqueo.carta != null) abrir('carta:' + bloqueo.carta); };
   const ccPendiente = cc && enPantalla !== cc.nro;
