@@ -82,7 +82,7 @@ export default function Dados({ s }) {
   // Jorge (19 de noviembre): orden estricto carta → dados → decisión. Los dados ya no esperan detrás de tu decisión (en R23 elegías
   // ante los bandoleros sin haber lanzado el dado); la decisión espera a que se cierren los dados (Decision.jsx).
   if (esperaCarta) return null;                                         // primero se lee la carta que explica la tirada
-  if (d.por !== s.yo && String(d.motivo || '').startsWith('reto:')) return null;   // reto ajeno: los demás solo ven la alerta del resultado (Jorge, 19 de noviembre)
+  if (d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso')) return null;   // reto o dado de ingreso ajeno: los demás solo ven el registro y, si acaso, la alerta (Jorge, 19 de noviembre)
   if (!d.lanzado) {
     const mio = d.por === s.yo;
     return (

@@ -854,6 +854,9 @@ function tirarDados(data, e, pid, a) {
   d.sheij = { ok: recibe, texto: recibe ? '¡Hay carta de sheij! Recibes un Mensaje.'
     : v !== data.config.minimoMensajeDado ? `No hay carta de sheij (hace falta un ${data.config.minimoMensajeDado}).`
       : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' };
+  // Jorge (19 de noviembre): el dado de ingreso ajeno no se ve; queda en el registro y, solo si lo acierta (le llega un Mensaje), los demás
+  // reciben un anuncio gris que se quita al tocarlo.
+  if (recibe) RET.anunciar(e, pid, `${j.nombre} acertó su dado de ingreso (${v}): recibe un Mensaje de un sheij.`, 'gris');
   return ok();
 }
 function tirarDadosLibres(e, pid, a) {

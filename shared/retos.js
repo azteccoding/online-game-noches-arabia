@@ -154,9 +154,13 @@ registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.
 // Resultado de un reto para los DEMÁS jugadores (Jorge, 19 de noviembre): no ven ninguna ventana, solo una alerta que se quita al
 // tocarla, verde si lo logró y gris si no (o si sigue en curso), y una línea en el registro. Se decide comparando antes y después.
 const fotoReto = (j) => ({ d: j.dinares, n: j.noches, m: j.mano.length, mis: j.misiones.length, pt: j.pierdeTurno || 0, h: !!j.herido, ex: JSON.stringify([j.destreza, j.extra?.destrezaJambiya, j.extra?.entrenado, j.extra?.idiomas, j.extra?.polimata, j.extra?.arcoMaximo]), curso: !!(j.extra?.forja || j.extra?.estudio || j.extra?.emir) });
+// Cada reto fija su resultado real en ctx.resultado ('logro' o 'fallo'). Jorge (19 de noviembre): si fallas pero te llevas un premio
+// de consuelo, los demás ven «no logró» en gris. ctx.sinAnuncio: el resultado se anuncia después, en la continuación del reto.
 function resultadoReto(e, pid, antes, ctx) {
   const j = e.jugadores[pid], a = fotoReto(j);
+  if (ctx.sinAnuncio) return null;
   if (j.eliminado) return 'fallo';
+  if (ctx.resultado) return ctx.resultado;
   const esperando = [e.pend, ...(e.colaPend || [])].some((p) => p && p.para?.includes(pid) && p.tipo !== 'info');
   if (esperando || a.mis > antes.mis || (a.curso && !antes.curso)) return 'curso';
   if (ctx.fallo || (a.h && !antes.h) || a.pt > antes.pt) return 'fallo';
@@ -164,15 +168,20 @@ function resultadoReto(e, pid, antes, ctx) {
   return 'fallo';
 }
 export function anunciarReto(data, e, pid, id, res) {
-  const j = e.jugadores[pid], d = m1(data, id); if (!j || !d) return;
+  const j = e.jugadores[pid], d = m1(data, id); if (!j || !d || !res) return;
   const verbo = res === 'logro' ? 'logró' : res === 'curso' ? 'empezó' : 'no logró';
   const texto = `${j.nombre} ${verbo} el reto ${id} (${d.nombre}).`;
   log(e, texto, { pid });
+  anunciar(e, pid, texto, res === 'logro' ? 'ok' : 'gris');
+}
+// Alerta para los demás jugadores (no para quien la causa): no bloquea y se quita al tocarla.
+export function anunciar(e, pid, texto, tono = 'gris') {
   const para = Object.values(e.jugadores).filter((x) => x.id !== pid && !x.npc && x.pj).map((x) => x.id);
   if (!para.length) return;
-  (e.anuncios ||= []).push({ id: ++e.seq, t: e.ahora, para, texto, tono: res === 'logro' ? 'ok' : 'gris' });
+  (e.anuncios ||= []).push({ id: ++e.seq, t: e.ahora, para, texto, tono });
   if (e.anuncios.length > 30) e.anuncios.splice(0, e.anuncios.length - 30);
 }
+const cerrarReto = (data, e, pid, id, ok) => anunciarReto(data, e, pid, id, ok ? 'logro' : 'fallo');   // resultado final de un reto en varios pasos
 function ejecutar(data, e, pid, id, usados) {
   const antesReto = fotoReto(e.jugadores[pid]);
   const ctx = nuevoCtx(e, pid, id);
@@ -204,6 +213,7 @@ function perder(data, e, pid, m, motivo) {
   const quedan = m.id === 'R17' ? 0 : quitarCarga(e, pid, m); quitarMision(j, m);   // R17: las alfombras que te queden siguen siendo tuyas (Jorge, 19 de noviembre)
   log(e, `${j.nombre} pierde el reto ${m.id}${motivo ? ' (' + motivo + ')' : ''}.`, { pid });
   const f = FALLO[m.id]; if (f) f(data, e, pid, m, quedan);
+  cerrarReto(data, e, pid, m.id, false);
 }
 const FALLO = {
   R10: () => {}, R4: () => {}, R24: () => {}, R23: () => {},
@@ -235,7 +245,7 @@ export function alLlegar(data, e, pid, origen) {
   if (j.extra.rep) for (const id of Object.keys(j.extra.rep)) if (m1(data, id).ciudad !== j.ciudad) delete j.extra.rep[id];
   for (const m of j.misiones.slice()) {
     if (m.id === 'R3') { if (j.ciudad === 'Estambul') m.visito = true; if (j.ciudad === 'Bagdad' && m.visito) completarR3(data, e, pid, m); continue; }
-    if (m.id === 'R29') { if (j.ciudad === 'Bagdad') { quitarMision(j, m); premio(data, e, pid, { dinares: 40, noches: 15 }, 'Cruzas el desierto con tu camello.'); hacer(e, pid, 'R29'); } else if (!j.transito) perder(data, e, pid, m, 'te desviaste'); continue; }
+    if (m.id === 'R29') { if (j.ciudad === 'Bagdad') { quitarMision(j, m); premio(data, e, pid, { dinares: 40, noches: 15 }, 'Cruzas el desierto con tu camello.'); hacer(e, pid, 'R29'); cerrarReto(data, e, pid, 'R29', true); } else if (!j.transito) perder(data, e, pid, m, 'te desviaste'); continue; }
     if ((m.destino && m.destino === j.ciudad) || m.destinos?.includes(j.ciudad)) entregar(data, e, pid, m);
   }
 }
@@ -260,6 +270,7 @@ function entregar(data, e, pid, m) {
   }
   quitarCarga(e, pid, m); quitarMision(j, m); hacer(e, pid, m.id);
   premio(data, e, pid, pr, `${j.nombre} entrega su encargo (${m.id}):`);
+  cerrarReto(data, e, pid, m.id, true);
 }
 function completarR3(data, e, pid, m) {
   const j = e.jugadores[pid];
@@ -268,6 +279,7 @@ function completarR3(data, e, pid, m) {
   mostrarDados(e, { por: pid, motivo: 'reto:R3', grupos: [{ etq: `${j.nombre} informa al Califa`, valores: [x] }], resumen: [`Dado ${x}: cobra ${5 * x} dinares.`] });
   for (let i = 0; i < 2; i++) quitarPrimero(j, 'item', 'esclava'); quitarPrimero(j, 'item', 'mapa');
   quitarMision(j, m); hacer(e, pid, 'R3'); premio(data, e, pid, { dinares: 5 * x }, `${j.nombre} cumple las órdenes del Califa.`);
+  cerrarReto(data, e, pid, 'R3', true);
 }
 
 export function misionesVista(data, e, pid) {
@@ -281,7 +293,7 @@ export function alEliminar(data, e, victima, por) {
   if (!por) return;
   const j = e.jugadores[por];
   const m = j?.misiones.find((x) => x.id === 'R2' && x.objetivo === victima);
-  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); darTransporte(data, e, por, 'caballo'); premio(data, e, por, { dinares: 50 }, `${j.nombre} cumple el encargo de Yafar (R2):`); }   // Jorge (10 de noviembre): astrolabio, 50 dinares y un caballo (ya no alfanje)
+  if (m) { quitarMision(j, m); hacer(e, por, 'R2'); darItem(e, j, 'astrolabio'); darTransporte(data, e, por, 'caballo'); premio(data, e, por, { dinares: 50 }, `${j.nombre} cumple el encargo de Yafar (R2):`); cerrarReto(data, e, por, 'R2', true); }   // Jorge (10 de noviembre): astrolabio, 50 dinares y un caballo (ya no alfanje)
 }
 HOOK.alEliminar = alEliminar;
 
@@ -293,7 +305,7 @@ function r1Turno(data, e, pid, m) {
     const v = ctx.t(`${j.nombre} y ${m.ayudantes} ayudante(s)`, 1 + m.ayudantes);
     m.busca = false;                                                       // regla de la casa: la deuda ya no se duplica
     if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); }
-    else ctx.say('No hay cofre: abandonas la búsqueda y sigues debiendo el alojamiento. No puedes salir de Bagdad hasta pagarlo.');
+    else { ctx.say('No hay cofre: abandonas la búsqueda y sigues debiendo el alojamiento. No puedes salir de Bagdad hasta pagarlo.'); cerrarReto(data, e, pid, 'R1', false); }
     ctx.fin();
     j.misiones.find((x) => x.id === 'R1') && (m.vence ??= j.turnos + 3);
     return;
@@ -313,9 +325,11 @@ function r1Exito(data, e, pid, m) {
   darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello'); darItem(e, j, 'pergamino'); j.extra.viajeCalifa = true;   // el caballo (mejor) y, como ya tiene transporte, 20 dinares por el camello
   premio(data, e, pid, { dinares: 50, noches: 50 }, `${j.nombre} halla el cofre del Éufrates:`);
   pagar(data, e, pid, m.deuda);
+  cerrarReto(data, e, pid, 'R1', true);
 }
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
+    ctx.sinAnuncio = true;   // se anuncia al encontrar el cofre o al abandonar la búsqueda (si rechaza, no hay reto)
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda de 15 dinares con la ciudad; puedes pagar sirvientes, a ${data.config.r1?.costoAyudante ?? 12} dinares cada uno, para buscar con más dados. Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
       opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r1.acepta', args: {} } });
   } };
@@ -337,7 +351,7 @@ registrar('r1.ayudantes', (data, e, args, resp) => {
   const m = nuevaMision(e, pid, { id: 'R1', deuda: 15, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
   const ctx = nuevoCtx(e, pid, 'R1');
   const v = ctx.t(`${j.nombre} y ${n} sirviente(s)`, 1 + n);
-  if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; }
+  if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; anunciarReto(data, e, pid, 'R1', 'curso'); }
   ctx.fin(); e.turno.movio = true;
   // Con deuda, el turno queda abierto para que puedas pagarla antes de terminarlo (Jorge, 11 de noviembre); sin más viajes ni acción principal.
   if (j.misiones.some((x) => x.id === 'R1' && x.deuda > 0)) { e.turno.principal = true; e.turno.maxTramos = e.turno.tramos; } else e.turno.fin = true;
@@ -361,6 +375,7 @@ T.R2 = { ciudad: 'Bagdad', req: (data, e, pid) => {
   ctx.say(`Yafar te encarga matar a ${nombre(e, o)} (tienes 3 turnos).`);
 } };
 T.R3 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
+  ctx.sinAnuncio = true;   // si acepta, empieza (r3.acepta); si rechaza, no hay reto
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R3 · Órdenes del Califa', texto: 'Recibes un mapa y dos esclavas abisinias. Debes ir a Estambul y volver a Bagdad en 3 turnos o menos. Éxito: 5 × un dado en dinares.', opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r3.acepta', args: {} } });
 } };
 registrar('r3.acepta', (data, e, args, resp) => {
@@ -368,6 +383,7 @@ registrar('r3.acepta', (data, e, args, resp) => {
   if (resp.opcion !== 'si') { log(e, `${j.nombre} rechaza las órdenes del Califa.`, { pid }); return; }
   darItem(e, j, 'esclava'); darItem(e, j, 'esclava'); darItem(e, j, 'mapa', { tesoro: 'ruman' });
   nuevaMision(e, pid, { id: 'R3', visito: false, texto: 'Ve a Estambul y vuelve a Bagdad.' }, 3);
+  anunciarReto(data, e, pid, 'R3', 'curso');
 });
 T.R4 = { ciudad: 'Bagdad', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!(hecho(j, 'R5') || hecho(j, 'R6'))) return 'Debes haber completado R5 o R6.'; if (!j.mano.some(esLibro)) return 'Necesitas 1 a 3 libros o papiros.'; return null; },
   run(data, e, pid, ctx) {
@@ -386,13 +402,13 @@ T.R5 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   ctx.grupos.push({ etq: `${j.nombre}: alquimia`, valores: v });
   hacer(e, pid, 'R5');
   if (v[v.length - 1] === 6) { const pr = [50, 40, 30][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
-  else { darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
+  else { ctx.resultado = 'fallo'; darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
 } };
 T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R6');
   const v = ctx.t(`${j.nombre}: álgebra`, 3); const prom = Math.floor(suma(v) / 3); const [x] = ctx.t('Un dado más', 1);
   if (Math.abs(x - prom) === 1) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}: ganas 50 dinares y un libro.`); }
-  else { const [y] = ctx.t('Segunda tirada', 1); if (par(y)) { premio(data, e, pid, { dinares: 20 }); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y} (par): 20 dinares.`); } else { pagar(data, e, pid, 1); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y}: pagas 1 dinar y tomas un libro.`); } }
+  else { ctx.resultado = 'fallo'; const [y] = ctx.t('Segunda tirada', 1); if (par(y)) { premio(data, e, pid, { dinares: 20 }); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y} (par): 20 dinares.`); } else { pagar(data, e, pid, 1); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y}: pagas 1 dinar y tomas un libro.`); } }
 } };
 // ---------------------------------------------------------------- R17 (R7, entregar las alfombras al Califa, ya no existe: Jorge, 18 de noviembre)
 const AR = ALFOMBRAS.reto;
@@ -422,23 +438,24 @@ T.R8 = { ciudad: 'El Cairo', req: (data, e, pid) => (tieneArma(data, e, e.jugado
   const gana = peleaNPC(data, e, pid, { etq: 'Shams al Din', dados: 2, bono: 1 + bonoCim(data) + 1 });
   // Jorge (10 de noviembre): gana 50 dinares y 20 noches (antes 100 y 30); si pierde, pierde 15 noches y queda herido (ya no paga 20)
   if (gana) premio(data, e, pid, { dinares: 50, noches: 20 }, `${j.nombre} vence a Shams al Din:`);
-  else { j.noches -= 15; j.herido = true; log(e, `${j.nombre} pierde ante Shams al Din: pierde 15 noches y queda herido.`, { pid }); }
+  else { ctx.resultado = 'fallo'; j.noches -= 15; j.herido = true; log(e, `${j.nombre} pierde ante Shams al Din: pierde 15 noches y queda herido.`, { pid }); }
 } };
 T.R9 = { ciudad: 'El Cairo', req: (data, e, pid) => (e.jugadores[pid].dinares >= 5 ? null : 'Necesitas 5 dinares para el guía.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 5; j.extra.rep ||= {}; j.extra.rep.R9 = true; hacer(e, pid, 'R9');
   const [x] = ctx.t(`${j.nombre}: pirámides`, 1);
   if (x <= 2) {
-    ctx.say('Saqueadores te atacan.');
+    ctx.say('Saqueadores te atacan.'); ctx.sinAnuncio = true;   // se anuncia en r9.saqueo
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Saqueadores', texto: 'Pelea (2 dados cada uno) o paga 15 dinares.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'pagar', texto: 'Pagar 15 dinares' }], porDefecto: 'pagar', cont: { fn: 'r9.saqueo', args: {} } });
   } else {
-    premio(data, e, pid, { dinares: 25 }, `${j.nombre} encuentra un cofre en las pirámides:`);
+    ctx.resultado = 'logro'; premio(data, e, pid, { dinares: 25 }, `${j.nombre} encuentra un cofre en las pirámides:`);
     if (x === 6) pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Mapa de tesoro', texto: 'Hallas un mapa. ¿Qué tesoro?', opciones: [{ id: 'persia', texto: 'Persia (Isfahán)' }, { id: 'ruman', texto: 'Rumán (Estambul)' }, { id: 'mansa', texto: 'Mansa Musa (Magreb)' }], porDefecto: 'persia', cont: { fn: 'r9.mapa', args: {} } });
   }
 } };
 registrar('r9.saqueo', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
-  if (resp.opcion === 'pagar') { pagar(data, e, pid, 15); return; }
+  if (resp.opcion === 'pagar') { pagar(data, e, pid, 15); return cerrarReto(data, e, pid, 'R9', false); }
   if (!peleaNPC(data, e, pid, { etq: 'Saqueadores', dados: 2 })) { pagar(data, e, pid, 15); j.herido = true; log(e, `${j.nombre} pierde la pelea y paga 15 dinares.`, { pid }); }
+  cerrarReto(data, e, pid, 'R9', false);   // aun venciendo a los saqueadores, no hay cofre
 });
 registrar('r9.mapa', (data, e, args, resp) => { darItem(e, e.jugadores[resp.pid], 'mapa', { tesoro: resp.opcion }); log(e, `${nombre(e, resp.pid)} halla un mapa de tesoro.`, { pid: resp.pid }); });
 T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
@@ -455,24 +472,25 @@ T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
   // Regla de la casa (noviembre de 2026): las noches de Sindbad no se multiplican por ronda; al naufragar no hay dinares pero se ganan 30 noches por la historia vivida.
   if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100, noches: 50 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos: +100 dinares y +50 noches.'); }
-  else { premio(data, e, pid, { noches: 30 }, 'Naufragio, pero qué historia:'); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: sin dinares, pero +30 noches por la historia vivida; pierdes tu siguiente turno.'); }
+  else { ctx.resultado = 'fallo'; premio(data, e, pid, { noches: 30 }, 'Naufragio, pero qué historia:'); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: sin dinares, pero +30 noches por la historia vivida; pierdes tu siguiente turno.'); }
   sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R12 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R11') ? null : 'Debes haber completado R11.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R12');
   // Regla de la casa (noviembre de 2026): noches por la historia, sin multiplicar por ronda.
   if (peleaNPC(data, e, pid, { etq: 'Piratas', dados: 2, bono: 0 })) premio(data, e, pid, { dinares: 120, noches: 60 }, 'Vences a los piratas:');
-  else { pagar(data, e, pid, 60); j.herido = true; j.noches += 20; log(e, `${j.nombre} pierde ante los piratas y queda herido, pero gana 20 noches por la historia.`, { pid }); }
+  else { ctx.resultado = 'fallo'; pagar(data, e, pid, 60); j.herido = true; j.noches += 20; log(e, `${j.nombre} pierde ante los piratas y queda herido, pero gana 20 noches por la historia.`, { pid }); }
   sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R13 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R12') ? null : 'Debes haber completado R12.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R13');
   if (peleaNPC(data, e, pid, { etq: 'Gigante', dados: 2, bono: 1 })) premio(data, e, pid, { dinares: 150, noches: 80 }, 'Vences al gigante:');
-  else { pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'jambiya'].find((r) => tieneItem(j, r)); /* el arco no cuenta como arma */ if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
+  else { ctx.resultado = 'fallo'; pagar(data, e, pid, 80); const arma = ['cimitarra', 'alfanje', 'jambiya'].find((r) => tieneItem(j, r)); /* el arco no cuenta como arma */ if (arma) quitarPrimero(j, 'item', arma); j.noches += 20; log(e, `${j.nombre} pierde ante el gigante y su arma, pero gana 20 noches por la historia.`, { pid }); }
   sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
 T.R14 = { ciudad: 'India', req: (d, e, pid) => (hecho(e.jugadores[pid], 'R13') ? null : 'Debes haber completado R13.'), run(data, e, pid, ctx) {
   const otros = humanosVivos(e).filter((x) => x !== pid);
+  ctx.sinAnuncio = true;   // se anuncia en r14Fin
   if (!otros.length) { const x = dado(e); ctx.say(`Sin público: el dado ${x} decide.`); r14Fin(data, e, pid, par(x)); return; }
   pedir(e, { tipo: 'voto', para: otros, modo: 'una', titulo: `${nombre(e, pid)} cuenta el Cuarto Viaje de Sindbad`, texto: 'Escucha el relato en voz alta. ¿Te convence?', opciones: [{ id: 'si', texto: 'Me convence' }, { id: 'no', texto: 'No me convence' }], porDefecto: 'si', limiteMs: 120000, cont: { fn: 'r14.voto', args: { pid } } });
 } };
@@ -489,6 +507,7 @@ function r14Fin(data, e, pid, convence) {
   if (convence) { const [x] = ctx.t(`${j.nombre}: relato convincente`, 1); const din = Math.min(200, 50 + 25 * x); premio(data, e, pid, { dinares: din }, 'El relato convence:'); ctx.say(`Dado ${x}: ${din} dinares.`); }
   else { premio(data, e, pid, { dinares: 50 }, 'El relato no convence:'); ctx.say('El público no se convence.'); }
   sindbadFin(data, e, pid, ctx); ctx.fin(); chequeoSindbad(data, e, pid);
+  cerrarReto(data, e, pid, 'R14', convence);   // si no convence, los 50 dinares son de consuelo
 }
 function chequeoSindbad(data, e, pid) {
   const j = e.jugadores[pid];
@@ -510,7 +529,7 @@ export function revisarKanmakan(data, e, pid) {
 T.R15 = { ciudad: 'Samarcanda', req: (data, e, pid) => (e.asesinos.actuaron ? 'Los Asesinos ya actuaron.' : e.jugadores[pid].noches < 500 ? 'Los Asesinos solo tratan con quien tiene al menos 500 noches.' : null), run(data, e, pid) { HOOK.contratarAsesinos(data, e, pid, { reto: true }); } };
 T.R16 = { ciudad: 'Isfahán', req: (data, e, pid) => { const j = e.jugadores[pid]; if (j.retosHechos.length < 2) return 'Necesitas haber completado al menos 2 retos.'; if (j.dinares < 60) return 'Necesitas 60 dinares en regalos.'; return null; },
   run(data, e, pid, ctx) {
-    const j = e.jugadores[pid]; j.dinares -= 60; log(e, `${j.nombre} lleva 60 dinares en regalos a Sherezada.`, { pid });
+    const j = e.jugadores[pid]; j.dinares -= 60; log(e, `${j.nombre} lleva 60 dinares en regalos a Sherezada.`, { pid }); ctx.sinAnuncio = true;   // se anuncia al fallar una prueba o en r16Tira
     r16Pregunta(data, e, pid, 0);
   } };
 function r16Pregunta(data, e, pid, n) {
@@ -527,7 +546,7 @@ function r16Pregunta(data, e, pid, n) {
 }
 registrar('r16.q', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], t = data.trivias.trivias.find((x) => x.id === args.tid);
-  if (Number(resp.opcion) !== t.correcta) { log(e, `${j.nombre} falla la prueba de Sherezada: pierde los 60 dinares y su acción.`, { pid }); return; }
+  if (Number(resp.opcion) !== t.correcta) { log(e, `${j.nombre} falla la prueba de Sherezada: pierde los 60 dinares y su acción.`, { pid }); return cerrarReto(data, e, pid, 'R16', false); }
   log(e, `${j.nombre} acierta una prueba de Sherezada (${args.n + 1}/3).`, { pid });
   if (args.n + 1 >= 3) r16Tira(data, e, pid); else r16Pregunta(data, e, pid, args.n + 1);
 });
@@ -543,6 +562,7 @@ function r16Tira(data, e, pid) {
   else if (s <= 6) { if (j.dinares >= 30) { j.dinares -= 30; ctx.say('Sobornas a los criados con 30 dinares.'); } else muere = muerte(); }
   if (!muere) { premio(data, e, pid, { noches: 300 }, `${j.nombre} pasa la noche con Sherezada:`); ctx.say('Sales airoso: +300 noches.'); }
   ctx.fin();
+  cerrarReto(data, e, pid, 'R16', !muere);
   if (muere) eliminar(data, e, pid, { causa: 'muerte súbita de Shariyar' });
 }
 // ---------------------------------------------------------------- entrenamientos (regla de la casa, noviembre de 2026)
@@ -604,7 +624,7 @@ T.R23 = { ciudad: 'Magreb', req: (d, e, pid) => (!tieneObj(e.jugadores[pid], 'OB
   const [x] = ctx.t(`${j.nombre}: caravana de la sal`, 1);
   if (x <= 2 && tieneItem(j, 'bendicionAbuMadyan')) { quitarPrimero(j, 'item', 'bendicionAbuMadyan'); ctx.say('Asoman bandoleros, pero la bendición de Abu Madyan protege la caravana: pasan de largo (la bendición se gasta).'); nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); }
   else if (x <= 2) {
-    ctx.say('Bandoleros asaltan la caravana.');
+    ctx.say('Bandoleros asaltan la caravana.'); ctx.sinAnuncio = true;   // se anuncia en r23.banditos
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R23 · Bandoleros', texto: 'Pelea (ellos tiran 2 dados con 1 de ventaja): si ganas no pierdes nada; si pierdes, se llevan los 3 sacos pero ganas 15 noches. O entrégales un saco sin pelear.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'saco', texto: 'Perder un saco' }], porDefecto: 'saco', cont: { fn: 'r23.banditos', args: { carga } } });
   } else nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
 } };
@@ -615,7 +635,8 @@ registrar('r23.banditos', (data, e, args, resp) => {
     for (const c of carga) quitarCarta(j, c.uid); carga = [];
     premio(data, e, pid, { noches: 15 }, `${j.nombre} pierde ante los bandoleros: se llevan toda la sal, pero gana 15 noches por la historia.`);
   }
-  if (carga.length) nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2);
+  if (carga.length) { nuevaMision(e, pid, { id: 'R23', destino: 'El Cairo', carga, texto: 'Lleva la sal a El Cairo.' }, 2); anunciarReto(data, e, pid, 'R23', 'curso'); }
+  else cerrarReto(data, e, pid, 'R23', false);   // las 15 noches son de consuelo
 });
 // Jorge (19 de noviembre): si ya traes una cesta de manzanas (la del mercado), R24 usa esa y solo cobra 5; si no, cobra 10 y te da la suya.
 // La cesta se gasta al entregarla en Bagdad (o al perder el reto).
@@ -636,7 +657,7 @@ T.R26 = { ciudad: 'Andalucía', req: (data, e, pid) => (e.jugadores[pid].pj === 
   if (r.salvo || j.pj === '3' || bendito) { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); if (!bendito) ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
   else {
     ctx.say('El esposo los sorprende.'); ctx.fin(); ctx.grupos = []; ctx.res = [];
-    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { j.noches -= 30; j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
+    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { ctx.resultado = 'fallo'; j.noches -= 30; j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
     else premio(data, e, pid, { dinares: 25, noches: 20 }, `${j.nombre} vence al esposo de Zein:`);
   }
 } };
@@ -649,7 +670,7 @@ export function zeinTirada(data, e, ctx, pid, etq = 'Esposo de Zein') {
 }
 T.R27 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 15 ? null : 'Cuesta 15 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 15; hacer(e, pid, 'R27'); const [x] = ctx.t(`${j.nombre}: pócimas`, 1);
-  if (x === 1 && tieneObj(j, 'OB20')) { consumirObj(data, e, pid, 'OB20'); ctx.say('La mezcla explota, pero tu Antídoto te salva: ni quedas herido ni pierdes noches (el antídoto se gasta).'); }   // Jorge (18 de noviembre)
+  if (x === 1 && tieneObj(j, 'OB20')) { consumirObj(data, e, pid, 'OB20'); ctx.resultado = 'fallo'; ctx.say('La mezcla explota, pero tu Antídoto te salva: ni quedas herido ni pierdes noches (el antídoto se gasta).'); }   // Jorge (18 de noviembre)
   else if (x === 1) { j.noches -= 10; j.herido = true; ctx.say('La mezcla explota: -10 noches y herido.'); }
   else { darItem(e, j, 'veneno', { turnos: j.turnos }); j.noches += 10; ctx.say('Preparas un veneno y ganas 10 noches.'); }
 } };
@@ -802,6 +823,7 @@ T.R51 = { ciudad: 'Andalucía', req: (d, e, pid) => (soloJambiya(e.jugadores[pid
       pedir(e, { tipo: 'reto', para: [pid], titulo: 'R51 · Torneo de Murcia', texto: `Entrada: ${TORNEO.costo} dinares. Puedes tirar tu dado (1 o 6 ganas) o sobornar a los jueces con ${TORNEO.soborno} dinares más y ganar sin tirar.`,
         opciones: [{ id: 'tirar', texto: `Tirar el dado (${TORNEO.costo} dinares)` }, { id: 'sobornar', texto: `Sobornar a los jueces (${total} dinares en total)${falta > 0 ? ` — te faltan ${falta} dinares` : ''}`, desactivada: falta > 0 }],
         porDefecto: 'tirar', limiteMs: 60000, cont: { fn: 'reto.murcia', args: {} } });
+      ctx.sinAnuncio = true;   // se anuncia en reto.murcia
       return;
     }
     torneoTirar(data, e, pid, ctx);
@@ -819,19 +841,21 @@ function torneoSoborno(e, pid) {
 function torneoTirar(data, e, pid, ctx) {
   const j = e.jugadores[pid]; torneoEntrar(e, j);
   const [x] = ctx.t(`${j.nombre}: Torneo de Murcia (1 o 6 gana)`, 1);
+  ctx.resultado = TORNEO.gana.includes(x) ? 'logro' : 'fallo';   // con 2 a 5, las 20 noches son de consuelo
   if (TORNEO.gana.includes(x)) { ctx.say('¡Ganas el torneo! Destreza máxima en arco: tus flechas siempre aciertan y el rival pelea con −1.'); torneoGana(e, pid, ''); }
   else { j.noches += TORNEO.noches; ctx.say(`No ganas esta vez, pero te llevas ${TORNEO.noches} noches por la historia. Podrás volver a participar dentro de ${TORNEO.cadaTurnos} turnos.`); log(e, `${j.nombre} pierde el Torneo de Murcia y gana ${TORNEO.noches} noches.`, { pid }); }
 }
 registrar('reto.murcia', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
-  if (resp.opcion === 'sobornar' && j.dinares >= TORNEO.costo + TORNEO.soborno) return torneoSoborno(e, pid);
+  if (resp.opcion === 'sobornar' && j.dinares >= TORNEO.costo + TORNEO.soborno) { torneoSoborno(e, pid); return cerrarReto(data, e, pid, 'R51', true); }
   const ctx = nuevoCtx(e, pid, 'R51'); torneoTirar(data, e, pid, ctx); ctx.fin();
+  cerrarReto(data, e, pid, 'R51', ctx.resultado === 'logro');
 });
 T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NPC no trabaja para el Nizam.' : null),
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; hacer(e, pid, 'R45');
     const [x] = ctx.t(`${j.nombre}: trabajo para el Nizam (10 dinares + 5 por punto)`, 1);
-    const pago = 10 + 5 * x; j.dinares += pago; j.noches += 10;   // Jorge (10 de noviembre): además 10 noches
+    const pago = 10 + 5 * x; j.dinares += pago; j.noches += 10; ctx.resultado = 'logro';   // perder el turno es parte del trabajo, no un fracaso   // Jorge (10 de noviembre): además 10 noches
     j.pierdeTurno = (j.pierdeTurno || 0) + 1; j.extra.nizam = true;
     ctx.say(`El Nizam te paga ${pago} dinares y ganas 10 noches. Pierdes tu siguiente turno y, en el que sigue, tu acción principal.`);
     log(e, `${j.nombre} trabaja para el Nizam de Hyderabad y cobra ${pago} dinares y 10 noches: pierde su siguiente turno y, en el que sigue, su acción principal.`, { pid });
@@ -943,15 +967,17 @@ T.R54 = { ciudad: 'Estambul', req: (d, e, pid) => { const j = e.jugadores[pid];
     if (sin.length > 1) {   // primero se elige el arma; los dados, después
       pedir(e, { tipo: 'reto', para: [pid], titulo: 'Combatir a los húngaros', texto: 'Llevas varias armas sin entrenar. Si sacas par en el primer dado, ¿con cuál quedas entrenado?',
         opciones: sin.map((r) => ({ id: r, texto: ITEMS[r]?.nombre || r })), porDefecto: sin[0], cont: { fn: 'r54.arma', args: {} } });
+      ctx.sinAnuncio = true;   // se anuncia en r54.arma
       return;
     }
     combateR54(e, pid, ctx, sin[0] || null);
   } };
-registrar('r54.arma', (data, e, args, resp) => { const ctx = nuevoCtx(e, resp.pid, 'R54'); combateR54(e, resp.pid, ctx, resp.opcion || null); ctx.fin(); });
+registrar('r54.arma', (data, e, args, resp) => { const ctx = nuevoCtx(e, resp.pid, 'R54'); combateR54(e, resp.pid, ctx, resp.opcion || null); ctx.fin(); cerrarReto(data, e, resp.pid, 'R54', ctx.resultado === 'logro'); });
 function combateR54(e, pid, ctx, arma) {
   const j = e.jugadores[pid];
   const [x] = ctx.t(`${j.nombre}: el combate (impar, herido y 25 noches y 5 dinares; par, entrenado${arma ? ' con ' + arma : ''} y 10 noches)`, 1);
   const [y] = ctx.t(`${j.nombre}: la batalla (1 a 3, libre el siguiente turno; 4 a 6, sigue en batalla)`, 1);
+  ctx.resultado = x % 2 ? 'fallo' : 'logro';   // impar: herido (las noches y dinares son por el servicio); par: entrenado
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
     if (arma) (j.extra.entrenado ||= {})[arma] = true;

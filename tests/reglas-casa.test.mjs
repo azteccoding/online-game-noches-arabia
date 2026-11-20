@@ -4439,3 +4439,40 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(a, { t: 'reto', id: 'R52' }).ok);
   assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'gris' && /empezó el reto R52/.test(x.texto)), 'en curso: alerta gris');
 }
+// Jorge (19 de noviembre): reto con premio de consuelo → «no logró» en gris; dado de ingreso ajeno: solo anuncio gris si lo acierta
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const ultimo = () => (vistaDe(e, b).anuncios || []).at(-1);
+  // R5 fallido: 10 dinares y brújula, pero no lo logró
+  turnoDe(e, a, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; forzar(e, 1, 1, 1);
+  assert.ok(g.act(a, { t: 'reto', id: 'R5' }).ok);
+  assert.ok(ultimo().tono === 'gris' && /no logró el reto R5/.test(ultimo().texto), 'R5 con consuelo: gris');
+  // R13 perdido: +20 noches de consuelo
+  turnoDe(e, a, 'India'); A.ciudad = 'India'; A.retosHechos.push('R11', 'R12'); A.dinares = 200; e.turno.fase = 'acciones'; forzar(e, 1, 1, 6, 6);
+  assert.ok(g.act(a, { t: 'reto', id: 'R13' }).ok);
+  assert.ok(/no logró el reto R13/.test(ultimo().texto) && ultimo().tono === 'gris', 'R13 perdido: gris');
+  // R23: pierde ante los bandoleros (15 noches de consuelo) → gris al resolver
+  turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; A.dinares = 50; A.mano.push({ uid: 'odre', tipo: 'objeto', ref: 'OB18' }); e.turno.fase = 'acciones'; forzar(e, 1, 1, 1, 6, 6);
+  const n0 = (vistaDe(e, b).anuncios || []).length;
+  assert.ok(g.act(a, { t: 'reto', id: 'R23' }).ok);
+  assert.equal((vistaDe(e, b).anuncios || []).length, n0, 'mientras decide ante los bandoleros, no hay anuncio');
+  e.dados = null; e.colaDados = [];
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && /Bandoleros/.test(x.titulo || ''));
+  assert.ok(p, 'decisión ante los bandoleros');
+  e.pend = p; e.colaPend = []; A.noches = 100;
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'pelear' }).ok);
+  assert.ok(!A.misiones.some((m) => m.id === 'R23'), 'con estos dados pierde ante los bandoleros');
+  assert.ok(/no logró el reto R23/.test(ultimo().texto) && ultimo().tono === 'gris' && A.noches >= 115, 'R23 perdido con 15 noches de consuelo: gris');
+  // dado de ingreso ajeno
+  e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  const m0 = (vistaDe(e, b).anuncios || []).length;
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'ingreso'; forzar(e, 3); assert.ok(g.act(a, { t: 'tirarDados' }).ok);
+  assert.equal((vistaDe(e, b).anuncios || []).length, m0, 'sin acierto: nada para los demás');
+  assert.ok(e.log.some((l) => /tira el dado de ingreso: 3/.test(l.texto)), 'queda en el registro');
+  e.dados = null; e.colaDados = []; e.ronda = 77;
+  turnoDe(e, a, 'Bagdad'); e.turno.fase = 'ingreso'; forzar(e, 6); assert.ok(g.act(a, { t: 'tirarDados' }).ok);
+  const x = ultimo();
+  assert.ok(x.tono === 'gris' && /acertó su dado de ingreso \(6\): recibe un Mensaje/.test(x.texto), 'acierto: anuncio gris');
+  assert.ok(!(vistaDe(e, a).anuncios || []).some((y) => /acertó su dado/.test(y.texto)), 'quien tira no recibe el anuncio');
+}
