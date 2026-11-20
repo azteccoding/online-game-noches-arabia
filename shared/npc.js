@@ -191,7 +191,7 @@ export function accionPrincipal(data, e, pid) {   // exportada para las pruebas
         const orden = x <= 3 ? ['robo', 'duelo'] : ['duelo', 'robo'];
         for (const obj of objetivos) for (const tipo of orden) {
           if (validarAtaque(data, e, pid, { tipo, objetivo: obj }, { npc: true }).ok) {
-            const r = atacar(data, e, pid, { tipo, objetivo: obj, noRechazable: true }, { npc: true, cont });
+            const r = atacar(data, e, pid, { tipo, objetivo: obj }, { npc: true, cont });   // Jorge (19 de noviembre): su duelo también se rechaza pagando 20 dinares, como cualquier duelo
             if (r.ok) { aviso?.resumen?.push(`${j.nombre} va contra ${e.jugadores[obj].nombre}: ${tipo === 'robo' ? 'lo asalta para robarle' : 'lo reta a duelo'}.`); return; }
           }
         }

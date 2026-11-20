@@ -4476,3 +4476,21 @@ console.log('reglas de la casa OK');
   assert.ok(x.tono === 'gris' && /acertó su dado de ingreso \(6\): recibe un Mensaje/.test(x.texto), 'acierto: anuncio gris');
   assert.ok(!(vistaDe(e, a).anuncios || []).some((y) => /acertó su dado/.test(y.texto)), 'quien tira no recibe el anuncio');
 }
+// Jorge (19 de noviembre): «no me deja pagar a Yafar para no entrar en duelo»: el duelo de Yafar NPC también se rechaza pagando 20 dinares
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, Y = e.jugadores.npc, [a] = g.ids, A = e.jugadores[a];
+  for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco';
+  Y.ciudad = 'Damasco'; e.ronda = 5; turnoDe(e, 'npc', 'Damasco'); e.turno.fase = 'acciones';
+  const { atacar } = await import('../shared/pelea.js');
+  for (const id of g.ids) e.jugadores[id].dinares = 0;
+  A.dinares = 60; const y0 = Y.dinares;
+  assert.ok(atacar(data, e, 'npc', { tipo: 'duelo', objetivo: a }, { npc: true, cont: { fn: 'npc.cierre', args: { pid: 'npc' } } }).ok);
+  e.dados = null; e.colaDados = [];
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.tipo === 'defensa' && x.para.includes(a));
+  assert.ok(p, 'decisión de defensa');
+  assert.ok(p.opciones.some((o) => o.id === 'rechazar' && /pagando 20 dinares/.test(o.texto)), 'sale «Rechazar el duelo pagando 20 dinares»');
+  e.pend = p; e.colaPend = [];
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'rechazar' }).ok);
+  assert.ok(e.log.some((l) => /rechaza el duelo y paga 20 dinares a Yafar/.test(l.texto)), 'paga 20 dinares a Yafar'); assert.ok(!e.pelea, 'sin duelo');
+}

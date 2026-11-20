@@ -373,7 +373,7 @@ function elegirDefensa(data, e, resp) {
   if (o === 'rechazar') {
     if (P.pedirNur) { const p = pagarNur(data, e, P.def, P.atk, P.pedirNur); log(e, `${d.nombre} rechaza el duelo y paga ${p}.`, { pid: P.def }); }
     else { const r = Math.max(0, Math.min(data.config.duelo.rechazo, d.dinares)); d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def }); }
-    devolverPrincipal(e, P.atk, `${d.nombre} rechazó el duelo`);
+    if (!j.npc) devolverPrincipal(e, P.atk, `${d.nombre} rechazó el duelo`);   // Yafar NPC no repite su acción
     return terminarPelea(data, e, { cancelada: true });
   }
   if (o === 'polvo') d.extra.usaPolvo = false;
