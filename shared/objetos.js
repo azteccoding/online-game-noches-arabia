@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir,
+motivoNoSalir, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
@@ -719,7 +719,7 @@ export function disponibles(data, e, pid) {
       else if (c.ref === 'caballoMongol') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Caballo mongol' + vida, bloqueado: `El caballo mongol solo viaja entre ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.` });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
-    if (c.tipo === 'ifrit') r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: data.objetos.ifrit.cartas.find((q) => q.id === c.ref).deseos });
+    if (c.tipo === 'ifrit') { const card = data.objetos.ifrit.cartas.find((q) => q.id === c.ref); r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: deseosIfrit(j, card), ifritVelo: alfombraPorVelo(j, card) ? DESEO_VELO : null }); }
   }
   return r;
 }

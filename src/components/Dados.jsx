@@ -10,6 +10,7 @@ const COLORES = {
   rojo: { g: ['#e2383f', '#b3202a', '#7c1018'], borde: '#4a0a10', brillo: '#f08a8f', pip: ['#fff', '#e8dfd0'] },
   amarillo: { g: ['#ffe27a', '#e9b62a', '#b07d0c'], borde: '#6b4a05', brillo: '#fff3c2', pip: ['#4a2e05', '#2a1802'] },
   azul: { g: ['#4f8fe0', '#2459b3', '#123571'], borde: '#0b1f45', brillo: '#9cc3f5', pip: ['#fff', '#dfe8f5'] },
+  verde: { g: ['#5cc77a', '#2e8f4c', '#165a2c'], borde: '#0c3a1b', brillo: '#a8e8b8', pip: ['#fff', '#e0f2e4'] },   // Dado de Maulana
 };
 export const Cara = ({ v, color = 'rojo' }) => {
   const c = COLORES[color] || COLORES.rojo, id = 'dado-' + color;
@@ -28,6 +29,7 @@ export const Cara = ({ v, color = 'rojo' }) => {
 // A quién pertenece cada grupo de dados (por la etiqueta): un jugador (rojo), Yafar (amarillo) u otro NPC (azul).
 export function colorGrupo(s, d, g) {
   const etq = g.etq || '';
+  if (/Maulana/.test(etq)) return 'verde';   // Dado de Maulana (Jorge, 19 de noviembre)
   const j = Object.values(s.jugadores).find((x) => x.nombre && etq.startsWith(x.nombre));
   if (j) return j.pj === 'B' ? 'amarillo' : 'rojo';
   if (/Yafar/i.test(etq) || (!etq && (d.motivo === 'npc:Yafar'))) return 'amarillo';
@@ -112,7 +114,7 @@ export default function Dados({ s }) {
           {grupos.slice(0, fila + 1).map((g, gi) => (
             <div key={gi} className={`dados-fila${gi < fila ? ' fija' : ''}`}>
               {g.etq && <span className="dados-fila-etq">{g.etq}</span>}
-              <div className="dados-fila-cubos">{g.valores.slice(0, 6).map((v, i) => <Cubo key={d.id + '-' + gi + '-' + i} valor={v} rodando={gi === fila} idx={i} color={colorGrupo(s, d, g)} />)}</div>
+              <div className="dados-fila-cubos">{g.valores.slice(0, 6).map((v, i) => <Cubo key={d.id + '-' + gi + '-' + i} valor={v} rodando={gi === fila && !g.fijo} idx={i} color={colorGrupo(s, d, g)} />)}</div>
             </div>
           ))}
         </div>

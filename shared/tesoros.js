@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
-viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, darDestreza } from './base.js';
+viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, darDestreza, opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra } from './base.js';
 import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -281,7 +281,7 @@ function salirJuntos(data, e, a, b) {
     if (!id) { x.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${x.nombre}.`, { pid: x.id }); juntoListo(data, e); continue; }
     const card = data.objetos.ifrit.cartas.find((q) => q.id === id);
     pedir(e, { tipo: 'ifrit', para: [x.id], titulo: 'Genio de la lámpara', texto: 'Elige un deseo (se usa ya) o conserva la carta para usarla más tarde o venderla (40 dinares).',
-      opciones: [...card.deseos.map((d) => ({ id: d, texto: d + '. ' + data.objetos.ifrit.deseos[d] })), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseoJ', args: { carta: id } } });
+      opciones: [...opcionesIfrit(data, x, card), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseoJ', args: { carta: id } } });
   }
   return ok();
 }
@@ -297,12 +297,23 @@ registrar('tes.eligeDeseoJ', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
   if (resp.opcion === 'guardar') { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: args.carta }); log(e, `${j.nombre} conserva una carta de Ifrit.`, { pid }); return juntoListo(data, e); }
   e.mazos.descarte.ifrit.push(args.carta);
+  gastarVeloSiAlfombra(e, j, data.objetos.ifrit.cartas.find((q) => q.id === args.carta), resp.opcion);
   deseo(data, e, pid, resp.opcion, { alTerminar: 'juntos' });
 });
+// Dado de Maulana (Jorge, 19 de noviembre): si a quien buscan los ghul tiene una carta de sheij (un Mensaje sin cumplir), se suma un dado
+// más, como si fuera otro jugador, que siempre saca 6. Es verde, nadie lo lanza y entra en el promedio. Uno solo aunque tenga varias
+// cartas; la carta no se gasta. Si salen dos juntos, basta con que uno de los dos tenga carta de sheij.
+export const tieneSheij = (j) => (j?.mensajes || []).length > 0 || (j?.mano || []).some((c) => c.tipo === 'item' && ITEMS[c.ref]?.msg);   // Mensajes sin cumplir y cartas de permiso de los sheijs
+function tiradaGhul(e, buscados) {
+  const act = activos(e), v = act.map(() => dado(e)), maulana = buscados.some(tieneSheij);
+  const todos = maulana ? [...v, 6] : v, prom = Math.round(suma(todos) / todos.length);
+  const grupoMaulana = maulana ? [{ etq: 'Dado de Maulana', valores: [6], fijo: true }] : [];
+  return { act, v, todos, prom, maulana, grupoMaulana, texto: (nom) => `Dados: ${v.join(', ')}${maulana ? ' y el Dado de Maulana: 6' : ''}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${nom}` : `los ghul encuentran a ${nom}`}.` };
+}
 function ghulJuntos(data, e, ambos) {
-  const act = activos(e), v = act.map(() => dado(e)), prom = Math.round(suma(v) / act.length), nom = ambos.map((x) => x.nombre).join(' y ');
-  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }],
-    resumen: i < act.length - 1 ? [] : [`Dados: ${v.join(', ')}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${nom}` : `los ghul encuentran a ${nom}`}.`] }));
+  const nom = ambos.map((x) => x.nombre).join(' y '), { act, v, prom, grupoMaulana, texto } = tiradaGhul(e, ambos);
+  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }, ...(i === act.length - 1 ? grupoMaulana : [])],
+    resumen: i < act.length - 1 ? [] : [texto(nom)] }));
   for (const j of ambos) {
     if (prom < 3) { log(e, `Los ghul encuentran a ${j.nombre} en el Jorasán.`, { pid: j.id }); eliminar(data, e, j.id, { causa: 'devorado por los ghul' }); continue; }
     const dest = j.extra.destinoA || 'Bagdad';
@@ -340,21 +351,23 @@ function salirJorasan(data, e, pid) {
   if (!id) { j.dinares += 60; log(e, 'No quedan cartas de Ifrit: el genio entrega 60 dinares.'); return ghul(data, e, pid); }
   const card = data.objetos.ifrit.cartas.find((x) => x.id === id);
   pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Genio de la lámpara', texto: 'Elige un deseo (se usa ya) o conserva la carta para usarla más tarde o venderla (40 dinares).',
-    opciones: [...card.deseos.map((d) => ({ id: d, texto: d + '. ' + data.objetos.ifrit.deseos[d] })), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseo', args: { carta: id } } });
+    opciones: [...opcionesIfrit(data, j, card), { id: 'guardar', texto: 'Conservar la carta para después' }], porDefecto: 'guardar', limiteMs: 120000, cont: { fn: 'tes.eligeDeseo', args: { carta: id } } });
   return ok();
 }
 registrar('tes.eligeDeseo', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
   if (resp.opcion === 'guardar') { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: args.carta }); log(e, `${j.nombre} conserva una carta de Ifrit.`, { pid }); return ghul(data, e, pid); }
   e.mazos.descarte.ifrit.push(args.carta);
+  gastarVeloSiAlfombra(e, j, data.objetos.ifrit.cartas.find((q) => q.id === args.carta), resp.opcion);
   deseo(data, e, pid, resp.opcion, { alTerminar: 'ghul' });
 });
 HOOK.usarIfrit = (data, e, pid, c, a) => {
   const j = e.jugadores[pid], card = data.objetos.ifrit.cartas.find((x) => x.id === c.ref);
-  if (!card.deseos.includes(a.deseo)) return err('Elige uno de los deseos de la carta.');
-  quitarCarta(j, c.uid); e.mazos.descarte.ifrit.push(c.ref);
+  if (!deseosIfrit(j, card).includes(a.deseo)) return err('Elige uno de los deseos de la carta.');
   const r = deseoValido(data, e, pid, a.deseo);
-  if (r) { j.mano.push(c); e.mazos.descarte.ifrit.pop(); return err(r); }
+  if (r) return err(r);
+  gastarVeloSiAlfombra(e, j, card, a.deseo);
+  quitarCarta(j, c.uid); e.mazos.descarte.ifrit.push(c.ref);
   deseo(data, e, pid, a.deseo, {});
   return ok();
 };
@@ -371,7 +384,7 @@ export function quizaLampara(data, e, pid) {
   const card = data.objetos.ifrit.cartas.find((x) => x.id === id);
   e.lampara = { pid, ciudad: j.ciudad, ronda: e.ronda, carta: id };
   log(e, `¡${j.nombre} encuentra una lámpara mágica en el camino a ${j.ciudad}! El genio le concederá un deseo.`, { pid, aviso: true });
-  const op = card.deseos.map((d) => ({ id: d, texto: d + '. ' + data.objetos.ifrit.deseos[d], desactivada: !!deseoValido(data, e, pid, d) }));
+  const op = opcionesIfrit(data, j, card).map((o) => ({ ...o, desactivada: !!deseoValido(data, e, pid, o.id) }));
   pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'La lámpara mágica', texto: `Frotas la lámpara que encontraste camino de ${j.ciudad} y sale un genio: te concede un deseo. Elige uno (toda la mesa sabrá cuál pediste).`,
     opciones: op, porDefecto: (op.find((o) => !o.desactivada) || op[0]).id, limiteMs: 120000, cont: { fn: 'tes.lampara', args: { carta: id } } });
 }
@@ -379,6 +392,7 @@ registrar('tes.lampara', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid];
   e.mazos.descarte.ifrit.push(args.carta);
   if (deseoValido(data, e, pid, resp.opcion)) return;
+  gastarVeloSiAlfombra(e, j, data.objetos.ifrit.cartas.find((q) => q.id === args.carta), resp.opcion);
   log(e, `${j.nombre} pide al genio de la lámpara: ${data.objetos.ifrit.deseos[resp.opcion]}`, { pid, aviso: true });
   deseo(data, e, pid, resp.opcion, {});
 });
@@ -391,11 +405,9 @@ function deseoValido(data, e, pid, d) {
 
 function ghul(data, e, pid) {
   const j = e.jugadores[pid];
-  const act = activos(e);
-  const v = act.map(() => dado(e));
-  const prom = Math.round(suma(v) / act.length);
-  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${j.nombre}`, valores: [v[i]] }],   // cada jugador lanza el suyo
-    resumen: i < act.length - 1 ? [] : [`Dados: ${v.join(', ')}. Promedio ${prom}: ${prom >= 3 ? `los ghul no encuentran a ${j.nombre}` : `los ghul encuentran a ${j.nombre}`}.`] }));
+  const { act, v, prom, grupoMaulana, texto } = tiradaGhul(e, [j]);
+  act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${j.nombre}`, valores: [v[i]] }, ...(i === act.length - 1 ? grupoMaulana : [])],   // cada jugador lanza el suyo
+    resumen: i < act.length - 1 ? [] : [texto(j.nombre)] }));
   if (prom < 3) { log(e, `Los ghul encuentran a ${j.nombre} en el Jorasán.`, { pid }); eliminar(data, e, pid, { causa: 'devorado por los ghul' }); return ok(); }
   const dest = j.extra.destinoA || 'Bagdad';
   j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;

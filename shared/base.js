@@ -40,11 +40,12 @@ export const npcId = (e) => e.orden.find((id) => e.jugadores[id].npc) || null;
 export function log(e, texto, extra = {}) { e.logN = (e.logN || 0) + 1; e.log.push({ t: e.ahora, texto, n: e.logN, ...extra }); if (e.log.length > 300) e.log.shift(); }
 
 // ---------------------------------------------------------------- cartas (datos para dibujarlas en el cliente)
+export const MAULANA = 'Mientras la tengas, el Dado de Maulana te protege de los ghul del Jorasán.';   // Jorge (19 de noviembre)
 export function cartaDatos(data, tipo, id) {
   if (tipo === 'evento') { const c = data.eventos.eventos.find((x) => x.id === id); return { id, deck: 'evento', titulo: c.nombre, texto: c.efecto, detalle: c.detalle, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'historico') { const c = data.eventos.historicos.find((x) => x.id === id); return { id, deck: 'historico', titulo: c.nombre, texto: c.efecto, costo: c.costo, ciudades: c.ciudades, arte: c.arte, ref: c.refReglamento }; }
-  if (tipo === 'mensaje') { const c = data.mensajes.mensajes.find((x) => x.id === id); if (c.permiso) return { id, deck: 'mensaje', titulo: c.titulo, sub: c.honorifico, texto: `${c.texto} ${c.efecto}`, efecto: c.efecto, permiso: c.permiso, premio: null, plazo: null, arte: c.arte, ref: c.refReglamento };   // cartas de permiso (Jorge, 10 de noviembre)
-    return { id, deck: 'mensaje', titulo: c.de, sub: c.honorifico, texto: c.encargo, premio: c.premio, plazo: c.plazoTurnos, arte: c.arte, ref: c.refReglamento }; }
+  if (tipo === 'mensaje') { const c = data.mensajes.mensajes.find((x) => x.id === id); if (c.permiso) return { id, deck: 'mensaje', titulo: c.titulo, sub: c.honorifico, texto: `${c.texto} ${c.efecto} ${MAULANA}`, efecto: c.efecto, permiso: c.permiso, premio: null, plazo: null, arte: c.arte, ref: c.refReglamento };   // cartas de permiso (Jorge, 10 de noviembre)
+    return { id, deck: 'mensaje', titulo: c.de, sub: c.honorifico, texto: `${c.encargo} ${MAULANA}`, premio: c.premio, plazo: c.plazoTurnos, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'objeto') { const c = objDe(data, id); return { id, deck: 'objeto', titulo: c.nombre, sub: c.tipo + ' · ' + c.momento, texto: c.efecto, valor: c.valor, duracion: c.duracion, humor: c.humor, arte: c.arte, ref: '15.2' }; }
   if (tipo === 'trivia') { const c = data.trivias.trivias.find((x) => x.id === id); return { id, deck: 'trivia', titulo: 'Cuento de ' + c.ciudad, sub: c.categoria, texto: c.pregunta, opciones: c.opciones, premio: c.premio, gancho: c.gancho, ciudad: c.ciudad, arte: null, ref: '19.3' }; }
   if (tipo === 'mesa') { const c = data.trivias.deMesa.find((x) => x.id === id); return { id, deck: 'mesa', titulo: 'Cuento de ' + c.ciudad, sub: c.votacion ? 'De mesa · votación' : 'De mesa', texto: c.pregunta, premio: c.premio, gancho: c.comoSeComprueba, ciudad: c.ciudad, arte: null, ref: '19.4' }; }
@@ -251,6 +252,22 @@ export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello'
 export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
 // Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
 export const LIMITE_NPC = 10;
+// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae garantizada la alfombra mágica (deseo H), aunque la carta no la
+// traiga; si la eliges por el velo, el velo se gasta solo. Si la carta ya trae la H, el velo no se gasta. El velo sigue sirviendo, además,
+// para volver a tirar ante el genio malo o el que te ignora en el Jorasán (si se gastó ahí, ya no da la alfombra).
+export const DESEO_VELO = 'H';
+export const alfombraPorVelo = (j, card) => !!j && !!card && tieneItem(j, 'velo') && !card.deseos.includes(DESEO_VELO);
+export const deseosIfrit = (j, card) => (alfombraPorVelo(j, card) ? [...card.deseos, DESEO_VELO] : card.deseos.slice());
+export const TEXTO_DESEO_VELO = 'Por tu velo quemado: alfombra mágica (el velo se gasta)';
+export function opcionesIfrit(data, j, card) {
+  return deseosIfrit(j, card).map((d) => ({ id: d, texto: alfombraPorVelo(j, card) && d === DESEO_VELO ? `${d}. ${TEXTO_DESEO_VELO}` : d + '. ' + data.objetos.ifrit.deseos[d] }));
+}
+// Al pedir el deseo: si la H vino por el velo, el velo se gasta.
+export function gastarVeloSiAlfombra(e, j, card, letra) {
+  if (letra !== DESEO_VELO || !alfombraPorVelo(j, card)) return;
+  quitarPrimero(j, 'item', 'velo');
+  log(e, `${j.nombre} pide la alfombra mágica gracias a su velo quemado: el velo se gasta.`, { pid: j.id });
+}
 export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS);
 // Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
 // mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.

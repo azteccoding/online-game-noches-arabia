@@ -4551,3 +4551,46 @@ console.log('reglas de la casa OK');
   }
   function responder(e, pid, p, opcion) { const { responderPend } = BASE; return !!responderPend(data, e, pid, { id: p.id, opcion }).ok; }
 }
+// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae la alfombra mágica (H); elegirla así gasta el velo
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
+  darItem(e, A, 'velo'); A.mano.push({ uid: 'i1', tipo: 'ifrit', ref: 'I1' }, { uid: 'i2', tipo: 'ifrit', ref: 'I2' });
+  const usos = (vistaDe(e, a).acciones || []).concat(vistaDe(e, a).accionesMano || []);
+  const u1 = JSON.stringify(vistaDe(e, a)).match(/"uid":"i1"[^}]*"ifrit":\[[^\]]*\][^}]*/)?.[0] || '';
+  assert.ok(/"ifrit":\["A","C","G","J","H"\]/.test(u1) && /"ifritVelo":"H"/.test(u1), 'I1 (sin H) ofrece la H por el velo'); void usos;
+  assert.ok(g.act(a, { t: 'usar', uid: 'i1', deseo: 'H' }).ok);
+  assert.ok(tieneItem(A, 'alfombra'), 'recibe la alfombra'); assert.ok(!tieneItem(A, 'velo'), 'el velo se gasta');
+  // I2 ya trae la H: sin velo sigue igual; con velo, no se gasta
+  darItem(e, A, 'velo'); A.mano = A.mano.filter((c) => c.ref !== 'alfombra');
+  assert.ok(g.act(a, { t: 'usar', uid: 'i2', deseo: 'H' }).ok);
+  assert.ok(tieneItem(A, 'velo'), 'si la carta ya traía la H, el velo no se gasta');
+  // sin velo, una carta sin H no la ofrece
+  A.mano = A.mano.filter((c) => c.ref !== 'velo'); A.mano.push({ uid: 'i3', tipo: 'ifrit', ref: 'I3' });
+  assert.ok(g.act(a, { t: 'usar', uid: 'i3', deseo: 'H' }).error, 'sin velo no hay H');
+  const { opcionesIfrit } = BASE;
+  darItem(e, A, 'velo');
+  assert.ok(opcionesIfrit(data, A, data.objetos.ifrit.cartas.find((c) => c.id === 'I3')).some((o) => o.id === 'H' && /Por tu velo quemado: alfombra mágica/.test(o.texto)), 'texto claro en el genio');
+}
+// Jorge (19 de noviembre): Dado de Maulana: con una carta de sheij, los ghul tiran un dado más que siempre saca 6 (verde, sin botón)
+{
+  const prep = (conSheij) => {
+    const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+    A.perdido = true; A.ciudad = 'Jorasán'; A.extra.enRumbo = false; A.dinares = 40; e.jugadores[b].ciudad = 'Bagdad';
+    A.mensajes = conSheij ? [{ id: 'M1' }] : [];
+    turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+    forzar(e, 2, 1, 1, 1, 1);   // rumbo par; genio malo (impar, impar); los ghul: 1 y 1
+    assert.ok(g.act(a, { t: 'tesoro', sub: 'salir' }).ok);
+    return { e, A };
+  };
+  { const { A } = prep(false); assert.ok(A.eliminado, 'sin carta de sheij: promedio 1, lo devoran'); }
+  { const { e, A } = prep(true);
+    assert.ok(!A.eliminado && !A.perdido, 'con carta de sheij: 1, 1 y el 6 de Maulana, promedio 3, escapa');
+    const ds = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.motivo === 'ghul');
+    const g6 = ds.flatMap((d) => d.grupos).find((x) => x.etq === 'Dado de Maulana');
+    assert.ok(g6 && g6.valores[0] === 6 && g6.fijo, 'el Dado de Maulana se muestra con su 6, sin tirarse');
+    assert.ok(ds.some((d) => (d.resumen || []).some((r) => /y el Dado de Maulana: 6\. Promedio 3/.test(r))), 'el resumen lo dice');
+    assert.equal(A.mensajes.length, 1, 'la carta de sheij no se gasta'); }
+}
