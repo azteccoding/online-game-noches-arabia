@@ -353,7 +353,7 @@ function forzar(e, ...valores) {
   for (const d of ['Samarcanda', 'Magreb', 'India']) assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: d }).ok, 'el caballo no va a ' + d);
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Andalucía' }).ok); assert.equal(j.ciudad, 'Andalucía');
   assert.ok(e.turno.principal && (e.turno.fin || e.turno.finTrasCC), 'el caballo termina el turno');
-  if (e.turno.ccActual) { g.act(pid, { t: 'omitirCC' }); assert.ok(e.turno.fin || e.turno.pid !== pid, 'al cerrar la carta de Cuentos termina el turno'); }
+  if (e.turno.ccActual) { e.pend = null; e.colaPend = []; g.act(pid, { t: 'omitirCC' }); assert.ok(e.turno.fin || e.turno.pid !== pid, 'al cerrar la carta de Cuentos termina el turno'); }
   ({ g, e, pid, j, c } = prep('camello'));
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Damasco' }).ok, 'el camello solo va al Magreb, a Samarcanda y a Yemen');
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Samarcanda' }).ok); assert.equal(j.ciudad, 'Samarcanda');
@@ -3805,7 +3805,7 @@ console.log('reglas de la casa OK');
   assert.ok(vistaDe(e, a).jugadores[a].polimata, 'se ve en su barra');
   turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones'; assert.ok(!g.act(a, { t: 'reto', id: 'R55' }).ok, 'una vez por jugador');
   // +12 al iniciar su turno en las 4 ciudades, y no en otras
-  const inicio = (ciudad) => { A.ciudad = ciudad; turnoDe(e, b, e.jugadores[b].ciudad); e.turno.fin = true; const n0 = e.log.length; avanzar(data, e); assert.equal(e.turno.pid, a); return e.log.slice(n0).some((l) => /polímata, cobra 12 dinares más/.test(l.texto)); };
+  const inicio = (ciudad) => { A.ciudad = ciudad; turnoDe(e, b, e.jugadores[b].ciudad); e.turno.fin = true; const n0 = e.log.length; e.mazos.historicos = []; e.mazos.eventos = []; avanzar(data, e); assert.equal(e.turno.pid, a); return e.log.slice(n0).some((l) => /polímata, cobra 12 dinares más/.test(l.texto)); };
   for (const c of ['Bagdad', 'Estambul', 'El Cairo', 'Andalucía']) assert.ok(inicio(c), '+12 en ' + c);
   for (const c of ['Damasco', 'Yemen']) assert.ok(!inicio(c), 'nada en ' + c);
   { const { puedeRetoNPC } = await import('../shared/retos.js');

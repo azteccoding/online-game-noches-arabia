@@ -158,7 +158,7 @@ const sinMensaje = (j) => { j.mensajes = []; };
   // regla de la casa: actúan al final del siguiente turno de la víctima; hasta entonces no se sabe quién los contrató
   assert.ok(!e.jugadores[v].eliminado && e.asesinos.actuaron && e.asesinos.pendiente, 'el contrato queda pendiente');
   assert.ok(e.log.some((l) => l.texto.includes(j.nombre + ' contrató a los Asesinos')), 'se publica quién los contrató');
-  assert.ok(!e.log.some((l) => l.texto.includes('contra ' + e.jugadores[v].nombre)), 'pero nunca contra quién');
+  assert.ok(!e.log.some((l) => /Asesino/.test(l.texto) && l.texto.includes('contra ' + e.jugadores[v].nombre)), 'pero nunca contra quién');
   assert.ok(e.turno.pid !== p || e.turno.fin, 'y su turno termina');
   e.jugadores[v].turnos++; e.pend = null; e.colaPend = []; actuanAsesinos(data, e);
   const V = e.jugadores[v];

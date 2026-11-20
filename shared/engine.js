@@ -144,7 +144,7 @@ function prepararMazos(data, e) {
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
   e.reposicion = barajar(e, guardadas);
   e.mazos = {
-    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.map((x) => x.id)),
+    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.flatMap((x) => Array(COPIAS_HISTORICO[x.id] || 1).fill(x.id))),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
     descarte: { eventos: [], historicos: [], mensajes: [] /* Mensajes fuera de juego: registro, nunca se barajan de nuevo */, botin: [], ifrit: [], cc: {} },
   };
@@ -490,6 +490,8 @@ function saladino(data, e) {
 //   noches, sea NPC o jugador. Si Yafar no está en la partida, no sale.
 export const MANSA_RONDAS = 2;
 export const SABIDURIA = { desdeRonda: 3, rondas: 3 };
+// Jorge (19 de noviembre): la Casa de la Sabiduría tiene 4 cartas en el mazo de históricos (antes 1).
+export const COPIAS_HISTORICO = { H8: 4 };
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {
   const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
@@ -862,13 +864,13 @@ function tirarDados(data, e, pid, a) {
   const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
   t.fase = 'mov';
-  const tenia = j.mensajes.length, seis = data.config.minimoMensajeDado;
-  if (v === seis) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
+  const seis = data.config.minimoMensajeDado;
+  const llego = v === seis && darMensaje(data, e, pid);                                    // R 6.2 y 18.2
   // Aviso en el resultado del dado: verde si llega una carta de sheij, rojo si no (y por qué, cuando salió el 6).
   const avisoSheij = (x, llega) => ({ ok: llega, texto: llega ? '¡Hay carta de sheij! Recibes un Mensaje.'
     : x !== seis ? `No hay carta de sheij (hace falta un ${seis}).`
       : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' });
-  let recibe = j.mensajes.length > tenia, porTumba = false;
+  let recibe = !!llego, porTumba = false;
   d.sheij = avisoSheij(v, recibe);
   // Tumbas (R57 a R59, Jorge, 19 de noviembre): si no sacaste 6, un dado extra (con su botón) para intentarlo de nuevo.
   const pendientes = RET.dadosTumba(j), extras = v !== seis ? pendientes : [];
@@ -880,9 +882,7 @@ function tirarDados(data, e, pid, a) {
       const w = dado(e), nom = data.retos.retos.find((r) => r.id === id)?.nombre || id;
       const d2 = mostrarDados(e, { por: pid, motivo: 'tumba', grupos: [{ etq: `${j.nombre}: dado extra (${nom.replace(/^Visitar /, '')})`, valores: [w] }], resumen: [] });
       log(e, `${j.nombre} tira su dado extra (${nom.replace(/^Visitar /, '')}): ${w}.`, { pid });
-      const t2 = j.mensajes.length;
-      if (w === seis) darMensaje(data, e, pid);
-      recibe = j.mensajes.length > t2; porTumba = recibe;
+      recibe = w === seis && darMensaje(data, e, pid); porTumba = recibe;
       d2.sheij = avisoSheij(w, recibe);
       if (w === seis) break;
     }
@@ -900,14 +900,15 @@ function tirarDadosLibres(e, pid, a) {
 }
 function darMensaje(data, e, pid) {
   const j = e.jugadores[pid];
-  if (j.npc) return;                                                     // Jorge (punto 3): los sheijs nunca benefician a Yafar NPC
+  if (j.npc) return false;                                               // Jorge (punto 3): los sheijs nunca benefician a Yafar NPC
   const yaEstaRonda = e.log.some((l) => l.msgRonda === e.ronda);                                                      // máx. 1 jugador por ronda
-  if (yaEstaRonda) return;
+  if (yaEstaRonda) return false;
   const id = robar(e, 'mensajes');
-  if (!id) return;
+  if (!id) return false;
   recibirMensaje(data, e, j, id);   // regla de la casa: se pueden tener varios a la vez
   publicarCarta(e, cartaDatos(data, 'mensaje', id), pid, [pid]);
   log(e, `${j.nombre} recibe un mensaje de un sheij.`, { msgRonda: e.ronda });
+  return true;   // también si el Mensaje es una carta de permiso (va a la mano, no a los Mensajes)
 }
 
 // ---------------------------------------------------------------- viajes
