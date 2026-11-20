@@ -1062,6 +1062,11 @@ for (const [id, C] of Object.entries(COPIAS)) {
       log(e, `${j.nombre} termina «${nom}»: ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ${TRANSCRIBIR.noches} noches.`, { pid });
     } };
 }
+// R66 «Leer manuscritos de Historia y Ciencias» (Jorge, 19 de noviembre): en Samarcanda, si sabes árabe, gastas tu acción principal y
+// cobras 7 dinares. Se repite cada turno (como enseñar idiomas); no da noches. Yafar jugador sí puede si sabe árabe; Yafar NPC no.
+export const MANUSCRITOS = { ciudad: 'Samarcanda', pago: 7 };
+T.R66 = { ciudad: MANUSCRITOS.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no lee manuscritos.' : hablaIdioma(j, 'árabe') ? null : 'Necesitas hablar árabe (reto R47, en Yemen).'; },
+  run(data, e, pid, ctx) { const j = e.jugadores[pid]; j.dinares += MANUSCRITOS.pago; ctx.resultado = 'logro'; ctx.say(`Lees manuscritos de Historia y Ciencias en Samarcanda: te pagan ${MANUSCRITOS.pago} dinares.`); log(e, `${j.nombre} lee manuscritos de Historia y Ciencias en Samarcanda y cobra ${MANUSCRITOS.pago} dinares.`, { pid }); } };   // no queda hecho: se repite cada turno
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {
   T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),

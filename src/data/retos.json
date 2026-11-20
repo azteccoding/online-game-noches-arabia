@@ -903,6 +903,21 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R66",
+   "nombre": "Leer manuscritos de Historia y Ciencias",
+   "ciudad": "Samarcanda",
+   "tipo": "A",
+   "requisito": "Hablar árabe.",
+   "resolucion": "Gasta tu acción principal; se puede repetir cada turno.",
+   "premio": "7 dinares.",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

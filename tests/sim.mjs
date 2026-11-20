@@ -189,6 +189,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       // Sobrecargado, el bot vende lo que pese hasta poder viajar (si no, se queda atorado para siempre en una ciudad).
       if (t.fase !== 'ingreso' && !t.ccActual && cargaExcedida(e.jugadores[pid], e)) {
         for (const c of e.jugadores[pid].mano.filter(pesaCarta).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'vender', uid: c.uid }); }
+        for (const c of e.jugadores[pid].mano.filter(pesaCarta).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'tirar', uid: c.uid }); }   // lo que no se vende aquí, lo tira
       }
       const v = vista(data, e, pid);
       const ac = v.acciones;

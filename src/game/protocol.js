@@ -31,6 +31,7 @@ export const ACCIONES = {
   atacar: (tipo, objetivo, extra = {}) => ({ t: 'atacar', tipo, objetivo, ...extra }),
   comprar: (item) => ({ t: 'comprar', ...item }),
   vender: (uid) => ({ t: 'vender', uid }),
+  tirar: (uid) => ({ t: 'tirar', uid }),
   usar: (uid, extra = {}) => ({ t: 'usar', uid, ...extra }),
   proponerTrato: (con, ofrece, pide, contra = false) => ({ t: 'proponerTrato', con, ofrece, pide, contra }),
   responderTrato: (id, ok, contra = false) => ({ t: 'responderTrato', id, ok, contra }),

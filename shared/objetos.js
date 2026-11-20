@@ -358,6 +358,21 @@ export function cobrarAmarrados(e, pid) {
 }
 export const MSJ_JOYA_VISIR = 'Solo se usa en Bagdad, ante el visir.';
 export const MSJ_PERDIDO_VENDER = 'Estás perdido en el Jorasán: aquí no puedes vender nada.';
+// Tirar una carta (Jorge, 19 de noviembre): sale del juego y no cobras nada; no gasta tu acción. Sirve, sobre todo, para aligerar la
+// carga cuando vas sobrecargado y no puedes vender lo que llevas (p. ej. libros lejos de los mercados que los compran).
+export const NO_SE_TIRA = ['especial'];
+export function tirar(data, e, pid, a) {
+  const j = e.jugadores[pid];
+  if (!j || j.eliminado) return err('No estás en la partida.');
+  const c = j.mano.find((x) => x.uid === a.uid);
+  if (!c) return err('No tienes esa carta.');
+  if (NO_SE_TIRA.includes(c.tipo)) return err('Las cartas especiales no se tiran.');
+  { const m = (j.misiones || []).find((x) => (x.carga || []).some((k) => k.uid === c.uid)); if (m) return err(`No se tira: es la carga del reto ${m.id}.`); }
+  quitarCarta(j, c.uid);
+  const nom = c.tipo === 'objeto' ? objDe(data, c.ref)?.nombre : c.tipo === 'ifrit' ? 'una carta de Ifrit' : ITEMS[c.ref]?.nombre || c.ref;
+  log(e, `${j.nombre} tira ${nom}: sale del juego.`, { pid });
+  return ok();
+}
 export function vender(data, e, pid, a) {
   const j = e.jugadores[pid];
   if (j?.perdido) return err(MSJ_PERDIDO_VENDER);   // Jorge (19 de noviembre): en el Jorasán no se vende nada

@@ -33,6 +33,7 @@ export default function Mano({ s, onAbrir, onCerrar }) {
                 return <button className="btn mini mano-vender" disabled={!!motivo || !!s.dados} title={motivo || 'Te quitan el marcador «herido»'} onClick={() => enviar({ t: 'datiles' })}>{motivo ? 'Comer (no estás herido)' : 'Comer: quitar «herido»'}</button>;
               })()}
               {c.tipo === 'item' && c.ref === 'jambiya' && <button className="btn mini sec mano-vender" onClick={() => enviar({ t: 'jambiya', uid: c.uid, ocultar: !c.oculta })} title={c.oculta ? 'Escondida: no te la pueden robar, pero no cuenta en las peleas.' : 'Sacada: cuenta en las peleas, pero te la pueden robar.'}>{c.oculta ? 'Sacar esta jambiya' : 'Esconder esta jambiya'}</button>}
+              {c.tipo !== 'especial' && <button className="btn mini sec mano-vender" title="Sale del juego y no cobras nada (no gasta tu acción)." onClick={() => { if (window.confirm('¿Tirar esta carta? Sale del juego y no cobras nada.')) enviar(ACCIONES.tirar(c.uid)); }}>Tirar</button>}
               {c.venta != null ? <button className="btn mini sec mano-vender" disabled={!mt} onClick={() => enviar(ACCIONES.vender(c.uid))}>Vender ≈{c.venta}</button>
                 : c.donde && <small className="donde-venta" title={c.donde}>{c.donde}</small>}
             </div>

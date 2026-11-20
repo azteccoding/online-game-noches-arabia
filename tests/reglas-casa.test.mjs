@@ -4820,3 +4820,16 @@ console.log('reglas de la casa OK');
   const comun = BASE.darItem(e, A, 'libro', { valor: 20, ronda: e.ronda }); A.ciudad = 'Estambul'; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
   assert.ok(g.act(a, { t: 'vender', uid: comun.uid }).error, 'un libro común de otro reto, solo en Bagdad');
 }
+// Jorge (19 de noviembre): tirar una carta (sale del juego, sin cobrar) y R66 «Leer manuscritos» en Samarcanda (árabe, 7 dinares, cada turno)
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const lib = BASE.darItem(e, A, 'libro', { valor: 20, ronda: e.ronda }); const d0 = A.dinares;
+  assert.ok(g.act(a, { t: 'tirar', uid: lib.uid }).ok); assert.ok(!A.mano.some((c) => c.uid === lib.uid) && A.dinares === d0, 'se tira sin cobrar');
+  turnoDe(e, a, 'Samarcanda'); A.ciudad = 'Samarcanda'; e.turno.fase = 'acciones';
+  assert.match(vistaDe(e, a).acciones.find((x) => x.id === 'R66')?.bloqueado || '', /hablar árabe/);
+  A.extra.idiomas = ['árabe']; const d1 = A.dinares;
+  assert.ok(g.act(a, { t: 'reto', id: 'R66' }).ok); assert.equal(A.dinares, d1 + 7);
+  turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R66' }).ok, 'se repite cada turno');
+}

@@ -775,6 +775,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
     case 'comprar': return OBJ.comprar(data, e, pid, a);
     case 'vender': return OBJ.vender(data, e, pid, a);
+    case 'tirar': return OBJ.tirar(data, e, pid, a);
     case 'usar': return OBJ.usar(data, e, pid, a);
     case 'lazo': return OBJ.accionLazo(data, e, pid, a);   // camello amarrado (Jorge, 19 de noviembre)
     case 'datiles': return OBJ.comerDatiles(data, e, pid);
