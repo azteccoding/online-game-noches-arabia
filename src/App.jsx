@@ -69,8 +69,17 @@ function Juego({ lienzo }) {
   const huellaAcc = s?.jugadores?.[s.yo] ? `${s.jugadores[s.yo].ciudad}|${s.turno?.principal}|${s.jugadores[s.yo].dinares}|${s.mano?.length}` : '';
   const huellaPrev = useRef(huellaAcc);
   // Cuando salen dados se cierran los paneles abiertos (Acciones, Mercado, Mano…) para que se vea la tirada.
-  const idDados = s?.dados?.id;
+  // Jorge (19 de noviembre): los dados de un reto ajeno no se le muestran a los demás, así que tampoco les cierran el mercado ni otro panel.
+  const dadosAjenos = !!s?.dados && s.dados.por !== s.yo && String(s.dados.motivo || '').startsWith('reto:');
+  const idDados = dadosAjenos ? null : s?.dados?.id;
   useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
+  // Resultado de los retos ajenos: alerta verde (lo logró) o gris (no lo logró / en curso), que se queda hasta tocarla.
+  const [anunciosVistos, setAnunciosVistos] = useState(null);
+  useEffect(() => {
+    if (!s?.anuncios || anunciosVistos) return;
+    setAnunciosVistos(new Set(s.anuncios.filter((a) => s.ahora - a.t > 20000).map((a) => a.id)));   // al entrar o recargar, los viejos ya no salen
+  }, [s?.anuncios]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const anuncios = !anunciosVistos || s?.dados ? [] : (s?.anuncios || []).filter((a) => !anunciosVistos.has(a.id)).slice(-3);
   // Cuando alguien se mueve de ciudad se cierran las ventanas abiertas en todas las pantallas; los dados y las decisiones siguen.
   const huellaCiudades = s ? Object.values(s.jugadores).map((j) => j.id + j.ciudad).join() : '';
   const ciudadesPrev = useRef(huellaCiudades);
@@ -147,6 +156,7 @@ function Juego({ lienzo }) {
       {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
+      {anuncios.length > 0 && <div className="anuncios-reto">{anuncios.map((a) => <div key={a.id} className={`toast-reto ${a.tono}`} role="status" title="Toca para cerrar" onClick={() => setAnunciosVistos((v) => new Set([...v, a.id]))}>{a.tono === 'ok' ? '✓ ' : ''}{a.texto}</div>)}</div>}
       {error && <div className="toast" role="alert" onClick={() => cerrarAviso('error')} title="Toca para cerrar">{error}</div>}
       {aviso && !error && <div className="toast ok" role="status" onClick={() => cerrarAviso('aviso')} title="Toca para cerrar">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
     </div>

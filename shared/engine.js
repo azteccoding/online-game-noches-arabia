@@ -1456,7 +1456,7 @@ export function vista(data, e, pid) {
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     armasCiudades: e.fase === 'juego' ? Object.fromEntries(data.ciudades.ciudades.map((c) => [c.id, OBJ.armasEnCiudad(data, e, c.id)])) : null, armasBagdad: !!e.mods?.armasBagdad,   // ficha de ciudad (Jorge, 12 de noviembre)
-    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
+    orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, anuncios: (e.anuncios || []).filter((x) => x.para.includes(pid)).map(({ id, t, texto, tono }) => ({ id, t, texto, tono })), ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
     mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
     leidoHasta: e.jugadores[pid]?.extra?.leidoHasta ?? null,   // hasta qué carta cerró este jugador (consecuencias después de cerrar)

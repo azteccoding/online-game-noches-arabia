@@ -151,7 +151,30 @@ export function retoNPC(data, e, pid, id, { libre = false } = {}) {
 }
 export const puedeRetoNPC = (data, e, pid, id) => { const j = e.jugadores[pid], def = T[id], d = m1(data, id); return !!(def && d && !hecho(j, id) && !(def.req && def.req(data, e, pid))); };
 registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.id, (resp.valores || []).map((u) => e.jugadores[resp.pid].mano.find((c) => c.uid === u)?.ref).filter(Boolean)));
+// Resultado de un reto para los DEMÁS jugadores (Jorge, 19 de noviembre): no ven ninguna ventana, solo una alerta que se quita al
+// tocarla, verde si lo logró y gris si no (o si sigue en curso), y una línea en el registro. Se decide comparando antes y después.
+const fotoReto = (j) => ({ d: j.dinares, n: j.noches, m: j.mano.length, mis: j.misiones.length, pt: j.pierdeTurno || 0, h: !!j.herido, ex: JSON.stringify([j.destreza, j.extra?.destrezaJambiya, j.extra?.entrenado, j.extra?.idiomas, j.extra?.polimata, j.extra?.arcoMaximo]), curso: !!(j.extra?.forja || j.extra?.estudio || j.extra?.emir) });
+function resultadoReto(e, pid, antes, ctx) {
+  const j = e.jugadores[pid], a = fotoReto(j);
+  if (j.eliminado) return 'fallo';
+  const esperando = [e.pend, ...(e.colaPend || [])].some((p) => p && p.para?.includes(pid) && p.tipo !== 'info');
+  if (esperando || a.mis > antes.mis || (a.curso && !antes.curso)) return 'curso';
+  if (ctx.fallo || (a.h && !antes.h) || a.pt > antes.pt) return 'fallo';
+  if (a.n > antes.n || a.d > antes.d || a.m > antes.m || a.ex !== antes.ex) return 'logro';
+  return 'fallo';
+}
+export function anunciarReto(data, e, pid, id, res) {
+  const j = e.jugadores[pid], d = m1(data, id); if (!j || !d) return;
+  const verbo = res === 'logro' ? 'logró' : res === 'curso' ? 'empezó' : 'no logró';
+  const texto = `${j.nombre} ${verbo} el reto ${id} (${d.nombre}).`;
+  log(e, texto, { pid });
+  const para = Object.values(e.jugadores).filter((x) => x.id !== pid && !x.npc && x.pj).map((x) => x.id);
+  if (!para.length) return;
+  (e.anuncios ||= []).push({ id: ++e.seq, t: e.ahora, para, texto, tono: res === 'logro' ? 'ok' : 'gris' });
+  if (e.anuncios.length > 30) e.anuncios.splice(0, e.anuncios.length - 30);
+}
 function ejecutar(data, e, pid, id, usados) {
+  const antesReto = fotoReto(e.jugadores[pid]);
   const ctx = nuevoCtx(e, pid, id);
   { const antes = e.ctxCarta; e.ctxCarta = cartaDatos(data, 'reto', id).titulo; try { T[id].run(data, e, pid, ctx, usados); } finally { e.ctxCarta = antes; } }   // contexto de las tiradas del reto
   if (ctx.fallo && REINTENTABLES.includes(id)) {
@@ -160,6 +183,7 @@ function ejecutar(data, e, pid, id, usados) {
     if (j.ciudad === ciudad) { (j.extra.rep ||= {})[id] = true; ctx.say(`Puedes volver a intentarlo cuando salgas de ${ciudad} y regreses.`); }
     else ctx.say(`Puedes volver a intentarlo cuando regreses a ${ciudad}.`);
   }
+  anunciarReto(data, e, pid, id, resultadoReto(e, pid, antesReto, ctx));
   ctx.fin();
 }
 // Lazo de camellero (Jorge, 19 de noviembre): no se gasta en ningún caso.

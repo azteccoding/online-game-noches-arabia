@@ -29,3 +29,9 @@ h1, h2, h3 { font-family: var(--f-titulo); font-weight: 400; margin: 0; letter-s
 @media (max-width: 480px) { .toast { font-size: 14px; padding: 9px 12px; } }
 @media (prefers-reduced-motion: reduce) { *:not(.barra-i) { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 .toast.ok { background: #1f5a3a; border: 1px solid var(--oro-claro); }
+
+/* Resultado de los retos de otros jugadores (Jorge, 19 de noviembre): no tapa ni cierra nada; se quita al tocarlo. */
+.anuncios-reto { position: absolute; top: calc(var(--barra-alto, 56px) + 8px); left: 50%; transform: translateX(-50%); z-index: 70; display: flex; flex-direction: column; gap: 6px; pointer-events: none; width: max-content; max-width: min(520px, calc(100vw - 24px)); }
+.toast-reto { pointer-events: auto; cursor: pointer; padding: 8px 14px; border-radius: 10px; box-shadow: var(--sombra); color: #fff; font-size: .95rem; }
+.toast-reto.ok { background: #1f5a3a; border: 1px solid var(--oro-claro); }
+.toast-reto.gris { background: #55534e; border: 1px solid #8d8a82; }

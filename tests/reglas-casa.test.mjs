@@ -4422,3 +4422,20 @@ console.log('reglas de la casa OK');
   assert.equal(c.venta, null, 'perdido: sin botón de vender'); assert.match(c.donde, /perdido en el Jorasán/);
   assert.equal(g.act(a, { t: 'vender', uid: 'seda' }).error, MSJ_PERDIDO_VENDER, 'y el motivo es claro'); void b;
 }
+// Jorge (19 de noviembre): los demás no ven ventana del reto ajeno; solo una alerta verde (lo logró) o gris (no / en curso) y el registro
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  A.ciudad = 'Magreb'; A.dinares = 50; turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);   // Timbuktú: siempre gana 30 noches
+  const vb = vistaDe(e, b).anuncios || [], va = vistaDe(e, a).anuncios || [];
+  assert.ok(vb.some((x) => x.tono === 'ok' && /logró el reto R44/.test(x.texto)), 'el otro jugador ve la alerta verde');
+  assert.ok(!va.length, 'quien hace el reto no recibe esa alerta');
+  assert.ok(e.log.some((l) => /logró el reto R44/.test(l.texto)), 'queda en el registro');
+  // R52 (forja): queda en curso → gris
+  e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => c.ref !== 'cimitarra'); turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R52' }).ok);
+  assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'gris' && /empezó el reto R52/.test(x.texto)), 'en curso: alerta gris');
+}
