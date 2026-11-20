@@ -256,7 +256,7 @@ function entregar(data, e, pid, m) {
   const n = (m.carga || []).length;
   let pr = { dinares: 0, noches: 0 };
   switch (m.id) {
-    case 'R10': pr = { dinares: 70, noches: 15 }; break;
+    case 'R10': pr = { dinares: 35, noches: 15 }; break;   // Jorge (19 de noviembre): 35 (antes 70)
     case 'R17': pr = { dinares: AR.entrega[j.ciudad] * n, noches: AR.nochesFin }; moverAlfombras(e, j.ciudad, n); break;   // se venden solas al llegar y quedan a la venta en ese mercado
     case 'R30': pr = { dinares: 60 + 8, noches: 15 }; break;   // Balanza de mercader: 8 dinares más (Jorge, 18 de noviembre)
     case 'R39': pr = { dinares: 45, noches: 10 }; break;

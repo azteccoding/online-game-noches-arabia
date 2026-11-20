@@ -4712,3 +4712,13 @@ console.log('reglas de la casa OK');
   assert.equal(e.ronda, 2); assert.notEqual(e.evento.historico, 'H8', 'en la ronda 2 no sale'); assert.ok(e.mazos.historicos.includes('H8'), 'vuelve al mazo');
   e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
 }
+// Jorge (19 de noviembre): R10 (papiros de El Cairo a Bagdad) paga 35 dinares (antes 70) y 15 noches
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R10' }).ok);
+  const d0 = A.dinares, n0 = A.noches;
+  A.ciudad = 'Bagdad'; llegada(data, e, a, 'El Cairo');
+  assert.equal(A.dinares - d0, 35, '35 dinares'); assert.ok(A.noches - n0 >= 15, '15 noches (más las de llegar)');
+}
