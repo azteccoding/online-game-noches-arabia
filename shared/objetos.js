@@ -345,8 +345,11 @@ export function cobrarAmarrados(e, pid) {
     info(e, pid, 'Tu camello amarrado', txt);
   }
 }
+export const MSJ_JOYA_VISIR = 'Solo se usa en Bagdad, ante el visir.';
+export const MSJ_PERDIDO_VENDER = 'Estás perdido en el Jorasán: aquí no puedes vender nada.';
 export function vender(data, e, pid, a) {
   const j = e.jugadores[pid];
+  if (j?.perdido) return err(MSJ_PERDIDO_VENDER);   // Jorge (19 de noviembre): en el Jorasán no se vende nada
   if (!puedeTienda(e, pid)) return err('Solo puedes vender en tu turno.');
   const c = j.mano.find((x) => x.uid === a.uid);
   if (!c) return err('No tienes esa carta.');
@@ -562,7 +565,7 @@ export function tienda(data, e, pid) {
 }
 export function estimarVenta(data, e, pid, c) {
   const j = e.jugadores[pid], ciudad = j?.ciudad;
-  if (!j) return null;
+  if (!j || j.perdido) return null;   // perdido en el Jorasán: no hay botón de vender
   try {
     if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') return 100;   // subasta: 100 o 150
     if (c.tipo === 'objeto') {
@@ -688,6 +691,7 @@ export function disponibles(data, e, pid) {
       if (c.ref === 'OB33' && !(t.ccActual && t.ccActual.tipo === 'trivia' && t.ccActual.descartada == null)) continue;
       if (c.ref === 'OB31' && !(j.misiones.length || j.mensajes.length)) continue;
       const x = { k: 'usar', uid: c.uid, titulo: 'Usar ' + u.titulo };
+      if (c.ref === 'OB15' && j.ciudad !== 'Bagdad') x.bloqueado = MSJ_JOYA_VISIR;   // Jorge (19 de noviembre): solo ante el visir, en Bagdad
       if (u.obj) { const ob = enCiudad(e, j.ciudad, pid).filter((q) => !e.jugadores[q].npc); if (!ob.length) continue; x.objetivos = ob; }
       r.push(x);
     }
@@ -841,7 +845,11 @@ export function usar(data, e, pid, a) {
       if (x >= 4 && !inmune) o.extra.lazoTurno = (o.turnos || 0) + 1;
       return ok();
     }
-    case 'OB15': consumirObj(data, e, pid, 'OB15'); j.extra.joyaVisir = true; info(e, pid, 'El visir te recibe', 'Yafar te presta una consulta gratuita: los Asesinos ' + (e.asesinos.actuaron ? 'ya actuaron.' : 'todavía no han actuado.') + ' Además, el Firmán te sale a 45 dinares (en vez de 55) si lo compras en Bagdad mientras queden.'); return ok();
+    case 'OB15':   // Joya para el visir (Jorge, 19 de noviembre): solo en Bagdad; el descuento del Firmán queda guardado
+      if (j.ciudad !== 'Bagdad') return err(MSJ_JOYA_VISIR);
+      consumirObj(data, e, pid, 'OB15'); j.extra.joyaVisir = true;
+      log(e, `${j.nombre} le entrega una Joya al visir en Bagdad: consulta gratuita y el Firmán a 45 dinares.`, { pid });
+      info(e, pid, 'El visir te recibe', 'Yafar te presta una consulta gratuita: los Asesinos ' + (e.asesinos.actuaron ? 'ya actuaron.' : 'todavía no han actuado.') + ' Tu descuento queda guardado: el Firmán te costará 45 dinares (en vez de 55) cuando lo compres en Bagdad, mientras queden.'); return ok();
     case 'OB16': {
       if (j.ciudad !== 'Bagdad') return err('Masrur está en Bagdad.');
       consumirObj(data, e, pid, 'OB16');

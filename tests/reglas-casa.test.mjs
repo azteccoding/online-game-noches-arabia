@@ -4399,3 +4399,26 @@ console.log('reglas de la casa OK');
     assert.match(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).error || '', /necesitas un arma/, 'con Firmán y solo arco no se roba');
     darItem(e, A, 'jambiya'); assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok, 'con Firmán y jambiya sí'); }
 }
+// Jorge (19 de noviembre): la Joya para el visir solo se usa en Bagdad (fuera, botón apagado con su motivo y no se gasta);
+// el descuento del Firmán queda guardado y el uso queda en el registro. Perdido en el Jorasán no se vende nada.
+{
+  const { MSJ_JOYA_VISIR, MSJ_PERDIDO_VENDER } = await import('../shared/objetos.js');
+  const g = partida(['4', '6']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  A.ciudad = 'Isfahán'; A.mano.push({ uid: 'joya1', tipo: 'objeto', ref: 'OB15' });
+  turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones';
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'usar' && x.uid === 'joya1');
+  assert.equal(op?.bloqueado, MSJ_JOYA_VISIR, 'fuera de Bagdad sale apagada con su motivo');
+  assert.equal(g.act(a, { t: 'usar', uid: 'joya1' }).error, MSJ_JOYA_VISIR); assert.ok(A.mano.some((c) => c.uid === 'joya1'), 'y no se gasta');
+  A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; const n0 = e.logN || 0;
+  assert.ok(g.act(a, { t: 'usar', uid: 'joya1' }).ok); assert.ok(A.extra.joyaVisir && !A.mano.some((c) => c.uid === 'joya1'), 'en Bagdad se usa y guarda el descuento');
+  assert.ok(e.log.some((l) => l.n > n0 && /Joya al visir/.test(l.texto)), 'queda en el registro');
+  assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && /descuento queda guardado/.test(p.texto)), 'la alerta lo dice claro');
+  // Jorasán
+  e.pend = null; e.colaPend = []; A.ciudad = 'Jorasán'; A.perdido = true; A.mano.push({ uid: 'seda', tipo: 'objeto', ref: 'OB34' });
+  turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones';
+  const c = vistaDe(e, a).mano.find((x) => x.uid === 'seda');
+  assert.equal(c.venta, null, 'perdido: sin botón de vender'); assert.match(c.donde, /perdido en el Jorasán/);
+  assert.equal(g.act(a, { t: 'vender', uid: 'seda' }).error, MSJ_PERDIDO_VENDER, 'y el motivo es claro'); void b;
+}
