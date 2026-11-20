@@ -3930,27 +3930,14 @@ console.log('reglas de la casa OK');
     assert.ok(e.turno?.pid !== z || !vistaDe(e, z).acciones.some((x) => ['reto', 'atacar', 'pj', 'viajar'].includes(x.k)), 'ya no puede hacer otra cosa');
   }
 }
-// Jorge (19 de noviembre): la primera vez que Zubayda sale de Bagdad, en su primer o segundo turno, el viaje es gratis (una sola vez).
+// Jorge (19 de noviembre, más tarde): Zubayda ya no tiene viaje gratis: su primera salida de Bagdad cobra como cualquier caravana.
 {
-  const { viajeInicialZubayda } = await import('../shared/engine.js');
-  const prep = (turno) => { const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
-    const e = g.e, [z, adi] = g.ids, Z = e.jugadores[z]; assert.equal(Z.ciudad, 'Bagdad', 'empieza en Bagdad');
-    turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.turnos = turno; Z.dinares = 0; return { g, e, z, adi, Z }; };
-  for (const turno of [1, 2]) {
-    const { g, e, z, Z } = prep(turno);
-    const v = vistaDe(e, z).acciones.filter((x) => x.k === 'viajar'); assert.ok(v.length && v.every((x) => x.precio === 0 && x.gratisInicial), `turno ${turno}: sus destinos salen gratis`);
-    const dest = v.find((x) => x.destino === 'Samarcanda') ? 'Samarcanda' : v[0].destino;
-    const r = g.act(z, { t: 'viajar', destino: dest }); assert.ok(r.ok, r.error); assert.equal(Z.ciudad, dest); assert.equal(Z.dinares, 0, 'no paga');
-    assert.ok(e.log.some((l) => new RegExp(`viaja de Bagdad a ${dest} sin pagar un dinar: le paga al camellero con servicios nocturnos\.`).test(l.texto)), 'la bitácora lo dice');
-    // de vuelta en Bagdad, la segunda salida ya cobra
-    Z.ciudad = 'Bagdad'; turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov';
-    assert.ok(!viajeInicialZubayda(e.turno, Z) && !vistaDe(e, z).acciones.some((x) => x.gratisInicial), 'la segunda salida ya cobra');
-  }
-  { // al terminar su segundo turno sin usarlo: «el camellero se cansó de rogarle»
-    const { g, e, z, Z } = prep(2); Z.dinares = 50; assert.ok(g.act(z, { t: 'terminarTurno' }).ok);
-    assert.ok(Z.extra.camelleroCansado && e.log.some((l) => /^El camellero se cansó de rogarle a .+: ya no hay viaje gratis\.$/.test(l.texto)), 'aviso y bitácora'); }
-  { const { g, e, z, Z } = prep(3); assert.ok(!vistaDe(e, z).acciones.some((x) => x.gratisInicial), 'en el turno 3 ya se perdió'); assert.ok(!g.act(z, { t: 'viajar', destino: 'Basra' }).ok, 'sin dinares no viaja'); }
-  { const { e, adi } = prep(1); const A = e.jugadores[adi]; turnoDe(e, adi, 'Bagdad'); e.turno.fase = 'mov'; A.turnos = 1; A.ciudad = 'Bagdad'; assert.ok(!vistaDe(e, adi).acciones.some((x) => x.gratisInicial), 'solo Zubayda'); }
+  const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [z] = g.ids, Z = e.jugadores[z]; assert.equal(Z.ciudad, 'Bagdad');
+  turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.turnos = 1; Z.dinares = 50;
+  const v = vistaDe(e, z).acciones.filter((x) => x.k === 'viajar'); assert.ok(v.length && v.every((x) => x.precio > 0), 'sus destinos cobran');
+  const d0 = Z.dinares, r = g.act(z, { t: 'viajar', destino: v[0].destino }); assert.ok(r.ok, r.error); assert.ok(Z.dinares < d0, 'paga la caravana');
+  assert.ok(!e.log.some((l) => /servicios nocturnos|camellero se cansó/.test(l.texto || '')), 'sin viaje gratis ni aviso del camellero');
 }
 // Jorge (19 de noviembre): Zein empieza con su mahr (dote): sale una carta y los 15 dinares llegan al cerrarla.
 {

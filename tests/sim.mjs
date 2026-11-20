@@ -110,7 +110,6 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   };
   const porViaje = (pid, x) => {
     const j = e.jugadores[pid];
-    if (x.gratisInicial) return 'fortaleza:Zubayda usa su viaje gratis (primera salida de Bagdad)';
     { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return 'meta:' + (m === 'Estambul' ? 'lleva la yegua a Estambul' : m === 'Bagdad' ? 'lleva pistaches a Bagdad' : m === 'Damasco' ? 'va a Damasco a forjar' : 'va a Samarcanda por yeguas'); }
     if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return 'explota:viaja a donde está Ruyán';
     if (j.pj === '6' && x.destino === 'Bagdad' && apuros(j)) return 'fortaleza:Zubayda vuelve a Bagdad (harén)';
@@ -142,7 +141,6 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       return w;
     }
     if (x.k === 'viajar') {
-      if (x.gratisInicial) return 0.5 + (x.tarifaNormal || 0) / 4;                              // Zubayda: su primera salida de Bagdad es gratis, mejor si es cara
       if (j.ciudad === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(j, 'caballoMongol') && j.dinares >= 40) return base * 0.05;   // espera a comprar su mongol
       { const m = meta(pid); if (m && acerca(j.ciudad, x.destino, m)) return base * (m === 'Estambul' ? 20 : 6); }   // con la yegua, derecho a Estambul
       if (j.dinares >= 10 && ruyanEn(pid, x.destino)) return base * 3;
