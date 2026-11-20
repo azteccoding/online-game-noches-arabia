@@ -194,7 +194,7 @@
     "anchor": "middle"
    },
    "nochesLlegada": 0,
-   "nochesLuego": 15,
+   "nochesLuego": 0,
    "alojamiento": 10,
    "mazoCC": "Bagdad",
    "retos": [
@@ -246,7 +246,7 @@
    },
    "nochesLlegada": 30,
    "nochesLuego": 10,
-   "alojamiento": 10,
+   "alojamiento": 5,
    "mazoCC": "Bagdad",
    "retos": [
     "R15",

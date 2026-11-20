@@ -1846,7 +1846,7 @@ for (let k = 0; k < 6; k++) {
   A.ciudadPrevia = null; const basra2 = llega(a, 'Basra');
   assert.ok(basra2 > basra1, `Basra: primera ${basra1} < después ${basra2}`);
   assert.equal(basra1 * 2, basra2, '5 contra 10 con el mismo multiplicador');
-  A.ciudadPrevia = null; assert.ok(llega(a, 'Bagdad') > 0, 'Bagdad después de la primera vez da noches');
+  A.ciudadPrevia = null; assert.equal(llega(a, 'Bagdad'), 0, 'Bagdad ya no da noches (Jorge, 20 de noviembre)');
   e.jugadores[b].ciudad = 'Samarcanda'; Y.visitadas = Y.visitadas.filter((c) => c !== 'Samarcanda');
   assert.equal(llega('npc', 'Samarcanda'), 0, 'Yafar NPC no gana noches en Samarcanda');
   void multiplicadorRonda;
