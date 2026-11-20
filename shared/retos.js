@@ -25,7 +25,7 @@ function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.incl
 // encargos (libros R4, papiros R10, sacos de sal R23, manzanas R24, comprar alfombras R17, pergamino R30 y posta R39). R7 ya no existe.
 // R8 y R9 se repiten como siempre: cuando sales de El Cairo y vuelves. Aparte siguen igual: los Asesinos (R15), enseñar un idioma
 // (R48, R49), forjar si ya no tienes cimitarra (R52) y reintentar un reto fallado.
-export const REPETIBLES = ['R4', 'R10', 'R23', 'R24', 'R17', 'R30', 'R39'];
+export const REPETIBLES = ['R4', 'R23', 'R24', 'R17', 'R30', 'R39'];   // R10 ya no se repite (Jorge, 19 de noviembre)
 export const REPITE_AL_VOLVER = ['R8', 'R9'];
 // Jorge (19 de noviembre): Anís puede repetir R26 «Acostarse con Zein en la Giralda» (solo él).
 const repitePorPj = (j, id) => id === 'R26' && j.pj === '3';
@@ -460,6 +460,7 @@ registrar('r9.saqueo', (data, e, args, resp) => {
 registrar('r9.mapa', (data, e, args, resp) => { darItem(e, e.jugadores[resp.pid], 'mapa', { tesoro: resp.opcion }); log(e, `${nombre(e, resp.pid)} halla un mapa de tesoro.`, { pid: resp.pid }); });
 T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
   const j = e.jugadores[pid];
+  hacer(e, pid, 'R10');   // una sola vez por jugador, también si lo pierdes
   const carga = [darLibro(e, pid, 'papiro'), darLibro(e, pid, 'papiro')].map((c) => ({ uid: c.uid }));
   nuevaMision(e, pid, { id: 'R10', destino: 'Bagdad', carga, texto: 'Lleva 2 papiros a Bagdad.' }, 2);
   ctx.say('El escriba te confía 2 papiros: entrégalos en Bagdad en 2 turnos.');

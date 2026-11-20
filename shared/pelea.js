@@ -4,7 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
@@ -28,7 +28,7 @@ export function armasUsables(data, e, j, ciudad = j.ciudad) {
   const r = [];
   for (const ref of ARMAS) {
     if (!tieneItem(j, ref)) continue;
-    if (ref === 'jambiya' && j.extra?.jambiyaOculta) continue;          // escondida no cuenta en las peleas
+    if (ref === 'jambiya' && !jambiyaALaMano(j)) continue;          // escondida no cuenta en las peleas (si tienes otra a la mano, esa sí)
     if (ciudad === 'Bagdad' && !libre) { if (!(firman && (ref === 'arco' || ref === 'jambiya'))) continue; }
     if (ref === 'arco' && !tieneItem(j, 'flechas')) continue;
     r.push(ref);
@@ -241,7 +241,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   if (atacaMujer(j, d)) {
     marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
     log(e, `${j.nombre} atacó a ${d.nombre} (${d.pj === '2' ? 'Zein' : 'Zubayda'}): queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
-  } else if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS_ATAQUE.some((r) => tieneItem(d, r) && !(r === 'jambiya' && d.extra?.jambiyaOculta))) {
+  } else if (j.pj === 'B' && ['2', '6'].includes(d.pj) && a.tipo !== 'duelo' && !ARMAS_ATAQUE.some((r) => tieneItem(d, r) && !(r === 'jambiya' && !jambiyaALaMano(d)))) {
     marcarBuscado(data, e, j, { tipo: 'mujer', victima: d.nombre });
     log(e, `${j.nombre} atacó a ${d.nombre}, que iba sin armas: queda Buscado durante ${data.config.buscadoRondas} rondas.`, { pid, aviso: true });
   }
@@ -726,7 +726,7 @@ function robar(data, e, atk, def) {
     quitarPrimero(D, 'item', 'tintaPulpo'); D.mano = D.mano.filter((c) => !papel(c));
     log(e, `El frasco con tinta de pulpo de ${D.nombre} se rompe en el asalto: ${rotos.length ? `la tinta destruye ${rotos.length} papel${rotos.length === 1 ? '' : 'es'} (libros, mapas, papel amate, alfombras, el Shatranj o el Firmán) y ${A.nombre} no se los lleva` : 'no tenía papeles que proteger'}.`, { pid: def, aviso: true });
   }
-  const oculta = (c) => (c.tipo === 'item' && c.ref === 'jambiya' && D.extra?.jambiyaOculta)   // la jambiya escondida no se la llevan
+  const oculta = (c) => jambiyaEscondida(D, c)   // la jambiya escondida no se la llevan (cada una por su cuenta)
     || (c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador');                   // ni el mapa del escondite de dinares (regla de Jorge)
   const cartas = D.mano.filter((c) => !oculta(c)); D.mano = D.mano.filter(oculta);
   for (const c of cartas) { c.priv = true; A.mano.push(c); }                // nadie ve qué se llevó: deja de ser público

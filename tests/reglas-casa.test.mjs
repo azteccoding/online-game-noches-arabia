@@ -3304,7 +3304,7 @@ console.log('reglas de la casa OK');
 // y, al salir de la ciudad y volver, R8 y R9. R7 ya no existe.
 {
   const { REPETIBLES } = await import('../shared/retos.js');
-  assert.deepEqual([...REPETIBLES].sort(), ['R10', 'R17', 'R23', 'R24', 'R30', 'R39', 'R4']);
+  assert.deepEqual([...REPETIBLES].sort(), ['R17', 'R23', 'R24', 'R30', 'R39', 'R4']);   // R10 ya no (Jorge, 19 de noviembre)
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   // R9 (pirámides): no se repite sin salir de El Cairo, y sí al salir y volver
@@ -3320,9 +3320,11 @@ console.log('reglas de la casa OK');
   A.ciudad = 'Bagdad'; A.dinares = 300; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
   assert.ok(!g.act(a, { t: 'reto', id: 'R7' }).ok, 'R7 no se puede hacer');
   A.ciudad = 'El Cairo'; A.misiones = A.misiones.filter((m) => m.id !== 'R10');
-  // R10 (papiros a Bagdad) sí se repite después de entregarlo
-  A.retosHechos.push('R10'); A.misiones = A.misiones.filter((m) => m.id !== 'R10'); turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
-  { const r = g.act(a, { t: 'reto', id: 'R10' }); assert.ok(r.ok, r.error); assert.ok(A.misiones.some((m) => m.id === 'R10'), 'vuelve a llevar papiros'); }
+  // R10 (papiros a Bagdad) ya no se repite (Jorge, 19 de noviembre), ni después de perderlo
+  A.retosHechos = A.retosHechos.filter((r) => r !== 'R10'); A.misiones = A.misiones.filter((m) => m.id !== 'R10'); turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
+  { const r = g.act(a, { t: 'reto', id: 'R10' }); assert.ok(r.ok, r.error); }
+  A.misiones = A.misiones.filter((m) => m.id !== 'R10'); turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
+  assert.ok(!g.act(a, { t: 'reto', id: 'R10' }).ok, 'una vez intentado, no se repite');
 }
 
 // Jorge (18 de noviembre): sin dinares y sin nada que vender. En Bagdad, Estambul, El Cairo y Andalucía, tras un turno entero en cero,
@@ -4770,4 +4772,20 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'envenenar' }).ok);
   assert.ok(!A.perdido && !A.eliminado && !tieneItem(A, 'veneno'), 'escapa sin tirada y el veneno se gasta');
   assert.ok(![e.dados, ...(e.colaDados || [])].some((d) => d?.motivo === 'ghul'), 'no hay tirada de ghul');
+}
+// Jorge (19 de noviembre): con dos jambiyas, cada una es su propia carta: esconder una no esconde la otra; cada una pesa
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano = A.mano.filter((c) => c.ref !== 'jambiya'); turnoDe(e, a, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'acciones';
+  const j1 = darItem(e, A, 'jambiya'), j2 = darItem(e, A, 'jambiya');
+  const n0 = BASE.nCarga(A);
+  assert.ok(g.act(a, { t: 'jambiya', uid: j1.uid, ocultar: true }).ok);
+  const m = vistaDe(e, a).mano;
+  assert.ok(m.find((c) => c.uid === j1.uid).oculta && !m.find((c) => c.uid === j2.uid).oculta, 'solo se esconde la que elegiste');
+  assert.ok(!vistaDe(e, a).jambiyaOculta, 'todavía tienes una a la mano');
+  const { armasUsables } = await import('../shared/pelea.js');
+  assert.ok(armasUsables(data, e, A).includes('jambiya'), 'la otra cuenta en las peleas (una sola vez)');
+  assert.equal(BASE.nCarga(A), n0, 'esconder no cambia el peso: cada una pesa');
+  assert.ok(g.act(a, { t: 'jambiya', uid: j2.uid, ocultar: true }).ok); assert.ok(vistaDe(e, a).jambiyaOculta && !armasUsables(data, e, A).includes('jambiya'), 'las dos escondidas');
 }

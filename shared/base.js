@@ -503,6 +503,10 @@ export function tarifa(data, e, j, a, b) {
   }
   return t;
 }
+// Jambiyas escondidas, carta por carta (Jorge, 19 de noviembre): con dos jambiyas, esconder una no esconde la otra. Las partidas viejas
+// guardaban un solo interruptor por jugador (extra.jambiyaOculta): vale para las cartas que aún no tienen el suyo.
+export const jambiyaEscondida = (j, c) => c.tipo === 'item' && c.ref === 'jambiya' && (c.extra?.oculta ?? !!j.extra?.jambiyaOculta);
+export const jambiyaALaMano = (j) => j.mano.some((c) => c.tipo === 'item' && c.ref === 'jambiya' && !jambiyaEscondida(j, c));
 export const esLibro = (c) => c.tipo === 'item' && (c.ref === 'libro' || c.ref === 'papiro' || c.ref === 'libroIbnHazm');
 export function valorLibro(data, e, c) { return (c.extra?.valor ?? 0) + 2 * Math.max(0, e.ronda - (c.extra?.ronda ?? e.ronda)); }
 // Jorge (19 de noviembre): el vino gana 2 dinares por ronda (antes 6).

@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -759,8 +759,13 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'responderCC': return responderCC(data, e, pid, a);
     case 'jambiya': {
       if (!tieneItem(j, 'jambiya')) return err('No tienes jambiya.');
-      j.extra.jambiyaOculta = !!a.ocultar;
-      log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} su jambiya.`, { pid });
+      const js = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'jambiya');
+      for (const c of js) c.extra = { ...(c.extra || {}), oculta: jambiyaEscondida(j, c) };   // cada jambiya guarda su propio estado
+      delete j.extra.jambiyaOculta;
+      const objetivo = a.uid ? js.filter((c) => c.uid === a.uid) : js;
+      if (!objetivo.length) return err('No tienes esa jambiya.');
+      for (const c of objetivo) c.extra.oculta = !!a.ocultar;
+      log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} ${objetivo.length > 1 ? 'sus jambiyas' : 'una jambiya'}.`, { pid });
       return ok();
     }
     case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
@@ -1433,7 +1438,7 @@ function datosMano(data, e, c) {
 // Pública = lo que la mesa vio entrar a su mano (marca «pub»: compras, premios, armas de inicio…); no lo que llegó por un trato o un robo, ni el mapa
 // del escondite, ni la jambiya escondida.
 export const CIUDADES_CHAT = ['Bagdad', 'Damasco', 'Aleppo', 'Basra', 'Estambul', 'Yemen', 'El Cairo', 'Isfahán', 'Samarcanda', 'India', 'Magreb', 'Andalucía'];
-const esPublica = (j, c) => !!c.pub && !c.priv && !(c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') && !(c.tipo === 'item' && c.ref === 'jambiya' && j.extra?.jambiyaOculta);
+const esPublica = (j, c) => !!c.pub && !c.priv && !(c.tipo === 'item' && c.ref === 'mapa' && c.extra?.tesoro === 'jugador') && !jambiyaEscondida(j, c);
 const tituloCarta = (data, e, c) => datosMano(data, e, c)?.titulo || c.ref;
 // Respuestas a «Quiero venderte» (Jorge, 7 de noviembre): sarcástica, sincera o interesada.
 export const RESPUESTAS_VENTA = { sarcastica: '¡Qué bueno! Bien por ti.', sincera: '¿Necesitas ayuda?', interesada: 'Sí, pero lleva buena morralla.' };
@@ -1495,10 +1500,10 @@ export function vista(data, e, pid) {
     miMano: yo ? yo.mano.map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) })) : [],
     sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
     espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
-    noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo?.extra?.jambiyaOculta,
+    noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo && tieneItem(yo, 'jambiya') && !jambiyaALaMano(yo),
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, puedeVolver: puedeVolver(e) && (esHost(e, pid) || (e.ganadores || []).includes(pid)), trasFin: !!e.trasFin, puedoGanarYa: puedeGanarYa(data, e, pid), victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
-    mano: yo ? yo.mano.map((c) => ({ ...c, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [yo.perdido && c.tipo !== 'especial' ? OBJ.MSJ_PERDIDO_VENDER : OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
+    mano: yo ? yo.mano.map((c) => ({ ...c, oculta: jambiyaEscondida(yo, c) || undefined, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [yo.perdido && c.tipo !== 'especial' ? OBJ.MSJ_PERDIDO_VENDER : OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),
     misiones: yo ? RET.misionesVista(data, e, pid) : [], retosHechos: yo ? yo.retosHechos : [], encargo: yo?.extra?.encargoAsesinos ? { tipo: yo.extra.encargoAsesinos.tipo, ciudad: yo.extra.encargoAsesinos.ciudad, hasta: yo.extra.encargoAsesinos.hasta } : null,
     mensajes: yo ? yo.mensajes.map((m) => ({ ...m, carta: cartaDatos(data, 'mensaje', m.id) })) : [],
