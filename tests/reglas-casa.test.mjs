@@ -1580,9 +1580,9 @@ for (let k = 0; k < 6; k++) {
   // R38 «Dados en la taberna»: buscar una semilla en la que la casa gane y otra en la que gane el jugador
   let perdio = null, gano = null;
   for (let s = 1; s < 400 && (!perdio || !gano); s++) {
-    const { g, e, a, A } = preparar(); e.semilla = s; const d0 = A.dinares;
+    const { g, e, a, A } = preparar(); e.semilla = s; A.mano = A.mano.filter((c) => c.ref !== 'camello'); const d0 = A.dinares;
     assert.ok(g.act(a, { t: 'reto', id: 'R38' }).ok);
-    if (A.dinares < d0 && !perdio) perdio = { g, e, a, A }; else if (A.dinares > d0 && !gano) gano = { g, e, a, A };
+    if (A.dinares < d0 && !perdio) perdio = { g, e, a, A }; else if (A.mano.filter((c) => c.ref === 'camello').length > 0 && A.dinares === d0 && !gano) gano = { g, e, a, A };   // ganar ya da un camello (Jorge, 19 de noviembre)
   }
   assert.ok(perdio && gano, 'hay semillas para ganar y perder');
   {
@@ -4935,4 +4935,15 @@ console.log('reglas de la casa OK');
   assert.ok(!tieneObj(A, 'OB01'), 'se gasta'); assert.equal(e.stock.OB01 || 0, st, 'no vuelve al mercado');
   A.mano.push({ uid: 'daga2', tipo: 'objeto', ref: 'OB01' });
   bonos(data, e, a, perfil(data, e, a), 'atk', null, { duelo: true }); assert.ok(tieneObj(A, 'OB01'), 'en duelo ni cuenta ni se gasta');
+}
+// Jorge (19 de noviembre): R37 con 6 da un caballo nuevo; R38 ganado da un camello nuevo
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano = A.mano.filter((c) => !['caballo', 'camello'].includes(c.ref));
+  turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; A.dinares = 50; e.turno.fase = 'acciones'; forzar(e, 6);
+  assert.ok(g.act(a, { t: 'reto', id: 'R37' }).ok); assert.ok(tieneItem(A, 'caballo'), 'R37 con 6: caballo'); assert.equal(A.dinares, 40, 'sin los 60 dinares');
+  turnoDe(e, a, 'Yemen'); A.ciudad = 'Yemen'; e.turno.fase = 'acciones'; forzar(e, 6, 6, 1, 1);
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'reto', id: 'R38' }).ok);
+  assert.ok(tieneItem(A, 'camello'), 'R38 ganado: camello'); assert.equal(A.dinares, d0, 'recupera su apuesta, sin los 30');
 }

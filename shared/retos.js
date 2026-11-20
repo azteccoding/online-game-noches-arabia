@@ -788,7 +788,7 @@ T.R37 = { ciudad: 'El Cairo', req: (data, e, pid) => { const j = e.jugadores[pid
   const [x0] = ctx.t(`${j.nombre}: la boda`, 1); const x = x0 + (aplic(data, e, pid, us, 'OB21') ? 1 : 0);
   if (x <= 2) { j.extra.sinPrincipal = true; ctx.say('Se te sube el vino: perderás tu próxima acción principal.'); }
   else if (x <= 5) { premio(data, e, pid, { dinares: 30 }, 'Contactos útiles:'); HOOK.robarCC(data, e, pid, 'El Cairo'); }
-  else premio(data, e, pid, { dinares: 60 }, 'Un socio generoso:');
+  else { darTransporte(data, e, pid, 'caballo'); ctx.say('Un socio generoso te regala un caballo nuevo.'); }   // Jorge (19 de noviembre): un caballo en vez de 60 dinares
 } };
 T.R38 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Apuesta mínima: 10 dinares.'), run(data, e, pid, ctx, us) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R38');
@@ -798,7 +798,7 @@ T.R38 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ?
     if (cargados) { if (s === 2) { pagar(data, e, pid, 10); ctx.say('Te descubren con los dados cargados: pierdes el objeto y pagas 10 dinares.'); ctx.fallo = true; return; } s = 9; }
     const h = ctx.t('La casa', 2); const sh = suma(h);
     if (s === sh) { ctx.say('Empate: se repite.'); ctx.grupos.length = 0; continue; }
-    if (s > sh) premio(data, e, pid, { dinares: 30 }, `${j.nombre} gana la apuesta:`); else { j.dinares -= 10; ctx.say('La casa gana: pierdes los 10 dinares.'); ctx.fallo = true; }
+    if (s > sh) { darTransporte(data, e, pid, 'camello'); ctx.say('Ganas la apuesta: recuperas tus 10 dinares y te llevas un camello nuevo.'); log(e, `${j.nombre} gana la apuesta en la taberna y se lleva un camello.`, { pid }); } else { j.dinares -= 10; ctx.say('La casa gana: pierdes los 10 dinares.'); ctx.fallo = true; }   // Jorge (19 de noviembre): un camello en vez de 30 dinares
     return;
   }
 } };
