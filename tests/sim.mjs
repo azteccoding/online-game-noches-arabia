@@ -218,7 +218,9 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
           if (z.mano.some((c) => c.tipo === 'item' && c.ref === 'jambiya' && !jambiyaEscondida(z, c)) && act(pid, { t: 'jambiya', ocultar: true }).ok) cuenta(stats.acciones, 'fortaleza:Zubayda esconde la jambiya');
           const haren = ac.find((x) => x.k === 'pj' && x.sub === 'haren' && !x.bloqueado);
           const vuelta = (d) => data.rutas.tarifas[`${d}>Bagdad`];
-          if (z.ciudad === 'Bagdad' && !t.tramos && !t.principal) {
+          const palacio = z.extra.viajePalacio && !t.tramos ? ac.filter((x) => x.k === 'viajar' && ['Yemen', 'El Cairo', 'Damasco'].includes(x.destino) && !x.precio) : [];
+          if (palacio.length) { zubElegida = palacio[Math.floor(R() * palacio.length)]; cuenta(stats.acciones, 'fortaleza:Zubayda usa su viaje gratis a los palacios'); }   // Jorge (20 de noviembre)
+          else if (z.ciudad === 'Bagdad' && !t.tramos && !t.principal) {
             // Solo cuando conviene (Jorge, 20 de noviembre): noches ya multiplicadas (×2 o más), que la ciudad dé al menos 10 noches
             // con el multiplicador y que tras pagar ida y vuelta le queden al menos 10 dinares. Si no, harén directo, como siempre.
             const mult = multiplicadorRonda(data, e.ronda, Object.values(e.jugadores).filter((x) => !x.eliminado).length);

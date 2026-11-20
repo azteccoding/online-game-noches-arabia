@@ -95,8 +95,13 @@ export function unirTarde(e, { nombre: nom, token }) {
 // Jorge (19 de noviembre): Zein empieza con 15 dinares más: su mahr (dote), que le da su esposo. Sale una carta y los dinares
 // llegan al cerrarla (como las cartas de cuentos; si no la cierra, a los 90 segundos).
 export const MAHR = 15;
+const palacioGratis = (j, d) => !!j.extra?.viajePalacio && j.turnos <= PJ.PALACIOS.turnos && PJ.PALACIOS.ciudades.includes(d);
 function inicioExtra(e, j, p) {
   if (p.mahr) { const ent = publicarCarta(e, { id: 'mahr', deck: 'especial', titulo: 'Mahr', sub: 'Dote de Zein', texto: `Tu esposo te entrega tu mahr (dote): +${p.mahr} dinares.`, arte: 'es' }, j.id, [j.id]); j.extra.mahrPend = { monto: p.mahr, nro: ent.nro, t: e.ahora }; }
+  if (j.pj === '6' && !j.npc) {   // Zubayda: viaje gratis a los palacios de los primos del Califa (Jorge, 20 de noviembre)
+    j.extra.viajePalacio = true;
+    publicarCarta(e, { id: 'palacio', deck: 'especial', titulo: 'Los palacios del Califa', sub: 'Zubayda', texto: `El Califa tiene palacios para sus primos en ${PJ.PALACIOS.ciudades.join(', ').replace(/, ([^,]*)$/, ' y $1')} y te manda como entretenimiento nocturno: en tus dos primeros turnos puedes viajar gratis a una de esas ciudades (un solo viaje). Si no lo usas, se pierde.`, arte: 'es' }, j.id, [j.id]);
+  }
   if (p.destrezaJambiyaInicio) j.extra.destrezaJambiya = true;   // Zein empieza con destreza en la jambiya (Jorge, 19 de noviembre)
   if (p.idiomasInicio?.length) j.extra.idiomas = [...new Set([...(j.extra.idiomas || []), ...p.idiomasInicio])];
   for (const ref of p.objetosInicio || []) j.mano.push({ uid: uid(e), tipo: 'objeto', ref, pub: true });
@@ -402,6 +407,7 @@ function iniciarTurno(data, e, id, idx) {
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
+  if (j.extra.viajePalacio && j.turnos > PJ.PALACIOS.turnos) { j.extra.viajePalacio = false; log(e, `${j.nombre} ya no usó su viaje gratis a los palacios del Califa: se pierde.`, { pid: id }); }
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
   // Regla de Jorge (punto 1, solo Yafar NPC): llega ebrio a su primer turno y lo termina sin hacer nada.
   if (j.pj === 'B' && j.npc && primerTurno) { t.fase = 'mov'; t.principal = true; t.fin = true; t.ebrio = true; log(e, `${j.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`, { pid: id, aviso: true }); return; }
@@ -967,7 +973,9 @@ export function viajar(data, e, pid, a) {
   if ((j.pj === '4' && origen === 'El Cairo' && destino === 'Bagdad') || (j.pj === '5' && origen === 'Bagdad' && destino === 'El Cairo')) { precio = 0; gratis = true; }   // R 10.5, 10.6
   if (a.gratisPrimerVisitante && j.extra.viajeGratisBagdad) precio = 0;
   if (j.extra.viajeZein && precio > 0) { precio = 0; gratis = true; j.extra.usaViajeZein = true; }               // Zein en apuros: un tramo gratis
-  const args = { destino, precio, servicios: false, hilo: false };
+  let palacio = false;
+  if (palacioGratis(j, destino) && precio > 0) { precio = 0; gratis = true; palacio = true; }                       // Zubayda: palacios del Califa
+  const args = { destino, precio, servicios: false, hilo: false, palacio };
   const conDadiva = precio > 0 && tieneItem(j, 'dadivaEmir');   // Dádiva del Emir: paga este pasaje
   // Jorge (19 de noviembre): Zubayda ya no paga cualquier caravana con servicios («es demasiada ventaja»): paga como todos.
   {
@@ -990,6 +998,7 @@ export function partir(data, e, pid, args) {
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
   if (args.califa) { j.extra.viajeCalifa = false; }
   if (args.dadiva) { quitarPrimero(j, 'item', 'dadivaEmir'); log(e, `${j.nombre} paga su pasaje con la Dádiva del Emir.`, { pid }); }
+  if (args.palacio) { j.extra.viajePalacio = false; log(e, `${j.nombre} viaja gratis a ${destino}: el Califa la manda como entretenimiento nocturno a los palacios de sus primos.`, { pid }); }
   if (j.extra.usaViajeZein) { j.extra.viajeZein = false; j.extra.usaViajeZein = false; log(e, `${j.nombre} viaja gratis con lo que sacó de sus alhajas.`, { pid }); }
   t.tramos++; t.movio = true;
   const key = origen + '>' + destino;
@@ -1426,7 +1435,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);

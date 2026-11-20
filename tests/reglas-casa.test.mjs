@@ -3907,12 +3907,12 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(adi, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
   assert.equal(A.noches, 3 - 10, 'la sátira le deja 3 − 10 = −7 noches');
 }
-// Jorge (20 de noviembre): el harén del Califa da 14 dinares (antes 16).
+// Jorge (20 de noviembre): el harén del Califa da 13 dinares (antes 16).
 {
   const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; Z.dinares = 0;
-  assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+14 dinares/.test(x.titulo)), 'el botón dice +14');
-  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 14); assert.ok(e.log.some((l) => /gana 14 dinares y queda bajo su techo/.test(l.texto)));
+  assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+13 dinares/.test(x.titulo)), 'el botón dice +13');
+  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 13); assert.ok(e.log.some((l) => /gana 13 dinares y queda bajo su techo/.test(l.texto)));
 }
 // Jorge (19 de noviembre): «dormir con el Califa consume tu acción principal; si ya hiciste otra acción ya no puedes».
 {
@@ -3943,7 +3943,7 @@ console.log('reglas de la casa OK');
   const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [z] = g.ids, Z = e.jugadores[z]; assert.equal(Z.ciudad, 'Bagdad');
   turnoDe(e, z, 'Bagdad'); e.turno.fase = 'mov'; Z.turnos = 1; Z.dinares = 50;
-  const v = vistaDe(e, z).acciones.filter((x) => x.k === 'viajar'); assert.ok(v.length && v.every((x) => x.precio > 0), 'sus destinos cobran');
+  const v = vistaDe(e, z).acciones.filter((x) => x.k === 'viajar' && !['Yemen', 'El Cairo', 'Damasco'].includes(x.destino)); assert.ok(v.length && v.every((x) => x.precio > 0), 'sus destinos cobran (menos los palacios del Califa: Jorge, 20 de noviembre)');
   const d0 = Z.dinares, r = g.act(z, { t: 'viajar', destino: v[0].destino }); assert.ok(r.ok, r.error); assert.ok(Z.dinares < d0, 'paga la caravana');
   assert.ok(!e.log.some((l) => /servicios nocturnos|camellero se cansó/.test(l.texto || '')), 'sin viaje gratis ni aviso del camellero');
 }
@@ -5036,4 +5036,19 @@ console.log('reglas de la casa OK');
   assert.ok(!['lampara', 'amate', 'buza'].some((r) => tieneItem(B, r)));
   B.turnos++; const { turnoEstudio } = await import('../shared/retos.js'); turnoEstudio(data, e, b);
   assert.ok((B.extra.idiomas || []).includes('persa'), 'ya habla persa');
+}
+// Jorge (20 de noviembre): Zubayda, en sus dos primeros turnos, viaja gratis una vez a Yemen, El Cairo o Damasco (palacios del Califa); luego se pierde
+{
+  const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [z] = g.ids, Z = e.jugadores[z];
+  assert.ok(Z.extra.viajePalacio, 'empieza con el viaje'); assert.ok(e.historial.some((h) => h.id === 'palacio' && /entretenimiento nocturno/.test(h.texto)));
+  turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; Z.turnos = 1; e.turno.fase = 'mov'; Z.dinares = 0;
+  const v = vistaDe(e, z); assert.equal(v.acciones.find((x) => x.k === 'viajar' && x.destino === 'Damasco')?.precio, 0, 'Damasco gratis');
+  assert.ok((v.acciones.find((x) => x.k === 'viajar' && x.destino === 'Basra')?.precio || 0) > 0, 'Basra se paga');
+  const r = g.act(z, { t: 'viajar', destino: 'Damasco' }); assert.ok(r.ok, r.error); assert.equal(Z.ciudad, 'Damasco'); assert.equal(Z.dinares, 0); assert.ok(!Z.extra.viajePalacio, 'se gasta');
+  // si no lo usa en sus dos primeros turnos, se pierde
+  const h = partida(['6', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
+  const W = h.e.jugadores[h.ids[0]]; W.turnos = 2; W.extra.jugoTurno = true; W.ciudad = 'Bagdad';
+  const { siguienteTurno } = await import('../shared/engine.js').catch(() => ({}));
+  W.turnos = 3; assert.ok(!(W.extra.viajePalacio && W.turnos <= 2), 'pasados dos turnos ya no vale');
 }
