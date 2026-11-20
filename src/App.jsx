@@ -71,7 +71,7 @@ function Juego({ lienzo }) {
   // Cuando salen dados se cierran los paneles abiertos (Acciones, Mercado, Mano…) para que se vea la tirada.
   // Jorge (19 de noviembre): los dados de un reto ajeno no se le muestran a los demás, así que tampoco les cierran el mercado ni otro panel.
   // Igual con el dado de ingreso de otro jugador: queda en el registro y, solo si lo acierta, sale un anuncio gris.
-  const dadosAjenos = !!s?.dados && s.dados.por !== s.yo && (String(s.dados.motivo || '').startsWith('reto:') || s.dados.motivo === 'ingreso');
+  const dadosAjenos = !!s?.dados && s.dados.por !== s.yo && (String(s.dados.motivo || '').startsWith('reto:') || (s.dados.motivo === 'ingreso' || s.dados.motivo === 'tumba'));
   const idDados = dadosAjenos ? null : s?.dados?.id;
   useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
   // Resultado de los retos ajenos: alerta verde (lo logró) o gris (no lo logró / en curso), que se queda hasta tocarla.

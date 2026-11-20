@@ -768,6 +768,51 @@
    "refReglamento": "14.7",
    "añadido": true,
    "arte": "re"
+  },
+  {
+   "id": "R57",
+   "nombre": "Visitar la tumba de Ibn Arabí",
+   "ciudad": "Damasco",
+   "tipo": "A",
+   "requisito": "",
+   "resolucion": "Gasta tu turno.",
+   "premio": "1 noche y un dado extra al inicio de tu siguiente turno para intentar de nuevo obtener un 6 (no importa de quién sea la carta ni qué tumba hayas visitado).",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
+  },
+  {
+   "id": "R58",
+   "nombre": "Visitar la tumba de Ibn Hazm",
+   "ciudad": "Andalucía",
+   "tipo": "A",
+   "requisito": "",
+   "resolucion": "Gasta tu turno.",
+   "premio": "1 noche y un dado extra al inicio de tu siguiente turno para intentar de nuevo obtener un 6 (no importa de quién sea la carta ni qué tumba hayas visitado).",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
+  },
+  {
+   "id": "R59",
+   "nombre": "Visitar la tumba de Abu Madyan",
+   "ciudad": "Magreb",
+   "tipo": "A",
+   "requisito": "",
+   "resolucion": "Gasta tu turno.",
+   "premio": "1 noche y un dado extra al inicio de tu siguiente turno para intentar de nuevo obtener un 6 (no importa de quién sea la carta ni qué tumba hayas visitado).",
+   "riesgo": "",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
   }
  ]
 }

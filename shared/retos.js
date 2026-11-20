@@ -987,6 +987,28 @@ function combateR54(e, pid, ctx, arma) {
   else ctx.say(`${y}: terminas tu servicio; el siguiente turno estás libre.`);
   log(e, `${j.nombre} combate a los húngaros con el ejército del sultán otomano.`, { pid });
 }
+// Tumbas de los maestros (Jorge, 19 de noviembre): R57 Ibn Arabí en Damasco, R58 Ibn Hazm en Andalucía y R59 Abu Madyan en el Magreb.
+// Sin requisitos, sin dado y sin costo. Visitar una gasta tu turno y solo ganas 1 noche, pero te da un dado extra al inicio del turno para
+// intentar de nuevo obtener un 6 en el ingreso; el Mensaje que llegue puede ser de cualquier sheij, sin importar la tumba (engine.tirarDados).
+// Jorge (19 de noviembre, más tarde): cada tumba deja UN dado extra, que se aplica solo al inicio de tu siguiente turno: si tu dado de
+// ingreso saca 6, los dados extra se pierden; si no, los lanzas (cada uno con su botón) de uno en uno y, en cuanto uno saca 6, los demás
+// se pierden. Después de ese ingreso no queda ninguno. Se pueden repetir, pero no la misma tumba mientras su dado siga pendiente; tumbas
+// diferentes se acumulan (máximo 3, uno por tumba), aunque como cada visita termina el turno, en la práctica no se llega a tener más de uno.
+export const TUMBAS = { R57: 'Damasco', R58: 'Andalucía', R59: 'Magreb' };
+export const TUMBA = { noches: 1 };
+export const MSJ_TUMBA_PENDIENTE = 'Aún no usas el dado extra de esta tumba.';
+export const dadosTumba = (j) => Object.entries(j?.extra?.tumbas || {}).filter(([, desde]) => j.turnos > desde).map(([id]) => id);
+for (const [id, ciudad] of Object.entries(TUMBAS)) {
+  T[id] = { ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no visita tumbas.' : j.extra?.tumbas?.[id] != null ? MSJ_TUMBA_PENDIENTE : null; },
+    run(data, e, pid, ctx) {
+      const j = e.jugadores[pid];
+      j.noches += TUMBA.noches;
+      (j.extra.tumbas ||= {})[id] = j.turnos;   // su dado extra, desde tu siguiente turno
+      if (e.turno?.pid === pid) e.turno.fin = true;   // gasta tu turno
+      ctx.resultado = 'logro';
+      ctx.say(`${m1(data, id).nombre}: ganas ${TUMBA.noches} noche. Desde tu siguiente turno, si tu dado de ingreso no saca 6, tienes un dado extra para intentarlo de nuevo.`);
+    } };
+}
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {
   T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),

@@ -84,7 +84,7 @@ export default function Dados({ s }) {
   // Jorge (19 de noviembre): orden estricto carta → dados → decisión. Los dados ya no esperan detrás de tu decisión (en R23 elegías
   // ante los bandoleros sin haber lanzado el dado); la decisión espera a que se cierren los dados (Decision.jsx).
   if (esperaCarta) return null;                                         // primero se lee la carta que explica la tirada
-  if (d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso')) return null;   // reto o dado de ingreso ajeno: los demás solo ven el registro y, si acaso, la alerta (Jorge, 19 de noviembre)
+  if (d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba')) return null;   // reto o dado de ingreso ajeno: los demás solo ven el registro y, si acaso, la alerta (Jorge, 19 de noviembre)
   if (!d.lanzado) {
     const mio = d.por === s.yo;
     return (
@@ -104,7 +104,7 @@ export default function Dados({ s }) {
     );
   }
   const total = d.valores.reduce((a2, b) => a2 + b, 0);
-  const MOTIVOS = { ingreso: 'dado de ingreso', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas', defensa: 'arco y escudo' };
+  const MOTIVOS = { ingreso: 'dado de ingreso', tumba: 'dado extra de la tumba', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas', defensa: 'arco y escudo' };
   const motivo = d.npc || d.motivo.startsWith('npc:') ? `NPC ${d.motivo.startsWith('npc:') ? d.motivo.slice(4) : ''}`.trim() : MOTIVOS[d.motivo] || d.motivo;
   const grupos = d.grupos?.length ? d.grupos : [{ etq: '', valores: d.valores }];
   return (

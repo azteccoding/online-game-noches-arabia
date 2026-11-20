@@ -847,16 +847,34 @@ function tirarDados(data, e, pid, a) {
   const d = mostrarDados(e, { por: pid, motivo: 'ingreso', grupos: [{ etq: `${j.nombre}: dado de ingreso`, valores: [v] }], resumen: [] });
   log(e, `${j.nombre} tira el dado de ingreso: ${v}.`, { pid });
   t.fase = 'mov';
-  const tenia = j.mensajes.length;
-  if (v === data.config.minimoMensajeDado) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
+  const tenia = j.mensajes.length, seis = data.config.minimoMensajeDado;
+  if (v === seis) darMensaje(data, e, pid);                                                // R 6.2 y 18.2
   // Aviso en el resultado del dado: verde si llega una carta de sheij, rojo si no (y por qué, cuando salió el 6).
-  const recibe = j.mensajes.length > tenia;
-  d.sheij = { ok: recibe, texto: recibe ? '¡Hay carta de sheij! Recibes un Mensaje.'
-    : v !== data.config.minimoMensajeDado ? `No hay carta de sheij (hace falta un ${data.config.minimoMensajeDado}).`
-      : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' };
+  const avisoSheij = (x, llega) => ({ ok: llega, texto: llega ? '¡Hay carta de sheij! Recibes un Mensaje.'
+    : x !== seis ? `No hay carta de sheij (hace falta un ${seis}).`
+      : !e.mazos.mensajes.length ? 'No hay carta de sheij: ya salieron todos los Mensajes.' : 'No hay carta de sheij: ya salió uno esta ronda.' });
+  let recibe = j.mensajes.length > tenia, porTumba = false;
+  d.sheij = avisoSheij(v, recibe);
+  // Tumbas (R57 a R59, Jorge, 19 de noviembre): si no sacaste 6, un dado extra (con su botón) para intentarlo de nuevo.
+  const pendientes = RET.dadosTumba(j), extras = v !== seis ? pendientes : [];
+  for (const id of pendientes) delete j.extra.tumbas[id];   // Jorge: con 6 en el ingreso se pierden; si no, se lanzan y los que sobren tras un 6 se pierden
+  if (v === seis && pendientes.length) log(e, `${j.nombre} saca 6 en el ingreso: ${pendientes.length === 1 ? 'su dado extra de la tumba se pierde' : 'sus dados extra de las tumbas se pierden'}.`, { pid });
+  if (extras.length) {
+    d.sheij = { ok: false, texto: `No sale ${seis}: ${extras.length === 1 ? 'tienes un dado extra' : `tienes ${extras.length} dados extra`} por tus visitas a las tumbas.` };
+    for (const id of extras) {   // de uno en uno hasta que salga un 6; los que quedan se pierden
+      const w = dado(e), nom = data.retos.retos.find((r) => r.id === id)?.nombre || id;
+      const d2 = mostrarDados(e, { por: pid, motivo: 'tumba', grupos: [{ etq: `${j.nombre}: dado extra (${nom.replace(/^Visitar /, '')})`, valores: [w] }], resumen: [] });
+      log(e, `${j.nombre} tira su dado extra (${nom.replace(/^Visitar /, '')}): ${w}.`, { pid });
+      const t2 = j.mensajes.length;
+      if (w === seis) darMensaje(data, e, pid);
+      recibe = j.mensajes.length > t2; porTumba = recibe;
+      d2.sheij = avisoSheij(w, recibe);
+      if (w === seis) break;
+    }
+  }
   // Jorge (19 de noviembre): el dado de ingreso ajeno no se ve; queda en el registro y, solo si lo acierta (le llega un Mensaje), los demás
   // reciben un anuncio gris que se quita al tocarlo.
-  if (recibe) RET.anunciar(e, pid, `${j.nombre} acertó su dado de ingreso (${v}): recibe un Mensaje de un sheij.`, 'gris');
+  if (recibe) RET.anunciar(e, pid, porTumba ? `${j.nombre} acertó su dado extra de la tumba (6): recibe un Mensaje de un sheij.` : `${j.nombre} acertó su dado de ingreso (${v}): recibe un Mensaje de un sheij.`, 'gris');
   return ok();
 }
 function tirarDadosLibres(e, pid, a) {

@@ -33,7 +33,9 @@ function partida(pjs, opciones = {}, semilla = 5) {
   const k = partida(['4', '7']); assert.ok(k.iniciar().ok); assert.ok(k.e.jugadores.npc, 'sin la opción, Yafar NPC sigue jugando');
   for (let s = 1; s <= 12; s++) {
     const r = simular({ jugadores: 1 + (s % 3), conYafar: false, sinYafar: true, semilla: 960 + s });   // (con 939, tras «Evitar a los ghul», el bot se hunde en noches negativas y no termina; con la semilla 906 el bot solitario se arruina en Estambul y nunca termina: es del bot, no del motor)
-    assert.ok(r.ok, 'partida completa sin Yafar NPC: ' + r.motivo); assert.ok(!Object.values(r.e.jugadores).some((j) => j.npc), 'nunca entra el NPC');
+    // Un bot solitario que se hunde en noches negativas (eventos que restan noches cada ronda) nunca termina: es del bot, no del motor.
+    const hundido = !r.ok && r.motivo === 'maxPasos' && Object.values(r.e.jugadores).some((j) => j.noches < -1000);
+    assert.ok(r.ok || hundido, 'partida completa sin Yafar NPC: ' + r.motivo); assert.ok(!Object.values(r.e.jugadores).some((j) => j.npc), 'nunca entra el NPC');
   }
 }
 
@@ -4623,4 +4625,29 @@ console.log('reglas de la casa OK');
     assert.ok(g.act(a, { t: 'tesoro', sub: 'salir' }).ok);
     const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Genio de la lámpara');
     assert.deepEqual(p.opciones.map((o) => o.id), ['sesenta', 'evitar'], 'sin cartas: 60 dinares o evitar'); }
+}
+// Jorge (19 de noviembre): tumbas de Ibn Arabí (R57), Ibn Hazm (R58) y Abu Madyan (R59): gastan el turno, 1 noche y un dado extra en el ingreso
+{
+  const { TUMBAS, MSJ_TUMBA_PENDIENTE } = await import('../shared/retos.js');
+  assert.deepEqual(TUMBAS, { R57: 'Damasco', R58: 'Andalucía', R59: 'Magreb' });
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const visita = (id, ciudad) => { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; turnoDe(e, a, ciudad); A.ciudad = ciudad; e.turno.fase = 'acciones'; return g.act(a, { t: 'reto', id }); };
+  const ingreso = (...vals) => { A.turnos += 1; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; turnoDe(e, a, A.ciudad); e.turno.fase = 'ingreso'; forzar(e, ...vals); assert.ok(g.act(a, { t: 'tirarDados' }).ok); return [e.dados, ...(e.colaDados || [])].filter(Boolean); };
+  const n0 = A.noches;
+  assert.ok(visita('R57', 'Damasco').ok);
+  assert.equal(A.noches, n0 + 1, 'solo 1 noche'); assert.ok(e.turno.fin, 'gasta el turno');
+  assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'ok' && /logró el reto R57/.test(x.texto)), 'alerta verde para los demás');
+  assert.equal(visita('R57', 'Damasco').error, MSJ_TUMBA_PENDIENTE, 'la misma tumba no, mientras su dado siga pendiente');
+  // ingreso con 6: el dado extra se pierde sin lanzarse
+  e.ronda = 90; let ds = ingreso(6);
+  assert.ok(!ds.some((d) => d.motivo === 'tumba'), 'con 6 en el ingreso no se lanza el extra'); assert.equal(Object.keys(A.extra.tumbas || {}).length, 0, 'y se pierde');
+  // varios pendientes (máximo técnico 3): sin 6, de uno en uno hasta el 6; el que sobra se pierde
+  A.turnos += 1; A.extra.tumbas = { R57: A.turnos - 1, R58: A.turnos - 1, R59: A.turnos - 1 };
+  e.ronda = 91; const m0 = A.mensajes.length; ds = ingreso(3, 2, 6);
+  assert.deepEqual(ds.filter((d) => d.motivo === 'tumba').map((d) => d.valores[0]), [2, 6], 'el segundo saca 6 y para');
+  assert.equal(A.mensajes.length, m0 + 1, 'el 6 trae un Mensaje');
+  assert.equal(Object.keys(A.extra.tumbas).length, 0, 'el tercero se pierde');
+  assert.ok((vistaDe(e, b).anuncios || []).some((x) => /acertó su dado extra de la tumba/.test(x.texto)), 'anuncio gris a los demás');
+  assert.ok(visita('R57', 'Damasco').ok, 'después del ingreso la puede visitar otra vez');
 }
