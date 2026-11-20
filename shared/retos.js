@@ -334,7 +334,7 @@ export const R1_PREMIO = { dinares: 35, noches: 25 };
 registrar('r1.animal', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid]; if (!j || j.eliminado) return;
   const ref = resp.opcion === 'camello' ? 'camello' : 'caballo';
-  const c = darTransporte(data, e, pid, ref); if (c) c.extra = { ...(c.extra || {}), reto: 'R1' };   // al morir, se reactiva R1 (no R5)
+  darTransporte(data, e, pid, ref);   // al morir no se reactiva R1 (Jorge, 20 de noviembre)
 });
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
@@ -457,6 +457,7 @@ T.R9 = { ciudad: 'El Cairo', req: (data, e, pid) => (e.jugadores[pid].dinares >=
     pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Saqueadores', texto: 'Pelea (2 dados cada uno) o paga 15 dinares.', opciones: [{ id: 'pelear', texto: 'Pelear' }, { id: 'pagar', texto: 'Pagar 15 dinares' }], porDefecto: 'pagar', cont: { fn: 'r9.saqueo', args: {} } });
   } else {
     ctx.resultado = 'logro'; premio(data, e, pid, { dinares: 25 }, `${j.nombre} encuentra un cofre en las pirámides:`);
+    if (x === 5) { darItem(e, j, 'pergamino'); ctx.say('Además del cofre encuentras un pergamino antiguo: en Damasco te pagan 30 dinares por él.'); }   // Jorge (20 de noviembre)
     if (x === 6) pedir(e, { tipo: 'reto', para: [pid], titulo: 'R9 · Mapa de tesoro', texto: 'Hallas un mapa. ¿Qué tesoro?', opciones: [{ id: 'persia', texto: 'Persia (Isfahán)' }, { id: 'ruman', texto: 'Rumán (Estambul)' }, { id: 'mansa', texto: 'Mansa Musa (Magreb)' }], porDefecto: 'persia', cont: { fn: 'r9.mapa', args: {} } });
   }
 } };
@@ -481,7 +482,7 @@ function sindbadFin(data, e, pid, ctx) { const j = e.jugadores[pid]; j.ciudad = 
 T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
   // Regla de la casa (noviembre de 2026): las noches de Sindbad no se multiplican por ronda; al naufragar no hay dinares pero se ganan 30 noches por la historia vivida.
-  if (suma(v) >= 6) { premio(data, e, pid, { dinares: 100, noches: 50 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos: +100 dinares y +50 noches.'); }
+  if (suma(v) >= 6) { premio(data, e, pid, { dinares: 80 }, 'El viaje sale bien:'); ctx.say('Viaje sin tropiezos: +80 dinares.'); }   // Jorge (20 de noviembre): 80 dinares, sin noches (antes 100 y 50)
   else { ctx.resultado = 'fallo'; premio(data, e, pid, { noches: 30 }, 'Naufragio, pero qué historia:'); j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say('Naufragio: sin dinares, pero +30 noches por la historia vivida; pierdes tu siguiente turno.'); }
   sindbadFin(data, e, pid, ctx); chequeoSindbad(data, e, pid);
 } };
@@ -911,12 +912,22 @@ for (const [id, I] of Object.entries(IDIOMAS)) {
   T[id] = { ciudad: I.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no toma clases.' : hablaIdioma(j, I.idioma) ? `Ya hablas ${I.idioma}.` : j.dinares < 5 ? 'Las clases cuestan 5 dinares: sin dinero no hay trato.' : null; },
     run(data, e, pid, ctx) {
       const j = e.jugadores[pid]; j.dinares -= 5; hacer(e, pid, id);
+      if (MECENAS.retos.includes(id) && conMecenas(e, j)) { j.extra.estudio = { idioma: I.idioma, ciudad: I.ciudad, desde: j.turnos, hasta: j.turnos + 1, mecenas: true }; ctx.say(`Pagas 5 dinares de clases. ${MSJ_MECENAS} En tu siguiente turno ya hablas ${I.idioma}.`); log(e, `${j.nombre} se inscribe a clases de ${I.idioma} en ${I.ciudad} con mecenas: las termina en su siguiente turno.`, { pid }); ctx.resultado = 'curso'; return; }
       const [x] = ctx.t(`${j.nombre}: clases de ${I.idioma} (par, 1 turno; impar, 2)`, 1);
       const n = x % 2 === 0 ? 1 : 2;
       j.extra.estudio = { idioma: I.idioma, ciudad: I.ciudad, desde: j.turnos, hasta: j.turnos + n };
       ctx.say(`Pagas 5 dinares de clases. Te quedas ${n === 1 ? '1 turno' : '2 turnos'} en ${I.ciudad} estudiando ${I.idioma}: no puedes salir y tu acción principal se va en las clases.`);
       log(e, `${j.nombre} se inscribe a clases de ${I.idioma} en ${I.ciudad}: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
     } };
+}
+// Mecenas (Jorge, 20 de noviembre): si al iniciar R47 o R55 llevas Lámpara de aceite, papel amate y cálamo de Kufa, se gastan y se esfuman
+// (no vuelven al mercado), no tiras el dado y el estudio termina al iniciar tu siguiente turno. Pagas el costo normal.
+export const MECENAS = { retos: ['R47', 'R55'], objetos: ['lampara', 'amate', 'buza'] };
+export const MSJ_MECENAS = 'Tuviste mecenas que pagaron tus útiles y estudios: tu lámpara de aceite, tu papel amate y tu cálamo de Kufa se gastan.';
+function conMecenas(e, j) {
+  if (!MECENAS.objetos.every((r) => tieneItem(j, r))) return false;
+  for (const r of MECENAS.objetos) quitarPrimero(j, 'item', r);
+  return true;
 }
 // R55 «Investigar el fuego griego» (Jorge, 19 de noviembre): en Estambul, si ya hablas árabe y persa. Igual que las clases de idiomas:
 // 5 dinares y 1 dado con botón (par, 1 turno; impar, 2), sin salir de Estambul y con la acción principal en el estudio. Al terminar
@@ -926,6 +937,7 @@ T.R55 = { ciudad: POLIMATA.ciudad, req: (d, e, pid) => { const j = e.jugadores[p
     return j.npc ? 'Yafar NPC no toma clases.' : j.extra?.polimata ? 'Ya eres polímata.' : !(hablaIdioma(j, 'árabe') && hablaIdioma(j, 'persa')) ? 'Necesitas hablar árabe y persa (retos R47, en Yemen, y R46, en Isfahán).' : j.dinares < POLIMATA.costo ? `Las clases cuestan ${POLIMATA.costo} dinares: sin dinero no hay trato.` : null; },
   run(data, e, pid, ctx) {
     const j = e.jugadores[pid]; j.dinares -= POLIMATA.costo; hacer(e, pid, 'R55');
+    if (conMecenas(e, j)) { j.extra.estudio = { idioma: 'el fuego griego', ciudad: POLIMATA.ciudad, desde: j.turnos, hasta: j.turnos + 1, polimata: true, mecenas: true }; ctx.say(`Pagas ${POLIMATA.costo} dinares. ${MSJ_MECENAS} En tu siguiente turno terminas de investigar el fuego griego.`); log(e, `${j.nombre} empieza a investigar el fuego griego en Estambul con mecenas: termina en su siguiente turno.`, { pid }); ctx.resultado = 'curso'; return; }
     const [x] = ctx.t(`${j.nombre}: investigar el fuego griego (par, 1 turno; impar, 2)`, 1);
     const n = x % 2 === 0 ? 1 : 2;
     j.extra.estudio = { idioma: 'el fuego griego', ciudad: POLIMATA.ciudad, desde: j.turnos, hasta: j.turnos + n, polimata: true };
@@ -943,6 +955,7 @@ export function turnoEstudio(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, s = j?.extra?.estudio;
   if (!s || !t) return;
   if (j.ciudad !== s.ciudad) { j.extra.estudio = null; return; }   // si un evento lo sacó de la ciudad, pierde las clases
+  if (s.mecenas) { s.hasta = Math.min(s.hasta, j.turnos); finEstudio(data, e, pid); return; }   // con mecenas, el conocimiento llega al iniciar el siguiente turno, sin gastar su acción
   t.principal = true; t.estudiando = true;
   log(e, `${j.nombre} pasa este turno ${s.polimata ? 'investigando el fuego griego' : 'en clases de ' + s.idioma} (${j.turnos - s.desde} de ${s.hasta - s.desde}).`, { pid });
 }
@@ -952,12 +965,12 @@ export function finEstudio(data, e, pid) {
   j.extra.estudio = null;
   if (s.polimata) {   // R55
     j.extra.polimata = true; j.noches += POLIMATA.noches;   // el tope de 1,001 lo aplica topeNoches al cerrar la acción o el tick
-    publicarCarta(e, { id: 'polimata', deck: 'reto', titulo: 'Polímata', sub: 'Habilidad · R55', texto: `Terminaste de investigar el fuego griego: ganas ${POLIMATA.noches} noches y eres polímata. Desde ahora cobras ${POLIMATA.ingreso} dinares más al iniciar tu turno en Bagdad, Estambul, El Cairo o Andalucía.`, arte: 're' }, pid, [pid]);
+    publicarCarta(e, { id: 'polimata', deck: 'reto', titulo: 'Polímata', sub: 'Habilidad · R55', texto: `${s.mecenas ? 'Tuviste mecenas que pagaron tus útiles y estudios. ' : ''}Terminaste de investigar el fuego griego: ganas ${POLIMATA.noches} noches y eres polímata. Desde ahora cobras ${POLIMATA.ingreso} dinares más al iniciar tu turno en Bagdad, Estambul, El Cairo o Andalucía.`, arte: 're' }, pid, [pid]);
     log(e, `${j.nombre} termina de investigar el fuego griego: gana ${POLIMATA.noches} noches y ya es polímata.`, { pid, aviso: true });
     return;
   }
   (j.extra.idiomas ||= []).push(s.idioma);
-  publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
+  publicarCarta(e, { id: 'habla:' + s.idioma, deck: 'reto', titulo: `Habla ${s.idioma}`, sub: 'Habilidad', texto: `${s.mecenas ? 'Tuviste mecenas que pagaron tus útiles y estudios. ' : ''}Terminaste tus clases en ${s.ciudad}: ya hablas ${s.idioma}. Puedes enseñarlo ${s.idioma === 'persa' ? 'en Estambul y en Bagdad' : 'en Andalucía'} por 4 dinares cada noche.`, arte: 're' }, pid, [pid]);
   log(e, `${j.nombre} termina sus clases: ya habla ${s.idioma}.`, { pid, aviso: true });
 }
 // R52 «Forjar acero de Damasco» (Jorge, 17 y 19 de noviembre): pagas 18 dinares y tiras 1 dado (con botón). Igual que estudiar un

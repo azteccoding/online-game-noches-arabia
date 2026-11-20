@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir, pesoFlechas, ALFORJA, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
+motivoNoSalir, pesoFlechas, ALFORJA, LAMPARA, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
@@ -133,6 +133,14 @@ export function comprar(data, e, pid, a) {
   const enTurno = a.ref === 'firman';
   if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán se compra en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
   else { const no = puedeMercado(e, pid); if (no) return err(no); }
+  if (a.ref === 'lampara') {                                                                             // Jorge (20 de noviembre)
+    const n = lamparasEn(e, j.ciudad);
+    if (n <= 0) return err('No hay lámpara de aceite a la venta aquí.');
+    if (j.dinares < LAMPARA.precio) return err(`La lámpara cuesta ${LAMPARA.precio} dinares.`);
+    if (!tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO + '.');
+    j.dinares -= LAMPARA.precio; e.lamparas[j.ciudad] = n - 1; darItem(e, j, 'lampara');
+    log(e, `${j.nombre} compra una lámpara de aceite en ${j.ciudad} por ${LAMPARA.precio} dinares.`, { pid }); return ok();
+  }
   if (a.ref === 'alforja') {                                                                             // Jorge (19 de noviembre)
     const n = alforjasEn(e, j.ciudad), p = precioAlforja(j.ciudad);
     if (n <= 0) return err('No hay alforjas a la venta aquí.');
@@ -555,6 +563,7 @@ export function dondeSeVende(data, x) {
   const cs = CIUDAD_ORIGINAL[ref] || ARMAS_CIUDAD[ref];
   return cs ? lista(cs) : null;
 }
+export const lamparasEn = (e, ciudad) => { e.lamparas ||= Object.fromEntries(LAMPARA.ciudades.map((c) => [c, 1])); return e.lamparas[ciudad] || 0; };
 export const alforjasEn = (e, ciudad) => { e.alforjas ||= { [ALFORJA.ciudad]: ALFORJA.inicial }; return e.alforjas[ciudad] || 0; };
 export const precioAlforja = (ciudad) => (ciudad === ALFORJA.ciudad ? ALFORJA.precio : ALFORJA.reventa);
 // Al terminar cada turno de su dueño, la alforja pierde un turno; al llegar a 0 se deshilacha y vuelve al mercado de Basra.
@@ -586,6 +595,8 @@ export function tienda(data, e, pid) {
   { const pt = precioTinta(e, j.ciudad);                            // Frasco con tinta de pulpo (Jorge, 17 de noviembre)
     if (pt || j.ciudad === 'Bagdad') r.push({ ref: 'tintaPulpo', nombre: ITEMS.tintaPulpo.nombre, tipo: 'Objeto original', texto: ITEMS.tintaPulpo.texto, precio: pt ? pt.precio : TINTA.bagdad, stock: pt && pt.stock !== Infinity ? pt.stock : undefined,
       puede: !!pt && j.dinares >= pt.precio && !lleno, motivo: !pt ? motivoTinta(e, j.ciudad) : lleno ? MSJ_COMPRA_LLENO : j.dinares < pt.precio ? 'No te alcanza' : undefined }); }
+  if (LAMPARA.ciudades.includes(j.ciudad)) { const n = lamparasEn(e, j.ciudad), p = LAMPARA.precio;   // Lámpara de aceite (Jorge, 20 de noviembre)
+    r.push({ ref: 'lampara', nombre: ITEMS.lampara.nombre, tipo: 'Objeto original', texto: ITEMS.lampara.texto, precio: p, stock: n, puede: n > 0 && j.dinares >= p && !lleno, motivo: n <= 0 ? 'Agotada: solo había una y no se repone' : lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   { const n = alforjasEn(e, j.ciudad), p = precioAlforja(j.ciudad);   // Alforja (Jorge, 19 de noviembre)
     if (n > 0) { const tiene = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'alforja').length, max = tieneCarga(j) ? ALFORJA.maxCon : ALFORJA.maxSin;
       r.push({ ref: 'alforja', nombre: ITEMS.alforja.nombre, tipo: 'Objeto original', texto: ITEMS.alforja.texto, precio: p, stock: n, puede: j.dinares >= p && tiene < max, motivo: tiene >= max ? (tieneCarga(j) ? `Con animal llevas hasta ${ALFORJA.maxCon}` : 'Sin animal solo puedes llevar una') : j.dinares < p ? 'No te alcanza' : undefined }); } }
@@ -699,6 +710,7 @@ export function dondeVender(data, e, pid, c) {
   if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
   if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (en Bagdad queda a la venta de inmediato; en otra ciudad desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
+  if (c.ref === 'lampara') return 'No se vende al mercado: sirve para estudiar con mecenas (R47 y R55).';
   if (c.ref === 'especias') return 'Solo en Bagdad: 30 dinares, sin impuesto.';
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
@@ -986,8 +998,8 @@ export function usar(data, e, pid, a) {
 
 // Regla de la casa (noviembre de 2026): los animales comen y envejecen. En cada turno de su dueño se paga el albéitar y la comida
 // (pago obligatorio: si no alcanza, queda como deuda) y, cumplidos sus turnos, el animal muere al cerrar el turno. El burro se
-// repone en el mercado de Basra (siguen siendo N − 1); al morir el caballo o el camello se reactiva el reto que los da (R1 o R5).
-const ANIMAL_DEF = { burro: { vida: 2, costo: 1 }, caballo: { vida: 5, costo: 3, reto: 'R1' }, camello: { vida: 5, costo: 3, reto: 'R5' },
+// repone en el mercado de Basra (siguen siendo N − 1); al morir el camello se reactiva R5 (el caballo ya no reactiva R1: Jorge, 20 de noviembre).
+const ANIMAL_DEF = { burro: { vida: 2, costo: 1 }, caballo: { vida: 5, costo: 3 } /* Jorge (20 de noviembre): R1 ya no se reactiva al morir su animal */, camello: { vida: 5, costo: 3, reto: 'R5' },
   caballoMongol: { vida: 2, costoComo: 'caballo' }, yegua: { vida: Infinity, costoComo: 'caballo' } };   // la yegua no muere de vieja; pagan como el caballo
 export const animalDe = (data, ref) => { const d = ANIMAL_DEF[ref]; if (!d) return null; const a = { ...d, ...(data.config.animales?.[ref] || {}) }; if (d.costoComo) a.costo = animalDe(data, d.costoComo).costo; return a; };
 export const turnosAnimal = (data, c) => Math.max(0, animalDe(data, c.ref).vida - (c.extra?.usados || 0));   // turnos que le quedan después del actual
@@ -1012,7 +1024,7 @@ function morirAnimal(data, e, pid, c) {
   quitarCarta(j, c.uid);
   let mas = '';
   if (c.ref === 'burro') { mas = ' Ya no llega otro: los burros que mueren no se reponen.'; }   // Jorge (19 de noviembre)
-  else if ((c.extra?.reto || a.reto) && j.retosHechos.includes(c.extra?.reto || a.reto)) { const rt = c.extra?.reto || a.reto; j.retosHechos = j.retosHechos.filter((r) => r !== rt); mas = ` Puede volver a hacer el reto ${rt} para conseguir otro.`; }   // el animal de R1 reactiva R1 (Jorge, 20 de noviembre)
+  else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
   log(e, `Muere de viejo el ${ITEMS[c.ref].nombre.toLowerCase()} de ${j.nombre}.${mas}`, { pid, aviso: true });
   if (!j.npc && cargaExcedida(j, e)) { log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid }); info(e, pid, 'Vas muy cargado', sobrecarga(j, e)); }   // Jorge (10 de noviembre)
 }

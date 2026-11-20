@@ -73,6 +73,7 @@ export const ITEMS = {
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Se compra a 20 dinares en Basra (hay 2) y en Andalucía (hay 4). Gana 2 dinares de valor por ronda. Cualquier mercado la compra a su valor actual (menos el impuesto) y la botella se esfuma: cuando se acaban las 6, ya no hay vino. Pesa; la tinta de pulpo no le afecta.' },
   buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
+  lampara: { nombre: 'Lámpara de aceite', texto: 'Pesa. Con una Lámpara de aceite, un papel amate y un cálamo de Kufa, al iniciar el reto de aprender árabe (R47) o de investigar el fuego griego (R55) terminas el estudio en tu siguiente turno: tuviste mecenas que pagaron tus útiles y estudios. Los tres se gastan y se esfuman.' },
   alforja: { nombre: 'Alforja', texto: 'Guarda 2 objetos: sin animal cargas 9 en vez de 7 (la alforja no pesa). Sin animal solo llevas 1; con animal, hasta 3. Con alforja solo te mueves una vez por turno (una caravana). Dura 3 turnos: luego se deshilacha y vuelve al mercado de Basra. Se vende a 1 dinar en cualquier mercado.' },
   pescado: { nombre: 'Pescado', texto: 'Lo pescas en Basra con tu Red de pescador. Se vende en Basra por 5 dinares, en Bagdad por 10 y en cualquier otra ciudad por 8; al venderlo se esfuma.' },
   tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán, el Shatranj y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
@@ -256,6 +257,8 @@ export function devolverObjeto(data, e, id) {
 // 1 dinar en cualquier mercado, recupera su estado y ese mercado la revende a 7 (en Basra, a 6).
 export const tramosMax = (data, t, j) => { const m = t.maxTramos || data.config.maxTramosPorTurno; return j && tieneItem(j, 'alforja') ? Math.min(1, m) : m; };   // con alforja, una sola caravana por turno
 export const MSJ_ALFORJA_TRAMO = 'Con alforja solo te mueves una vez por turno.';
+// Lámpara de aceite (Jorge, 20 de noviembre): 1 en cada mercado menos India, a 8 dinares; pesa; no se repone.
+export const LAMPARA = { precio: 8, ciudades: ['Bagdad', 'Basra', 'Isfahán', 'Aleppo', 'Damasco', 'El Cairo', 'Estambul', 'Samarcanda', 'Andalucía', 'Magreb', 'Yemen'] };
 export const ALFORJA = { ciudad: 'Basra', inicial: 4, precio: 6, reventa: 7, venta: 1, guarda: 2, turnos: 3, maxSin: 1, maxCon: 3 };
 export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello', 'caballoMongol'];   // el caballo mongol también carga; la yegua, no (Jorge, 12 de noviembre)
 export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
@@ -296,7 +299,7 @@ export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de
 // esclavas, el Ejército de Kanmakán ni la Bendición de Abu Madyan.
 export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan', 'shatranj',   // las alfombras de Isfahán pesan (18 de noviembre)
   'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'costalPistaches', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
-  'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos', 'pescado'];   // el pescado pesa (Jorge, 19 de noviembre)
+  'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos', 'pescado', 'lampara'];   // la lámpara de aceite pesa (Jorge, 20 de noviembre)   // el pescado pesa (Jorge, 19 de noviembre)
 export const OBJ_SIN_PESO = ['OB46', 'OB05'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre)
 export const pesaCarta = (c) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && CARGA_ITEMS.includes(c.ref));
 // Dátiles (Jorge, 19 de noviembre): almudes en Yemen y Basra a 2, sin límite (solo te frena el peso); el mercado de Bagdad los compra a 4.

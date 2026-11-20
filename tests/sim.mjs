@@ -104,6 +104,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
     if (tieneItem(j, 'yegua')) return 'Estambul';
     if (tieneItem(j, 'costalPistaches')) return 'Bagdad';   // R56: los pistaches se entregan solos al llegar
+    if (j.pj !== 'B' && ['lampara', 'amate', 'buza'].every((x) => tieneItem(j, x)) && !(j.retosHechos || []).includes('R47') && j.dinares >= 8) return 'Yemen';   // con mecenas, a aprender árabe (Jorge, 20 de noviembre)
     if (m.forja && j.pj !== 'B' && !tieneItem(j, 'cimitarra') && !j.extra?.forja && j.dinares >= 20) return 'Damasco';
     if (m.estepa && !(j.retosHechos || []).includes('R50') && j.dinares >= 115) return 'Samarcanda';
     return null;
@@ -150,6 +151,8 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       return base;
     }
     if (x.k === 'reto' && x.id === 'R52') return 2;                                          // forjar acero de Damasco
+    if (x.k === 'reto' && x.id === 'R47') return ['lampara', 'amate', 'buza'].every((r) => tieneItem(j, r)) ? 4 : 1.5;   // aprender árabe (Jorge, 20 de noviembre); con mecenas, siempre
+    if (x.k === 'reto' && x.id === 'R54') return 1.5;                                        // combatir a los húngaros (Jorge, 20 de noviembre)
     if (x.k === 'reto' && x.id === 'R50') return j.dinares < 105 ? 0.02 : metas[pid]?.estepa ? 2 : 0.6;   // yeguas: solo con dinero para volver a Estambul
     if (x.k === 'reto' && porReto(pid, x)) return 1.2;
     if (x.k === 'usar' && j.pj === '3' && j.mano.find((c) => c.uid === x.uid)?.ref === 'OB42') return 0.6;
@@ -265,6 +268,9 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         if (jb.pj === 'B' && !tieneItem(jb, 'arco') && jb.dinares >= 25) op.push([{ ref: 'arco' }, 2]);
         const hecho = (id) => (jb.retosHechos || []).includes(id);
         if (!tieneItem(jb, 'citricos') && jb.dinares >= 10) op.push([{ ref: 'citricos' }, 3]);
+        if (jb.pj !== 'B' && !hecho('R47') && !tieneItem(jb, 'lampara') && c !== 'India' && jb.dinares >= 14) op.push([{ ref: 'lampara' }, 1.5]);   // Lámpara de aceite (Jorge, 20 de noviembre)
+        if (tieneItem(jb, 'lampara') && !tieneItem(jb, 'amate') && jb.dinares >= 4) op.push([{ ref: 'amate' }, 3]);
+        if (tieneItem(jb, 'lampara') && !tieneItem(jb, 'buza') && ['Damasco', 'Basra'].includes(c) && jb.dinares >= 4) op.push([{ ref: 'buza' }, 3]);
         if (c === 'Isfahán' && !tieneItem(jb, 'costalPistaches') && jb.dinares >= 12) op.push([{ ref: 'costalPistaches', n: 2 + Math.floor(R() * 4) }, 5]);   // R56
         if ((c === 'Basra' || c === 'Andalucía') && !tieneItem(jb, 'vino') && jb.dinares >= 30) op.push([{ ref: 'vino' }, 1.5]);   // vino: +2 por ronda, se vende en cualquier mercado
         if (DATILES.ciudades.includes(c) && !hecho(DATILES.reto) && !tieneItem(jb, 'almudDatiles') && jb.dinares >= 6) op.push([{ ref: 'almudDatiles' }, 2]);
