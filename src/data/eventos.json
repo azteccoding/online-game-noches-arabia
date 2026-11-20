@@ -222,7 +222,7 @@
    "tipo": "historico",
    "nombre": "La Casa de la Sabiduría",
    "ciudades": "Bagdad",
-   "efecto": "Esta ronda la biblioteca de Bagdad paga el precio completo (no la mitad) por libros y papiros",
+   "efecto": "Durante 3 rondas (esta y las dos siguientes) la biblioteca de Bagdad paga el precio completo (no la mitad) por libros y papiros. No sale antes de la ronda 3",
    "costo": "Quien llegue a Bagdad con un libro o papiro cobra además 20 dinares. Los libros pueden robarse",
    "fomenta": "M, P",
    "arte": "hi",

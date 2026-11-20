@@ -113,7 +113,7 @@ function aplicarHistorico0(data, e, id) {
       });
       break;
     }
-    case 'H8': e.mods.sabiduria = true; break;
+    case 'H8': e.mods.sabiduria = true; e.sabiduria = { ronda: e.ronda, hasta: e.ronda + 2 }; break;   // 3 rondas (Jorge, 19 de noviembre)
     case 'H9': e.mods.oroMali = true; break;
     case 'H10': e.mods.seda = true; break;
     case 'H11': cola(humanosEn(e, ['India']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Vientos del monzón', texto: 'Debes irte de India o quedarás varado.', opciones: [{ id: 'Isfahán', texto: `Irme a Isfahán (${Math.ceil((data.rutas.tarifas['India>Isfahán'] || 0) / 2)} dinares)` }, ...(jug(e, pid).herido ? [] : [{ id: 'Basra', texto: `Irme a Basra (barco de Sindbad, gratis)${conEscorbuto(jug(e, pid))}` }]), { id: 'varado', texto: 'Quedarme varado (alojamiento doble)' }], porDefecto: jug(e, pid).herido ? 'varado' : 'Basra', cont: { fn: 'ev.h11', args: {} } })); break;

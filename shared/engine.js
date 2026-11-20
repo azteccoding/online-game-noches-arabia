@@ -260,7 +260,7 @@ function traicionJerusalen(data, e) {
   }
   log(e, `Traición en Jerusalén: ${s.texto} Todos los jugadores pierden ${TRAICION.jugador.dinares} dinar y ${TRAICION.jugador.noches} noche${e.jugadores.npc ? `; Yafar NPC pierde ${TRAICION.npc.dinares} dinares y ${TRAICION.npc.noches} noches` : ''}.`, { aviso: true });
 }
-function empezarRonda(data, e) {
+export function empezarRonda(data, e) {   // exportada para las pruebas
   e.orden = yafarAlFinal(e, e.orden);                                                             // también en partidas guardadas con el orden viejo
   e.ronda++;
   if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
@@ -291,8 +291,15 @@ function empezarRonda(data, e) {
   }
   const conHist = act.length <= 3 || e.ronda % 2 === 0;                                                   // R 6.1 (los NPC cuentan como jugadores)
   let hId = null;
+  // La Casa de la Sabiduría (H8, Jorge, 19 de noviembre): dura 3 rondas (la de su aparición y las dos siguientes), aunque salgan otros eventos.
+  if (e.sabiduria) {
+    if (e.ronda <= e.sabiduria.hasta) { e.mods.sabiduria = true; const q = e.sabiduria.hasta - e.ronda + 1; log(e, `La Casa de la Sabiduría sigue abierta: la biblioteca de Bagdad paga los libros a su valor completo (${q === 1 ? 'última ronda' : `quedan ${q} rondas`}).`, { aviso: true }); }
+    else { log(e, 'La Casa de la Sabiduría cierra: la biblioteca de Bagdad vuelve a pagar los libros a la mitad.', { aviso: true }); e.sabiduria = null; }
+  }
   if (conHist) {
     hId = robar(e, 'historicos');
+    // y no puede salir antes de la ronda 3: como E1, vuelve al mazo barajada y sale otra en su lugar
+    if (hId === 'H8' && e.ronda < SABIDURIA.desdeRonda) { e.mazos.historicos.push(hId); barajar(e, e.mazos.historicos); hId = robar(e, 'historicos'); if (hId === 'H8') { e.mazos.historicos.push(hId); hId = robar(e, 'historicos'); if (hId === 'H8') { e.mazos.historicos.push(hId); hId = null; } } }
     if (hId) { e.mazos.descarte.historicos.push(hId); e.evento.historico = hId; publicarCarta(e, cartaDatos(data, 'historico', hId), null); }
   }
   e.turno = null;
@@ -481,6 +488,7 @@ function saladino(data, e) {
 // S3 «Mansa Musa odia el nepotismo»: cuando todos los jugadores visitaron el Magreb (Yafar NPC no cuenta; Yafar jugador, sí), Yafar pierde 50
 //   noches, sea NPC o jugador. Si Yafar no está en la partida, no sale.
 export const MANSA_RONDAS = 2;
+export const SABIDURIA = { desdeRonda: 3, rondas: 3 };
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {
   const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
@@ -1480,6 +1488,7 @@ export function vista(data, e, pid) {
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, anuncios: (e.anuncios || []).filter((x) => x.para.includes(pid)).map(({ id, t, texto, tono }) => ({ id, t, texto, tono })), ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
     mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
+    sabiduria: e.sabiduria && e.ronda <= e.sabiduria.hasta ? { quedan: e.sabiduria.hasta - e.ronda + 1 } : null,
     leidoHasta: e.jugadores[pid]?.extra?.leidoHasta ?? null,   // hasta qué carta cerró este jugador (consecuencias después de cerrar)
     chat: (e.chat || []).filter((m) => m.para === pid || m.de === pid).slice(-40),
     publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},

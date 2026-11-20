@@ -4693,3 +4693,22 @@ console.log('reglas de la casa OK');
   const Y = e.jugadores[y]; Y.extra.idiomas = ['árabe']; Y.ciudad = 'Basra'; turnoDe(e, y, 'Basra'); e.turno.fase = 'acciones';
   assert.equal(vistaDe(e, y).acciones.find((x) => x.id === 'R61')?.bloqueado, MSJ_YAFAR_COPIAS, 'Yafar jugador: apagado');
 }
+// Jorge (19 de noviembre): la Casa de la Sabiduría (H8) no sale antes de la ronda 3 y dura 3 rondas
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids;
+  const EVE = await import('../shared/eventos.js');
+  e.ronda = 5; EVE.aplicarHistorico(data, e, 'H8');
+  assert.ok(e.mods.sabiduria && e.sabiduria.hasta === 7, 'dura hasta la ronda 7 (5, 6 y 7)');
+  assert.equal(vistaDe(e, a).sabiduria?.quedan, 3, 'en pantalla: quedan 3 rondas');
+  // ronda 6, 7: sigue; ronda 8: cierra (aunque salgan otros eventos)
+  const { empezarRonda } = await import('../shared/engine.js');
+  e.mazos.historicos = e.mazos.historicos.filter((x) => x !== 'H8'); e.ronda = 5; empezarRonda(data, e);
+  assert.ok(e.mods.sabiduria, 'ronda 6: sigue abierta'); empezarRonda(data, e); assert.ok(e.mods.sabiduria && vistaDe(e, a).sabiduria?.quedan === 1, 'ronda 7: última');
+  empezarRonda(data, e); assert.ok(!e.mods.sabiduria && !e.sabiduria, 'ronda 8: cerró');
+  assert.ok(e.log.some((l) => /La Casa de la Sabiduría cierra/.test(l.texto)), 'registro al cerrar');
+  // H8 arriba del mazo en la ronda 2: vuelve al mazo y sale otra
+  e.ronda = 1; e.mazos.historicos = ['H8', 'H9', 'H10']; e.mazos.descarte.historicos = []; empezarRonda(data, e);
+  assert.equal(e.ronda, 2); assert.notEqual(e.evento.historico, 'H8', 'en la ronda 2 no sale'); assert.ok(e.mazos.historicos.includes('H8'), 'vuelve al mazo');
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+}
