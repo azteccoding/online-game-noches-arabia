@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -144,7 +144,7 @@ function prepararMazos(data, e) {
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
   e.reposicion = barajar(e, guardadas);
   e.mazos = {
-    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.flatMap((x) => Array(COPIAS_HISTORICO[x.id] || 1).fill(x.id))),
+    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.flatMap((x) => Array(COPIAS_HISTORICO[x.id] ?? 1).fill(x.id))),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
     descarte: { eventos: [], historicos: [], mensajes: [] /* Mensajes fuera de juego: registro, nunca se barajan de nuevo */, botin: [], ifrit: [], cc: {} },
   };
@@ -292,6 +292,11 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
   const conHist = act.length <= 3 || e.ronda % 2 === 0;                                                   // R 6.1 (los NPC cuentan como jugadores)
   let hId = null;
   // La Casa de la Sabiduría (H8, Jorge, 19 de noviembre): dura 3 rondas (la de su aparición y las dos siguientes), aunque salgan otros eventos.
+  if (e.cruzada && !e.cruzada.fin && e.ronda >= e.cruzada.ronda + EVE.CRUZADA_MAX) {   // «La reconquista de Saladino» sale a fuerzas (Jorge, 19 de noviembre)
+    publicarCarta(e, cartaDatos(data, 'historico', 'H22'), null); e.mazos.descarte.historicos.push('H22');
+    EVE.saladinoLevante(data, e);
+  }
+  if (e.ronda === RECONQUISTA.ronda && !e.reconquista && !(e.ganadores || []).length) reconquista(data, e);
   if (e.sabiduria) {
     if (e.ronda <= e.sabiduria.hasta) { e.mods.sabiduria = true; const q = e.sabiduria.hasta - e.ronda + 1; log(e, `La Casa de la Sabiduría sigue abierta: la biblioteca de Bagdad paga los libros a su valor completo (${q === 1 ? 'última ronda' : `quedan ${q} rondas`}).`, { aviso: true }); }
     else { log(e, 'La Casa de la Sabiduría cierra: la biblioteca de Bagdad vuelve a pagar los libros a la mitad.', { aviso: true }); e.sabiduria = null; }
@@ -299,6 +304,7 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
   if (conHist) {
     hId = robar(e, 'historicos');
     // y no puede salir antes de la ronda 3: como E1, vuelve al mazo barajada y sale otra en su lugar
+    if (hId === 'H21' && e.cruzada) { e.mazos.descarte.historicos.push(hId); hId = robar(e, 'historicos'); }   // la Cruzada, una sola vez por partida
     if (hId === 'H8' && e.ronda < SABIDURIA.desdeRonda) { e.mazos.historicos.push(hId); barajar(e, e.mazos.historicos); hId = robar(e, 'historicos'); if (hId === 'H8') { e.mazos.historicos.push(hId); hId = robar(e, 'historicos'); if (hId === 'H8') { e.mazos.historicos.push(hId); hId = null; } } }
     if (hId) { e.mazos.descarte.historicos.push(hId); e.evento.historico = hId; publicarCarta(e, cartaDatos(data, 'historico', hId), null); }
   }
@@ -400,6 +406,9 @@ function iniciarTurno(data, e, id, idx) {
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   RET.recibirDestreza(data, e, id);   // destreza y entrenamientos del turno anterior (Jorge, 19 de noviembre)
+  if (e.toledo && !e.toledo.fin && ++e.toledo.turnos >= 2) {   // «Yusuf ibn Tashfín derrota a los infieles» sale en el turno siguiente al de la carta de Toledo
+    publicarCarta(e, cartaDatos(data, 'historico', 'H23'), null); EVE.yusufAndalucia(data, e);
+  }
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
   turnoEmir(data, e, id);          // servicio del Emir: llega la Dádiva (Jorge, 18 de noviembre)
@@ -490,8 +499,29 @@ function saladino(data, e) {
 //   noches, sea NPC o jugador. Si Yafar no está en la partida, no sale.
 export const MANSA_RONDAS = 2;
 export const SABIDURIA = { desdeRonda: 3, rondas: 3 };
+// Reconquista (Jorge, 19 de noviembre): sale sola en la ronda 18 si nadie ha ganado. Andalucía queda cerrada para siempre; quienes estén
+// ahí pagan su viaje al Magreb o a El Cairo (eligen; deuda si no les alcanza) y reciben 60 noches. Yafar se queda: es un traidor.
+export const RECONQUISTA = { ronda: 18, noches: 60, destinos: ['Magreb', 'El Cairo'] };
+function reconquista(data, e) {
+  e.reconquista = { ronda: e.ronda }; (e.cerradas ||= {})['Andalucía'] = 'siempre';
+  publicarCarta(e, { id: 'reconquista', deck: 'historico', titulo: 'Reconquista', sub: 'Evento histórico · Andalucía', texto: `Los reinos cristianos toman al-Ándalus: desde ahora nadie puede ir a Andalucía. Quienes estén ahí pagan su viaje al Magreb o a El Cairo y reciben ${RECONQUISTA.noches} noches.`, arte: 'hi' }, null);
+  log(e, 'Reconquista: Andalucía queda en manos cristianas para siempre.', { aviso: true });
+  EVE.yafarTraidor(data, e, ['Andalucía']);
+  for (const j of Object.values(e.jugadores)) {
+    if (j.eliminado || j.pj === 'B' || j.ciudad !== 'Andalucía') continue;
+    if (j.npc) { CONT['reconquista.sale'](data, e, {}, { pid: j.id, opcion: 'Magreb' }); continue; }
+    pedir(e, { tipo: 'historico', para: [j.id], titulo: 'Reconquista', texto: `Te expulsan de Andalucía: recibes ${RECONQUISTA.noches} noches y pagas tu viaje.`, opciones: RECONQUISTA.destinos.map((d) => ({ id: d, texto: `Irme a ${d} (${data.rutas.tarifas['Andalucía>' + d] ?? 0} dinares)` })), porDefecto: 'Magreb', limiteMs: 60000, cont: { fn: 'reconquista.sale', args: {} } });
+  }
+}
+registrar('reconquista.sale', (data, e, args, resp) => {
+  const j = e.jugadores[resp.pid]; if (!j || j.ciudad !== 'Andalucía') return;
+  const d = RECONQUISTA.destinos.includes(resp.opcion) ? resp.opcion : 'Magreb', p = data.rutas.tarifas['Andalucía>' + d] ?? 0;
+  pagar(data, e, j.id, p); j.noches += RECONQUISTA.noches; j.ciudad = d;
+  const m = esRutaMar('Andalucía', d) ? viajePorMar(e, j.id, 'al huir de Andalucía') : null;
+  log(e, `${j.nombre} huye de Andalucía a ${d}: paga ${p} dinares y recibe ${RECONQUISTA.noches} noches.${m ? ' ' + m : ''}`, { pid: j.id, aviso: true });
+});
 // Jorge (19 de noviembre): la Casa de la Sabiduría tiene 4 cartas en el mazo de históricos (antes 1).
-export const COPIAS_HISTORICO = { H8: 4 };
+export const COPIAS_HISTORICO = { H8: 4, H22: 0, H23: 0 };   // H23 (Yusuf) sale sola tras «Los cristianos toman Toledo»   // H22 (Saladino) solo entra al mazo cuando sale la Cruzada
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {
   const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
@@ -931,6 +961,7 @@ export function viajar(data, e, pid, a) {
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
   if (j.herido && esRutaMar(origen, destino)) return err(HERIDO_BARCO);
   let precio = tarifa(data, e, j, origen, destino);
+  if (ciudadCerrada(e, a.destino)) return err(motivoCerrada(e, a.destino));
   if (precio === null) return err('No hay ruta directa o está cortada: usa un transbordo (R 7.3).');
   let gratis = false;
   if ((j.pj === '4' && origen === 'El Cairo' && destino === 'Bagdad') || (j.pj === '5' && origen === 'Bagdad' && destino === 'El Cairo')) { precio = 0; gratis = true; }   // R 10.5, 10.6

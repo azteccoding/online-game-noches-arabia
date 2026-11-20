@@ -494,9 +494,13 @@ export function eliminar(data, e, pid, { por = null, soloNoches = false, causa =
 export const HOOK = {};
 
 // ---------------------------------------------------------------- tarifas de caravana con los modificadores de la ronda (R 5.3, E6, E9, H5, H10, H15, Yafar R 20.2)
+// Ciudades cerradas (Jorge, 19 de noviembre): la Cruzada cierra Damasco, Aleppo y Estambul 2 rondas; la Reconquista, Andalucía para siempre.
+export const ciudadCerrada = (e, c) => { const h = e?.cerradas?.[c]; return h != null && (h === 'siempre' || h === 'cruzada' || h === 'toledo' || (e.ronda || 0) <= h); };
+export const motivoCerrada = (e, c) => (e?.cerradas?.[c] === 'siempre' ? `${c} quedó en manos cristianas (Reconquista): ya no se puede ir.` : e?.cerradas?.[c] === 'toledo' ? 'Los cristianos tomaron Toledo: no se puede ir a Andalucía hasta que Yusuf ibn Tashfín los derrote.' : `Los cruzados ocupan ${c}: no se puede ir hasta que Saladino devuelva el Levante.`);
 export function tarifa(data, e, j, a, b) {
   let t = data.rutas.tarifas[a + '>' + b];
   if (t === undefined) return null;
+  if (ciudadCerrada(e, b)) return null;
   const m = e.mods || {};
   const par2 = (x, y) => (a === x && b === y) || (a === y && b === x);
   if (m.nilo && par2('El Cairo', 'Yemen')) return null;

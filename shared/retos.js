@@ -181,6 +181,7 @@ export function anunciar(e, pid, texto, tono = 'gris') {
   (e.anuncios ||= []).push({ id: ++e.seq, t: e.ahora, para, texto, tono });
   if (e.anuncios.length > 30) e.anuncios.splice(0, e.anuncios.length - 30);
 }
+HOOK.anunciar = anunciar;
 const cerrarReto = (data, e, pid, id, ok) => anunciarReto(data, e, pid, id, ok ? 'logro' : 'fallo');   // resultado final de un reto en varios pasos
 function ejecutar(data, e, pid, id, usados) {
   const antesReto = fotoReto(e.jugadores[pid]);

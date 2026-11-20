@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
-viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, darDestreza, opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra } from './base.js';
+viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, darDestreza, opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra, ciudadCerrada } from './base.js';
 import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -316,7 +316,7 @@ function tiradaGhul(e, buscados) {
 // eligen los jugadores al azar como acuerden («de tin marín» o lo que decidan). Al salir juntos, cada uno elige por su cuenta.
 const EVITAR_TXT = 'Evitar a los ghul: sales sin tirar dados, no ganas nada más y el genio te deja en una ciudad al azar';
 function evitarGhul(data, e, pid, { juntos = false } = {}) {
-  const j = e.jugadores[pid], cs = data.ciudades.ciudades.map((c) => c.id);
+  const j = e.jugadores[pid], cs = data.ciudades.ciudades.map((c) => c.id).filter((c) => !ciudadCerrada(e, c));
   const dest = cs[Math.floor(rnd(e) * cs.length) % cs.length];
   j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
   log(e, `${j.nombre} evita a los ghul: el genio lo deja en ${dest}.`, { pid, aviso: true });
@@ -487,7 +487,7 @@ export function deseo(data, e, pid, letra, { alTerminar = null }) {
     case 'G': j.ventajaCombate = (j.ventajaCombate || 0) + 2; break;
     case 'H': darItem(e, j, 'alfombra'); break;
     case 'A': {
-      const op = data.ciudades.ciudades.map((c) => ({ id: c.id, texto: c.id + etiquetaBurro(j, c.id) })).filter((c) => c.id !== j.ciudad || j.perdido);   // aviso del burro (Jorge, 10 de noviembre)
+      const op = data.ciudades.ciudades.map((c) => ({ id: c.id, texto: c.id + etiquetaBurro(j, c.id) })).filter((c) => (c.id !== j.ciudad || j.perdido) && !ciudadCerrada(e, c.id));   // aviso del burro (Jorge, 10 de noviembre)
       pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Viaje instantáneo', texto: '¿A qué ciudad quieres ir?', opciones: op, porDefecto: 'Bagdad', limiteMs: 60000, cont: { fn: 'tes.A', args: { alTerminar } } });
       return;
     }

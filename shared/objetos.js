@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir, pesoFlechas, ALFORJA, tramosMax, MSJ_ALFORJA_TRAMO, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
+motivoNoSalir, pesoFlechas, ALFORJA, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
@@ -798,7 +798,7 @@ export function disponibles(data, e, pid) {
       if (j.ciudad === 'Bagdad') r.push({ k: 'usar', uid: c.uid, titulo: `Envenenar un abrevadero (Masrur, ${5 * vivos(e)} dinares)`, destinos: data.ciudades.ciudades.map((q) => q.id), via: 'abrevadero' });
     }
     if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && !motivoNoSalir(e, j, false) && t.tramos < tramosMax(data, t, j)) {
-      const dest = destinosTransporte(data, c.ref, j.ciudad).filter((q) => !(j.pj === 'B' && j.npc && q === 'India'));
+      const dest = destinosTransporte(data, c.ref, j.ciudad).filter((q) => !(j.pj === 'B' && j.npc && q === 'India') && !ciudadCerrada(e, q));
       if (c.ref === 'burro' && yafarNoMonta(e, j)) continue;                       // Yafar NPC nunca monta burro (Jorge, 19 de noviembre)
       const vida = ANIMAL_DEF[c.ref] ? ` · le quedan ${turnosAnimal(data, c)} turno(s)` : '';   // con dos del mismo tipo, se distinguen por su vida
       if (c.ref === 'burro' && t.burroUsado && dest.length) { r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: BURRO_CANSADO }); continue; }
@@ -902,6 +902,7 @@ export function usar(data, e, pid, a) {
     if (c.ref === 'burro' && t.burroUsado) return err(BURRO_CANSADO);   // Jorge (19 de noviembre): una vez por turno
     if (j.pj === 'B' && j.npc && dest === 'India') return err('Yafar no tiene contactos en India: no puede ir.');
     if (!destinosTransporte(data, c.ref, j.ciudad).includes(dest)) return err(`Ahí no te lleva: ${textoTransporte(c.ref)}`);
+    if (ciudadCerrada(e, dest)) return err(motivoCerrada(e, dest));
     { const m = motivoNoSalir(e, j, false); if (m) return err(m); }
     if (c.ref === 'burro') t.burroUsado = true;
     return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: null });   // la alfombra ya no se gasta (regla de la casa)

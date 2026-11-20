@@ -359,6 +359,39 @@
    "fomenta": "M, P",
    "arte": "hi",
    "refReglamento": "17.2"
+  },
+  {
+   "id": "H21",
+   "tipo": "historico",
+   "nombre": "Cruzada",
+   "ciudades": "Damasco, Aleppo, Estambul",
+   "efecto": "Los cruzados conquistan el Levante: nadie puede viajar a Damasco, Aleppo ni Estambul hasta que salga «La reconquista de Saladino» (a más tardar 3 rondas después). Quienes estén ahí deben pagar la caravana a Bagdad y se van; si no les alcanza, quedan en deuda",
+   "costo": "Esperemos que Saladino devuelva esas tierras a los musulmanes: sale su carta, a más tardar 3 rondas después. Yafar no se va: es un traidor, se alía con los cristianos y recibe 30 dinares (y cítricos)",
+   "fomenta": "",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H22",
+   "tipo": "historico",
+   "nombre": "La reconquista de Saladino",
+   "ciudades": "Damasco, Aleppo, Estambul",
+   "efecto": "Saladino devuelve el Levante a los musulmanes: ya se puede volver a Damasco, Aleppo y Estambul",
+   "costo": "Solo entra al mazo cuando sale la Cruzada; si no ha salido 3 rondas después, sale a fuerzas",
+   "fomenta": "",
+   "arte": "hi",
+   "refReglamento": "17.2"
+  },
+  {
+   "id": "H23",
+   "tipo": "historico",
+   "nombre": "Yusuf ibn Tashfín derrota a los infieles",
+   "ciudades": "Andalucía",
+   "efecto": "Yusuf ibn Tashfín derrota a los cristianos en la batalla de Sagrajas (al-Zallaqa, 1086): ya se puede volver a Andalucía",
+   "costo": "Sale sola en el turno siguiente a «Los cristianos toman Toledo»",
+   "fomenta": "",
+   "arte": "hi",
+   "refReglamento": "17.2"
   }
  ],
  "nota": "Los efectos están en texto; el motor implementa un subconjunto (ver plan, sección Implementado/Pendiente)."

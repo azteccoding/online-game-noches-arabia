@@ -712,7 +712,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   let semilla = 7; const azar = (n) => { semilla = (semilla * 1103515245 + 12345) & 0x7fffffff; return semilla % n; };
   for (let paso = 0; paso < 1500 && e.fase === 'juego'; paso++) {
     if (e.dados) { e.dados.lanzado = true; g.tickear(31000); continue; }
-    if (e.pend) { for (const q of e.pend.para) if (!e.pend?.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id, valores: [e.pend.opciones[0]?.id] }); g.tickear(100); continue; }
+    if (e.pend) { for (const q of e.pend.para) if (!e.pend?.resp[q]) g.act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id, valores: [e.pend.opciones[0]?.id], numero: e.pend.min ?? 0 }); g.tickear(100); continue; }
     const t = e.turno; if (!t || e.jugadores[t.pid].npc) { g.tickear(2000); continue; }
     const pid = t.pid;
     if (t.fase === 'ingreso') { g.act(pid, { t: 'tirarDados' }); continue; }
@@ -3805,7 +3805,8 @@ console.log('reglas de la casa OK');
   assert.ok(vistaDe(e, a).jugadores[a].polimata, 'se ve en su barra');
   turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones'; assert.ok(!g.act(a, { t: 'reto', id: 'R55' }).ok, 'una vez por jugador');
   // +12 al iniciar su turno en las 4 ciudades, y no en otras
-  const inicio = (ciudad) => { A.ciudad = ciudad; turnoDe(e, b, e.jugadores[b].ciudad); e.turno.fin = true; const n0 = e.log.length; e.mazos.historicos = []; e.mazos.eventos = []; avanzar(data, e); assert.equal(e.turno.pid, a); return e.log.slice(n0).some((l) => /polímata, cobra 12 dinares más/.test(l.texto)); };
+  const inicio = (ciudad) => { A.ciudad = ciudad; turnoDe(e, b, e.jugadores[b].ciudad); e.turno.fin = true; const n0 = e.log.length; e.mazos.historicos = []; e.mazos.eventos = []; e.mazos.descarte.historicos = []; e.mazos.descarte.eventos = []; avanzar(data, e); assert.equal(e.turno.pid, a); return e.log.slice(n0).some((l) => /polímata, cobra 12 dinares más/.test(l.texto)); };
+  e.reconquista = { ronda: 0 };   // que la Reconquista no se cruce en esta prueba
   for (const c of ['Bagdad', 'Estambul', 'El Cairo', 'Andalucía']) assert.ok(inicio(c), '+12 en ' + c);
   for (const c of ['Damasco', 'Yemen']) assert.ok(!inicio(c), 'nada en ' + c);
   { const { puedeRetoNPC } = await import('../shared/retos.js');
@@ -3832,7 +3833,7 @@ console.log('reglas de la casa OK');
   const e = g.e, [jamil, zein, ruyan] = g.ids, J = (id) => e.jugadores[id];
   assert.ok(hablaIdioma(J(jamil), 'persa') && !hablaIdioma(J(jamil), 'árabe'), 'Jamil empieza hablando persa');
   assert.ok(hablaIdioma(J(zein), 'árabe'), 'Zein empieza hablando árabe'); assert.ok(hablaIdioma(J(ruyan), 'árabe'), 'Ruyán vuelve a empezar hablando árabe (Jorge, 19 de noviembre)');
-  assert.equal(J(ruyan).noches, 100, 'Ruyán empieza con 100 noches (antes 200)');
+  assert.equal((data.personajes.personajes || data.personajes).find((x) => x.id === '5').inicio.noches, 100, 'Ruyán empieza con 100 noches (antes 200; el evento de la ronda 1 puede cambiarlas después)');
   assert.ok(J(zein).extra.destrezaJambiya && !J(zein).destreza && !J(zein).mano.some((c) => c.ref === 'jambiya'), 'Zein empieza con destreza en la jambiya, sin jambiya');
   { const { destrezaCon } = await import('../shared/base.js'); assert.ok(destrezaCon(J(zein), ['jambiya']) && !destrezaCon(J(zein), ['alfanje']), 'solo le vale con la jambiya'); }
   assert.ok(vistaDe(e, jamil).jugadores[jamil].idiomas.includes('persa'), 'se ve en su hoja');
@@ -4857,4 +4858,48 @@ console.log('reglas de la casa OK');
   const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: tieneItem(A, 'alforja').uid }).ok); assert.equal(A.dinares, d0 + 1);
   turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
   assert.equal(OBJ.tienda(data, e, a).find((x) => x.ref === 'alforja')?.precio, 7, 'Damasco la revende a 7');
+}
+// Jorge (19 de noviembre): Cruzada (H21) y Reconquista (ronda 18)
+{
+  const g = partida(['4', '7', 'B']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], B = e.jugadores[b], Y = e.jugadores[y];
+  const EVE = await import('../shared/eventos.js'); const { empezarRonda } = await import('../shared/engine.js');
+  A.ciudad = 'Damasco'; A.dinares = 0; B.ciudad = 'Estambul'; B.dinares = 100; Y.ciudad = 'Aleppo'; const yd = Y.dinares;
+  e.ronda = 4; EVE.aplicarHistorico(data, e, 'H21');
+  assert.equal(A.ciudad, 'Bagdad'); assert.ok(A.dinares < 0, 'sin dinares, queda en deuda');
+  assert.equal(B.ciudad, 'Bagdad'); assert.ok(B.dinares < 100, 'paga la caravana');
+  assert.equal(Y.ciudad, 'Aleppo', 'Yafar se queda'); assert.equal(Y.dinares, yd + 30, 'recibe 30 dinares'); assert.ok(tieneItem(Y, 'citricos'));
+  assert.ok(e.log.some((l) => /Yafar es un traidor/.test(l.texto)), 'se anuncia la traición');
+  assert.ok(BASE.ciudadCerrada(e, 'Damasco') && BASE.tarifa(data, e, A, 'Bagdad', 'Damasco') === null, 'no se puede ir');
+  assert.ok(e.mazos.historicos.includes('H22'), '«La reconquista de Saladino» entra al mazo');
+  const vaciar = () => { e.mazos.historicos = e.mazos.historicos.filter((x) => x === 'H22').length ? [] : []; e.mazos.eventos = []; e.mazos.descarte.historicos = []; e.mazos.descarte.eventos = []; };
+  vaciar(); e.ronda = 4; empezarRonda(data, e); assert.ok(BASE.ciudadCerrada(e, 'Aleppo'), 'ronda 5: sigue cerrada');
+  vaciar(); empezarRonda(data, e); assert.ok(BASE.ciudadCerrada(e, 'Aleppo'), 'ronda 6: sigue cerrada');
+  vaciar(); empezarRonda(data, e); assert.ok(!BASE.ciudadCerrada(e, 'Aleppo'), 'ronda 7: a las 3 rondas sale a fuerzas');
+  assert.ok(e.log.some((l) => /La reconquista de Saladino/.test(l.texto)));
+  // si sale antes al robar, se reabre en ese momento
+  e.cruzada = null; e.cerradas = {}; e.ronda = 8; EVE.aplicarHistorico(data, e, 'H21'); assert.ok(BASE.ciudadCerrada(e, 'Damasco'));
+  EVE.aplicarHistorico(data, e, 'H22'); assert.ok(!BASE.ciudadCerrada(e, 'Damasco') && !e.mazos.historicos.includes('H22'), 'al robarla, se reabre');
+  // Reconquista en la ronda 18
+  A.ciudad = 'Andalucía'; A.dinares = 50; e.ronda = 17; e.pend = null; e.colaPend = []; vaciar();
+  empezarRonda(data, e);
+  assert.ok(BASE.ciudadCerrada(e, 'Andalucía') && e.reconquista, 'Andalucía cerrada para siempre');
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Reconquista' && x.para.includes(a));
+  assert.ok(p, 'elige a dónde huir'); e.pend = p; e.colaPend = []; const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'El Cairo' }).ok);
+  assert.equal(A.ciudad, 'El Cairo'); assert.ok(e.log.some((l) => /huye de Andalucía a El Cairo: paga 15 dinares y recibe 60 noches/.test(l.texto)) && A.noches >= n0 + 60, '60 noches');
+  e.ronda = 40; assert.ok(BASE.ciudadCerrada(e, 'Andalucía'), 'sigue cerrada');
+}
+// Jorge (19 de noviembre): «Los cristianos toman Toledo» cierra Andalucía hasta que sale «Yusuf ibn Tashfín derrota a los infieles»
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const EVE = await import('../shared/eventos.js');
+  EVE.aplicarHistorico(data, e, 'H2'); e.pend = null; e.colaPend = [];
+  assert.ok(BASE.ciudadCerrada(e, 'Andalucía'), 'Andalucía cerrada');
+  assert.ok(!e.mazos.historicos.includes('H23') && !e.mazos.historicos.includes('H22'), 'Yusuf y Saladino no están en el mazo');
+  turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; A.dinares = 50; e.turno.fase = 'mov';
+  assert.match(g.act(a, { t: 'viajar', destino: 'Andalucía' }).error || '', /Yusuf ibn Tashfín/);
+  const { iniciarTurno } = await import('../shared/engine.js'); void iniciarTurno;
+  EVE.yusufAndalucia(data, e); assert.ok(!BASE.ciudadCerrada(e, 'Andalucía'), 'con Yusuf se reabre'); void b;
 }

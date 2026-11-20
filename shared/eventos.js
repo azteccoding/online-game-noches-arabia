@@ -4,7 +4,7 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 marcarBuscado,
-enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, } from './base.js';
+enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, rnd, } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
 import { burroFueraDeZona, etiquetaBurro, destinosBurro } from './objetos.js';
@@ -82,6 +82,45 @@ export function finTurno(data, e, pid) {
 }
 
 // ---------------------------------------------------------------- Eventos históricos
+// Cruzada (H21) y Reconquista (Jorge, 19 de noviembre): quien está en las ciudades tomadas paga la caravana normal a su destino (deuda si
+// no le alcanza) y se va. Yafar (NPC o jugador) no se va: es un traidor, se alía con los cristianos y recibe 30 dinares y cítricos.
+export const LEVANTE = ['Damasco', 'Aleppo', 'Estambul'];
+// «Los cristianos toman Toledo» (H2) cierra Andalucía hasta el turno siguiente, cuando sale sola «Yusuf ibn Tashfín derrota a los
+// infieles» (H23) y se puede volver (Jorge, 19 de noviembre). La Reconquista (ronda 18) la cierra para siempre.
+export function yusufAndalucia(data, e) {
+  if (!e.toledo || e.toledo.fin) return;
+  e.toledo.fin = true; if (e.cerradas?.['Andalucía'] === 'toledo') delete e.cerradas['Andalucía'];
+  log(e, 'Yusuf ibn Tashfín derrota a los infieles en la batalla de Sagrajas (al-Zallaqa, 1086): ya se puede volver a Andalucía.', { aviso: true });
+}
+export const CRUZADA_MAX = 3;   // si «La reconquista de Saladino» no ha salido a las 3 rondas, sale a fuerzas
+export function saladinoLevante(data, e) {
+  if (!e.cruzada || e.cruzada.fin) return;
+  e.cruzada.fin = true; for (const c of LEVANTE) if (e.cerradas?.[c] === 'cruzada') delete e.cerradas[c];
+  const i = e.mazos.historicos.indexOf('H22'); if (i >= 0) e.mazos.historicos.splice(i, 1);
+  log(e, 'La reconquista de Saladino: el Levante vuelve a los musulmanes y ya se puede volver a Damasco, Aleppo y Estambul.', { aviso: true });
+}
+export function yafarTraidor(data, e, ciudades) {
+  for (const j of Object.values(e.jugadores)) {
+    if (j.pj !== 'B' || j.eliminado || !ciudades.includes(j.ciudad)) continue;
+    j.dinares += 30; if (!tieneItem(j, 'citricos')) darItem(e, j, 'citricos');
+    log(e, `¡Yafar es un traidor! ${j.nombre} se alió con los cristianos en ${j.ciudad} y recibió 30 dinares (y cítricos para el viaje).`, { aviso: true });
+    HOOK.anunciar?.(e, j.id, `¡Yafar es un traidor! Se alió con los cristianos y recibió 30 dinares por su traición.`, 'gris');
+  }
+}
+function cruzada(data, e) {
+  e.cruzada = { ronda: e.ronda };
+  e.cerradas ||= {}; for (const c of LEVANTE) e.cerradas[c] = 'cruzada';   // cerradas hasta «La reconquista de Saladino» (H22)
+  const m = e.mazos.historicos, k = Math.floor(rnd(e) * (m.length + 1)); m.splice(k, 0, 'H22');   // la carta de Saladino entra al mazo
+  yafarTraidor(data, e, LEVANTE);
+  for (const j of Object.values(e.jugadores)) {
+    if (j.eliminado || j.pj === 'B' || !LEVANTE.includes(j.ciudad)) continue;
+    const de = j.ciudad, p = data.rutas.tarifas[de + '>Bagdad'] ?? 0;
+    pagar(data, e, j.id, p);   // si no le alcanza, queda en deuda con el banco
+    j.ciudad = 'Bagdad'; j.transito = null;
+    log(e, `Los cruzados expulsan a ${j.nombre} de ${de}: paga ${p} dinares de caravana y llega a Bagdad.`, { pid: j.id, aviso: true });
+  }
+  log(e, 'Los cruzados conquistan el Levante: nadie puede ir a Damasco, Aleppo ni Estambul durante 2 rondas. Esperemos que Saladino devuelva esas tierras a los musulmanes.', { aviso: true });
+}
 function aplicarHistorico0(data, e, id) {
   const cola = (ids, fn) => { const ord = ordenadoPorTurno(e, ids.filter((x) => !jug(e, x).npc)); ord.forEach((x, i) => fn(x, i === ord.length - 1)); };
   switch (id) {
@@ -92,7 +131,8 @@ function aplicarHistorico0(data, e, id) {
       op.push({ id: 'quedar', texto: 'Aguantar: -30 noches y sin ingreso este turno' });
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
     }); break;
-    case 'H2': cola(humanosEn(e, ['Andalucía']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los cristianos toman Toledo', texto: 'Paga 20 dinares a un rey cristiano para quedarte o abandona al-Ándalus.',
+    case 'H2': e.toledo = { ronda: e.ronda, turnos: 0 }; if (e.cerradas?.['Andalucía'] !== 'siempre') (e.cerradas ||= {})['Andalucía'] = 'toledo';   // Andalucía cerrada hasta Yusuf ibn Tashfín (H23)
+      cola(humanosEn(e, ['Andalucía']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los cristianos toman Toledo', texto: 'Paga 20 dinares a un rey cristiano para quedarte o abandona al-Ándalus.',
       opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme al Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})${conEscorbuto(jug(e, pid))}` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})${conEscorbuto(jug(e, pid))}` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
     case 'H3': e.mods.premioDuelo = 30; break;
     case 'H4': {
@@ -113,6 +153,9 @@ function aplicarHistorico0(data, e, id) {
       });
       break;
     }
+    case 'H21': cruzada(data, e); break;
+    case 'H23': yusufAndalucia(data, e); break;
+    case 'H22': saladinoLevante(data, e); break;
     case 'H8': e.mods.sabiduria = true; e.sabiduria = { ronda: e.ronda, hasta: e.ronda + 2 }; break;   // 3 rondas (Jorge, 19 de noviembre)
     case 'H9': e.mods.oroMali = true; break;
     case 'H10': e.mods.seda = true; break;
