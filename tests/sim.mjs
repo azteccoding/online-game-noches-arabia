@@ -3,7 +3,7 @@
 // Comprueba: ninguna excepción, ningún bloqueo, valores sanos y que la partida termina (1,001 noches o muerte).
 import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar, multiplicadorRonda } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
-import { tieneItem, tieneObj, SHATRANJ, DATILES, cargaExcedida, pesaCarta, jambiyaEscondida } from '../shared/base.js';
+import { tieneItem, tieneObj, SHATRANJ, DATILES, cargaExcedida, pesaCarta, jambiyaEscondida, nCarga, soloJambiya } from '../shared/base.js';
 import { atacaMujer } from '../shared/pelea.js';
 
 const data = cargarDatos();
@@ -11,7 +11,7 @@ const PJS = ['1', '2', '3', '4', '5', '6', '7'];
 // Compras útiles (Jorge, 19 de noviembre: «enséñale a los bots a comprar artefactos para los retos»): objetos que piden o ayudan en
 // los retos (R22/R30 balanza, R23 odre, R27 antídoto, R31 pastel y carta, sobornos, llaves, cuerdas…), cítricos para el mar, dátiles
 // (R53), Shatranj en India y caballo mongol en Estambul. Sigue siendo al azar, pero con sentido: solo lo que le sirve y si le alcanza.
-const OBJ_RETOS = { OB18: 2, OB12: 2, OB20: 2, OB21: 1.5, OB30: 1.5, OB14: 1.5, OB05: 1, OB06: 1, OB07: 1, OB08: 1, OB09: 1, OB10: 1, OB13: 1, OB17: 1, OB26: 1, OB38: 1, OB40: 1, OB43: 1 };
+const OBJ_RETOS = { OB04: 1, OB18: 2, OB12: 2, OB20: 2, OB21: 1.5, OB30: 1.5, OB14: 1.5, OB05: 1, OB06: 1, OB07: 1, OB08: 1, OB09: 1, OB10: 1, OB13: 1, OB17: 1, OB26: 1, OB38: 1, OB40: 1, OB43: 1 };
 // Debilidades ajenas y fortalezas propias (Jorge, 19 de noviembre: «enséñale a los bots a aprovecharse de la debilidad de Zein o de
 // que Ruyán se deja comprar noches», «que jueguen con las fortalezas de su personaje» y «que Yafar aproveche todas sus ventajas»).
 // Solo el bot: el juego no cambia. Lo que se aprovecha se cuenta en stats.acciones como explota:* y fortaleza:*.
@@ -22,7 +22,7 @@ const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];
 const VECINOS = {};
 for (const k of Object.keys(data.rutas.tarifas)) { const [a, b] = k.split('>'); (VECINOS[a] ||= new Set()).add(b); }
 const DIST = {};   // DIST[destino][ciudad] = tramos que faltan
-for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad', 'Yemen', 'El Cairo', 'Aleppo', 'Isfahán']) {
+for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad', 'Yemen', 'El Cairo', 'Aleppo', 'Isfahán', 'Andalucía']) {
   const d = (DIST[dst] = { [dst]: 0 }), cola = [dst];
   while (cola.length) { const c = cola.shift(); for (const [a, vs] of Object.entries(VECINOS)) if (vs.has(c) && d[a] === undefined) { d[a] = d[c] + 1; cola.push(a); } }
 }
@@ -101,9 +101,14 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   const metas = {}, zubRonda = {};
   const meta = (pid) => {
     const j = e.jugadores[pid];
-    const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
+    const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5), entrena: j.pj === '6' || R() < 0.6 });   // Adí, con su dinero, es quien más va por las yeguas
     if (tieneItem(j, 'yegua')) return 'Estambul';
     if (tieneItem(j, 'costalPistaches')) return 'Bagdad';   // R56: los pistaches se entregan solos al llegar
+    if (m.entrena && !j.npc) {   // Jorge (20 de noviembre): entrenar las armas que trae (cada una da 50 noches) y la destreza en Estambul
+      for (const [arma, ciudad, costo] of [['jambiya', 'Yemen', 20], ['alfanje', 'Damasco', 20], ['cimitarra', 'Isfahán', 25], ['arco', 'Andalucía', 20]])
+        if (tieneItem(j, arma) && !j.extra?.entrenado?.[arma] && (!soloJambiya(j) || arma === 'jambiya') && j.dinares >= costo + 10) return ciudad;
+      if (!j.destreza && !soloJambiya(j) && j.dinares >= 60) return 'Estambul';
+    }
     if (j.pj === '6' && !j.npc) {   // Zubayda (Jorge, 20 de noviembre): carreras «Dos noches» y entrenar la jambiya en Yemen
       const car = (e.carrerasActivas || []).find((c) => !(c.prog || {})[pid] || c.ciudad === j.ciudad);
       if (car && DIST[car.ciudad]) return car.ciudad;
@@ -130,6 +135,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (pj === '3' && x.id === 'R26') return 'fortaleza:Anís repite R26';
     if (pj === '4' && ['R47', 'R48', 'R55'].includes(x.id)) return 'fortaleza:Jamil usa su persa (' + x.id + ')';
     if (pj === '2' && ['R46', 'R49', 'R55'].includes(x.id)) return 'fortaleza:Zein usa su árabe (' + x.id + ')';
+    if (pj === '5' && ['R46', 'R49', 'R55'].includes(x.id)) return 'fortaleza:Ruyán usa su árabe (' + x.id + ')';
     return undefined;
   };
   const porPj = (pid, x) => {
@@ -159,6 +165,8 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (j.pj === '7') return base * 1.6;                                                     // Adí paga caravanas caras sin miedo
       return base;
     }
+    if (x.k === 'reto' && ['R18', 'R19', 'R42', 'R43', 'R25'].includes(x.id)) return 4;   // entrenar (Jorge, 20 de noviembre)
+    if (x.k === 'esconder' && j.dinares >= 50) return 1.5;   // esconde la mitad con su papel amate
     if (x.k === 'reto' && x.id === 'R52') return 2;                                          // forjar acero de Damasco
     if (x.k === 'reto' && x.id === 'R47') return ['lampara', 'amate', 'buza'].every((r) => tieneItem(j, r)) ? 4 : 1.5;   // aprender árabe (Jorge, 20 de noviembre); con mecenas, siempre
     if (x.k === 'reto' && x.id === 'R54') return 1.5;
@@ -269,7 +277,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
           break;
         case 'reto': a = { t: 'reto', id: elegida.id, sub: elegida.sub, _por: porReto(pid, elegida) }; break;
         case 'tesoro': a = { t: 'tesoro', sub: elegida.sub, uid: elegida.uid, via: elegida.via }; break;
-        case 'esconder': a = { t: 'esconder', monto: 1 + Math.floor(R() * Math.max(1, e.jugadores[pid].dinares - 1)) }; break;
+        case 'esconder': a = { t: 'esconder', monto: e.jugadores[pid].dinares >= 50 ? Math.floor(e.jugadores[pid].dinares / 2) : 1 + Math.floor(R() * Math.max(1, e.jugadores[pid].dinares - 1)) }; break;
         case 'recuperar': a = { t: 'recuperar' }; break;
         case 'usar': a = { _por: e.jugadores[pid].mano.find((c) => c.uid === elegida.uid)?.ref === 'OB42' && e.jugadores[pid].pj === '3' ? 'fortaleza:Anís usa su disfraz' : undefined, t: 'usar', uid: elegida.uid, via: elegida.via, destino: elegida.destinos ? pick(elegida.destinos) : undefined, objetivo: elegida.objetivos ? pick(elegida.objetivos) : undefined, deseo: elegida.ifrit ? pick(elegida.ifrit) : undefined }; break;
         case 'asesinos': { const zub = e.jugadores[pid].pj === '6';   // solo si casi seguro le alcanza (a Zubayda le cuestan la mitad)
@@ -303,6 +311,12 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         if (jb.pj === '7' && !tieneItem(jb, 'arco') && jb.dinares >= 30) op.push([{ ref: 'arco' }, 2]);
         if (jb.pj === '7' && ['Basra', 'Aleppo', 'Damasco'].includes(c) && !['burro', 'camello', 'caballo', 'caballoMongol'].some((r) => tieneItem(jb, r)) && jb.dinares >= 35) op.push([{ ref: 'burro' }, 3]);
         if (jb.pj === 'B' && !tieneItem(jb, 'arco') && jb.dinares >= 25) op.push([{ ref: 'arco' }, 2]);
+        // Jorge (20 de noviembre): armas, papel amate y alforja para todos
+        if (!tieneItem(jb, 'jambiya') && jb.dinares >= 20) op.push([{ ref: 'jambiya' }, ['2', '6'].includes(jb.pj) ? 6 : desarmado(jb) ? 1.5 : 0.3]);   // Zein (destreza en jambiya) y Zubayda (la esconde) primero
+        if (jb.pj === '1' && !tieneItem(jb, 'cimitarra') && jb.dinares >= 45) op.push([{ ref: 'cimitarra' }, 4]);   // Nur al Din ya está entrenado con la cimitarra
+        if (!['2', '5', '6'].includes(jb.pj) && desarmado(jb) === false && !tieneItem(jb, 'alfanje') && !tieneItem(jb, 'cimitarra') && jb.dinares >= 60) op.push([{ ref: 'alfanje' }, 1]);
+        if (!tieneItem(jb, 'amate') && jb.dinares >= 50) op.push([{ ref: 'amate' }, 1]);   // para esconder dinares
+        if (c === 'Basra' && !['burro', 'camello', 'caballo', 'caballoMongol'].some((r) => tieneItem(jb, r)) && !tieneItem(jb, 'alforja') && nCarga(jb) >= 5 && jb.dinares >= 15) op.push([{ ref: 'alforja' }, 2]);
         if (jb.pj === '6' && !jb.npc && !tieneItem(jb, 'alfanje') && !tieneItem(jb, 'cimitarra') && (jb.extra?.entrenado?.jambiya || jb.dinares >= 60)) {   // Zubayda compra arma para entrenarla (Jorge, 20 de noviembre)
           if (jb.dinares >= 50) op.push([{ ref: 'alfanje' }, 6]);
           if (jb.dinares >= 70) op.push([{ ref: 'cimitarra' }, 3]);
