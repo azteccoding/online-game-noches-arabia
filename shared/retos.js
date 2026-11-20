@@ -1024,7 +1024,8 @@ const COPIAS = {
 export const MSJ_YAFAR_COPIAS = 'Yafar no puede transcribir ni traducir: es inepto y corrupto.';
 for (const [id, C] of Object.entries(COPIAS)) {
   T[id] = { ciudad: C.ciudades[0], ciudades: C.ciudades,
-    req: (d, e, pid) => { const j = e.jugadores[pid]; return j.pj === 'B' ? MSJ_YAFAR_COPIAS : !hablaIdioma(j, C.idioma) ? `Necesitas hablar ${C.idioma} (reto ${C.idioma === 'árabe' ? 'R47, en Yemen' : 'R46, en Isfahán'}).` : null; },
+    req: (d, e, pid) => { const j = e.jugadores[pid]; return j.pj === 'B' ? MSJ_YAFAR_COPIAS : !hablaIdioma(j, C.idioma) ? `Necesitas hablar ${C.idioma} (reto ${C.idioma === 'árabe' ? 'R47, en Yemen' : 'R46, en Isfahán'}).`
+      : espacioCarga(e, j) < TRANSCRIBIR.libros ? `Los ${TRANSCRIBIR.libros} libros pesan: sin caballo, burro o camello no te caben (como en R17).` : null; },
     run(data, e, pid, ctx) {
       const j = e.jugadores[pid]; hacer(e, pid, id);
       for (let i = 0; i < TRANSCRIBIR.libros; i++) {

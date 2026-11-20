@@ -3,7 +3,7 @@
 // Comprueba: ninguna excepción, ningún bloqueo, valores sanos y que la partida termina (1,001 noches o muerte).
 import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
-import { tieneItem, tieneObj, SHATRANJ, DATILES } from '../shared/base.js';
+import { tieneItem, tieneObj, SHATRANJ, DATILES, cargaExcedida, pesaCarta } from '../shared/base.js';
 import { atacaMujer } from '../shared/pelea.js';
 
 const data = cargarDatos();
@@ -186,6 +186,10 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       const pid = t.pid;
       if (e.jugadores[pid].npc) { now += 1000; tick(data, e, now); continue; }
       const tkey = e.ronda + ':' + pid; if (tkey !== turnoActual) { turnoActual = tkey; accionesTurno = 0; }
+      // Sobrecargado, el bot vende lo que pese hasta poder viajar (si no, se queda atorado para siempre en una ciudad).
+      if (t.fase !== 'ingreso' && !t.ccActual && cargaExcedida(e.jugadores[pid], e)) {
+        for (const c of e.jugadores[pid].mano.filter(pesaCarta).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'vender', uid: c.uid }); }
+      }
       const v = vista(data, e, pid);
       const ac = v.acciones;
       if (!ac.length) { now += 1000; tick(data, e, now); continue; }
