@@ -4871,6 +4871,7 @@ console.log('reglas de la casa OK');
   assert.equal(Y.ciudad, 'Aleppo', 'Yafar se queda'); assert.equal(Y.dinares, yd + 30, 'recibe 30 dinares'); assert.ok(tieneItem(Y, 'citricos'));
   assert.ok(e.log.some((l) => /Yafar es un traidor/.test(l.texto)), 'se anuncia la traición');
   assert.ok(BASE.ciudadCerrada(e, 'Damasco') && BASE.tarifa(data, e, A, 'Bagdad', 'Damasco') === null, 'no se puede ir');
+  assert.deepEqual([...vistaDe(e, a).quemadas].sort(), ['Aleppo', 'Damasco', 'Estambul'], 'flamas en el mapa');
   assert.ok(e.mazos.historicos.includes('H22'), '«La reconquista de Saladino» entra al mazo');
   const vaciar = () => { e.mazos.historicos = e.mazos.historicos.filter((x) => x === 'H22').length ? [] : []; e.mazos.eventos = []; e.mazos.descarte.historicos = []; e.mazos.descarte.eventos = []; };
   vaciar(); e.ronda = 4; empezarRonda(data, e); assert.ok(BASE.ciudadCerrada(e, 'Aleppo'), 'ronda 5: sigue cerrada');
@@ -4900,6 +4901,8 @@ console.log('reglas de la casa OK');
   assert.ok(!e.mazos.historicos.includes('H23') && !e.mazos.historicos.includes('H22'), 'Yusuf y Saladino no están en el mazo');
   turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; A.dinares = 50; e.turno.fase = 'mov';
   assert.match(g.act(a, { t: 'viajar', destino: 'Andalucía' }).error || '', /Yusuf ibn Tashfín/);
-  const { iniciarTurno } = await import('../shared/engine.js'); void iniciarTurno;
-  EVE.yusufAndalucia(data, e); assert.ok(!BASE.ciudadCerrada(e, 'Andalucía'), 'con Yusuf se reabre'); void b;
+  const { empezarRonda } = await import('../shared/engine.js');
+  e.mazos.historicos = []; e.mazos.eventos = []; e.mazos.descarte.historicos = []; e.mazos.descarte.eventos = []; e.pend = null; e.colaPend = [];
+  empezarRonda(data, e); assert.ok(!BASE.ciudadCerrada(e, 'Andalucía'), 'al inicio de la ronda siguiente sale Yusuf y se reabre');
+  assert.ok(e.log.some((l) => /Yusuf ibn Tashfín derrota a los infieles en la batalla de Sagrajas/.test(l.texto))); void b;
 }

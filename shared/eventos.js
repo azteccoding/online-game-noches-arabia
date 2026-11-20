@@ -85,7 +85,7 @@ export function finTurno(data, e, pid) {
 // Cruzada (H21) y Reconquista (Jorge, 19 de noviembre): quien está en las ciudades tomadas paga la caravana normal a su destino (deuda si
 // no le alcanza) y se va. Yafar (NPC o jugador) no se va: es un traidor, se alía con los cristianos y recibe 30 dinares y cítricos.
 export const LEVANTE = ['Damasco', 'Aleppo', 'Estambul'];
-// «Los cristianos toman Toledo» (H2) cierra Andalucía hasta el turno siguiente, cuando sale sola «Yusuf ibn Tashfín derrota a los
+// «Los cristianos toman Toledo» (H2) cierra Andalucía toda esa ronda; al inicio de la siguiente sale sola «Yusuf ibn Tashfín derrota a los
 // infieles» (H23) y se puede volver (Jorge, 19 de noviembre). La Reconquista (ronda 18) la cierra para siempre.
 export function yusufAndalucia(data, e) {
   if (!e.toledo || e.toledo.fin) return;
@@ -131,7 +131,7 @@ function aplicarHistorico0(data, e, id) {
       op.push({ id: 'quedar', texto: 'Aguantar: -30 noches y sin ingreso este turno' });
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
     }); break;
-    case 'H2': e.toledo = { ronda: e.ronda, turnos: 0 }; if (e.cerradas?.['Andalucía'] !== 'siempre') (e.cerradas ||= {})['Andalucía'] = 'toledo';   // Andalucía cerrada hasta Yusuf ibn Tashfín (H23)
+    case 'H2': e.toledo = { ronda: e.ronda }; if (e.cerradas?.['Andalucía'] !== 'siempre') (e.cerradas ||= {})['Andalucía'] = 'toledo';   // Andalucía cerrada hasta Yusuf ibn Tashfín (H23)
       cola(humanosEn(e, ['Andalucía']), (pid) => pedir(e, { tipo: 'historico', para: [pid], titulo: 'Los cristianos toman Toledo', texto: 'Paga 20 dinares a un rey cristiano para quedarte o abandona al-Ándalus.',
       opciones: [{ id: 'quedar', texto: 'Quedarme (20 dinares)' }, { id: 'Magreb', texto: `Irme al Magreb (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Magreb')})${conEscorbuto(jug(e, pid))}` }, { id: 'El Cairo', texto: `Irme a El Cairo (${tarifa(data, e, jug(e, pid), 'Andalucía', 'El Cairo')})${conEscorbuto(jug(e, pid))}` }, { id: 'Bagdad', texto: `Irme a Bagdad (${tarifa(data, e, jug(e, pid), 'Andalucía', 'Bagdad')})` }], porDefecto: 'quedar', cont: { fn: 'ev.h2', args: {} } })); break;
     case 'H3': e.mods.premioDuelo = 30; break;

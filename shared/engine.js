@@ -296,6 +296,9 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
     publicarCarta(e, cartaDatos(data, 'historico', 'H22'), null); e.mazos.descarte.historicos.push('H22');
     EVE.saladinoLevante(data, e);
   }
+  if (e.toledo && !e.toledo.fin && e.ronda > e.toledo.ronda) {   // «Yusuf ibn Tashfín derrota a los infieles» sale al inicio de la ronda siguiente a Toledo (Jorge, 19 de noviembre)
+    publicarCarta(e, cartaDatos(data, 'historico', 'H23'), null); EVE.yusufAndalucia(data, e);
+  }
   if (e.ronda === RECONQUISTA.ronda && !e.reconquista && !(e.ganadores || []).length) reconquista(data, e);
   if (e.sabiduria) {
     if (e.ronda <= e.sabiduria.hasta) { e.mods.sabiduria = true; const q = e.sabiduria.hasta - e.ronda + 1; log(e, `La Casa de la Sabiduría sigue abierta: la biblioteca de Bagdad paga los libros a su valor completo (${q === 1 ? 'última ronda' : `quedan ${q} rondas`}).`, { aviso: true }); }
@@ -406,9 +409,6 @@ function iniciarTurno(data, e, id, idx) {
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   RET.recibirDestreza(data, e, id);   // destreza y entrenamientos del turno anterior (Jorge, 19 de noviembre)
-  if (e.toledo && !e.toledo.fin && ++e.toledo.turnos >= 2) {   // «Yusuf ibn Tashfín derrota a los infieles» sale en el turno siguiente al de la carta de Toledo
-    publicarCarta(e, cartaDatos(data, 'historico', 'H23'), null); EVE.yusufAndalucia(data, e);
-  }
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
   turnoEmir(data, e, id);          // servicio del Emir: llega la Dádiva (Jorge, 18 de noviembre)
@@ -521,7 +521,7 @@ registrar('reconquista.sale', (data, e, args, resp) => {
   log(e, `${j.nombre} huye de Andalucía a ${d}: paga ${p} dinares y recibe ${RECONQUISTA.noches} noches.${m ? ' ' + m : ''}`, { pid: j.id, aviso: true });
 });
 // Jorge (19 de noviembre): la Casa de la Sabiduría tiene 4 cartas en el mazo de históricos (antes 1).
-export const COPIAS_HISTORICO = { H8: 4, H22: 0, H23: 0 };   // H23 (Yusuf) sale sola tras «Los cristianos toman Toledo»   // H22 (Saladino) solo entra al mazo cuando sale la Cruzada
+export const COPIAS_HISTORICO = { H8: 4, H22: 0, H23: 0 };   // H23 (Yusuf) sale sola al inicio de la ronda siguiente a «Los cristianos toman Toledo»   // H22 (Saladino) solo entra al mazo cuando sale la Cruzada
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {
   const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
@@ -1528,6 +1528,7 @@ export function vista(data, e, pid) {
     votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
     mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
     sabiduria: e.sabiduria && e.ronda <= e.sabiduria.hasta ? { quedan: e.sabiduria.hasta - e.ronda + 1 } : null,
+    quemadas: Object.entries(e.cerradas || {}).filter(([, v]) => v === 'cruzada').map(([c]) => c),   // flamas en el mapa durante la Cruzada (Jorge, 19 de noviembre)
     leidoHasta: e.jugadores[pid]?.extra?.leidoHasta ?? null,   // hasta qué carta cerró este jugador (consecuencias después de cerrar)
     chat: (e.chat || []).filter((m) => m.para === pid || m.de === pid).slice(-40),
     publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},

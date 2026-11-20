@@ -125,7 +125,7 @@ function Juego({ lienzo }) {
     <div className="app">
       <BarraEstado s={s} demo={demo} pids={pids} panel={panel} abrir={abrir} />
       <main className="mesa">
-        <Tablero jugadores={s.jugadores} turnoPid={s.turno?.pid} miId={s.yo} vivas={vivas} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} rot={lienzo.rotTablero} uiRot={lienzo.rotUi} />
+        <Tablero quemadas={s.quemadas} jugadores={s.jugadores} turnoPid={s.turno?.pid} miId={s.yo} vivas={vivas} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} rot={lienzo.rotTablero} uiRot={lienzo.rotUi} />
         <Dados s={s} />
         {panel === 'personajes' && <MenuPersonajes s={s} onCerrar={cerrar} />}
         {panel === 'mano' && <Mano s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}

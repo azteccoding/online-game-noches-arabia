@@ -35,3 +35,13 @@ h1, h2, h3 { font-family: var(--f-titulo); font-weight: 400; margin: 0; letter-s
 .toast-reto { pointer-events: auto; cursor: pointer; padding: 8px 14px; border-radius: 10px; box-shadow: var(--sombra); color: #fff; font-size: .95rem; }
 .toast-reto.ok { background: #1f5a3a; border: 1px solid var(--oro-claro); }
 .toast-reto.gris { background: #55534e; border: 1px solid #8d8a82; }
+
+/* Cruzada (Jorge, 19 de noviembre): una flama pequeña arde sobre las ciudades tomadas; no estorba los clics ni el arrastre */
+.llamas { pointer-events: none; }
+.llama { transform-origin: 0 0; animation: llama-arde 0.9s ease-in-out infinite alternate; }
+.llama-fuera { fill: #e8641e; stroke: #8a2a0c; stroke-width: 1.5; }
+.llama-dentro { fill: #ffd34a; animation: llama-brillo 0.6s ease-in-out infinite alternate; }
+@keyframes llama-arde { from { transform: scale(1, 1) rotate(-3deg); } to { transform: scale(0.92, 1.12) rotate(3deg); } }
+@keyframes llama-brillo { from { opacity: 0.75; } to { opacity: 1; } }
+.moviendo .llama, .moviendo .llama-dentro { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .llama, .llama-dentro { animation: none; } }

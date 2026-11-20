@@ -63,7 +63,7 @@ function agruparPeones(jugadores, turnoPid) {
   return Object.entries(porCiudad).flatMap(([ciudad, lista]) => lista.map((j, i) => ({ j, ciudad, i, n: lista.length, turno: j.id === turnoPid })));
 }
 
-export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudadesAlcance, ciudadActiva, onCiudad, rot = 0, uiRot = 0 }) {
+export default memo(function Tablero({ quemadas, jugadores, turnoPid, miId, vivas, ciudadesAlcance, ciudadActiva, onCiudad, rot = 0, uiRot = 0 }) {
   window.__rendersTablero = (window.__rendersTablero || 0) + 1;
   const cont = useRef(null), svgRef = useRef(null), baseRef = useRef(null), rectMini = useRef(null), pz = useRef(null);
   const [cargado, setCargado] = useState(false);
@@ -141,6 +141,12 @@ export default memo(function Tablero({ jugadores, turnoPid, miId, vivas, ciudade
           {Object.entries(tablero.cities).map(([id, c]) => <Pin key={id} id={id} c={c} resaltada={ciudadesAlcance?.has(id)} activa={id === ciudadActiva} />)}
           <g className="ciudad jorasan" transform={`translate(${tablero.jorasan.x},${tablero.jorasan.y})`}><g className="escala-pin"><polygon points="0,-30 9,-12 29,-9 14,5 18,26 0,16 -18,26 -14,5 -29,-9 -9,-12" /><circle r="6" /></g></g>
         </g>
+        {/* Jorge (19 de noviembre): durante la Cruzada, una flama pequeña arde sobre Damasco, Aleppo y Estambul; no estorba los clics */}
+        <g className="llamas" pointerEvents="none">{(quemadas || []).filter((id) => tablero.cities[id]).map((id) => { const c = tablero.cities[id]; return (
+          <g key={id} transform={`translate(${c.x + 22},${c.y - 62})`}><g className="llama">
+            <path className="llama-fuera" d="M0,0 C-11,-6 -12,-20 -3,-30 C-4,-22 2,-20 3,-27 C10,-18 12,-6 0,0Z" />
+            <path className="llama-dentro" d="M0,-2 C-6,-5 -6,-13 -1,-18 C0,-13 3,-12 4,-16 C7,-10 6,-4 0,-2Z" />
+          </g></g>); })}</g>
         <g className="peones">{peones.map((p) => <Peon key={p.j.id} {...p} tablero={tablero} yo={p.j.id === miId} onViaje={alViajar} />)}</g>
       </svg>
 

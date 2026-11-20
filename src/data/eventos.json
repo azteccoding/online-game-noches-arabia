@@ -388,7 +388,7 @@
    "nombre": "Yusuf ibn Tashfín derrota a los infieles",
    "ciudades": "Andalucía",
    "efecto": "Yusuf ibn Tashfín derrota a los cristianos en la batalla de Sagrajas (al-Zallaqa, 1086): ya se puede volver a Andalucía",
-   "costo": "Sale sola en el turno siguiente a «Los cristianos toman Toledo»",
+   "costo": "Sale sola al inicio de la ronda siguiente a «Los cristianos toman Toledo»",
    "fomenta": "",
    "arte": "hi",
    "refReglamento": "17.2"
