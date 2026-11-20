@@ -2627,7 +2627,7 @@ for (let k = 0; k < 6; k++) {
       const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
       const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
       for (const x of Object.values(e.jugadores)) { x.extra.clienteWeb = true; x.ciudad = ciudad; }
-      A.dinares = 300; A.turnos = 8; A.destreza = true; A.extra.idiomas = ['persa', 'árabe'];
+      A.dinares = 300; A.noches = 600; A.turnos = 8; A.destreza = true; A.extra.idiomas = ['persa', 'árabe'];   // 600 noches: R15 pide 500
       for (const it of ['cimitarra', 'camello', 'alfombraIsfahan', 'alfombraIsfahan']) darItem(e, A, it); A.mano.push({ uid: 9603, tipo: 'objeto', ref: 'OB18' }, { uid: 9604, tipo: 'objeto', ref: 'OB12' });   // el Odre que pide R23 y la Balanza de R22 y R30
       e.crimenPresenciado = true; e.ultimoDamasco = b; e.ronda = 5;
       turnoDe(e, a, ciudad); e.turno.fase = 'acciones'; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
