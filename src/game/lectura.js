@@ -2,7 +2,8 @@
 // sin cerrar, la barra muestra tu saldo de antes y el registro no enseña lo que pasó desde esa carta. Sin React para probarlo con node.
 export const MIN_LECTURA_MS = 3000;                         // todas las cartas se pueden cerrar a los 3 s (Jorge, 19 de noviembre; antes 4)
 export const LECTURA_ESPECIAL_MS = { S4: 7000 };            // Traición en Jerusalén: a los 7 s
-export const lecturaMs = (carta) => LECTURA_ESPECIAL_MS[carta?.id] ?? MIN_LECTURA_MS;
+export const DECKS_SIN_ESPERA = ['objeto', 'item'];       // cartas de objetos (mazo y originales): se cierran al terminar de girar (Jorge, 20 de noviembre)
+export const lecturaMs = (carta) => LECTURA_ESPECIAL_MS[carta?.id] ?? (DECKS_SIN_ESPERA.includes(carta?.deck) ? 0 : MIN_LECTURA_MS);
 const VIGENCIA_MS = 120000;                                 // una carta vieja que nadie marcó como leída ya no congela nada
 
 // La primera carta que me toca leer y que todavía no cerré (según el servidor: s.leidoHasta). Las de ambiente no cuentan.

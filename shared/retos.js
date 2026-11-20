@@ -920,9 +920,10 @@ for (const [id, I] of Object.entries(IDIOMAS)) {
       log(e, `${j.nombre} se inscribe a clases de ${I.idioma} en ${I.ciudad}: ${n === 1 ? '1 turno' : '2 turnos'}.`, { pid });
     } };
 }
-// Mecenas (Jorge, 20 de noviembre): si al iniciar R47 o R55 llevas Lámpara de aceite, papel amate y cálamo de Kufa, se gastan y se esfuman
+// Mecenas (Jorge, 20 de noviembre): si al iniciar R46, R47 o R55 llevas Lámpara de aceite, papel amate y cálamo de Kufa, se gastan y se esfuman
 // (no vuelven al mercado), no tiras el dado y el estudio termina al iniciar tu siguiente turno. Pagas el costo normal.
-export const MECENAS = { retos: ['R47', 'R55'], objetos: ['lampara', 'amate', 'buza'] };
+export const MECENAS = { retos: ['R46', 'R47', 'R55'],   // R46 persa también (Jorge, 20 de noviembre)
+  objetos: ['lampara', 'amate', 'buza'] };
 export const MSJ_MECENAS = 'Tuviste mecenas que pagaron tus útiles y estudios: tu lámpara de aceite, tu papel amate y tu cálamo de Kufa se gastan.';
 function conMecenas(e, j) {
   if (!MECENAS.objetos.every((r) => tieneItem(j, r))) return false;

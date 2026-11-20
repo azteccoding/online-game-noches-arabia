@@ -4995,7 +4995,7 @@ console.log('reglas de la casa OK');
   assert.ok(!A.mano.find((c) => c.ref === 'camello').extra?.reto, 'al morir no reactiva R1');
 }
 // Jorge (20 de noviembre): Lámpara de aceite: 1 en cada mercado menos India, a 8, pesa. Con lámpara, papel amate y cálamo de Kufa,
-// R47 y R55 terminan al iniciar el siguiente turno (mecenas); los tres se gastan y no vuelven al mercado. El papel amate no pesa.
+// R46, R47 y R55 terminan al iniciar el siguiente turno (mecenas); los tres se gastan y no vuelven al mercado. El papel amate no pesa.
 {
   const { tienda, comprar } = await import('../shared/objetos.js'); const { pesaCarta } = await import('../shared/base.js');
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
@@ -5025,4 +5025,15 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(a, { t: 'reto', id: 'R9' }).ok); assert.equal(A.dinares, 40); assert.ok(tieneItem(A, 'pergamino'), 'pergamino con 5');
   turnoDe(e, a, 'El Cairo'); A.extra.rep = {}; A.retosHechos = A.retosHechos.filter((r) => r !== 'R9'); e.turno.fase = 'acciones'; forzar(e, 4);
   const n = A.mano.filter((c) => c.ref === 'pergamino').length; assert.ok(g.act(a, { t: 'reto', id: 'R9' }).ok); assert.equal(A.mano.filter((c) => c.ref === 'pergamino').length, n, 'con 4 solo el cofre');
+}
+// Jorge (20 de noviembre): la Lámpara de aceite también vale para R46 (aprender persa)
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [, b] = g.ids, B = e.jugadores[b];
+  turnoDe(e, b, 'Isfahán'); B.ciudad = 'Isfahán'; B.dinares = 20; e.turno.fase = 'acciones';
+  darItem(e, B, 'lampara'); darItem(e, B, 'amate'); darItem(e, B, 'buza');
+  assert.ok(g.act(b, { t: 'reto', id: 'R46' }).ok); assert.ok(B.extra.estudio?.mecenas, 'R46 con mecenas');
+  assert.ok(!['lampara', 'amate', 'buza'].some((r) => tieneItem(B, r)));
+  B.turnos++; const { turnoEstudio } = await import('../shared/retos.js'); turnoEstudio(data, e, b);
+  assert.ok((B.extra.idiomas || []).includes('persa'), 'ya habla persa');
 }

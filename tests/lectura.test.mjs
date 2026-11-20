@@ -9,6 +9,7 @@ import { cartaSinCerrar, saldoVisible, logVisible, lecturaMs, MIN_LECTURA_MS } f
 assert.equal(MIN_LECTURA_MS, 3000);
 assert.equal(lecturaMs({ id: 'S4' }), 7000, 'Traición en Jerusalén: 7 s');
 assert.equal(lecturaMs({ id: 'E3' }), 3000);
+assert.equal(lecturaMs({ id: 'OB04', deck: 'objeto' }), 0, 'objetos: se cierran al terminar de girar (Jorge, 20 de noviembre)'); assert.equal(lecturaMs({ id: 'arco', deck: 'item' }), 0); assert.equal(lecturaMs({ id: 'S4', deck: 'especial' }), 7000);
 
 const data = cargarDatos();
 const e = nuevoJuego(data, { semilla: 3, ahora: 1000, opciones: {} });
