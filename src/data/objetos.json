@@ -871,7 +871,7 @@
   },
   {
    "nombre": "Velo quemado",
-   "efecto": "Descartándolo, ignoras un resultado de genio malo o de \"ignorarte\" en el Jorasán y vuelves a tirar los dados (16.4)",
+   "efecto": "Descartándolo, ignoras un resultado de genio malo o de \"ignorarte\" en el Jorasán y vuelves a tirar los dados (16.4). Además, mientras lo tengas, toda carta de Ifrit te ofrece la alfombra mágica; si la pides así, el velo se gasta",
    "precio": "30 dinares (R20)"
   },
   {
