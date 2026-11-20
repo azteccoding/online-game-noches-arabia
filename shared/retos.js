@@ -1,7 +1,7 @@
 // Retos y misiones R1-R41 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
 // Los retos con varios pasos usan decisiones pendientes (pend) con continuaciones registradas; los plazos cuentan turnos PROPIOS (R 14.1).
 import {
-  ok, err, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
+  ok, err, rnd, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
 itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
@@ -323,11 +323,19 @@ function pagarDeudaR1(e, j, m) {
 function r1Exito(data, e, pid, m) {
   const j = e.jugadores[pid];
   quitarMision(j, m); hacer(e, pid, 'R1');
-  darTransporte(data, e, pid, 'caballo'); darTransporte(data, e, pid, 'camello'); darItem(e, j, 'pergamino'); j.extra.viajeCalifa = true;   // el caballo (mejor) y, como ya tiene transporte, 20 dinares por el camello
-  premio(data, e, pid, { dinares: 50, noches: 50 }, `${j.nombre} halla el cofre del Éufrates:`);
+  // Jorge (20 de noviembre): 35 dinares y 25 noches (antes 50 y 50) y eliges caballo o camello (uno solo); ya no da pergamino ni viaje gratis del Califa.
+  premio(data, e, pid, { dinares: R1_PREMIO.dinares, noches: R1_PREMIO.noches }, `${j.nombre} halla el cofre del Éufrates:`);
   pagar(data, e, pid, m.deuda);
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · El cofre del Éufrates', texto: `Hallaste el cofre: ${R1_PREMIO.dinares} dinares y ${R1_PREMIO.noches} noches. Elige tu animal.`,
+    opciones: [{ id: 'caballo', texto: 'Un caballo' }, { id: 'camello', texto: 'Un camello' }], porDefecto: 'caballo', cont: { fn: 'r1.animal', args: {} } });
   cerrarReto(data, e, pid, 'R1', true);
 }
+export const R1_PREMIO = { dinares: 35, noches: 25 };
+registrar('r1.animal', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid]; if (!j || j.eliminado) return;
+  const ref = resp.opcion === 'camello' ? 'camello' : 'caballo';
+  const c = darTransporte(data, e, pid, ref); if (c) c.extra = { ...(c.extra || {}), reto: 'R1' };   // al morir, se reactiva R1 (no R5)
+});
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
     ctx.sinAnuncio = true;   // se anuncia al encontrar el cofre o al abandonar la búsqueda (si rechaza, no hay reto)
@@ -620,9 +628,9 @@ T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42')
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
 T.R43 = { ciudad: 'Andalucía', ciudades: ['Andalucía', 'Yemen', 'Samarcanda'], req: reqArma('R43'),   // también en Yemen y Samarcanda (Jorge, 19 de noviembre)
   run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid) {
-  const j = e.jugadores[pid]; j.dinares -= DESTREZA.costo; aplazarDestreza(e, pid, { t: 'general' }); j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45); Zein y Ruyán: solo con jambiya
-  log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul y gana 50 noches: su turno termina y al iniciar el siguiente tendrá destreza, solo con la jambiya.` : `${j.nombre} entrena en Estambul y gana 50 noches: su turno termina y al iniciar el siguiente tendrá destreza con armas (+1 en todas las peleas).`, { pid });
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid, ctx) {
+  const j = e.jugadores[pid]; if (ctx) ctx.resultado = 'logro'; j.dinares -= DESTREZA.costo; aplazarDestreza(e, pid, { t: 'general' }); hacer(e, pid, 'R25');   // Jorge (20 de noviembre): ya no da noches (antes 50)   // Jorge (10 de noviembre): 50 (antes 45); Zein y Ruyán: solo con jambiya
+  log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul: su turno termina y al iniciar el siguiente tendrá destreza, solo con la jambiya.` : `${j.nombre} entrena en Estambul: su turno termina y al iniciar el siguiente tendrá destreza con armas (+1 en todas las peleas).`, { pid });
 } };
 // Jorge (19 de noviembre): en el reto el velo cuesta 10 dinares (en el mercado sigue a 30).
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
@@ -787,7 +795,14 @@ T.R37 = { ciudad: 'El Cairo', req: (data, e, pid) => { const j = e.jugadores[pid
   if (aplic(data, e, pid, us, 'OB30') || (j.dinares < 10 && consumirObj(data, e, pid, 'OB30'))) ctx.say('Entras con tu carta de recomendación.'); else j.dinares -= 10;
   const [x0] = ctx.t(`${j.nombre}: la boda`, 1); const x = x0 + (aplic(data, e, pid, us, 'OB21') ? 1 : 0);
   if (x <= 2) { j.extra.sinPrincipal = true; ctx.say('Se te sube el vino: perderás tu próxima acción principal.'); }
-  else if (x <= 5) { premio(data, e, pid, { dinares: 30 }, 'Contactos útiles:'); HOOK.robarCC(data, e, pid, 'El Cairo'); }
+  else if (x <= 5) {   // Jorge (20 de noviembre): 30 dinares y lees la Carta de Cuentos de El Cairo (+2 al cerrarla), no una trivia
+    premio(data, e, pid, { dinares: 30 }, 'Contactos útiles:');
+    // Jorge (20 de noviembre): si el de El Cairo ya salió, lees otro que no haya salido; si ya salieron los 7, solo los 30.
+    const salidos = e.cuentosSacados || [], claves = [...new Set(data.cuentos.cuentos.map((c) => c.clave))].filter((k) => !salidos.includes(k));
+    const clave = claves.includes('El Cairo') ? 'El Cairo' : claves.length ? claves[Math.floor(rnd(e) * claves.length)] : null;
+    if (clave && HOOK.sacarCuento(data, e, pid, clave)) ctx.say(`Ganas 30 dinares y lees una Carta de Cuentos${clave === 'El Cairo' ? ' de El Cairo' : ''} (+2 dinares al cerrarla).`);
+    else ctx.say('Ganas 30 dinares. Ya salieron todas las Cartas de Cuentos de la partida.');
+  }
   else { darTransporte(data, e, pid, 'caballo'); ctx.say('Un socio generoso te regala un caballo nuevo.'); }   // Jorge (19 de noviembre): un caballo en vez de 60 dinares
 } };
 T.R38 = { ciudad: 'Yemen', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Apuesta mínima: 10 dinares.'), run(data, e, pid, ctx, us) {
@@ -808,8 +823,8 @@ T.R39 = { ciudad: 'Aleppo', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 
 } };
 // R40 (regla de la casa): cruzar a Abisinia desde Yemen. Pasaje de 15; 1 dado +1 destreza +1 camello: 6+ carta de Ifrit
 // (o 40 dinares), 4–5 vuelves a Moca, 1–3 tormenta y quedas herido. Se gana una vez por partida; herido no se intenta.
-// R44 «Visitar Timbuktú» (Jorge, 7 de noviembre): desde el Magreb, 10 dinares de caravana y 30 noches; una vez por jugador. Mientras dure la
-// carta S2 «Mansa Musa despertó generoso», además se tira 1 dado (con su botón): 6, 50 dinares y 60 noches; 4–5, 35 y 40; 1–3, 30 noches.
+// R44 «Visitar Timbuktú» (Jorge, 7 de noviembre): desde el Magreb, 10 dinares de caravana y 20 noches (antes 30); una vez por jugador. Mientras dure la
+// carta S2 «Mansa Musa despertó generoso», además se tira 1 dado (con su botón): 6, 50 dinares y 40 noches más; 4–5, 35 y 20; 1–3, 10 noches (Jorge, 20 de noviembre).
 // R45 «Trabajar para el Nizam de Hyderabad» (Jorge, 10 de noviembre), con la estructura de R41: se inicia desde Acciones en India con
 // la acción principal y queda hecho (una vez por jugador). Tiras 1 dado (con botón): cobras 10 + 5 por punto y 10 noches, al momento. Pierdes tu
 // siguiente turno y, en el que sigue, no tienes acción principal (quedas herido por tanto trabajo: engine.iniciarTurno).
@@ -949,7 +964,7 @@ export function finEstudio(data, e, pid) {
 // idioma: par, 1 turno de forja; impar, 2. En esos turnos tu acción principal se va en la forja y no puedes salir de Damasco; la
 // cimitarra llega al terminar el último (turnoForja / finForja).
 // Solo se forja si no tienes cimitarra; Yafar (NPC o jugador) nunca. El primero que termina gana 50 noches y abre la venta de cimitarras.
-export const FORJA = { costo: 18, ciudad: 'Damasco' };
+export const FORJA = { costo: 18, ciudad: 'Damasco', nochesPrimero: 50, noches: 10 };   // noches: los que no son el primero (Jorge, 20 de noviembre)
 T.R52 = { ciudad: FORJA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid];
     return j.pj === 'B' ? 'Yafar no forja acero: es inepto y corrupto, y esto es conocimiento técnico especializado.' : j.extra?.forja ? 'Ya estás forjando tu acero.' : tieneItem(j, 'cimitarra') ? 'Ya tienes una cimitarra.' : j.dinares < FORJA.costo ? `Forjar cuesta ${FORJA.costo} dinares: sin dinero no hay trato.` : null; },
   run(data, e, pid, ctx) {
@@ -975,9 +990,9 @@ export function finForja(data, e, pid) {
   if (j.ciudad !== FORJA.ciudad) { j.extra.forja = null; log(e, `${j.nombre} tuvo que dejar Damasco: pierde su acero a medio forjar.`, { pid }); return; }
   j.extra.forja = null; darItem(e, j, 'cimitarra');
   const primero = !e.forjaDamasco;   // Jorge (17 de noviembre): el primero que forja gana 50 noches y abre la venta de cimitarras
-  if (primero) { e.forjaDamasco = true; j.noches += 50; }
-  publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ''}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
-  log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ''}.`, { pid, aviso: true });
+  if (primero) { e.forjaDamasco = true; j.noches += FORJA.nochesPrimero; } else j.noches += FORJA.noches;   // Jorge (20 de noviembre): los demás, 10
+  publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ' y ganas 10 noches'}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
+  log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ' y gana 10 noches'}.`, { pid, aviso: true });
 }
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán
 // otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, quedas entrenado (+1)
@@ -1074,13 +1089,15 @@ for (const [id, I] of Object.entries(ENSENAR)) {
   T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),
     run(data, e, pid, ctx) { const j = e.jugadores[pid]; j.dinares += 4; ctx.say(`Enseñas ${I.idioma} esta noche: te pagan 4 dinares.`); log(e, `${j.nombre} enseña ${I.idioma} en ${j.ciudad} y cobra 4 dinares.`, { pid }); } };   // no queda hecho: se repite cada turno
 }
+// Jorge (20 de noviembre): 20 noches base (antes 30); con Mansa Musa, 60 en total con 6 (+40), 40 con 4 o 5 (+20) y 30 con 1 a 3 (+10).
+export const TIMBUKTU = { noches: 20, mansa: { 6: 40, 4: 20, 1: 10 } };
 T.R44 = { ciudad: 'Magreb', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'La caravana a Timbuktú cuesta 10 dinares.'),
   run(data, e, pid, ctx) {
-    const j = e.jugadores[pid]; j.dinares -= 10; j.noches += 30; hacer(e, pid, 'R44');
-    ctx.say(`${j.nombre} cruza el Sahara con la caravana de la sal y visita Timbuktú: gana 30 noches.`);
+    const j = e.jugadores[pid]; j.dinares -= 10; j.noches += TIMBUKTU.noches; hacer(e, pid, 'R44');
+    ctx.say(`${j.nombre} cruza el Sahara con la caravana de la sal y visita Timbuktú: gana ${TIMBUKTU.noches} noches.`);
     if (e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta && !j.npc) {          // Jorge (punto 3): Mansa Musa no beneficia a Yafar
-      const [x] = ctx.t(`${j.nombre}: la generosidad de Mansa Musa (6: 50 dinares y 60 noches; 4 o 5: 35 y 40; 1 a 3: 30 noches)`, 1);
-      const p = x === 6 ? { d: 50, n: 60 } : x >= 4 ? { d: 35, n: 40 } : { d: 0, n: 30 };
+      const [x] = ctx.t(`${j.nombre}: la generosidad de Mansa Musa (6: 50 dinares y ${TIMBUKTU.mansa[6]} noches más; 4 o 5: 35 y ${TIMBUKTU.mansa[4]}; 1 a 3: ${TIMBUKTU.mansa[1]} noches)`, 1);
+      const p = x === 6 ? { d: 50, n: TIMBUKTU.mansa[6] } : x >= 4 ? { d: 35, n: TIMBUKTU.mansa[4] } : { d: 0, n: TIMBUKTU.mansa[1] };
       j.dinares += p.d; j.noches += p.n;
       ctx.say(`Mansa Musa lo recibe: ${p.d ? p.d + ' dinares y ' : ''}${p.n} noches más.`);
     }

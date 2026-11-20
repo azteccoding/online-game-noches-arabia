@@ -12,7 +12,7 @@ export const MIN_LECTURA_MS = (import.meta.env.VITE_DEMO === '1' && Number(new U
 const minLectura = (c) => (MIN_LECTURA_MS !== MIN_NORMAL ? MIN_LECTURA_MS : lecturaMs(c));
 const PASO_MS = 1800;            // la ficha camina por la ruta entre 1.3 y 3.6 s (Peon3D.jsx): la carta espera a que casi llegue
 const GIRO_MS = 600;             // el dorso se ve y gira; luego entra el anverso (animaciones .carta-dorso / .modal-carta.gira)
-const DORSOS = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', objeto: 'objetos', item: 'objetos', especial: 'objetos', trivia: 'trivia', mesa: 'cc', cuento: 'crp', personaje: 'personajes', reto: 'retos', ifrit: 'ifrit' };
+const DORSOS = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', objeto: 'objetos', item: 'objetos', especial: 'objetos', trivia: 'trivia', mesa: 'trivia', cuento: 'cc', personaje: 'personajes', reto: 'retos', ifrit: 'ifrit' };
 const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
 // Ciclo de vida de una carta (ver plan «Cartas bajo demanda»):

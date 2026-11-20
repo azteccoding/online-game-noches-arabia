@@ -18,9 +18,9 @@ export const Icono = ({ deck, size = 22 }) => <svg viewBox="0 0 24 24" width={si
 
 export const ETIQUETA = {
   evento: ['EVENTO', 'حدث'], historico: ['HISTORIA', 'تاريخ'], mensaje: ['MENSAJE', 'رسالة'], reto: ['RETO', 'تحدٍّ'], objeto: ['OBJETO', 'غرض'],
-  trivia: ['CUENTO', 'حكاية'], mesa: ['DE MESA', 'حكاية'], cuento: ['CUENTO', 'قصة'], ifrit: ['IFRIT', 'عفريت'], especial: ['ESPECIAL', 'خاص'], personaje: ['PERSONAJE', 'شخصية'],
+  trivia: ['TRIVIA', 'سؤال'], mesa: ['DE MESA', 'سؤال'], cuento: ['CUENTO', 'قصة'], ifrit: ['IFRIT', 'عفريت'], especial: ['ESPECIAL', 'خاص'], personaje: ['PERSONAJE', 'شخصية'],
 };
-export const DORSO = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', reto: 'retos', objeto: 'objetos', trivia: 'cc', mesa: 'cc', cuento: 'cc', ifrit: 'ifrit', especial: 'objetos', personaje: 'personajes' };
+export const DORSO = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', reto: 'retos', objeto: 'objetos', trivia: 'trivia', mesa: 'trivia', cuento: 'cc', ifrit: 'ifrit', especial: 'objetos', personaje: 'personajes' };
 
 // Adorno geométrico procedural (estrella de 8 puntas) para cartas sin ilustración. Vectorial, no pesa ni se pixela.
 export const Adorno = () => (

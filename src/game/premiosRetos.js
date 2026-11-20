@@ -29,7 +29,7 @@ export const PREMIO_TEXTO = {
   R1: 'animal y dinares', R2: 'astrolabio y caballo', R4: 'valor de libros', R5: 'camello y dinares', R6: 'dinares y libro',
   R9: 'dinares o mapa', R14: 'dinares y Kanmakán', R18: 'entrena cimitarra', R19: 'entrena jambiya', R20: 'compra velo',
   R21: 'dinares o mapa', R25: 'destreza bélica', R27: 'da veneno', R31: 'dinares y botín', R32: 'dinares y botín', R34: 'botella de genio',
-  R36: 'dinares y botín', R37: 'dinares y Cuentos extra', R40: 'carta de Ifrit', R41: 'Ídolo de Toledo', R42: 'entrena alfanje', R43: 'entrena arco',
+  R36: 'dinares y botín', R37: 'dinares y Carta de Cuentos', R40: 'carta de Ifrit', R41: 'Ídolo de Toledo', R42: 'entrena alfanje', R43: 'entrena arco',
   R44: 'noches y dado', R46: 'aprende persa', R47: 'aprende árabe', R48: '4 por noche', R49: '4 por noche', R50: '150 por yegua',
   R51: 'campeón de arco',
 };

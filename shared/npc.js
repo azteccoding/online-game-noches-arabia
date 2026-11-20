@@ -200,10 +200,10 @@ export function accionPrincipal(data, e, pid) {   // exportada para las pruebas
     // (b) Yafar NPC ya no contrata a los Asesinos (regla de la casa del juego en línea)
     // (b2) Jorge (12 de noviembre): si no hay a quién atacar, hace un reto (o saca la destreza)
     if (hacerRetoNPC(data, e, pid)) return cierreTrasReto(data, e, pid);
-    // (c) una carta de Cuentos respondida con un dado
+    // (c) una Carta de Trivias respondida con un dado
     const x = dado(e);
     const premio = data.config.premioTrivia;
-    mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC responde una CC (4-6 acierta)', valores: [x] }], resumen: [x >= 4 ? `Yafar NPC acierta y cobra ${premio} dinares.` : 'Yafar NPC falla la pregunta.'] });
+    mostrarDados(e, { por: pid, motivo: 'npc:Yafar', npc: true, grupos: [{ etq: 'Yafar NPC responde una Carta de Trivias (4-6 acierta)', valores: [x] }], resumen: [x >= 4 ? `Yafar NPC acierta y cobra ${premio} dinares.` : 'Yafar NPC falla la pregunta.'] });
     if (x >= 4) j.dinares += premio;
     t.principal = true;
   }

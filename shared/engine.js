@@ -802,7 +802,7 @@ function despachar(data, e, pid, j, a, ahora) {
       return ok();
     }
     case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
-    case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay CC pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
+    case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay Carta de Trivias pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
     case 'comprar': return OBJ.comprar(data, e, pid, a);
@@ -952,7 +952,7 @@ export function viajar(data, e, pid, a) {
   if (j.transito) return err('Vas de camino.');
   if (t.omitido || t.fin) return err('Este turno está cerrado.');
   if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') && t.tramos >= 1 ? MSJ_ALFORJA_TRAMO : 'Máximo 2 tramos por turno (R 7.3).');
-  if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
+  if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
   if (j.extra.sinViajar === e.ronda) return err('Un lazo te impide viajar esta ronda.');
   { const m = motivoNoSalir(e, j); if (m) return err(m); }
   if (destino === 'Bagdad' && j.extra.noBagdad > j.turnos) return err('Todavía no puedes volver a Bagdad.');
@@ -1100,7 +1100,7 @@ export function llegada(data, e, pid, origen) {
   return ok();
 }
 
-// ---------------------------------------------------------------- cartas de cuentos
+// ---------------------------------------------------------------- Cartas de Trivias (CT; Jorge, 20 de noviembre: antes «Cartas de Cuentos»)
 export function robarCC(data, e, pid, ciudad) {
   const t = e.turno, m = e.mazos;
   // Regla de la casa: ninguna CC se repite en la partida hasta que hayan salido todas. Se saca del mazo de la ciudad;
@@ -1114,7 +1114,7 @@ export function robarCC(data, e, pid, ciudad) {
     for (const k of Object.keys(m.cc)) m.cc[k] = barajar(e, m.cc[k].concat((m.descarte.cc[k] || []).splice(0)));
     origen = (m.cc[ciudad] || []).length ? ciudad : Object.keys(m.cc).find((k) => m.cc[k].length);
     if (!origen) return null;
-    log(e, 'Ya salieron todas las cartas de cuentos: se barajan de nuevo.');
+    log(e, 'Ya salieron todas las Cartas de Trivias: se barajan de nuevo.');
   }
   const i = m.cc[origen].findIndex(nueva);
   const [c] = m.cc[origen].splice(i, 1);
@@ -1147,6 +1147,7 @@ export function sacarCuento(data, e, pid, clave) {
   const c = grupo.length > 1 ? grupo[Math.floor(rnd(e) * grupo.length)] : grupo[0];
   e.cuentosSacados.push(clave);
   const ent = publicarCarta(e, cartaDatos(data, 'cuento', c.id), pid);
+  if (j.extra.cuentoPend) cobrarCuento(e, j);                                        // no se pierde un cuento anterior sin cerrar
   j.extra.cuentoPend = { monto: c.premio, nro: ent.nro, t: e.ahora, titulo: c.titulo };   // se cobra al cerrar la carta
   log(e, `${j.nombre} lee en voz alta «${c.titulo}».`, { pid });
   return ent;
@@ -1193,7 +1194,7 @@ function terminarTurno(data, e, pid) {
   const t = e.turno, j = e.jugadores[pid];
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
-  if (t.ccActual) return err('Resuelve primero la carta de Cuentos (o sáltala).');
+  if (t.ccActual) return err('Resuelve primero la Carta de Trivias (o sáltala).');
   RET.mensajes(data, e, pid, 'finTurno', {});
   if (!t.movio && !j.perdido && !t.omitido && !t.sinAlojamiento) {                                           // R 6.2 fase 5 / 8.2: alojamiento
     if (j.pj === '2' && j.ciudad === 'Andalucía') log(e, `${j.nombre} no paga alojamiento en Andalucía.`, { pid });   // Jorge (19 de noviembre)
@@ -1247,7 +1248,7 @@ function sinDinares(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
-  if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
+  if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
   if (j.transito || j.perdido || t.fin || t.omitido) return err('No puedes ahora.');
   const m = motivoSinDinares(data, e, pid); if (m) return err(m);
   t.principal = true; t.sinAlojamiento = true; t.fin = true;
@@ -1418,7 +1419,7 @@ export function acciones(data, e, pid) {
   if (!j || e.fase !== 'juego' || !t || t.pid !== pid || e.pend || j.eliminado) return [];
   if (t.fase === 'ingreso') return [{ k: 'tirarDados', titulo: 'Tirar el dado de ingreso' }];
   const r = [];
-  if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la carta de Cuentos' });
+  if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la Carta de Trivias' });
   { const pd = RET.opcionPagoDeuda(e, j); if (pd && !t.omitido) r.push(pd); }   // la deuda con Bagdad se paga en cualquier momento de tu turno
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
@@ -1650,5 +1651,5 @@ export function migrar(e) {
 }
 
 // ---------------------------------------------------------------- enlaces para los demás módulos
-HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.viajarPropio = viajarPropio; HOOK.robarCC = robarCC;
+HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.viajarPropio = viajarPropio; HOOK.robarCC = robarCC; HOOK.sacarCuento = sacarCuento;
 HOOK.darMensaje = darMensaje; HOOK.avanzar = avanzar; HOOK.multiplicador = multiplicadorRonda; HOOK.sacarCuento = sacarCuento;

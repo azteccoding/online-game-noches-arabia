@@ -893,7 +893,7 @@ export function usar(data, e, pid, a) {
   if (!c) return err('No tienes esa carta.');
   if (c.tipo === 'ifrit') return HOOK.usarIfrit(data, e, pid, c, a);
   if (c.tipo === 'item' && TRANSPORTE[c.ref]) {
-    if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
+    if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
     if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') ? MSJ_ALFORJA_TRAMO : 'Ya no te quedan tramos de viaje este turno.');
     if (j.perdido) return err('Estás perdido.');
     const dest = a.destino;
@@ -1012,7 +1012,7 @@ function morirAnimal(data, e, pid, c) {
   quitarCarta(j, c.uid);
   let mas = '';
   if (c.ref === 'burro') { mas = ' Ya no llega otro: los burros que mueren no se reponen.'; }   // Jorge (19 de noviembre)
-  else if (a.reto && j.retosHechos.includes(a.reto)) { j.retosHechos = j.retosHechos.filter((r) => r !== a.reto); mas = ` Puede volver a hacer el reto ${a.reto} para conseguir otro.`; }
+  else if ((c.extra?.reto || a.reto) && j.retosHechos.includes(c.extra?.reto || a.reto)) { const rt = c.extra?.reto || a.reto; j.retosHechos = j.retosHechos.filter((r) => r !== rt); mas = ` Puede volver a hacer el reto ${rt} para conseguir otro.`; }   // el animal de R1 reactiva R1 (Jorge, 20 de noviembre)
   log(e, `Muere de viejo el ${ITEMS[c.ref].nombre.toLowerCase()} de ${j.nombre}.${mas}`, { pid, aviso: true });
   if (!j.npc && cargaExcedida(j, e)) { log(e, `${j.nombre}: ${sobrecarga(j, e)}`, { pid }); info(e, pid, 'Vas muy cargado', sobrecarga(j, e)); }   // Jorge (10 de noviembre)
 }

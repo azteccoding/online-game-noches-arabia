@@ -483,8 +483,8 @@
    "valor": 12,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "Descartas un inciso incorrecto de una CC antes de responder (el lector te lo señala).",
-   "sirvePara": "CC, trivias",
+   "efecto": "Descartas un inciso incorrecto de una Carta de Trivias antes de responder (el lector te lo señala).",
+   "sirvePara": "Cartas de Trivias",
    "seConsigueEn": "Bagdad, Andalucía",
    "humor": "Mil proverbios y ninguno aplicable.",
    "arte": "ob-documento",
@@ -948,7 +948,7 @@
    "arte": "es",
    "refReglamento": "17.1",
    "texto": "Llegan noticias de Timbuktú: Mansa Musa, el rey de Malí que repartió tanto oro en su camino a La Meca que el oro bajó de precio en El Cairo, amaneció generoso y quiere recibir a los viajeros que lleguen desde el Magreb.",
-   "efecto": "Sale una sola vez por partida, en cuanto dos jugadores distintos hayan visitado el Magreb (Yafar NPC no cuenta). Dura el resto de esa ronda y las 2 siguientes: quien haga el reto R44 «Visitar Timbuktú» tira además 1 dado: 6, 50 dinares y 60 noches; 4 o 5, 35 dinares y 40 noches; 1 a 3, 30 noches."
+   "efecto": "Sale una sola vez por partida, en cuanto dos jugadores distintos hayan visitado el Magreb (Yafar NPC no cuenta). Dura el resto de esa ronda y las 2 siguientes: quien haga el reto R44 «Visitar Timbuktú» tira además 1 dado: 6, 50 dinares y 40 noches más (60 en total); 4 o 5, 35 dinares y 20 noches más (40 en total); 1 a 3, 10 noches más (30 en total)."
   },
   {
    "id": "S3",

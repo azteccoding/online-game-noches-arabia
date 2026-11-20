@@ -1339,7 +1339,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);
   const dadoMansa = [e.dados, ...e.colaDados].find((d) => d && /generosidad de Mansa Musa/.test(d.grupos[0].etq));
   assert.ok(dadoMansa && dadoMansa.por === a && !dadoMansa.lanzado, 'el dado de Mansa Musa espera el botón');
-  assert.ok(A.noches >= n0 + 60, 'R44: 30 noches más el premio de Mansa Musa (al menos 30)');
+  assert.ok(A.noches >= n0 + 30, 'R44: 20 noches más el premio de Mansa Musa (al menos 10; Jorge, 20 de noviembre)');
   e.ronda = 8; assert.equal(vista(data, e, a).mansaGenerosa, null, 'pasadas las 2 rondas ya no está');
   const r = armarReaccion(e, a, 'vengan', 99999999, 0); assert.equal(r.r.texto, '¡Vengan conmigo a Magreb!');
   // sin Yafar no sale la del nepotismo
@@ -2521,7 +2521,7 @@ for (let k = 0; k < 6; k++) {
   assert.match(g.act(a, { t: 'reto', id: 'R52' }).error || '', /Ya tienes una cimitarra/, 'con cimitarra no se vuelve a forjar');
   assert.ok(g.act(b, { t: 'comprar', ref: 'cimitarra' }).ok, 'ya se venden cimitarras en El Cairo');
   B.mano = B.mano.filter((c) => c.ref !== 'cimitarra');
-  assert.equal(forjar(b), 0, 'los demás solo reciben la cimitarra'); assert.ok(tieneItem(B, 'cimitarra'));
+  assert.equal(forjar(b), 10, 'los demás reciben la cimitarra y 10 noches (Jorge, 20 de noviembre)'); assert.ok(tieneItem(B, 'cimitarra'));
 }
 
 // Jorge (10 de noviembre): una pala en Damasco y otra en El Cairo; una linterna en Damasco y otra en Isfahán; cada mercado con su existencia
@@ -3443,7 +3443,7 @@ console.log('reglas de la casa OK');
   // llega a Bagdad: entrega automática
   turnoDe(e, a, 'Isfahán'); e.turno.fase = 'mov'; const n0 = A.noches;
   { const r = g.act(a, { t: 'viajar', destino: 'Bagdad' }); assert.ok(r.ok, r.error); }
-  assert.ok(!A.mano.some((c) => c.ref === 'costalPistaches'), 'se entregan solos'); assert.equal(A.noches - n0 >= 60, true, 'el primero gana 60 noches');
+  assert.ok(!A.mano.some((c) => c.ref === 'costalPistaches'), 'se entregan solos'); assert.equal(A.noches - n0 >= 50, true, 'el primero gana 50 noches');
   assert.ok(e.log.some((l) => /entrega 4 costales de pistaches en Bagdad y cobra 24 dinares/.test(l.texto)));
   assert.ok(e.pistachesBagdad && e.log.some((l) => /desde ahora se venden Pasteles de pistaches/.test(l.texto)), 'se abre la venta de pasteles');
   // el segundo solo cobra los dinares
@@ -3451,7 +3451,7 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(b, { t: 'comprar', ref: 'costalPistaches', n: 2 }).ok); turnoDe(e, b, 'Isfahán'); e.turno.fase = 'mov'; const nb0 = B.noches, db0 = B.dinares;
   { const r = g.act(b, { t: 'viajar', destino: 'Bagdad' }); assert.ok(r.ok, r.error); }
   assert.ok(e.log.some((l) => /entrega 2 costales de pistaches en Bagdad y cobra 12 dinares/.test(l.texto)), 'cobra 12');
-  assert.ok(B.noches - nb0 < 60, 'sin las 60 noches');
+  assert.ok(B.noches - nb0 < 50, 'sin las 50 noches');
   // los pasteles: 3 en El Cairo, Bagdad y Damasco; la tinta los destruye
   for (const c of ['El Cairo', 'Bagdad', 'Damasco']) assert.equal(existencia(e, 'OB21', c), 3);
   const { PAPELES_OBJ } = await import('../shared/base.js'); assert.ok(PAPELES_OBJ.includes('OB21'), 'la tinta de pulpo lo destruye');
@@ -4436,7 +4436,7 @@ console.log('reglas de la casa OK');
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
   e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
   A.ciudad = 'Magreb'; A.dinares = 50; turnoDe(e, a, 'Magreb'); e.turno.fase = 'acciones';
-  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);   // Timbuktú: siempre gana 30 noches
+  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);   // Timbuktú: siempre gana 20 noches
   const vb = vistaDe(e, b).anuncios || [], va = vistaDe(e, a).anuncios || [];
   assert.ok(vb.some((x) => x.tono === 'ok' && /logró el reto R44/.test(x.texto)), 'el otro jugador ve la alerta verde');
   assert.ok(!va.length, 'quien hace el reto no recibe esa alerta');
@@ -4946,4 +4946,51 @@ console.log('reglas de la casa OK');
   turnoDe(e, a, 'Yemen'); A.ciudad = 'Yemen'; e.turno.fase = 'acciones'; forzar(e, 6, 6, 1, 1);
   const d0 = A.dinares; assert.ok(g.act(a, { t: 'reto', id: 'R38' }).ok);
   assert.ok(tieneItem(A, 'camello'), 'R38 ganado: camello'); assert.equal(A.dinares, d0, 'recupera su apuesta, sin los 30');
+}
+// Jorge (20 de noviembre): R37 con 3 a 5 da 30 dinares y una Carta de Cuentos (+2 al cerrarla): la de El Cairo o, si ya salió, otra que no haya salido; no una trivia
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  e.cuentosSacados = ['El Cairo'];
+  turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; A.dinares = 50; e.turno.fase = 'acciones'; e.turno.ccActual = null; forzar(e, 4);
+  const cc0 = e.turno.cc;
+  assert.ok(g.act(a, { t: 'reto', id: 'R37' }).ok);
+  assert.equal(A.dinares, 70, 'pagas 10 y cobras 30');
+  assert.ok(A.extra.cuentoPend && A.extra.cuentoPend.monto === 2, 'cuento pendiente de 2 dinares');
+  assert.equal(e.cuentosSacados.length, 2, 'otro cuento que no había salido');
+  assert.equal(e.turno.cc, cc0, 'no roba una Carta de Trivias'); assert.ok(!e.turno.ccActual, 'sin trivia pendiente');
+  assert.equal(e.historial.at(-1).deck, 'cuento');
+  assert.ok(g.act(a, { t: 'leido', nro: A.extra.cuentoPend.nro }).ok); assert.equal(A.dinares, 72, '+2 al cerrar el cuento');
+  // ya salieron los 7: solo los 30
+  e.cuentosSacados = [...new Set(data.cuentos.cuentos.map((c) => c.clave))]; A.retosHechos = A.retosHechos.filter((x) => x !== 'R37');
+  turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; e.turno.fase = 'acciones'; forzar(e, 5);
+  assert.ok(g.act(a, { t: 'reto', id: 'R37' }).ok); assert.equal(A.dinares, 92, 'solo 30'); assert.ok(!A.extra.cuentoPend);
+}
+// Jorge (20 de noviembre): R25 sin noches; R52 da 10 a los que no son el primero; R44 da 20 base; R56 da 50 al primero
+{
+  const { TIMBUKTU, FORJA } = await import('../shared/retos.js'); const { PISTACHES } = await import('../shared/base.js');
+  assert.equal(TIMBUKTU.noches, 20); assert.equal(TIMBUKTU.noches + TIMBUKTU.mansa[6], 60); assert.equal(TIMBUKTU.noches + TIMBUKTU.mansa[4], 40);
+  assert.equal(FORJA.nochesPrimero, 50); assert.equal(FORJA.noches, 10); assert.equal(PISTACHES.noches, 50);
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; A.dinares = 80; e.turno.fase = 'acciones'; const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.equal(A.noches, n0, 'R25 ya no da noches');
+  turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; e.turno.fase = 'acciones'; e.mansaGenerosa = null; const n1 = A.noches;
+  assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok); assert.equal(A.noches - n1, 20, 'R44: 20 noches');
+}
+// Jorge (20 de noviembre): el cofre de R1 da 35 dinares y 25 noches (se descuenta la deuda de 15) y eliges caballo o camello; sin pergamino ni viaje gratis
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano = A.mano.filter((c) => !['caballo', 'camello'].includes(c.ref));
+  turnoDe(e, a, 'Bagdad'); A.ciudad = 'Bagdad'; A.dinares = 5; e.turno.fase = 'acciones';
+  const n0 = A.noches, d0 = A.dinares;
+  assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); forzar(e, 1); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
+  assert.ok(A.retosHechos.includes('R1'), 'encuentra el cofre');
+  assert.equal(A.dinares - d0, 35 - 15, '35 dinares menos la deuda'); assert.equal(A.noches - n0, 25, '25 noches');
+  assert.ok(!tieneItem(A, 'pergamino') && !A.extra.viajeCalifa, 'sin pergamino ni viaje gratis');
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'R1 · El cofre del Éufrates');
+  assert.ok(p, 'elige animal'); g.act(a, { t: 'decidir', id: p.id, opcion: 'camello' });
+  assert.ok(tieneItem(A, 'camello') && !tieneItem(A, 'caballo'), 'solo el camello');
+  assert.equal(A.mano.find((c) => c.ref === 'camello').extra.reto, 'R1', 'al morir reactiva R1');
 }

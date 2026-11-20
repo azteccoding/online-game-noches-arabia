@@ -1553,7 +1553,7 @@
    "n": 40,
    "ciudad": "Aleppo",
    "votacion": false,
-   "pregunta": "¿Quién fue el último en responder bien una CC (trivia)?",
+   "pregunta": "¿Quién fue el último en responder bien una Carta de Trivias?",
    "comoSeComprueba": "Responde quien lo recuerde; el aludido confirma. Si hay duda, votan.",
    "planB": "Si nadie ha acertado todavía: «Mesa de sabios, qué orgullo». Nadie cobra.",
    "premio": 10
