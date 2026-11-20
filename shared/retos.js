@@ -618,7 +618,8 @@ const reqArma = (id) => (d, e, pid) => {
 T.R18 = { ciudad: 'Isfahán', ciudades: ['Isfahán', 'Samarcanda'], req: reqArma('R18'), run(data, e, pid) { entrenarArma(e, pid, 'R18'); } };
 T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42'), run(data, e, pid) { entrenarArma(e, pid, 'R42'); } };
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
-T.R43 = { ciudad: 'Andalucía', req: reqArma('R43'), run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
+T.R43 = { ciudad: 'Andalucía', ciudades: ['Andalucía', 'Yemen', 'Samarcanda'], req: reqArma('R43'),   // también en Yemen y Samarcanda (Jorge, 19 de noviembre)
+  run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
 T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid) {
   const j = e.jugadores[pid]; j.dinares -= DESTREZA.costo; aplazarDestreza(e, pid, { t: 'general' }); j.noches += 50; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 (antes 45); Zein y Ruyán: solo con jambiya
   log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul y gana 50 noches: su turno termina y al iniciar el siguiente tendrá destreza, solo con la jambiya.` : `${j.nombre} entrena en Estambul y gana 50 noches: su turno termina y al iniciar el siguiente tendrá destreza con armas (+1 en todas las peleas).`, { pid });

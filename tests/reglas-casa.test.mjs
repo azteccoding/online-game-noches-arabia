@@ -4906,3 +4906,13 @@ console.log('reglas de la casa OK');
   empezarRonda(data, e); assert.ok(!BASE.ciudadCerrada(e, 'Andalucía'), 'al inicio de la ronda siguiente sale Yusuf y se reabre');
   assert.ok(e.log.some((l) => /Yusuf ibn Tashfín derrota a los infieles en la batalla de Sagrajas/.test(l.texto))); void b;
 }
+// Jorge (19 de noviembre): entrenar con arco (R43) también en Yemen y Samarcanda
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  for (const c of ['Yemen', 'Samarcanda']) {
+    A.retosHechos = A.retosHechos.filter((r) => r !== 'R43'); A.extra.entrenado = {}; A.extra.destrezaPend = [];
+    A.ciudad = c; A.dinares = 50; if (!tieneItem(A, 'arco')) darItem(e, A, 'arco'); turnoDe(e, a, c); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'reto', id: 'R43' }).ok, 'R43 en ' + c);
+  }
+}
