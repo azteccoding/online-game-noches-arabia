@@ -1053,11 +1053,12 @@ for (const [id, C] of Object.entries(COPIAS)) {
     run(data, e, pid, ctx) {
       const j = e.jugadores[pid]; hacer(e, pid, id);
       for (let i = 0; i < TRANSCRIBIR.libros; i++) {
-        if (C.ibnHazm) darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo: 'Al-Muhalla' }); else darLibro(e, pid);
+        const c = C.ibnHazm ? darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo: 'Al-Muhalla' }) : darLibro(e, pid);
+        c.extra = { ...(c.extra || {}), transcrito: true };   // se venden también en Samarcanda, Andalucía y Estambul (Jorge, 19 de noviembre)
       }
       j.noches += TRANSCRIBIR.noches; ctx.resultado = 'logro';
       const nom = m1(data, id).nombre;
-      ctx.say(`${nom}: obtienes ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ganas ${TRANSCRIBIR.noches} noches. Solo los compra la biblioteca de Bagdad.`);
+      ctx.say(`${nom}: obtienes ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ganas ${TRANSCRIBIR.noches} noches. Se venden en Bagdad (sin impuesto) y en Samarcanda, Andalucía y Estambul (con su impuesto).`);
       log(e, `${j.nombre} termina «${nom}»: ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ${TRANSCRIBIR.noches} noches.`, { pid });
     } };
 }

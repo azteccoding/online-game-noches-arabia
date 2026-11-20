@@ -256,6 +256,16 @@ export function impuesto(data, e, ciudad, monto) {
 }
 
 export const LIBROS_SUBASTA = ['OB46', 'OB47'];
+// Libros de los retos de transcribir (R60 a R65; Jorge, 19 de noviembre): además de Bagdad (sin impuesto), los compran los mercados de
+// Samarcanda, Andalucía y Estambul, a la mitad de su valor menos el impuesto de la ciudad. La Casa de la Sabiduría solo paga completo en Bagdad.
+export const CIUDADES_TRANSCRITOS = ['Samarcanda', 'Andalucía', 'Estambul'];
+export const MSJ_TRANSCRITOS = 'Libro transcrito: lo compran la biblioteca de Bagdad (mitad de su valor, sin impuesto; completo con «Casa de la Sabiduría») y los mercados de Samarcanda, Andalucía y Estambul (mitad de su valor, menos el impuesto).';
+const libroTranscritoAqui = (c, ciudad) => !!c.extra?.transcrito && CIUDADES_TRANSCRITOS.includes(ciudad);
+function precioLibro(data, e, c, ciudad) {
+  const v = valorLibro(data, e, c);
+  if (ciudad === 'Bagdad') return e.mods.sabiduria ? v : Math.floor(v / 2);
+  const p = Math.floor(v / 2); return p - impuesto(data, e, ciudad, p);
+}
 // Costales de pistaches (Jorge, 19 de noviembre): al llegar a Bagdad se entregan solos (R56).
 const costales = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'costalPistaches').length;
 export function entregarPistaches(e, pid) {
@@ -391,9 +401,9 @@ export function vender(data, e, pid, a) {
   if (c.tipo === 'especial') return err('Esa carta no se vende al banco.');
   if (c.tipo !== 'item') return err('No se puede vender.');
   if (esLibro(c)) {
-    if (ciudad !== 'Bagdad') return err('Solo la biblioteca de Bagdad compra libros y papiros.');
-    const v = valorLibro(data, e, c); precio = e.mods.sabiduria ? v : Math.floor(v / 2);                  // H8: precio completo
-    quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${c.ref === 'libroIbnHazm' ? `«${c.extra?.titulo || 'un libro de Ibn Hazm'}»` : 'un ' + c.ref} a la biblioteca por ${precio} dinares.`, { pid });
+    if (ciudad !== 'Bagdad' && !libroTranscritoAqui(c, ciudad)) return err(c.extra?.transcrito ? MSJ_TRANSCRITOS : 'Solo la biblioteca de Bagdad compra libros y papiros.');
+    const v = valorLibro(data, e, c); precio = precioLibro(data, e, c, ciudad);                  // H8: precio completo (solo en Bagdad)
+    quitarCarta(j, c.uid); j.dinares += precio; log(e, `${j.nombre} vende ${c.ref === 'libroIbnHazm' ? `«${c.extra?.titulo || 'un libro de Ibn Hazm'}»` : 'un ' + c.ref} ${ciudad === 'Bagdad' ? 'a la biblioteca' : 'en el mercado de ' + ciudad} por ${precio} dinares.`, { pid });
     return ok();
   }
   if (c.ref === 'vino') {
@@ -581,7 +591,7 @@ export function estimarVenta(data, e, pid, c) {
     }
     if (c.tipo === 'ifrit') return 40;
     if (c.tipo !== 'item') return null;
-    if (esLibro(c)) return ciudad === 'Bagdad' ? (e.mods.sabiduria ? valorLibro(data, e, c) : Math.floor(valorLibro(data, e, c) / 2)) : null;
+    if (esLibro(c)) return ciudad === 'Bagdad' || libroTranscritoAqui(c, ciudad) ? precioLibro(data, e, c, ciudad) : null;
     if (c.ref === 'vino') { const p = valorVino(c, e); return p - impuesto(data, e, ciudad, p); }
     if (c.ref === 'buza') return ciudad === 'El Cairo' ? 4 : ciudad === 'Bagdad' ? 3 : null;
     if (c.ref === 'tintaPulpo') return TINTA.ciudadesVenta.includes(ciudad) ? TINTA.venta : null;
@@ -631,6 +641,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.tipo === 'ifrit') return 'El banco paga 40 dinares en cualquier ciudad.';
   if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
   if (c.tipo !== 'item') return null;
+  if (esLibro(c) && c.extra?.transcrito) return MSJ_TRANSCRITOS;
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
   if (c.ref === 'vino') return 'En cualquier mercado, a su valor actual menos el impuesto; la botella se esfuma.';
   if (c.ref === 'buza') return 'En El Cairo por 4 o en Bagdad por 3: tiras un dado y te compran tantos como salga (los demás, en otro turno).';

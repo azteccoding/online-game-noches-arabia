@@ -4803,3 +4803,20 @@ console.log('reglas de la casa OK');
   assert.ok(A.destreza, 'al iniciar el siguiente turno ya la tiene');
   assert.ok(e.log.some((l) => /Empiezas tu turno con destreza/.test(l.texto)), 'con su aviso');
 }
+// Jorge (19 de noviembre): los libros de transcribir se venden también en Samarcanda, Andalucía y Estambul (mitad de su valor, menos el impuesto)
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.mano.push({ uid: 'cab', tipo: 'item', ref: 'caballo' }); A.extra.idiomas = ['árabe'];
+  turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R61' }).ok);
+  const libros = A.mano.filter((c) => c.ref === 'libro'); assert.equal(libros.length, 5); assert.ok(libros.every((c) => c.extra?.transcrito));
+  turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
+  const v = BASE.valorLibro(data, e, libros[0]), mitad = Math.floor(v / 2), esperado = mitad - Math.floor(mitad * 20 / 100);
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: libros[0].uid }).ok);
+  assert.equal(A.dinares - d0, esperado, 'Estambul: mitad menos 20 %');
+  A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'vender', uid: libros[1].uid }).error, 'en Damasco no');
+  const comun = BASE.darItem(e, A, 'libro', { valor: 20, ronda: e.ronda }); A.ciudad = 'Estambul'; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'vender', uid: comun.uid }).error, 'un libro común de otro reto, solo en Bagdad');
+}
