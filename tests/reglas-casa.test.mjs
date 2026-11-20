@@ -4672,3 +4672,24 @@ console.log('reglas de la casa OK');
   A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
   assert.ok(!vistaDe(e, a).acciones.some((x) => x.via === 'pescar'), 'fuera de Basra no se pesca');
 }
+// Jorge (19 de noviembre): transcribir y traducir (R60 a R65): 5 libros y 15 noches, una vez por jugador; Yafar no puede
+{
+  const { MSJ_YAFAR_COPIAS } = await import('../shared/retos.js');
+  const g = partida(['4', 'B']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, y] = g.ids, A = e.jugadores[a];
+  A.mano.push({ uid: 'cab', tipo: 'item', ref: 'caballo' });
+  turnoDe(e, a, 'Basra'); A.ciudad = 'Basra'; e.turno.fase = 'acciones';
+  const r60 = vistaDe(e, a).acciones.find((x) => x.id === 'R60');
+  assert.ok(r60 && /Necesitas hablar árabe/.test(r60.bloqueado), 'sin árabe, apagado con su motivo');
+  A.extra.idiomas = ['árabe', 'persa'];
+  const n0 = A.noches;
+  assert.ok(g.act(a, { t: 'reto', id: 'R60' }).ok);
+  assert.equal(A.mano.filter((c) => c.ref === 'libroIbnHazm').length, 5, 'la Muhallà: 5 libros de Ibn Hazm'); assert.equal(A.noches, n0 + 15, '15 noches');
+  turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R60' }).error, 'una vez por jugador');
+  assert.ok(!vistaDe(e, a).acciones.some((x) => x.id === 'R63'), 'los de persa, no en Basra');
+  turnoDe(e, a, 'India'); A.ciudad = 'India'; e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R65' }).ok); assert.equal(A.mano.filter((c) => c.ref === 'libro').length, 5, '5 libros comunes');
+  const Y = e.jugadores[y]; Y.extra.idiomas = ['árabe']; Y.ciudad = 'Basra'; turnoDe(e, y, 'Basra'); e.turno.fase = 'acciones';
+  assert.equal(vistaDe(e, y).acciones.find((x) => x.id === 'R61')?.bloqueado, MSJ_YAFAR_COPIAS, 'Yafar jugador: apagado');
+}

@@ -1009,6 +1009,33 @@ for (const [id, ciudad] of Object.entries(TUMBAS)) {
       ctx.say(`${m1(data, id).nombre}: ganas ${TUMBA.noches} noche. Desde tu siguiente turno, si tu dado de ingreso no saca 6, tienes un dado extra para intentarlo de nuevo.`);
     } };
 }
+// Transcribir y traducir (Jorge, 19 de noviembre): con árabe, en cualquier ciudad, R60 la Muhallà de Ibn Hazm (5 Libros de Ibn Hazm),
+// R61 el Tafsir de Abu Hayyan y R62 las Futuhat de Ibn Arabí (5 libros comunes cada uno); con persa, solo en Isfahán, Samarcanda e India,
+// R63 los poemas de Rumi, R64 los de Hafez y R65 traducir al persa los de Ibn al-Farid (5 libros comunes cada uno). Una vez por jugador,
+// gasta la acción principal, sin dado ni costo, y da 15 noches se vendan o no los libros. Yafar (NPC o jugador) no puede.
+export const TRANSCRIBIR = { libros: 5, noches: 15 };
+const CIUDADES_TODAS = ['Andalucía', 'Magreb', 'El Cairo', 'Estambul', 'Aleppo', 'Damasco', 'Yemen', 'Basra', 'Bagdad', 'Isfahán', 'Samarcanda', 'India'];
+const COPIAS = {
+  R60: { idioma: 'árabe', ciudades: CIUDADES_TODAS, ibnHazm: true },
+  R61: { idioma: 'árabe', ciudades: CIUDADES_TODAS }, R62: { idioma: 'árabe', ciudades: CIUDADES_TODAS },
+  R63: { idioma: 'persa', ciudades: ['Isfahán', 'Samarcanda', 'India'] }, R64: { idioma: 'persa', ciudades: ['Isfahán', 'Samarcanda', 'India'] },
+  R65: { idioma: 'persa', ciudades: ['Isfahán', 'Samarcanda', 'India'] },
+};
+export const MSJ_YAFAR_COPIAS = 'Yafar no puede transcribir ni traducir: es inepto y corrupto.';
+for (const [id, C] of Object.entries(COPIAS)) {
+  T[id] = { ciudad: C.ciudades[0], ciudades: C.ciudades,
+    req: (d, e, pid) => { const j = e.jugadores[pid]; return j.pj === 'B' ? MSJ_YAFAR_COPIAS : !hablaIdioma(j, C.idioma) ? `Necesitas hablar ${C.idioma} (reto ${C.idioma === 'árabe' ? 'R47, en Yemen' : 'R46, en Isfahán'}).` : null; },
+    run(data, e, pid, ctx) {
+      const j = e.jugadores[pid]; hacer(e, pid, id);
+      for (let i = 0; i < TRANSCRIBIR.libros; i++) {
+        if (C.ibnHazm) darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo: 'Al-Muhalla' }); else darLibro(e, pid);
+      }
+      j.noches += TRANSCRIBIR.noches; ctx.resultado = 'logro';
+      const nom = m1(data, id).nombre;
+      ctx.say(`${nom}: obtienes ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ganas ${TRANSCRIBIR.noches} noches. Solo los compra la biblioteca de Bagdad.`);
+      log(e, `${j.nombre} termina «${nom}»: ${TRANSCRIBIR.libros} ${C.ibnHazm ? 'libros de Ibn Hazm' : 'libros'} y ${TRANSCRIBIR.noches} noches.`, { pid });
+    } };
+}
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {
   T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),
