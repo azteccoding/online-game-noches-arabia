@@ -1,9 +1,9 @@
 // Simulación de partidas completas con bots aleatorios (motor en proceso, sin red).
 //   node tests/sim.mjs [partidas=6] [semilla=1]
 // Comprueba: ninguna excepción, ningún bloqueo, valores sanos y que la partida termina (1,001 noches o muerte).
-import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, vista, tick, serializar, restaurar, avanzar, multiplicadorRonda } from '../shared/engine.js';
 import { cargarDatos } from '../server/datos.js';
-import { tieneItem, tieneObj, SHATRANJ, DATILES, cargaExcedida, pesaCarta } from '../shared/base.js';
+import { tieneItem, tieneObj, SHATRANJ, DATILES, cargaExcedida, pesaCarta, jambiyaEscondida } from '../shared/base.js';
 import { atacaMujer } from '../shared/pelea.js';
 
 const data = cargarDatos();
@@ -98,7 +98,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   const apuros = (j) => j.herido || j.buscado > 0 || j.dinares < 15;
   // Metas largas (Jorge, 19 de noviembre: «tus bots están tontos»): R52 (forjar en Damasco, todos menos Yafar) y la cadena de los
   // caballos mongoles (R50 en Samarcanda → vender la yegua en Estambul → se venden los mongoles). Cada bot decide al inicio si las persigue.
-  const metas = {};
+  const metas = {}, zubRonda = {};
   const meta = (pid) => {
     const j = e.jugadores[pid];
     const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
@@ -209,8 +209,32 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (!ac.length) { now += 1000; tick(data, e, now); continue; }
       const fin = ac.find((x) => x.k === 'terminarTurno');
       let elegida = null;
+      // Zubayda (Jorge, 20 de noviembre): esconde la jambiya para ir «sin armas» (quien la ataque queda Buscado) y hace su ronda del
+      // harén: primer tramo de Bagdad a una ciudad con caravana de regreso (noches de llegada y su Carta de Trivias), segundo tramo de
+      // vuelta a Bagdad y entonces el harén. Si no le alcanza para ida y vuelta, el harén directo.
+      let zubElegida = null;
+      { const z = e.jugadores[pid], t = e.turno;
+        if (z.pj === '6' && !z.npc && t) {
+          if (z.mano.some((c) => c.tipo === 'item' && c.ref === 'jambiya' && !jambiyaEscondida(z, c)) && act(pid, { t: 'jambiya', ocultar: true }).ok) cuenta(stats.acciones, 'fortaleza:Zubayda esconde la jambiya');
+          const haren = ac.find((x) => x.k === 'pj' && x.sub === 'haren' && !x.bloqueado);
+          const vuelta = (d) => data.rutas.tarifas[`${d}>Bagdad`];
+          if (z.ciudad === 'Bagdad' && !t.tramos && !t.principal) {
+            // Solo cuando conviene (Jorge, 20 de noviembre): noches ya multiplicadas (×2 o más), que la ciudad dé al menos 10 noches
+            // con el multiplicador y que tras pagar ida y vuelta le queden al menos 10 dinares. Si no, harén directo, como siempre.
+            const mult = multiplicadorRonda(data, e.ronda, Object.values(e.jugadores).filter((x) => !x.eliminado).length);
+            const nochesEn = (d) => { const c = data.ciudades.ciudades.find((q) => q.id === d); return c ? (z.visitadas?.includes(d) ? c.nochesLuego : c.nochesLlegada) * mult : 0; };
+            const ida = mult < 2 ? [] : ac.filter((x) => x.k === 'viajar' && vuelta(x.destino) != null && x.destino !== 'Jorasán' && nochesEn(x.destino) >= 10 && z.dinares >= (x.precio || 0) + vuelta(x.destino) + 10)
+              .sort((p, q) => (p.precio || 0) + vuelta(p.destino) - (q.precio || 0) - vuelta(q.destino));
+            if (ida.length) { zubElegida = ida[Math.floor(R() * Math.min(3, ida.length))]; zubRonda[pid] = true; }
+            else if (haren) zubElegida = haren;
+          } else if (zubRonda[pid] && z.ciudad !== 'Bagdad' && t.tramos === 1) zubElegida = ac.find((x) => x.k === 'viajar' && x.destino === 'Bagdad') || null;
+          else if (z.ciudad === 'Bagdad' && haren && zubRonda[pid]) { zubElegida = haren; zubRonda[pid] = false; }
+          if (zubElegida) cuenta(stats.acciones, 'fortaleza:Zubayda ronda del harén (' + (zubElegida.k === 'viajar' ? 'tramo' : 'harén') + ')');
+        }
+      }
       accionesTurno++;
       if (ac.find((x) => x.k === 'cc')) elegida = ac.find((x) => x.k === 'cc');
+      else if (zubElegida) elegida = zubElegida;
       else if (e.asesinos?.pendiente?.victima === pid && e.jugadores[pid].extra.masrur && ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan')) elegida = ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan');   // avisado por Masrur: huye al Jorasán
       else if (fin && (e.carrerasActivas || []).some((c) => c.ciudad === e.jugadores[pid].ciudad) && !t.movio && R() < 0.6) elegida = fin;   // carrera de «dos noches»: se queda
       else if (accionesTurno > 14 && fin) elegida = fin;

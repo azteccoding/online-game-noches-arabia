@@ -52,7 +52,7 @@ registrar('pj.ruyan', (data, e, args, resp) => {
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
 export const PRECIO_ZUBAYDA = 7;
-export const HAREN_DINARES = 12;   // Jorge (20 de noviembre): 12 dinares por pasar la noche en el harén (antes 16)
+export const HAREN_DINARES = 14;   // Jorge (20 de noviembre): 14 dinares por pasar la noche en el harén (antes 16; 12 no le alcanzaba a Zubayda en las simulaciones)
 // Jorge (19 de noviembre): más riesgo de apedreo: a salvo solo con 4 o 6 (con 1, 2, 3 o 5 intentan apedrearla).
 export const salvoApedreo = (x) => x === 4 || x === 6;
 export function apedreo(data, e, pid) {
