@@ -329,18 +329,39 @@ function seguirAtaque(data, e) {
   const P = e.pelea, j = e.jugadores[P.atk], d = e.jugadores[P.def];
   if (!P.previa) { P.previa = true; if (defensaPrevia(data, e)) return terminarPelea(data, e, { cancelada: true, frustrado: true }); }
   const a = { tipo: P.tipo, objetivo: P.def, noRechazable: P.noRechazable }, pedirNur = P.pedirNur;
-  if (d.npc) { elegirDefensa(data, e, { opcion: 'luchar' }); return ok(); }
+  if (d.npc) { elegirDefensa(data, e, { opcion: a.tipo === 'duelo' && yafarNPCRechaza(data, e, P.def, P.atk) ? 'rechazar' : 'luchar' }); return ok(); }
   const op = [{ id: 'luchar', texto: 'Defenderme' }];
   if (a.tipo === 'robo' && tieneObj(d, 'OB23')) op.push({ id: 'amuleto', texto: 'Usar Amuleto de turquesa (cancela el robo)' });
   if (a.tipo !== 'robo' && tieneObj(d, 'OB25')) op.push({ id: 'cortina', texto: 'Usar Cortina de humo (huyes sin pelear)' });
   if (tieneObj(d, 'OB03')) op.push({ id: 'polvo', texto: 'Defenderme con Polvo de pimienta (el atacante resta 2)' });
   if (a.tipo === 'duelo' && d.pj !== 'B' && !a.noRechazable) {
     const costo = pedirNur ? `${pedirNur.dinares} dinares y ${pedirNur.noches} noches` : `${data.config.duelo.rechazo} dinares`;
-    op.push({ id: 'rechazar', texto: `Rechazar el duelo pagando ${costo}` });
+    const alcanza = puedePagarRechazo(data, d, pedirNur);   // Jorge (19 de noviembre): «si no tienes 20 no puedes pagar»
+    op.push({ id: 'rechazar', texto: `Rechazar el duelo pagando ${costo}${alcanza ? '' : ` — No tienes ${costo}`}`, desactivada: !alcanza });
   }
   pedir(e, { tipo: 'defensa', para: [a.objetivo], titulo: a.tipo === 'robo' ? '¡Te asaltan!' : a.tipo === 'matar' ? '¡Intentan matarte!' : '¡Te desafían a duelo!',
     texto: `${j.nombre} ${AVISO_ATAQUE[a.tipo]} en ${j.ciudad}. ${enJuego(data, e, a.tipo, j, d, pedirNur)}¿Qué haces?`, opciones: op, porDefecto: 'luchar', cont: { fn: 'pelea.defensa', args: {} } });
   return ok();
+}
+// Jorge (19 de noviembre): Yafar NPC en difícil sí puede rechazar un duelo, pagando 20 dinares al retador (en fácil y normal, y Yafar
+// jugador, nunca). Criterio (provisional, fácil de cambiar aquí): rechaza solo si tiene los 20 dinares y la pelea no le conviene: está
+// herido (si pierde, muere) o el retador tiene más bonos de pelea visibles que él (armas, entrenamiento, destreza, escudo).
+export function fuerzaVisible(data, e, pid, rol) {
+  const j = e.jugadores[pid], p = perfil(data, e, pid);
+  let f = p.destreza ? 1 : 0;
+  for (const r of p.armas) {
+    f += (r === 'jambiya' ? 1.5 : bonoArma(data, r)) + (j.extra?.entrenado?.[r] ? 1 : 0);   // jambiya: +3 con el dado de sorpresa par (media 1.5)
+    if (r === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) f += data.config.armas?.cimitarra?.extraAtacante ?? 2;
+  }
+  if (rol === 'def' && tieneObj(j, 'OB04')) f += 1;
+  return f;
+}
+// Rechazar un duelo exige pagar completo: 20 dinares (o lo que pida Nur al Din); sin eso solo queda aceptar.
+export const puedePagarRechazo = (data, d, pedirNur) => (pedirNur ? d.dinares >= pedirNur.dinares && d.noches >= pedirNur.noches : d.dinares >= data.config.duelo.rechazo);
+export function yafarNPCRechaza(data, e, yafar, retador) {
+  const Y = e.jugadores[yafar];
+  if (!Y?.npc || (e.opciones?.dificultad || 'normal') !== 'dificil' || !puedePagarRechazo(data, Y, null)) return false;
+  return !!Y.herido || fuerzaVisible(data, e, retador, 'atk') > fuerzaVisible(data, e, yafar, 'def');
 }
 // Qué se gana y qué se pierde en cada pelea, para que quien la recibe lo vea claro antes de decidir.
 function enJuego(data, e, tipo, A, D, pedirNur) {
@@ -370,10 +391,18 @@ function elegirDefensa(data, e, resp) {
       d.ciudad = destino; return terminarPelea(data, e, { cancelada: true });
     }
   }
-  if (o === 'rechazar') {
+  if (o === 'rechazar' && P.tipo === 'duelo' && puedePagarRechazo(data, d, P.pedirNur)) {
     if (P.pedirNur) { const p = pagarNur(data, e, P.def, P.atk, P.pedirNur); log(e, `${d.nombre} rechaza el duelo y paga ${p}.`, { pid: P.def }); }
-    else { const r = Math.max(0, Math.min(data.config.duelo.rechazo, d.dinares)); d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def }); }
-    if (!j.npc) devolverPrincipal(e, P.atk, `${d.nombre} rechazó el duelo`);   // Yafar NPC no repite su acción
+    else {
+      const r = data.config.duelo.rechazo; d.dinares -= r; j.dinares += r; log(e, `${d.nombre} rechaza el duelo y paga ${r} dinares a ${j.nombre}.`, { pid: P.def });
+      if (d.npc && !j.npc) info(e, P.atk, 'Duelo rechazado', `${d.nombre} rechaza el duelo y te paga ${r} dinares.`);
+    }
+    if (!j.npc) devolverPrincipal(e, P.atk, `${d.nombre} rechazó el duelo`);
+    else if ((e.opciones?.dificultad || 'normal') !== 'facil' && e.turno?.pid === P.atk) {
+      // Jorge (19 de noviembre): en normal y difícil, a Yafar NPC no le gasta la acción; hace otra, pero no vuelve a retar a quien rechazó.
+      const t = e.turno; t.principal = false; (t.rechazaronNPC ||= []).push(P.def); t.otraAccionNPC = true;
+      log(e, `${j.nombre} no gasta su acción principal: ${d.nombre} rechazó el duelo.`, { pid: P.atk });
+    }
     return terminarPelea(data, e, { cancelada: true });
   }
   if (o === 'polvo') d.extra.usaPolvo = false;

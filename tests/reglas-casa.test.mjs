@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion, puedeUnirse, unirTarde } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
+import * as BASE from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte } from '../shared/retos.js';
 import { peleaNPC, duelo } from '../shared/pelea.js';
@@ -4492,5 +4493,61 @@ console.log('reglas de la casa OK');
   assert.ok(p.opciones.some((o) => o.id === 'rechazar' && /pagando 20 dinares/.test(o.texto)), 'sale «Rechazar el duelo pagando 20 dinares»');
   e.pend = p; e.colaPend = [];
   assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'rechazar' }).ok);
-  assert.ok(e.log.some((l) => /rechaza el duelo y paga 20 dinares a Yafar/.test(l.texto)), 'paga 20 dinares a Yafar'); assert.ok(!e.pelea, 'sin duelo');
+  assert.ok(e.log.some((l) => /rechaza el duelo y paga 20 dinares a Yafar/.test(l.texto)), 'paga 20 dinares a Yafar'); assert.ok(!(e.pelea && e.pelea.def === a), 'sin duelo contra quien rechazó');
+}
+// Jorge (19 de noviembre): Yafar NPC en difícil sí rechaza un duelo (si tiene 20 dinares y no le conviene pelear); en normal, nunca
+{
+  const { atacar, yafarNPCRechaza } = await import('../shared/pelea.js');
+  const prep = (dif) => {
+    const g = partida(['4', '7'], { dificultad: dif }); assert.ok(g.iniciar().ok);
+    const e = g.e, Y = e.jugadores.npc, [a] = g.ids, A = e.jugadores[a];
+    for (const id of [...g.ids, 'npc']) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    Y.mano = Y.mano.filter((c) => !['cimitarra', 'alfanje', 'jambiya'].includes(c.ref)); Y.destreza = false; Y.herido = false; Y.dinares = 30;
+    A.mano.push({ uid: 'cim', tipo: 'item', ref: 'cimitarra' }); A.destreza = true; A.dinares = 10;
+    return { g, e, Y, a, A };
+  };
+  { const { e, Y, a, A } = prep('dificil');
+    assert.ok(yafarNPCRechaza(data, e, 'npc', a), 'difícil y en desventaja: rechaza');
+    assert.ok(atacar(data, e, a, { tipo: 'duelo', objetivo: 'npc' }).ok);
+    e.dados = null; e.colaDados = [];
+    assert.ok(!e.pelea, 'no hay duelo'); assert.equal(Y.dinares, 10, 'Yafar paga 20'); assert.equal(A.dinares, 30, 'al retador');
+    assert.ok(e.log.some((l) => /Yafar.*rechaza el duelo y paga 20 dinares/.test(l.texto)), 'queda en el registro');
+    assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && p.para?.includes(a) && /rechaza el duelo y te paga 20 dinares/.test(p.texto || '')), 'aviso al retador');
+    assert.ok(!e.turno.principal, 'el retador no gasta su acción principal'); }
+  { const { e, Y, a } = prep('dificil'); Y.dinares = 15; assert.ok(!yafarNPCRechaza(data, e, 'npc', a), 'sin 20 dinares pelea'); }
+  { const { e, Y, a, A } = prep('dificil'); A.mano = A.mano.filter((c) => c.uid !== 'cim'); A.destreza = false; Y.mano.push({ uid: 'yc', tipo: 'item', ref: 'cimitarra' });
+    assert.ok(!yafarNPCRechaza(data, e, 'npc', a), 'si le conviene, pelea'); Y.herido = true; assert.ok(yafarNPCRechaza(data, e, 'npc', a), 'herido rechaza'); }
+  { const { e, a } = prep('normal'); assert.ok(!yafarNPCRechaza(data, e, 'npc', a), 'en normal nunca rechaza'); }
+}
+// Jorge (19 de noviembre): «si no tienes 20 no puedes pagar» y, en normal y difícil, el duelo rechazado no le gasta la acción a Yafar NPC
+{
+  const { atacar } = await import('../shared/pelea.js');
+  const prep = (dif) => {
+    const g = partida(['4', '7'], { dificultad: dif }); assert.ok(g.iniciar().ok);
+    const e = g.e, Y = e.jugadores.npc, [a, b] = g.ids;
+    for (const id of [...g.ids, 'npc']) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, 'npc', 'Damasco'); e.turno.fase = 'acciones';
+    return { g, e, Y, a, b, A: e.jugadores[a], B: e.jugadores[b] };
+  };
+  const reta = (e, obj) => { assert.ok(atacar(data, e, 'npc', { tipo: 'duelo', objetivo: obj }, { npc: true, cont: { fn: 'npc.cierre', args: { pid: 'npc' } } }).ok); e.dados = null; e.colaDados = []; return [e.pend, ...(e.colaPend || [])].find((x) => x && x.tipo === 'defensa' && x.para.includes(obj)); };
+  { const { e, a, A, B } = prep('normal'); A.dinares = 15; B.dinares = 0;
+    const p = reta(e, a), o = p.opciones.find((x) => x.id === 'rechazar');
+    assert.ok(o.desactivada && /No tienes 20 dinares/.test(o.texto), 'sin 20 dinares: apagada y con su motivo');
+    e.pend = p; e.colaPend = [];
+    assert.equal(responder(e, a, p, 'rechazar'), false, 'no se puede elegir'); }
+  for (const dif of ['normal', 'dificil', 'facil']) {
+    const { e, a, b, A, B, Y } = prep(dif); A.dinares = 50; B.dinares = 50; Y.dinares = 10;
+    const p = reta(e, a); e.pend = p; e.colaPend = [];
+    assert.ok(responder(e, a, p, 'rechazar'), 'con 20 dinares sí rechaza');
+    assert.equal(A.dinares, 30, `${dif}: paga 20`);
+    const otra = e.log.some((l) => /Yafar.*no gasta su acción principal/.test(l.texto));
+    if (dif === 'facil') assert.ok(!otra, 'en fácil sí le gasta la acción');
+    else {
+      assert.ok(otra, `${dif}: no le gasta la acción`);
+      assert.ok(e.turno.rechazaronNPC?.includes(a), 'recuerda a quien rechazó');
+      assert.ok(!(e.pelea && e.pelea.def === a), 'no vuelve a retar a quien rechazó'); void b;
+    }
+  }
+  function responder(e, pid, p, opcion) { const { responderPend } = BASE; return !!responderPend(data, e, pid, { id: p.id, opcion }).ok; }
 }

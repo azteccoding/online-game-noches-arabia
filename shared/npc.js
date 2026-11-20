@@ -182,7 +182,7 @@ export function accionPrincipal(data, e, pid) {   // exportada para las pruebas
   if (!t.principal && !t.bloqueoPrincipal) {
     // (a) ataque
     if (e.ronda > data.config.primerosTurnosSinMatar) {
-      const objetivos = enCiudad(e, j.ciudad, pid).filter((x) => !e.jugadores[x].npc);
+      const objetivos = enCiudad(e, j.ciudad, pid).filter((x) => !e.jugadores[x].npc && !(t.rechazaronNPC || []).includes(x));   // no vuelve a retar a quien le rechazó el duelo
       objetivos.sort((a, b) => e.jugadores[b].dinares - e.jugadores[a].dinares || e.orden.indexOf(a) - e.orden.indexOf(b));
       if (objetivos.length) {
         const x = dado(e);
@@ -235,7 +235,11 @@ function cierre(data, e, pid) {
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   t.fin = true;
 }
-registrar('npc.cierre', (data, e, args) => { if (e.turno && e.turno.pid === args.pid) cierre(data, e, args.pid); });
+registrar('npc.cierre', (data, e, args) => {
+  if (!e.turno || e.turno.pid !== args.pid) return;
+  if (e.turno.otraAccionNPC) { e.turno.otraAccionNPC = false; return accionPrincipal(data, e, args.pid); }   // le rechazaron el duelo (normal y difícil)
+  cierre(data, e, args.pid);
+});
 
 // ---------------------------------------------------------------- bolsa de parientes y entrada del NPC
 export function finRonda(data, e) {
