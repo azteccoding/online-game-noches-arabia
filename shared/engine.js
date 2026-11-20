@@ -149,7 +149,7 @@ function prepararMazos(data, e) {
   // Escasez (regla de la casa): el mercado empieza con copias − 2 de cada objeto; las demás copias siguen en el juego y van saliendo, con lo vendido, al empezar cada ronda.
   e.reposicion = barajar(e, guardadas);
   e.mazos = {
-    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).map((x) => x.id)), historicos: barajar(e, data.eventos.historicos.flatMap((x) => Array(COPIAS_HISTORICO[x.id] ?? 1).fill(x.id))),
+    eventos: barajar(e, data.eventos.eventos.filter((x) => !x.carrera).flatMap((x) => Array(COPIAS_EVENTO[x.id] ?? 1).fill(x.id))), historicos: barajar(e, data.eventos.historicos.flatMap((x) => Array(COPIAS_HISTORICO[x.id] ?? 1).fill(x.id))),
     mensajes: barajar(e, data.mensajes.mensajes.map((x) => x.id)), cc, botin: barajar(e, botin), ifrit: barajar(e, data.objetos.ifrit.cartas.map((c) => c.id)),
     descarte: { eventos: [], historicos: [], mensajes: [] /* Mensajes fuera de juego: registro, nunca se barajan de nuevo */, botin: [], ifrit: [], cc: {} },
   };
@@ -527,6 +527,7 @@ registrar('reconquista.sale', (data, e, args, resp) => {
   log(e, `${j.nombre} huye de Andalucía a ${d}: paga ${p} dinares y recibe ${RECONQUISTA.noches} noches.${m ? ' ' + m : ''}`, { pid: j.id, aviso: true });
 });
 // Jorge (19 de noviembre): la Casa de la Sabiduría tiene 4 cartas en el mazo de históricos (antes 1).
+export const COPIAS_EVENTO = { E3: 2 };   // Jorge (20 de noviembre): dos cartas de Tormenta de arena (sin caravanas desde Bagdad)
 export const COPIAS_HISTORICO = { H8: 4, H22: 0, H23: 0 };   // H23 (Yusuf) sale sola al inicio de la ronda siguiente a «Los cristianos toman Toledo»   // H22 (Saladino) solo entra al mazo cuando sale la Cruzada
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {

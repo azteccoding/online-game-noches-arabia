@@ -814,12 +814,12 @@ for (let k = 0; k < 6; k++) {
 
 // Peleas: ninguna tirada es automática; cada bando lanza sus propios dados y el desglose sale al final
 {
-  const g = partida(['4', '1']); assert.ok(g.iniciar().ok);
+  const g = partida(['4', '1'], {}, 11); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
   for (const j of [A, B]) { j.extra.clienteWeb = true; j.ciudad = 'Damasco'; j.destreza = true; j.mano = j.mano.filter((c) => c.ref !== 'arco'); }
   if (!B.mano.some((c) => c.ref === 'alfanje')) darItem(e, B, 'alfanje');
   if (!A.mano.some((c) => c.ref === 'cimitarra')) darItem(e, A, 'cimitarra');
-  e.ronda = 4; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  e.ronda = 4; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];   // sin dados de la carta de la ronda (p. ej. E8)
   const ra = g.act(a, { t: 'atacar', tipo: 'matar', objetivo: b }); assert.ok(ra.ok, ra.error);
   if (e.pend) assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }).ok);
   const cola = [e.dados, ...e.colaDados].filter((d) => d && d.motivo === 'pelea');
@@ -1838,7 +1838,7 @@ for (let k = 0; k < 6; k++) {
   const { multiplicadorRonda } = await import('../shared/base.js').catch(() => ({}));
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a], Y = e.jugadores.npc;
-  e.ronda = 1;
+  e.ronda = 1; e.evento.actual = null; e.mods = {};   // sin la carta de la ronda (p. ej. la Peregrinación da 20 noches extra)
   const llega = (pid, ciudad) => { const j = e.jugadores[pid]; turnoDe(e, pid, 'Damasco'); j.ciudad = ciudad; const n0 = j.noches; llegada(data, e, pid, 'Damasco'); return j.noches - n0; };
   e.jugadores[b].ciudad = 'Basra';
   const m = llega(a, 'Basra'); assert.ok(m > 0);
@@ -5051,4 +5051,11 @@ console.log('reglas de la casa OK');
   const W = h.e.jugadores[h.ids[0]]; W.turnos = 2; W.extra.jugoTurno = true; W.ciudad = 'Bagdad';
   const { siguienteTurno } = await import('../shared/engine.js').catch(() => ({}));
   W.turnos = 3; assert.ok(!(W.extra.viajePalacio && W.turnos <= 2), 'pasados dos turnos ya no vale');
+}
+// Jorge (20 de noviembre): la Tormenta de arena (E3, sin caravanas desde Bagdad) tiene 2 copias en el mazo de Eventos
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, todos = [...e.mazos.eventos, ...e.mazos.descarte.eventos, ...(e.evento?.actual ? [e.evento.actual] : [])];
+  assert.equal(todos.filter((x) => x === 'E3').length, 2, 'dos Tormentas de arena');
+  assert.equal(todos.filter((x) => x === 'E2').length, 1, 'las demás, una');
 }
