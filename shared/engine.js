@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -347,7 +347,7 @@ function volver(e, pid) {
 
 function siguienteTurno(data, e, desde) {
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
-  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); RET.finForja(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
+  if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); OBJ.caducarAlforjas(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); RET.finForja(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
   for (;;) {
@@ -921,7 +921,7 @@ export function viajar(data, e, pid, a) {
   if (j.perdido) return err('Estás perdido en el Jorasán.');
   if (j.transito) return err('Vas de camino.');
   if (t.omitido || t.fin) return err('Este turno está cerrado.');
-  if (t.tramos >= (t.maxTramos || data.config.maxTramosPorTurno)) return err('Máximo 2 tramos por turno (R 7.3).');
+  if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') && t.tramos >= 1 ? MSJ_ALFORJA_TRAMO : 'Máximo 2 tramos por turno (R 7.3).');
   if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
   if (j.extra.sinViajar === e.ronda) return err('Un lazo te impide viajar esta ronda.');
   { const m = motivoNoSalir(e, j); if (m) return err(m); }
@@ -1391,7 +1391,7 @@ export function acciones(data, e, pid) {
   { const pd = RET.opcionPagoDeuda(e, j); if (pd && !t.omitido) r.push(pd); }   // la deuda con Bagdad se paga en cualquier momento de tu turno
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
-  if (!t.ccActual && t.tramos < data.config.maxTramosPorTurno && !j.transito) {
+  if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
     for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });

@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir, pesoFlechas, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
+motivoNoSalir, pesoFlechas, ALFORJA, tramosMax, MSJ_ALFORJA_TRAMO, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
@@ -133,6 +133,16 @@ export function comprar(data, e, pid, a) {
   const enTurno = a.ref === 'firman';
   if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán se compra en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
   else { const no = puedeMercado(e, pid); if (no) return err(no); }
+  if (a.ref === 'alforja') {                                                                             // Jorge (19 de noviembre)
+    const n = alforjasEn(e, j.ciudad), p = precioAlforja(j.ciudad);
+    if (n <= 0) return err('No hay alforjas a la venta aquí.');
+    if (j.dinares < p) return err(`Cuesta ${p} dinares.`);
+    const tiene = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'alforja').length, max = tieneCarga(j) ? ALFORJA.maxCon : ALFORJA.maxSin;
+    if (tiene >= max) return err(tieneCarga(j) ? `Con animal llevas hasta ${ALFORJA.maxCon} alforjas.` : 'Sin caballo, burro o camello solo puedes llevar una alforja.');
+    j.dinares -= p; e.alforjas[j.ciudad] = n - 1;
+    darItem(e, j, 'alforja', { turnos: ALFORJA.turnos });
+    log(e, `${j.nombre} compra una alforja en ${j.ciudad} por ${p} dinares.`, { pid }); return ok();
+  }
   if (a.ref === 'firman') {                                                                              // R 15.3
     if (j.ciudad !== 'Bagdad') return err('El visir vende el Firmán en Bagdad.');
     if (e.firmanes <= 0) return err('No quedan Firmanes.');
@@ -484,6 +494,10 @@ export function vender(data, e, pid, a) {
     const p = precioAlfombraVenta(ciudad); quitarCarta(j, c.uid); j.dinares += p; moverAlfombras(e, ciudad, 1);
     log(e, `${j.nombre} vende una alfombra de Isfahán al mercado de ${ciudad} por ${p} dinares.`, { pid }); return ok();
   }
+  if (c.ref === 'alforja') {                                                                            // Jorge (19 de noviembre): 1 dinar; el mercado la revende
+    quitarCarta(j, c.uid); j.dinares += ALFORJA.venta; alforjasEn(e, ciudad); e.alforjas[ciudad] = (e.alforjas[ciudad] || 0) + 1;
+    log(e, `${j.nombre} vende una alforja en ${ciudad} por ${ALFORJA.venta} dinar; queda a la venta ahí por ${precioAlforja(ciudad)}.`, { pid }); return ok();
+  }
   if (c.ref === 'pescado') {                                                                            // se esfuma al venderlo (Jorge, 19 de noviembre)
     const p = precioPescado(ciudad); quitarCarta(j, c.uid); j.dinares += p;
     log(e, `${j.nombre} vende un pescado en ${ciudad} por ${p} dinares.`, { pid }); return ok();
@@ -541,6 +555,19 @@ export function dondeSeVende(data, x) {
   const cs = CIUDAD_ORIGINAL[ref] || ARMAS_CIUDAD[ref];
   return cs ? lista(cs) : null;
 }
+export const alforjasEn = (e, ciudad) => { e.alforjas ||= { [ALFORJA.ciudad]: ALFORJA.inicial }; return e.alforjas[ciudad] || 0; };
+export const precioAlforja = (ciudad) => (ciudad === ALFORJA.ciudad ? ALFORJA.precio : ALFORJA.reventa);
+// Al terminar cada turno de su dueño, la alforja pierde un turno; al llegar a 0 se deshilacha y vuelve al mercado de Basra.
+export function caducarAlforjas(data, e, pid) {
+  const j = e.jugadores[pid]; if (!j) return;
+  for (const c of j.mano.filter((x) => x.tipo === 'item' && x.ref === 'alforja')) {
+    c.extra = { ...(c.extra || {}), turnos: (c.extra?.turnos ?? ALFORJA.turnos) - 1 };
+    if (c.extra.turnos > 0) continue;
+    quitarCarta(j, c.uid); alforjasEn(e, ALFORJA.ciudad); e.alforjas[ALFORJA.ciudad] += 1;
+    log(e, `La alforja de ${j.nombre} se deshilacha y se esfuma: vuelve a la venta en ${ALFORJA.ciudad}.`, { pid });
+    if (!j.npc) info(e, pid, 'Tu alforja se deshilachó', 'Se esfumó y vuelve a la venta en Basra.' + (cargaExcedida(j, e) ? ' ' + sobrecarga(j, e) : ''));
+  }
+}
 export function tienda(data, e, pid) {
   const j = e.jugadores[pid];
   if (!j || j.eliminado || !j.pj) return [];
@@ -559,6 +586,9 @@ export function tienda(data, e, pid) {
   { const pt = precioTinta(e, j.ciudad);                            // Frasco con tinta de pulpo (Jorge, 17 de noviembre)
     if (pt || j.ciudad === 'Bagdad') r.push({ ref: 'tintaPulpo', nombre: ITEMS.tintaPulpo.nombre, tipo: 'Objeto original', texto: ITEMS.tintaPulpo.texto, precio: pt ? pt.precio : TINTA.bagdad, stock: pt && pt.stock !== Infinity ? pt.stock : undefined,
       puede: !!pt && j.dinares >= pt.precio && !lleno, motivo: !pt ? motivoTinta(e, j.ciudad) : lleno ? MSJ_COMPRA_LLENO : j.dinares < pt.precio ? 'No te alcanza' : undefined }); }
+  { const n = alforjasEn(e, j.ciudad), p = precioAlforja(j.ciudad);   // Alforja (Jorge, 19 de noviembre)
+    if (n > 0) { const tiene = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'alforja').length, max = tieneCarga(j) ? ALFORJA.maxCon : ALFORJA.maxSin;
+      r.push({ ref: 'alforja', nombre: ITEMS.alforja.nombre, tipo: 'Objeto original', texto: ITEMS.alforja.texto, precio: p, stock: n, puede: j.dinares >= p && tiene < max, motivo: tiene >= max ? (tieneCarga(j) ? `Con animal llevas hasta ${ALFORJA.maxCon}` : 'Sin animal solo puedes llevar una') : j.dinares < p ? 'No te alcanza' : undefined }); } }
   if (j.ciudad === SHATRANJ.ciudad) { const n = shatranjEnIndia(e), p = SHATRANJ.precio;   // Shatranj (Jorge, 19 de noviembre)
     r.push({ ref: 'shatranj', nombre: ITEMS.shatranj.nombre, tipo: 'Objeto original', texto: ITEMS.shatranj.texto, precio: p, stock: n, puede: n > 0 && j.dinares >= p && !lleno, motivo: n <= 0 ? `Agotado: solo hay ${SHATRANJ.stock} en todo el juego` : lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   { const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);   // Alfombras de Isfahán (Jorge, 18 de noviembre)
@@ -622,6 +652,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'shatranj') return SHATRANJ.venta[ciudad] ?? null;
     if (c.ref === 'almudDatiles') return ciudad === DATILES.ciudadVenta ? DATILES.venta : null;
     if (c.ref === 'pescado') return precioPescado(ciudad);
+    if (c.ref === 'alforja') return ALFORJA.venta;
     if (['esclava', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, sal: 5, cesta: 2 }[c.ref] / 2);
     const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
     return base ? Math.floor(base / 2) : null;
@@ -672,6 +703,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
   if (c.ref === 'alfombraIsfahan') return `En cualquier mercado por ${ALFOMBRAS.venta} dinares (Andalucía ${ALFOMBRAS.ventaCiudad['Andalucía']}; Isfahán solo ${ALFOMBRAS.recompraOrigen}); ahí queda a la venta ${ALFOMBRAS.margen} dinares más cara. O a otro jugador en un trato.`;
+  if (c.ref === 'alforja') return `En cualquier mercado por ${ALFORJA.venta} dinar; ese mercado la revende a ${ALFORJA.reventa} (en Basra, a ${ALFORJA.precio}). Le quedan ${c.extra?.turnos ?? ALFORJA.turnos} turno(s).`;
   if (c.ref === 'pescado') return `En cualquier mercado: Basra ${PESCA.venta.Basra}, Bagdad ${PESCA.venta.Bagdad} y en las demás ciudades ${PESCA.otra} dinares, sin impuesto; al venderlo se esfuma.`;
   if (c.ref === 'almudDatiles') return `Solo en ${DATILES.ciudadVenta}, por ${DATILES.venta} dinares el almud (la primera vez cumples el reto ${DATILES.reto}: +${DATILES.noches} noches).`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
@@ -765,7 +797,7 @@ export function disponibles(data, e, pid) {
       else if (activos(e).some((q) => e.jugadores[q].npc && e.jugadores[q].ciudad === j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Envenenar a un jugador de tu ciudad', via: 'ciudad', bloqueado: MSJ_VENENO_YAFAR });
       if (j.ciudad === 'Bagdad') r.push({ k: 'usar', uid: c.uid, titulo: `Envenenar un abrevadero (Masrur, ${5 * vivos(e)} dinares)`, destinos: data.ciudades.ciudades.map((q) => q.id), via: 'abrevadero' });
     }
-    if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && !motivoNoSalir(e, j, false) && t.tramos < (t.maxTramos || data.config.maxTramosPorTurno)) {
+    if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && !motivoNoSalir(e, j, false) && t.tramos < tramosMax(data, t, j)) {
       const dest = destinosTransporte(data, c.ref, j.ciudad).filter((q) => !(j.pj === 'B' && j.npc && q === 'India'));
       if (c.ref === 'burro' && yafarNoMonta(e, j)) continue;                       // Yafar NPC nunca monta burro (Jorge, 19 de noviembre)
       const vida = ANIMAL_DEF[c.ref] ? ` · le quedan ${turnosAnimal(data, c)} turno(s)` : '';   // con dos del mismo tipo, se distinguen por su vida
@@ -862,7 +894,7 @@ export function usar(data, e, pid, a) {
   if (c.tipo === 'ifrit') return HOOK.usarIfrit(data, e, pid, c, a);
   if (c.tipo === 'item' && TRANSPORTE[c.ref]) {
     if (t.ccActual) return err('Resuelve primero la carta de Cuentos.');
-    if (t.tramos >= (t.maxTramos || data.config.maxTramosPorTurno)) return err('Ya no te quedan tramos de viaje este turno.');
+    if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') ? MSJ_ALFORJA_TRAMO : 'Ya no te quedan tramos de viaje este turno.');
     if (j.perdido) return err('Estás perdido.');
     const dest = a.destino;
     if (!ciudadDe(data, dest) || dest === j.ciudad) return err('Destino inválido.');

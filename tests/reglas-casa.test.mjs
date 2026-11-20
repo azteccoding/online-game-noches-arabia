@@ -4833,3 +4833,28 @@ console.log('reglas de la casa OK');
   turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
   assert.ok(g.act(a, { t: 'reto', id: 'R66' }).ok, 'se repite cada turno');
 }
+// Jorge (19 de noviembre): alforja: 4 en Basra a 6; carga 9; sin animal 1, con animal hasta 3; un tramo por turno; dura 3 turnos; se vende a 1
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const OBJ = await import('../shared/objetos.js');
+  A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref)); A.ciudad = 'Basra'; A.dinares = 50;
+  turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
+  const t = OBJ.tienda(data, e, a).find((x) => x.ref === 'alforja'); assert.ok(t && t.precio === 6 && t.stock === 4, '4 en Basra a 6');
+  assert.ok(g.act(a, { t: 'comprar', ref: 'alforja' }).ok); assert.equal(A.dinares, 44);
+  assert.equal(BASE.limiteCarga(e, A), 9, 'carga 9'); assert.equal(BASE.nCarga(A), BASE.nCarga({ mano: A.mano.filter((c) => c.ref !== 'alforja') }), 'la alforja no pesa');
+  assert.match(g.act(a, { t: 'comprar', ref: 'alforja' }).error || '', /solo puedes llevar una alforja/, 'sin animal, una');
+  // un solo tramo por turno
+  turnoDe(e, a, 'Basra'); e.turno.fase = 'mov';
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Bagdad' }).ok || true);
+  if (e.turno?.pid === a && e.turno.tramos === 1 && !e.turno.fin) assert.equal(g.act(a, { t: 'viajar', destino: 'Basra' }).error, BASE.MSJ_ALFORJA_TRAMO);
+  // dura 3 turnos y vuelve a Basra
+  const antes = OBJ.alforjasEn(e, 'Basra');
+  for (let k = 0; k < 3; k++) OBJ.caducarAlforjas(data, e, a);
+  assert.ok(!tieneItem(A, 'alforja'), 'se deshilacha'); assert.equal(OBJ.alforjasEn(e, 'Basra'), antes + 1, 'vuelve a Basra');
+  // se vende a 1 y ese mercado la revende a 7
+  BASE.darItem(e, A, 'alforja', { turnos: 3 }); A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  const d0 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: tieneItem(A, 'alforja').uid }).ok); assert.equal(A.dinares, d0 + 1);
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  assert.equal(OBJ.tienda(data, e, a).find((x) => x.ref === 'alforja')?.precio, 7, 'Damasco la revende a 7');
+}

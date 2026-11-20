@@ -73,6 +73,7 @@ export const ITEMS = {
   libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Se compra a 20 dinares en Basra (hay 2) y en Andalucía (hay 4). Gana 2 dinares de valor por ronda. Cualquier mercado la compra a su valor actual (menos el impuesto) y la botella se esfuma: cuando se acaban las 6, ya no hay vino. Pesa; la tinta de pulpo no le afecta.' },
   buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
+  alforja: { nombre: 'Alforja', texto: 'Guarda 2 objetos: sin animal cargas 9 en vez de 7 (la alforja no pesa). Sin animal solo llevas 1; con animal, hasta 3. Con alforja solo te mueves una vez por turno (una caravana). Dura 3 turnos: luego se deshilacha y vuelve al mercado de Basra. Se vende a 1 dinar en cualquier mercado.' },
   pescado: { nombre: 'Pescado', texto: 'Lo pescas en Basra con tu Red de pescador. Se vende en Basra por 5 dinares, en Bagdad por 10 y en cualquier otra ciudad por 8; al venderlo se esfuma.' },
   tintaPulpo: { nombre: 'Frasco con tinta de pulpo', precio: 3, texto: 'Frasco de tinta de pulpo, la que traen los marinos de India. Si te roban, el frasco se rompe solo y la tinta destruye tus libros, papiros, manuscritos, papel amate, mapas de tesoro, alfombras de Isfahán, el Shatranj y el Firmán: el ladrón no se los lleva. El frasco se gasta con ellos. Se compra en India (3 dinares) y, cuando alguien ya visitó India, en Bagdad (6). Pesa: cuenta para el límite de 7 objetos. Se vende en Andalucía o Samarcanda por 9 (ahí se revende en 10).' },   // Jorge (17 de noviembre)
   shatranj: { nombre: 'Shatranj (ajedrez)', precio: 12, texto: 'El juego de los reyes que llegó de India: un tablero con sus piezas de marfil. Solo lo vende el mercado de India, por 12 dinares, y solo hay 5 en todo el juego. Se vende en Isfahán por 25, en Bagdad por 30 o en Andalucía por 35, y al venderlo deja de existir. Pesa: cuenta para el límite de 7 objetos. La tinta de pulpo lo estropea.' },   // Jorge (19 de noviembre)
@@ -249,6 +250,13 @@ export function devolverObjeto(data, e, id) {
 }
 // Jorge (10 de noviembre): sin animal de carga se llevan hasta 7 objetos del mazo; con caballo, burro o camello, los que quieras
 // (la alfombra mágica no carga). Si ganas, robas o recibes de más sin animal, el sobrante se vende al banco (mitad del valor).
+// Alforja (Jorge, 19 de noviembre): 4 a la venta en Basra a 6 dinares. Con ella cargas 9 en vez de 7 (la alforja misma no pesa). Sin animal
+// solo puedes llevar 1; con animal, hasta 3 (no pesan, y con animal la carga ya no tiene límite). Si traes alforja solo te mueves una vez
+// por turno (una caravana). Dura 3 turnos (contando el de la compra); al deshilacharse se esfuma y vuelve al mercado de Basra. Se vende a
+// 1 dinar en cualquier mercado, recupera su estado y ese mercado la revende a 7 (en Basra, a 6).
+export const tramosMax = (data, t, j) => { const m = t.maxTramos || data.config.maxTramosPorTurno; return j && tieneItem(j, 'alforja') ? Math.min(1, m) : m; };   // con alforja, una sola caravana por turno
+export const MSJ_ALFORJA_TRAMO = 'Con alforja solo te mueves una vez por turno.';
+export const ALFORJA = { ciudad: 'Basra', inicial: 4, precio: 6, reventa: 7, venta: 1, guarda: 2, turnos: 3, maxSin: 1, maxCon: 3 };
 export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello', 'caballoMongol'];   // el caballo mongol también carga; la yegua, no (Jorge, 12 de noviembre)
 export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
 // Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
@@ -269,7 +277,7 @@ export function gastarVeloSiAlfombra(e, j, card, letra) {
   quitarPrimero(j, 'item', 'velo');
   log(e, `${j.nombre} pide la alfombra mágica gracias a su velo quemado: el velo se gasta.`, { pid: j.id });
 }
-export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS);
+export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS + (tieneItem(j, 'alforja') ? ALFORJA.guarda : 0));   // con alforja, 9 (Jorge, 19 de noviembre)
 // Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
 // mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.
 // Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.
