@@ -22,7 +22,7 @@ const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];
 const VECINOS = {};
 for (const k of Object.keys(data.rutas.tarifas)) { const [a, b] = k.split('>'); (VECINOS[a] ||= new Set()).add(b); }
 const DIST = {};   // DIST[destino][ciudad] = tramos que faltan
-for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad', 'Yemen', 'El Cairo', 'Aleppo']) {
+for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad', 'Yemen', 'El Cairo', 'Aleppo', 'Isfahán']) {
   const d = (DIST[dst] = { [dst]: 0 }), cola = [dst];
   while (cola.length) { const c = cola.shift(); for (const [a, vs] of Object.entries(VECINOS)) if (vs.has(c) && d[a] === undefined) { d[a] = d[c] + 1; cola.push(a); } }
 }
@@ -108,6 +108,9 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       const car = (e.carrerasActivas || []).find((c) => !(c.prog || {})[pid] || c.ciudad === j.ciudad);
       if (car && DIST[car.ciudad]) return car.ciudad;
       if (tieneItem(j, 'jambiya') && !j.extra?.entrenado?.jambiya && !(j.retosHechos || []).includes('R19') && j.dinares >= 30) return 'Yemen';
+      // Jorge (20 de noviembre): también entrena alfanje (Damasco) o cimitarra (Isfahán), aunque pierda su protección de «sin armas»
+      if (tieneItem(j, 'alfanje') && !j.extra?.entrenado?.alfanje && j.dinares >= 25) return 'Damasco';
+      if (tieneItem(j, 'cimitarra') && !j.extra?.entrenado?.cimitarra && j.dinares >= 30) return 'Isfahán';
     }
     if (j.pj !== 'B' && ['lampara', 'amate', 'buza'].every((x) => tieneItem(j, x)) && !(j.retosHechos || []).includes('R47') && j.dinares >= 8) return 'Yemen';   // con mecenas, a aprender árabe (Jorge, 20 de noviembre)
     if (m.forja && j.pj !== 'B' && !tieneItem(j, 'cimitarra') && !j.extra?.forja && j.dinares >= 20) return 'Damasco';
@@ -159,7 +162,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (x.k === 'reto' && x.id === 'R52') return 2;                                          // forjar acero de Damasco
     if (x.k === 'reto' && x.id === 'R47') return ['lampara', 'amate', 'buza'].every((r) => tieneItem(j, r)) ? 4 : 1.5;   // aprender árabe (Jorge, 20 de noviembre); con mecenas, siempre
     if (x.k === 'reto' && x.id === 'R54') return 1.5;
-    if (j.pj === '6' && x.k === 'reto' && x.id === 'R19') return 6;   // Zubayda entrena su jambiya (50 noches)
+    if (j.pj === '6' && x.k === 'reto' && ['R19', 'R42', 'R18'].includes(x.id)) return 6;   // Zubayda entrena sus armas (50 noches)   // Zubayda entrena su jambiya (50 noches)
     if (j.pj === '6' && x.k === 'reto' && j.dinares >= 30) return base * 4;   // Zubayda gasta sus dinares en retos con noches
     if (x.k === 'reto' && x.id === 'R50') return j.dinares < 105 ? 0.02 : metas[pid]?.estepa ? 2 : 0.6;   // yeguas: solo con dinero para volver a Estambul
     if (x.k === 'reto' && porReto(pid, x)) return 1.2;
@@ -300,6 +303,10 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         if (jb.pj === '7' && !tieneItem(jb, 'arco') && jb.dinares >= 30) op.push([{ ref: 'arco' }, 2]);
         if (jb.pj === '7' && ['Basra', 'Aleppo', 'Damasco'].includes(c) && !['burro', 'camello', 'caballo', 'caballoMongol'].some((r) => tieneItem(jb, r)) && jb.dinares >= 35) op.push([{ ref: 'burro' }, 3]);
         if (jb.pj === 'B' && !tieneItem(jb, 'arco') && jb.dinares >= 25) op.push([{ ref: 'arco' }, 2]);
+        if (jb.pj === '6' && !jb.npc && !tieneItem(jb, 'alfanje') && !tieneItem(jb, 'cimitarra') && (jb.extra?.entrenado?.jambiya || jb.dinares >= 60)) {   // Zubayda compra arma para entrenarla (Jorge, 20 de noviembre)
+          if (jb.dinares >= 50) op.push([{ ref: 'alfanje' }, 6]);
+          if (jb.dinares >= 70) op.push([{ ref: 'cimitarra' }, 3]);
+        }
         const hecho = (id) => (jb.retosHechos || []).includes(id);
         if (!tieneItem(jb, 'citricos') && jb.dinares >= 10) op.push([{ ref: 'citricos' }, 3]);
         if (jb.pj !== 'B' && !hecho('R47') && !tieneItem(jb, 'lampara') && c !== 'India' && jb.dinares >= 14) op.push([{ ref: 'lampara' }, 1.5]);   // Lámpara de aceite (Jorge, 20 de noviembre)
