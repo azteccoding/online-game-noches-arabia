@@ -360,7 +360,7 @@
    "tipo": "V, A",
    "requisito": "Tener un camello (11.1) y pagar 5 dinares de provisiones.",
    "resolucion": "Lleva tu camello de Yemen a Bagdad (2 turnos de viaje, sin tarifa). Al salir tira 1 dado: 1 el camello se escapa (pierdes el camello y el reto); 2 se acaba el agua (pierdes el reto, conservas el camello); 3 a 6 llegas.",
-   "premio": "40 dinares y 15 noches (además de las noches de llegada a Bagdad).",
+   "premio": "40 dinares y 15 noches.",
    "riesgo": "Pierdes los 5 dinares de provisiones y el reto.",
    "objetos": "Lazo de camellero (ignora el resultado 1); Odre de agua (ignora el resultado 2).",
    "humor": "El camello conoce el desierto mejor que tú y no te lo va a decir.",
