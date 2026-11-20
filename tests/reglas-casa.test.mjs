@@ -3907,12 +3907,12 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(adi, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
   assert.equal(A.noches, 3 - 10, 'la sátira le deja 3 − 10 = −7 noches');
 }
-// Jorge (20 de noviembre): el harén del Califa da 13 dinares (antes 16).
+// Jorge (20 de noviembre): el harén del Califa da 12 dinares (antes 16).
 {
   const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; Z.dinares = 0;
-  assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+13 dinares/.test(x.titulo)), 'el botón dice +13');
-  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 13); assert.ok(e.log.some((l) => /gana 13 dinares y queda bajo su techo/.test(l.texto)));
+  assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+12 dinares/.test(x.titulo)), 'el botón dice +12');
+  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 12); assert.ok(e.log.some((l) => /gana 12 dinares y queda bajo su techo/.test(l.texto)));
 }
 // Jorge (19 de noviembre): «dormir con el Califa consume tu acción principal; si ya hiciste otra acción ya no puedes».
 {

@@ -52,7 +52,7 @@ registrar('pj.ruyan', (data, e, args, resp) => {
 
 // ---------------------------------------------------------------- Zubayda: pago en especie y apedreo (R 10.7, 12.6)
 export const PRECIO_ZUBAYDA = 7;
-export const HAREN_DINARES = 13;   // Jorge (20 de noviembre): 13 dinares por pasar la noche en el harén (antes 16)
+export const HAREN_DINARES = 12;   // Jorge (20 de noviembre): 12 dinares por pasar la noche en el harén (antes 16; con el viaje a los palacios)
 // Jorge (20 de noviembre): en sus dos primeros turnos Zubayda tiene un viaje gratis (un solo tramo) a Yemen, El Cairo o Damasco, donde el
 // Califa tiene palacios para sus primos y la manda como entretenimiento nocturno. Si no lo usa en esos dos turnos, se pierde.
 export const PALACIOS = { ciudades: ['Yemen', 'El Cairo', 'Damasco'], turnos: 2 };

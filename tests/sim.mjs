@@ -22,7 +22,7 @@ const HONOR = ['El Cairo', 'Damasco', 'Aleppo'];
 const VECINOS = {};
 for (const k of Object.keys(data.rutas.tarifas)) { const [a, b] = k.split('>'); (VECINOS[a] ||= new Set()).add(b); }
 const DIST = {};   // DIST[destino][ciudad] = tramos que faltan
-for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad']) {
+for (const dst of ['Estambul', 'Damasco', 'Samarcanda', 'Bagdad', 'Yemen', 'El Cairo', 'Aleppo']) {
   const d = (DIST[dst] = { [dst]: 0 }), cola = [dst];
   while (cola.length) { const c = cola.shift(); for (const [a, vs] of Object.entries(VECINOS)) if (vs.has(c) && d[a] === undefined) { d[a] = d[c] + 1; cola.push(a); } }
 }
@@ -104,6 +104,11 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     const m = (metas[pid] ||= { forja: j.pj !== 'B' && R() < 0.35, estepa: j.pj !== 'B' && R() < (j.pj === '7' ? 0.9 : 0.5) });   // Adí, con su dinero, es quien más va por las yeguas
     if (tieneItem(j, 'yegua')) return 'Estambul';
     if (tieneItem(j, 'costalPistaches')) return 'Bagdad';   // R56: los pistaches se entregan solos al llegar
+    if (j.pj === '6' && !j.npc) {   // Zubayda (Jorge, 20 de noviembre): carreras «Dos noches» y entrenar la jambiya en Yemen
+      const car = (e.carrerasActivas || []).find((c) => !(c.prog || {})[pid] || c.ciudad === j.ciudad);
+      if (car && DIST[car.ciudad]) return car.ciudad;
+      if (tieneItem(j, 'jambiya') && !j.extra?.entrenado?.jambiya && !(j.retosHechos || []).includes('R19') && j.dinares >= 30) return 'Yemen';
+    }
     if (j.pj !== 'B' && ['lampara', 'amate', 'buza'].every((x) => tieneItem(j, x)) && !(j.retosHechos || []).includes('R47') && j.dinares >= 8) return 'Yemen';   // con mecenas, a aprender árabe (Jorge, 20 de noviembre)
     if (m.forja && j.pj !== 'B' && !tieneItem(j, 'cimitarra') && !j.extra?.forja && j.dinares >= 20) return 'Damasco';
     if (m.estepa && !(j.retosHechos || []).includes('R50') && j.dinares >= 115) return 'Samarcanda';
@@ -134,6 +139,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
   const pesoAccion = (pid, x, base) => {
     const j = e.jugadores[pid];
     if (x.k === 'atacar') {
+      if (j.pj === '6' && x.tipo === 'robo') { const m = x.objetivos.some((o) => { const D = e.jugadores[o]; return D && D.dinares >= 25 && desarmado(D) && !(D.pj === 'B'); }); return m ? base * 6 : base * 0.3; }   // Zubayda roba a quien trae dinero y va sin armas (Jorge, 20 de noviembre)
       const m = Math.max(...x.objetivos.map((o) => atractivo(pid, x.tipo, o)[0]));
       if (m === 0) return 0.01;
       let w = base * (m > 1 ? 2.5 : 1);
@@ -152,7 +158,9 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     }
     if (x.k === 'reto' && x.id === 'R52') return 2;                                          // forjar acero de Damasco
     if (x.k === 'reto' && x.id === 'R47') return ['lampara', 'amate', 'buza'].every((r) => tieneItem(j, r)) ? 4 : 1.5;   // aprender árabe (Jorge, 20 de noviembre); con mecenas, siempre
-    if (x.k === 'reto' && x.id === 'R54') return 1.5;                                        // combatir a los húngaros (Jorge, 20 de noviembre)
+    if (x.k === 'reto' && x.id === 'R54') return 1.5;
+    if (j.pj === '6' && x.k === 'reto' && x.id === 'R19') return 6;   // Zubayda entrena su jambiya (50 noches)
+    if (j.pj === '6' && x.k === 'reto' && j.dinares >= 30) return base * 4;   // Zubayda gasta sus dinares en retos con noches
     if (x.k === 'reto' && x.id === 'R50') return j.dinares < 105 ? 0.02 : metas[pid]?.estepa ? 2 : 0.6;   // yeguas: solo con dinero para volver a Estambul
     if (x.k === 'reto' && porReto(pid, x)) return 1.2;
     if (x.k === 'usar' && j.pj === '3' && j.mano.find((c) => c.uid === x.uid)?.ref === 'OB42') return 0.6;
@@ -219,7 +227,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
           const haren = ac.find((x) => x.k === 'pj' && x.sub === 'haren' && !x.bloqueado);
           const vuelta = (d) => data.rutas.tarifas[`${d}>Bagdad`];
           const palacio = z.extra.viajePalacio && !t.tramos ? ac.filter((x) => x.k === 'viajar' && ['Yemen', 'El Cairo', 'Damasco'].includes(x.destino) && !x.precio) : [];
-          if (palacio.length) { zubElegida = palacio[Math.floor(R() * palacio.length)]; cuenta(stats.acciones, 'fortaleza:Zubayda usa su viaje gratis a los palacios'); }   // Jorge (20 de noviembre)
+          if (palacio.length) { zubElegida = palacio.find((x) => x.destino === 'Yemen' && !z.extra?.entrenado?.jambiya) || palacio[Math.floor(R() * palacio.length)]; cuenta(stats.acciones, 'fortaleza:Zubayda usa su viaje gratis a los palacios'); }   // Jorge (20 de noviembre)
           else if (z.ciudad === 'Bagdad' && !t.tramos && !t.principal) {
             // Solo cuando conviene (Jorge, 20 de noviembre): noches ya multiplicadas (×2 o más), que la ciudad dé al menos 10 noches
             // con el multiplicador y que tras pagar ida y vuelta le queden al menos 10 dinares. Si no, harén directo, como siempre.
@@ -238,7 +246,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (ac.find((x) => x.k === 'cc')) elegida = ac.find((x) => x.k === 'cc');
       else if (zubElegida) elegida = zubElegida;
       else if (e.asesinos?.pendiente?.victima === pid && e.jugadores[pid].extra.masrur && ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan')) elegida = ac.find((x) => x.k === 'tesoro' && x.sub === 'jorasan');   // avisado por Masrur: huye al Jorasán
-      else if (fin && (e.carrerasActivas || []).some((c) => c.ciudad === e.jugadores[pid].ciudad) && !t.movio && R() < 0.6) elegida = fin;   // carrera de «dos noches»: se queda
+      else if (fin && (e.carrerasActivas || []).some((c) => c.ciudad === e.jugadores[pid].ciudad) && !t.movio && (e.jugadores[pid].pj === '6' || R() < 0.6)) elegida = fin;   // carrera de «dos noches»: se queda
       else if (accionesTurno > 14 && fin) elegida = fin;
       else {
         const peso = { tirarDados: 100, cc: 100, viajar: 0.5, atacar: 0.2, reto: 0.35, tesoro: 0.3, esconder: 0.1, recuperar: 0.4, usar: 0.3, asesinos: 0.3, pj: 0.4, terminarTurno: 0.15 };
