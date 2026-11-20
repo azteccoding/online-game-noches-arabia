@@ -341,7 +341,17 @@ registrar('tes.sinCartasJ', (data, e, args, resp) => {
   else { j.dinares += 60; log(e, `No quedan cartas de Ifrit: el genio entrega 60 dinares a ${j.nombre}.`, { pid }); }
   return juntoListo(data, e);
 });
-function ghulJuntos(data, e, ambos) {
+// Veneno contra los ghul (Jorge, 19 de noviembre): quien lleva veneno puede envenenarlos antes de su tirada; el veneno se gasta, no hay
+// tirada y escapa a su destino. Al salir juntos la tirada es una sola, así que si uno los envenena escapan los dos.
+const OP_VENENO = [{ id: 'envenenar', texto: 'Envenenar a los ghul: gastas tu veneno, no hay tirada y escapas' }, { id: 'tirar', texto: 'Guardar el veneno y arriesgarte a la tirada' }];
+function escapar(e, j) {
+  const dest = j.extra.destinoA || 'Bagdad';
+  j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
+  log(e, `${j.nombre} escapa del Jorasán hacia ${dest}.`, { pid: j.id });
+}
+function ghulJuntos(data, e, ambos, decidido = false) {
+  const conVeneno = !decidido && ambos.find((x) => tieneItem(x, 'veneno'));
+  if (conVeneno) { pedir(e, { tipo: 'jorasan', para: [conVeneno.id], titulo: 'Los ghul se acercan', texto: 'Llevas veneno: puedes envenenar a los ghul y escapar los dos sin tirar.', opciones: OP_VENENO, porDefecto: 'envenenar', limiteMs: 60000, cont: { fn: 'tes.ghulVenenoJ', args: { ids: ambos.map((x) => x.id) } } }); return ok(); }
   const nom = ambos.map((x) => x.nombre).join(' y '), { act, v, prom, grupoMaulana, texto } = tiradaGhul(e, ambos);
   act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${nom}`, valores: [v[i]] }, ...(i === act.length - 1 ? grupoMaulana : [])],
     resumen: i < act.length - 1 ? [] : [texto(nom)] }));
@@ -435,8 +445,9 @@ function deseoValido(data, e, pid, d) {
   return null;
 }
 
-function ghul(data, e, pid) {
+function ghul(data, e, pid, decidido = false) {
   const j = e.jugadores[pid];
+  if (!decidido && tieneItem(j, 'veneno')) { pedir(e, { tipo: 'jorasan', para: [pid], titulo: 'Los ghul se acercan', texto: 'Llevas veneno: puedes envenenar a los ghul y escapar sin tirar.', opciones: OP_VENENO, porDefecto: 'envenenar', limiteMs: 60000, cont: { fn: 'tes.ghulVeneno', args: {} } }); return ok(); }
   const { act, v, prom, grupoMaulana, texto } = tiradaGhul(e, [j]);
   act.forEach((x, i) => mostrarDados(e, { por: x, npc: !!e.jugadores[x].npc, motivo: 'ghul', grupos: [{ etq: `${e.jugadores[x].nombre}: los ghul buscan a ${j.nombre}`, valores: [v[i]] }, ...(i === act.length - 1 ? grupoMaulana : [])],   // cada jugador lanza el suyo
     resumen: i < act.length - 1 ? [] : [texto(j.nombre)] }));
@@ -448,6 +459,21 @@ function ghul(data, e, pid) {
   return ok();
 }
 
+registrar('tes.ghulVeneno', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid];
+  if (resp.opcion !== 'envenenar' || !quitarPrimero(j, 'item', 'veneno')) return ghul(data, e, pid, true);
+  log(e, `${j.nombre} envenena a los ghul del Jorasán y escapa sin que lo encuentren.`, { pid });
+  escapar(e, j); if (e.turno) { e.turno.movio = true; e.turno.fin = true; }
+  return ok();
+});
+registrar('tes.ghulVenenoJ', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid], ambos = args.ids.map((x) => e.jugadores[x]).filter((x) => x && x.perdido && !x.eliminado);
+  if (resp.opcion !== 'envenenar' || !quitarPrimero(j, 'item', 'veneno')) return ghulJuntos(data, e, ambos, true);
+  log(e, `${j.nombre} envenena a los ghul del Jorasán: escapan ${ambos.map((x) => x.nombre).join(' y ')} sin tirada.`, { pid });
+  for (const x of ambos) escapar(e, x);
+  if (e.turno) { e.turno.movio = true; e.turno.fin = true; }
+  return ok();
+});
 // ---------------------------------------------------------------- deseos de ifrit (R 15.4)
 export function deseo(data, e, pid, letra, { alTerminar = null }) {
   const j = e.jugadores[pid];

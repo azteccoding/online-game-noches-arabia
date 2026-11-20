@@ -4739,3 +4739,35 @@ console.log('reglas de la casa OK');
   const r = g.act(a, { t: 'comprar', ref: 'flechas' });
   assert.ok(r.ok || !/Ya cargas 7/.test(r.error || ''), 'la 5.ª flecha no sube el peso: sí cabe');
 }
+// Jorge (19 de noviembre): veneno contra un jugador de tu ciudad (herido, secreto, acción principal) y contra los ghul (escapas sin tirar)
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const x of [A, B, e.jugadores.npc]) x.ciudad = 'Damasco';
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  darItem(e, A, 'veneno', { turnos: A.turnos });
+  const op = vistaDe(e, a).acciones.find((x) => x.via === 'ciudad');
+  assert.ok(op && op.objetivos.includes(b) && !op.objetivos.includes('npc'), 'a B sí, a Yafar NPC no');
+  const { MSJ_VENENO_YAFAR } = await import('../shared/objetos.js');
+  const u = A.mano.find((c) => c.ref === 'veneno').uid;
+  assert.equal(g.act(a, { t: 'usar', uid: u, via: 'ciudad', objetivo: 'npc' }).error, MSJ_VENENO_YAFAR);
+  assert.ok(g.act(a, { t: 'usar', uid: u, via: 'ciudad', objetivo: b }).ok);
+  assert.ok(B.herido && !tieneItem(A, 'veneno') && e.turno.principal, 'herido, veneno gastado, acción principal');
+  assert.ok(!e.log.some((l) => l.texto.includes(A.nombre) && /envenena/.test(l.texto)), 'secreto'); assert.ok(!(A.buscado > 0), 'no queda Buscado');
+  // con antídoto se salva
+  B.herido = false; B.mano.push({ uid: 'anti', tipo: 'objeto', ref: 'OB20' }); turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; darItem(e, A, 'veneno', { turnos: A.turnos });
+  assert.ok(g.act(a, { t: 'usar', uid: A.mano.find((c) => c.ref === 'veneno').uid, via: 'ciudad', objetivo: b }).ok);
+  assert.ok(!B.herido && !tieneObj(B, 'OB20'), 'el antídoto lo salva y se gasta');
+}
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.perdido = true; A.ciudad = 'Jorasán'; A.extra.enRumbo = false; e.jugadores[b].ciudad = 'Bagdad'; darItem(e, A, 'veneno', { turnos: A.turnos });
+  turnoDe(e, a, 'Jorasán'); e.turno.fase = 'acciones'; forzar(e, 2, 1, 1);   // rumbo par; genio malo → los ghul
+  assert.ok(g.act(a, { t: 'tesoro', sub: 'salir' }).ok);
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Los ghul se acercan');
+  assert.ok(p, 'se le ofrece envenenar a los ghul'); e.dados = null; e.colaDados = []; e.pend = p; e.colaPend = [];
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'envenenar' }).ok);
+  assert.ok(!A.perdido && !A.eliminado && !tieneItem(A, 'veneno'), 'escapa sin tirada y el veneno se gasta');
+  assert.ok(![e.dados, ...(e.colaDados || [])].some((d) => d?.motivo === 'ghul'), 'no hay tirada de ghul');
+}

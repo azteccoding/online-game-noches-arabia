@@ -733,6 +733,10 @@ export function disponibles(data, e, pid) {
     if (c.tipo === 'item' && c.ref === 'veneno') {
       const vic = activos(e).filter((q) => q !== pid && !e.jugadores[q].npc);
       if (vic.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Usar veneno (Anciana Devota, 20 dinares + transporte)', objetivos: vic, via: 'anciana' });
+      // Jorge (19 de noviembre): envenenar a otro jugador de tu ciudad (acción principal; secreto; lo deja herido salvo con Antídoto)
+      const aqui = activos(e).filter((q) => q !== pid && e.jugadores[q].ciudad === j.ciudad && !e.jugadores[q].npc && !e.jugadores[q].transito);
+      if (aqui.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Envenenar a un jugador de tu ciudad (gasta tu acción principal; lo deja herido)', objetivos: aqui, via: 'ciudad', bloqueado: puedePrincipal(t) ? null : 'Ya usaste tu acción principal este turno.' });
+      else if (activos(e).some((q) => e.jugadores[q].npc && e.jugadores[q].ciudad === j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Envenenar a un jugador de tu ciudad', via: 'ciudad', bloqueado: MSJ_VENENO_YAFAR });
       if (j.ciudad === 'Bagdad') r.push({ k: 'usar', uid: c.uid, titulo: `Envenenar un abrevadero (Masrur, ${5 * vivos(e)} dinares)`, destinos: data.ciudades.ciudades.map((q) => q.id), via: 'abrevadero' });
     }
     if (c.tipo === 'item' && TRANSPORTE[c.ref] && !t.ccActual && !j.perdido && !motivoNoSalir(e, j, false) && t.tramos < (t.maxTramos || data.config.maxTramosPorTurno)) {
@@ -768,8 +772,21 @@ export function destinosTransporte(data, ref, desde) {
 const textoTransporte = (ref) => ({ caballoMongol: 'el caballo mongol solo viaja entre Estambul, Bagdad, Isfahán, Aleppo y Damasco.', burro: 'el burro solo hace viajes cortos por tierra: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad (ida y vuelta).', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
+export const MSJ_VENENO_YAFAR = 'Los espías corruptos de Yafar lo protegen del veneno.';
 function usarVeneno(data, e, pid, c, a) {
   const j = e.jugadores[pid];
+  if (a.via === 'ciudad') {
+    const v = e.jugadores[a.objetivo], t = e.turno;
+    if (v?.npc) return err(MSJ_VENENO_YAFAR);
+    if (!v || v.eliminado || a.objetivo === pid || v.ciudad !== j.ciudad) return err('Elige a otro jugador de tu ciudad.');
+    if (!puedePrincipal(t)) return err('Ya usaste tu acción principal este turno.');
+    t.principal = true; quitarCarta(j, c.uid);
+    if (tieneObj(v, 'OB20')) { consumirObj(data, e, a.objetivo, 'OB20'); log(e, `Alguien envenena a ${v.nombre}, pero toma su antídoto y se salva.`); info(e, a.objetivo, '¡Te envenenaron!', 'Alguien te envenenó, pero tu Antídoto te salvó (se gastó).'); return ok(); }
+    v.herido = true;
+    log(e, `Alguien envenena a ${v.nombre}: queda herido.`);
+    info(e, a.objetivo, '¡Te envenenaron!', 'Alguien te envenenó en secreto: quedas herido.');
+    return ok();
+  }
   if (a.via === 'abrevadero') {
     if (j.ciudad !== 'Bagdad') return err('Masrur está en Bagdad.');
     if (!ciudadDe(data, a.destino)) return err('Elige la ciudad del abrevadero.');
