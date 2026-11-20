@@ -2,7 +2,7 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
+motivoNoSalir, pesoFlechas, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
@@ -218,7 +218,8 @@ export function comprar(data, e, pid, a) {
     if (a.ref === 'mapaJorasan' && n > mapasJorasanVenta(e)) return err('Agotado: no quedan mapas del Jorasán en Bagdad (los escribas tardan 2 rondas en hacer otro).');
     if (a.ref === 'mapaJorasan' && motivoNPCMapa(e, j)) return err(motivoNPCMapa(e, j));
     if (a.ref === 'mapaJorasan' && n > 1) return err('De uno en uno.');
-    const pesoNuevo = a.ref === 'flechas' ? (tieneItem(j, 'flechas') ? 0 : 1) : n;   // las flechas pesan 1 aunque sean varias (Jorge, 19 de noviembre)
+    const nf = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length;
+    const pesoNuevo = a.ref === 'flechas' ? pesoFlechas(nf + n) - pesoFlechas(nf) : n;   // las flechas pesan en pares (Jorge, 19 de noviembre)
     if (CARGA_ITEMS.includes(a.ref) && pesoNuevo && !tieneCarga(j) && nCarga(j) + pesoNuevo > limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);   // alfanje, cimitarra y vino también cargan
     j.dinares -= p;
     if (a.ref === 'burro') { j.dinares += p; burroDelMercado(e, pid, p); return ok(); }
@@ -525,7 +526,7 @@ export function tienda(data, e, pid) {
     if (CIUDAD_ORIGINAL[ref] && !CIUDAD_ORIGINAL[ref].includes(j.ciudad) && !(ARMAS_CIUDAD[ref] && existenciaArma(e, ref, j.ciudad) > 0)) return;   // una vendida queda a la venta ahí
     const precio = (ARMAS_ORIG.includes(ref) || ref === 'flechas' ? precioArma(data, e, ref, j) : VENTA_ORIGINAL[ref]) * cai;
     r.push({ ref, nombre: ITEMS[ref].nombre + (ITEMS[ref].ventaja ? ' · ' + ITEMS[ref].ventaja : ''), tipo: ARMAS_ORIG.includes(ref) ? 'Arma' : ref === 'burro' ? 'Transporte' : 'Objeto original', texto: ITEMS[ref].texto, precio, stock: ref === 'burro' ? burrosEn(e, j.ciudad) : ref === 'mapaJorasan' ? mapasJorasanVenta(e) : ARMAS_CIUDAD[ref] || ref === 'buza' ? existenciaArma(e, ref, j.ciudad) : undefined, puede: j.dinares >= precio && existenciaArma(e, ref, j.ciudad) > 0 && !(CARGA_ITEMS.includes(ref) && lleno && !(ref === 'flechas' && tieneItem(j, 'flechas'))) && !(ARMAS_ORIG.includes(ref) && tieneItem(j, ref)) && !(ref === 'burro' && !(burrosEn(e, j.ciudad) > 0)) && !(ref === 'mapaJorasan' && (!(mapasJorasanVenta(e) > 0) || motivoNPCMapa(e, j))),
-      motivo: cimitarrasBloqueadas(e, ref) ? MSJ_SIN_FORJA : !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno && !(ref === 'flechas' && tieneItem(j, 'flechas')) ? MSJ_COMPRA_LLENO : ref === 'burro' && !(burrosEn(e, j.ciudad) > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
+      motivo: cimitarrasBloqueadas(e, ref) ? MSJ_SIN_FORJA : !(existenciaArma(e, ref, j.ciudad) > 0) ? 'Agotado' : ARMAS_ORIG.includes(ref) && tieneItem(j, ref) ? 'Ya la tienes' : CARGA_ITEMS.includes(ref) && lleno && !(ref === 'flechas' && j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length % 2 === 0) ? MSJ_COMPRA_LLENO : ref === 'burro' && !(burrosEn(e, j.ciudad) > 0) ? 'No quedan burros' : ref === 'mapaJorasan' && !(mapasJorasanVenta(e) > 0) ? 'Agotado: los escribas tardan 2 rondas en hacer otro' : ref === 'mapaJorasan' && motivoNPCMapa(e, j) ? motivoNPCMapa(e, j) : j.dinares < precio ? 'No te alcanza' : undefined, cantidad: ['flechas', 'buza', 'amate', 'cesta'].includes(ref) });
   };
   ['arco', 'alfanje', 'cimitarra', 'jambiya', 'flechas', 'vino', 'buza', 'amate', 'cesta', 'almudDatiles', 'costalPistaches', 'citricos', 'burro', 'mapaJorasan'].forEach(orig);
   { const b = r.find((x) => x.ref === 'buza'), nc = nCalamos(j);   // máximo 6 cálamos en la mano (Jorge, 17 de noviembre)

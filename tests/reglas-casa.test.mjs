@@ -2055,9 +2055,11 @@ for (let k = 0; k < 6; k++) {
   A.ciudad = 'Damasco'; A.dinares = 500; A.mano = A.mano.filter((c) => c.tipo !== 'objeto' && !['caballo', 'camello', 'burro'].includes(c.ref));
   darItem(e, A, 'alfanje'); darItem(e, A, 'vino', { ronda: 1 }); darItem(e, A, 'vino', { ronda: 1 });
   darItem(e, A, 'arco'); darItem(e, A, 'jambiya'); darItem(e, A, 'flechas');
-  // Jorge (19 de noviembre): el arco, la jambiya y las flechas también pesan (las flechas cuentan 1 aunque sean varias)
-  assert.equal(nCarga(A), 7, 'cimitarra + alfanje + 2 vinos + arco + jambiya + flechas = 7');
-  darItem(e, A, 'flechas'); darItem(e, A, 'flechas'); assert.equal(nCarga(A), 7, 'varias flechas cuentan como 1');
+  // Jorge (19 de noviembre, más tarde): las flechas pesan en pares (1 no pesa; 2 y 3 pesan 1; 4 y 5 pesan 2)
+  assert.equal(nCarga(A), 6, 'cimitarra + alfanje + 2 vinos + arco + jambiya = 6; una flecha no pesa');
+  darItem(e, A, 'flechas'); assert.equal(nCarga(A), 7, '2 flechas pesan 1');
+  darItem(e, A, 'flechas'); assert.equal(nCarga(A), 7, '3 flechas pesan 1');
+  { const { pesoFlechas } = BASE; assert.deepEqual([0, 1, 2, 3, 4, 5, 6].map(pesoFlechas), [0, 0, 1, 1, 2, 2, 3]); }
   assert.equal(motivoNoSalir(e, A), null);
   turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
   const v = tienda(data, e, a).find((x) => x.ref === 'vino'); if (v) assert.ok(!v.puede && /Ya cargas 7/.test(v.motivo), 'con 7 no compras vino');
@@ -4721,4 +4723,19 @@ console.log('reglas de la casa OK');
   const d0 = A.dinares, n0 = A.noches;
   A.ciudad = 'Bagdad'; llegada(data, e, a, 'El Cairo');
   assert.equal(A.dinares - d0, 35, '35 dinares'); assert.ok(A.noches - n0 >= 15, '15 noches (más las de llegar)');
+}
+// Jorge (19 de noviembre): con 7 de carga, la 4.ª flecha (impar → par) ya no cabe; con 3, la 4.ª sí sube el peso; el shatranj pesa 1
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.mano = []; A.dinares = 100; A.ciudad = 'Damasco';
+  for (const r of ['alfanje', 'cimitarra', 'arco', 'jambiya', 'velo', 'brujula']) darItem(e, A, r);
+  darItem(e, A, 'flechas'); darItem(e, A, 'flechas'); darItem(e, A, 'flechas');
+  assert.equal(BASE.nCarga(A), 7, '6 + 3 flechas (1) = 7');
+  A.mano.push({ uid: 'sh', tipo: 'item', ref: 'shatranj' }); assert.equal(BASE.nCarga(A), 8, 'el shatranj pesa 1'); A.mano.pop();
+  turnoDe(e, b, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'comprar', ref: 'flechas' }).error || '', /Ya cargas 7/, 'la 4.ª flecha haría 8: no cabe');
+  darItem(e, A, 'flechas'); A.mano = A.mano.filter((c) => c.ref !== 'brujula');   // 4 flechas (2) + 5 = 7
+  const r = g.act(a, { t: 'comprar', ref: 'flechas' });
+  assert.ok(r.ok || !/Ya cargas 7/.test(r.error || ''), 'la 5.ª flecha no sube el peso: sí cabe');
 }

@@ -63,7 +63,7 @@ export const ITEMS = {
   alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, ventaja: '+1 al pelear', texto: '+1 en robos, ataques a muerte y duelos. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
   cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos, y en duelo +2 más cuando eres tú quien ataca. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
   jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear (duelo: +3 con par)', texto: '+1 en robos y ataques a muerte (se suma a las demás armas). En duelo, +3 si el dado de sorpresa (lo tira quien la lleva) sale par. En Bagdad solo con Firmán.' },
-  flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco: cada disparo gasta 1 flecha. Se compran aparte, en cualquier ciudad.' },
+  flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco: cada disparo gasta 1 flecha. Se compran aparte, en cualquier ciudad. Pesan en pares: 1 flecha no pesa, 2 o 3 pesan 1, 4 o 5 pesan 2.' },
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde Isfahán o Basra); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },
   idolo: { nombre: 'Ídolo de Toledo', texto: 'Ídolo cubierto de oro y pedrería robado en Toledo. Destrúyelo en cualquier ciudad (acción libre): ganas 100 noches. O véndelo en Estambul a los mercaderes venecianos: 100 dinares, pero con 1 o 2 en el dado te acusan de herejía y acabas herido en el Jorasán sin dinares. Se puede robar e intercambiar.' },
@@ -342,7 +342,9 @@ export function moverAlfombras(e, ciudad, n) { alfombrasEn(e, ciudad); e.alfombr
 // se pasa en tratos como cualquier objeto; vendido en Bagdad queda a la venta ahí de inmediato; vendido en otro mercado (o gastado),
 // desaparece y los escribas de Bagdad hacen otro: vuelve a la venta allí 2 rondas después. Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los 2.
 export const MAPA_JORASAN = { precio: 20, ciudad: 'Bagdad', envio: 5, impar: 'Basra', par: 'Samarcanda', seGasta: true, stock: 2, envioPrincipal: false, reponeRondas: 2, usadoRepone: true, npc: { facil: 0, normal: 1, dificil: 2 } };
-export const nCarga = (j) => { const p = j.mano.filter(pesaCarta), f = p.filter((c) => c.ref === 'flechas').length; return p.length - Math.max(0, f - 1); };   // las flechas, 1 aunque sean varias
+// Jorge (19 de noviembre, más tarde): las flechas pesan en pares: 1 flecha no pesa, 2 o 3 pesan 1, 4 o 5 pesan 2, etc.
+export const pesoFlechas = (n) => Math.floor(n / 2);
+export const nCarga = (j) => { const p = j.mano.filter(pesaCarta), f = p.filter((c) => c.ref === 'flechas').length; return p.length - f + pesoFlechas(f); };
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;
 export const MSJ_COMPRA_LLENO = 'Ya cargas 7 objetos y sin animal no puedes llevar más, así que el mercado ya no te vende. Compra un caballo, burro o camello, o vende algo para hacer espacio.';   // Jorge (10 de noviembre): decir que por eso el mercado ya no te vende
