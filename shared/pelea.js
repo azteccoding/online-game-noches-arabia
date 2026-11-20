@@ -4,7 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
@@ -56,7 +56,7 @@ function objetoDeCombate(data, e, pid, rol, { contraNPC = false, duelo = false }
   const j = e.jugadores[pid];
   const opciones = [];
   if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: 1, texto: 'Escudo de cuero +1', gasta: false });   // Jorge (10 de noviembre): +1 como defensor en todas las peleas
-  if (tieneObj(j, 'OB01') && !duelo) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1', gasta: false });   // Jorge (12 de noviembre): la daga escondida no cuenta en duelos
+  if (tieneObj(j, 'OB01') && !duelo) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1 (se gasta)', gasta: true });   // no cuenta en duelos (12 de noviembre); se gasta y se esfuma al usarla (19 de noviembre)
   if (contraNPC && tieneObj(j, 'OB02')) opciones.push({ id: 'OB02', bono: 2, texto: 'Honda de pastor +2', gasta: true });
   if (rol === 'def' && tieneObj(j, 'OB03') && !j.extra.usaPolvo) opciones.push({ id: 'OB03', bono: 2, texto: 'Polvo de pimienta (el atacante resta 2)', gasta: true });
   opciones.sort((a, b) => b.bono - a.bono || (a.gasta ? 1 : 0) - (b.gasta ? 1 : 0));
@@ -68,7 +68,7 @@ export function consumir(data, e, pid, id) {
   const o = objDe(data, id);
   if (o.duracion === 'Permanente') return;
   if (o.duracion === '2 usos') { c.usos = (c.usos || 0) + 1; if (c.usos < 2) return; }
-  j.mano.splice(j.mano.indexOf(c), 1); devolverObjeto(data, e, id);
+  j.mano.splice(j.mano.indexOf(c), 1); if (!NO_VUELVE.includes(id)) devolverObjeto(data, e, id);
 }
 
 // Suma de bonos de un bando. Lanza el dado de sorpresa de la jambiya UNA vez al empezar la pelea (R 11.1). Registra las líneas del desglose.
@@ -509,7 +509,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
 }
 export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en ? '; con 3 o 4 (arco entrenado), con −1' : ''}; si lleva escudo, no le hace nada`;
 // Escudo de cuero (Jorge, 12 de noviembre): aguanta 3 flechazos; al tercero se rompe al terminar la pelea y vuelve al mercado
-// (Estambul y Yemen, por la reposición normal). En Isfahán lo reparan por 5 dinares (objetos.js).
+// (Estambul, Yemen e Isfahán, por la reposición normal). En Isfahán lo reparan por 5 dinares (objetos.js).
 export const ESCUDO_FLECHAZOS = 3;
 // Escudo contra las demás armas (Jorge, 12 de noviembre): en un robo o un ataque a muerte con arma de cuerpo a cuerpo, después de las flechas, el
 // defensor levanta el escudo y tira un dado con su botón: con 5 o 6 para el golpe (el atacante pelea con −1); con 1 se rompe (vuelve al

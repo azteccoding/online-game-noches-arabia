@@ -4916,3 +4916,23 @@ console.log('reglas de la casa OK');
     assert.ok(g.act(a, { t: 'reto', id: 'R43' }).ok, 'R43 en ' + c);
   }
 }
+// Jorge (19 de noviembre): el Escudo de cuero también se compra en Isfahán
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const OBJ = await import('../shared/objetos.js');
+  A.ciudad = 'Isfahán'; turnoDe(e, b, 'Isfahán'); e.turno.fase = 'acciones';
+  assert.ok(OBJ.tienda(data, e, a).some((x) => x.id === 'OB04'), 'el escudo se vende en Isfahán');
+}
+// Jorge (19 de noviembre): la Daga de manga se gasta al usarla y se esfuma (no vuelve al mercado)
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const { bonos, perfil } = await import('../shared/pelea.js');
+  A.mano.push({ uid: 'daga', tipo: 'objeto', ref: 'OB01' }); const st = e.stock.OB01 || 0;
+  const b = bonos(data, e, a, perfil(data, e, a), 'atk', null, {});
+  assert.ok(b.partes.some((p) => /Daga de manga/.test(p)), 'suma la daga');
+  assert.ok(!tieneObj(A, 'OB01'), 'se gasta'); assert.equal(e.stock.OB01 || 0, st, 'no vuelve al mercado');
+  A.mano.push({ uid: 'daga2', tipo: 'objeto', ref: 'OB01' });
+  bonos(data, e, a, perfil(data, e, a), 'atk', null, { duelo: true }); assert.ok(tieneObj(A, 'OB01'), 'en duelo ni cuenta ni se gasta');
+}

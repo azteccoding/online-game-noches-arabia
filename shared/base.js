@@ -374,7 +374,7 @@ export const POR_CIUDAD = { OB21: ['El Cairo', 'Bagdad', 'Damasco'], OB05: ['Bas
 export const POR_CIUDAD_N = { OB21: 3 };   // Pastel de pistaches: 3 en cada uno de sus mercados (Jorge, 19 de noviembre)
 export const EN_BOTIN = ['OB42'];   // el Disfraz de mendigo, además de uno en cada mercado, sigue saliendo en el Botín como antes
 export const copiasPorCiudad = (id) => POR_CIUDAD_N[id] || 1;
-export const NO_VUELVE = ['OB14'];
+export const NO_VUELVE = ['OB14', 'OB01'];   // la Daga de manga se esfuma al usarla (Jorge, 19 de noviembre)
 export const SIN_LIMITE = [];   // (el Pastel de pistaches ya no: desde el 19 de noviembre hay 3 en cada mercado de El Cairo, Bagdad y Damasco)
 export const existencia = (e, id, ciudad) => (SIN_LIMITE.includes(id) ? Infinity : POR_CIUDAD[id] && e.stockCiudad?.[id] ? (e.stockCiudad[id][ciudad] || 0) : (e.stock[id] || 0));
 export function sacarExistencia(e, id, ciudad) {
