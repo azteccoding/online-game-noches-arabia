@@ -458,6 +458,10 @@ export function vender(data, e, pid, a) {
     const p = precioAlfombraVenta(ciudad); quitarCarta(j, c.uid); j.dinares += p; moverAlfombras(e, ciudad, 1);
     log(e, `${j.nombre} vende una alfombra de Isfahán al mercado de ${ciudad} por ${p} dinares.`, { pid }); return ok();
   }
+  if (c.ref === 'pescado') {                                                                            // se esfuma al venderlo (Jorge, 19 de noviembre)
+    const p = precioPescado(ciudad); quitarCarta(j, c.uid); j.dinares += p;
+    log(e, `${j.nombre} vende un pescado en ${ciudad} por ${p} dinares.`, { pid }); return ok();
+  }
   if (c.ref === 'almudDatiles') {                                                                       // Dátiles (Jorge, 19 de noviembre)
     if (ciudad !== DATILES.ciudadVenta) return err(`Los dátiles se venden en ${DATILES.ciudadVenta} (${DATILES.venta} dinares el almud).`);
     quitarCarta(j, c.uid); j.dinares += DATILES.venta; log(e, `${j.nombre} vende un almud de dátiles en ${ciudad} por ${DATILES.venta} dinares.`, { pid });
@@ -591,6 +595,7 @@ export function estimarVenta(data, e, pid, c) {
     if (c.ref === 'alfombraIsfahan') return precioAlfombraVenta(ciudad);
     if (c.ref === 'shatranj') return SHATRANJ.venta[ciudad] ?? null;
     if (c.ref === 'almudDatiles') return ciudad === DATILES.ciudadVenta ? DATILES.venta : null;
+    if (c.ref === 'pescado') return precioPescado(ciudad);
     if (['esclava', 'sal', 'cesta'].includes(c.ref)) return Math.floor({ esclava: 20, sal: 5, cesta: 2 }[c.ref] / 2);
     const base = ITEMS[c.ref]?.precio ?? (c.ref === 'veneno' || c.ref === 'velo' ? 30 : 0);
     return base ? Math.floor(base / 2) : null;
@@ -640,6 +645,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'mapa' && c.extra?.tesoro === 'jugador') return 'El banco no lo compra: véndelo o regálalo a otro jugador en un trato, o ve a esa ciudad a sacar los dinares.';
   if (c.ref === 'mapa') return 'En cualquier ciudad, a la mitad del valor del tesoro menos el impuesto; o ve a buscar el tesoro.';
   if (c.ref === 'alfombraIsfahan') return `En cualquier mercado por ${ALFOMBRAS.venta} dinares (Andalucía ${ALFOMBRAS.ventaCiudad['Andalucía']}; Isfahán solo ${ALFOMBRAS.recompraOrigen}); ahí queda a la venta ${ALFOMBRAS.margen} dinares más cara. O a otro jugador en un trato.`;
+  if (c.ref === 'pescado') return `En cualquier mercado: Basra ${PESCA.venta.Basra}, Bagdad ${PESCA.venta.Bagdad} y en las demás ciudades ${PESCA.otra} dinares, sin impuesto; al venderlo se esfuma.`;
   if (c.ref === 'almudDatiles') return `Solo en ${DATILES.ciudadVenta}, por ${DATILES.venta} dinares el almud (la primera vez cumples el reto ${DATILES.reto}: +${DATILES.noches} noches).`;
   if (MITAD[c.ref] != null) return `En cualquier ciudad por ${MITAD[c.ref]} dinares.`;
   if (c.ref === 'alfombra') return `Solo en Samarcanda o Isfahán, por ${ALFOMBRA_VENTA.precio} dinares (se deshace: el mercado no la revende). También te saca del Jorasán.`;
@@ -679,9 +685,28 @@ export function burroDelMercado(e, pid, p) {   // compra un burro del mercado de
 }
 export const BURRO_CANSADO = 'Tu burro está cansado: solo lo puedes usar una vez por turno.';   // Jorge (19 de noviembre)
 
+// Pesca (Jorge, 19 de noviembre): en Basra, con la Red de pescador, gastas tu acción principal pescando y obtienes pescado. Se vende en
+// Basra por 5, en Bagdad por 10 y en cualquier otra ciudad por 8 (precio fijo, sin impuesto); al venderlo se esfuma. La red no se gasta.
+export const PESCA = { ciudad: 'Basra', porPesca: 1, venta: { Basra: 5, Bagdad: 10 }, otra: 8 };
+export const precioPescado = (ciudad) => PESCA.venta[ciudad] ?? PESCA.otra;
+function pescar(data, e, pid) {
+  const j = e.jugadores[pid], t = e.turno;
+  if (j.ciudad !== PESCA.ciudad) return err('Solo se pesca en Basra.');
+  if (!tieneObj(j, 'OB10')) return err('Necesitas una Red de pescador.');
+  if (j.npc) return err('Yafar NPC no pesca.');
+  if (!puedePrincipal(t)) return err('Ya usaste tu acción principal este turno.');
+  t.principal = true;
+  for (let i = 0; i < PESCA.porPesca; i++) darItem(e, j, 'pescado');
+  log(e, `${j.nombre} pesca en Basra con su Red de pescador y obtiene ${PESCA.porPesca === 1 ? 'un pescado' : PESCA.porPesca + ' pescados'}.`, { pid });
+  info(e, pid, 'Pescas en Basra', `Obtienes ${PESCA.porPesca === 1 ? 'un pescado' : PESCA.porPesca + ' pescados'}: en Basra te dan ${PESCA.venta.Basra} dinares, en Bagdad ${PESCA.venta.Bagdad} y en cualquier otra ciudad ${PESCA.otra}. Al venderlo se esfuma.`);
+  recortarMano(data, e, pid);
+  return ok();
+}
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
   if (!t || t.pid !== pid || t.fase === 'ingreso' || t.fin) return r;
+  { const red = tieneObj(j, 'OB10');
+    if (red && j.ciudad === PESCA.ciudad && !j.npc && !t.ccActual) r.push({ k: 'usar', uid: red.uid, via: 'pescar', titulo: 'Pescar con tu Red de pescador (gasta tu acción principal)', bloqueado: puedePrincipal(t) ? null : 'Ya usaste tu acción principal este turno.' }); }
   for (const c of j.mano) {
     if (c.tipo === 'objeto' && USOS[c.ref]) {
       const u = USOS[c.ref];
@@ -805,6 +830,7 @@ export function usar(data, e, pid, a) {
     if (c.ref === 'burro') t.burroUsado = true;
     return HOOK.viajarPropio(data, e, pid, { destino: dest, motivo: ITEMS[c.ref].nombre.toLowerCase(), termina: !!data.objetos.transportes?.[c.ref]?.terminaTurno, consumeUid: null });   // la alfombra ya no se gasta (regla de la casa)
   }
+  if (c.tipo === 'objeto' && c.ref === 'OB10' && a.via === 'pescar') return pescar(data, e, pid);
   if (c.tipo === 'item' && c.ref === 'veneno') return usarVeneno(data, e, pid, c, a);
   if (c.tipo === 'item' && c.ref === 'idolo') {
     if (a.via === 'destruir') { quitarCarta(j, c.uid); e.idolo = 'destruido'; j.noches += 100; log(e, `${j.nombre} destruye el Ídolo de Toledo y gana 100 noches.`, { pid, aviso: true }); return ok(); }

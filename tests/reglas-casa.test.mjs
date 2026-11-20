@@ -10,7 +10,7 @@ import { peleaNPC, duelo } from '../shared/pelea.js';
 import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
 import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
-import { tieneItem, darItem, tieneEsp } from '../shared/base.js';
+import { tieneItem, darItem, tieneEsp, tieneObj } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
 import { simular } from './sim.mjs';
 
@@ -4650,4 +4650,25 @@ console.log('reglas de la casa OK');
   assert.equal(Object.keys(A.extra.tumbas).length, 0, 'el tercero se pierde');
   assert.ok((vistaDe(e, b).anuncios || []).some((x) => /acertó su dado extra de la tumba/.test(x.texto)), 'anuncio gris a los demás');
   assert.ok(visita('R57', 'Damasco').ok, 'después del ingreso la puede visitar otra vez');
+}
+// Jorge (19 de noviembre): pesca en Basra con la Red de pescador; el pescado se vende a 5 en Basra, 10 en Bagdad y 8 en las demás, y se esfuma
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Basra'); A.ciudad = 'Basra'; e.turno.fase = 'acciones';
+  A.mano.push({ uid: 'red', tipo: 'objeto', ref: 'OB10' });
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'usar' && x.via === 'pescar');
+  assert.ok(op && !op.bloqueado, 'en Basra con red: «Pescar»');
+  assert.ok(g.act(a, { t: 'usar', uid: 'red', via: 'pescar' }).ok);
+  assert.ok(tieneItem(A, 'pescado') && tieneObj(A, 'OB10'), 'pescado y la red sigue');
+  assert.ok(e.turno.principal, 'gasta la acción principal');
+  assert.ok(g.act(a, { t: 'usar', uid: 'red', via: 'pescar' }).error, 'una vez por turno');
+  const { precioPescado } = await import('../shared/objetos.js');
+  assert.deepEqual(['Basra', 'Bagdad', 'Damasco', 'India'].map(precioPescado), [5, 10, 8, 8]);
+  A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  const d0 = A.dinares, pz = A.mano.find((c) => c.ref === 'pescado');
+  const r = g.act(a, { t: 'vender', uid: pz.uid });
+  assert.ok(r.ok, 'se vende: ' + r.error); assert.equal(A.dinares, d0 + 10, 'en Bagdad, 10'); assert.ok(!tieneItem(A, 'pescado'), 'se esfuma');
+  A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(!vistaDe(e, a).acciones.some((x) => x.via === 'pescar'), 'fuera de Basra no se pesca');
 }
