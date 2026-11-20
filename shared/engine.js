@@ -399,6 +399,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
+  RET.recibirDestreza(data, e, id);   // destreza y entrenamientos del turno anterior (Jorge, 19 de noviembre)
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
   turnoEmir(data, e, id);          // servicio del Emir: llega la Dádiva (Jorge, 18 de noviembre)
