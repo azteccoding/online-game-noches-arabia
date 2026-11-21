@@ -2,16 +2,16 @@
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
-motivoNoSalir, pesoFlechas, ALFORJA, LAMPARA, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
+motivoNoSalir, pesoFlechas, ALFORJA, LAMPARA, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
 ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
-// Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol viaja
-// solo entre sus 5 ciudades (fuera de ellas muere), no termina el turno, carga, vive 2 turnos y solo lo compra el mercado de Estambul,
+// Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol te lleva
+// a cualquier ciudad, incluida India (Jorge, 21 de noviembre; antes solo entre 5 ciudades y fuera de ellas moría), no termina el turno,
+// carga, vive 2 turnos y solo lo compra el mercado de Estambul,
 // por 2 dinares (ahí vuelve a la venta a 32). Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los que quiera.
 // Albéitar y comida: cada yegua y cada caballo mongol pagan por turno lo mismo que el caballo normal (Jorge, 12 de noviembre).
 export const YEGUAS = { precio: 70, max: 3, venta: 150, ciudadVenta: 'Estambul' };
-export const MONGOL = { precio: 32, ciudad: 'Estambul', venta: 2, ciudadesVenta: ['Estambul'] };   // Jorge: a Samarcanda nunca llega (muere fuera de su zona)
-export const ZONA_MONGOL = ['Estambul', 'Bagdad', 'Isfahán', 'Aleppo', 'Damasco'];
+export const MONGOL = { precio: 32, ciudad: 'Estambul', venta: 2, ciudadesVenta: ['Estambul'] };   // solo lo compra el mercado de Estambul
 const limiteMongolNPC = (e) => ({ facil: 0, normal: 1, dificil: Infinity }[e.opciones?.dificultad] ?? 1);
 const nMongoles = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'caballoMongol').length;
 export function motivoNoMongol(e, j) {
@@ -813,7 +813,6 @@ export function disponibles(data, e, pid) {
       if (c.ref === 'burro' && t.burroUsado && dest.length) { r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: BURRO_CANSADO }); continue; }
       if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : '') + vida, destinos: dest });
       else if (c.ref === 'burro') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: 'El burro solo viaja por tierra entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, y Basra y Bagdad. Aquí no te mueve, pero lo puedes vender.' });
-      else if (c.ref === 'caballoMongol') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Caballo mongol' + vida, bloqueado: `El caballo mongol solo viaja entre ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.` });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
   }
@@ -831,11 +830,10 @@ export function destinosTransporte(data, ref, desde) {
     const cer = r.cercanas || [], extra = (r.rutas || []).filter((p) => p.includes(desde)).map((p) => p.find((q) => q !== desde));
     return [...new Set([...(desde === 'Bagdad' ? cer : cer.includes(desde) ? ['Bagdad'] : []), ...extra])];
   }
-  if (r.zona) return r.zona.includes(desde) ? todas.filter((q) => r.zona.includes(q)) : [];   // caballo mongol: solo entre sus ciudades
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ caballoMongol: 'el caballo mongol solo viaja entre Estambul, Bagdad, Isfahán, Aleppo y Damasco.', burro: 'el burro solo hace viajes cortos por tierra: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad (ida y vuelta).', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos por tierra: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad (ida y vuelta).', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 export const MSJ_VENENO_YAFAR = 'Los espías corruptos de Yafar lo protegen del veneno.';
@@ -902,7 +900,7 @@ export function usar(data, e, pid, a) {
   if (c.tipo === 'ifrit') return err('Las cartas de Ifrit ya no se guardan: el deseo se pide cuando sale la carta.');   // Jorge (21 de noviembre)
   if (c.tipo === 'item' && TRANSPORTE[c.ref]) {
     if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
-    if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') ? MSJ_ALFORJA_TRAMO : 'Ya no te quedan tramos de viaje este turno.');
+    if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') ? MSJ_ALFORJA_TRAMO : t.huidas ? MSJ_HUIDA_TRAMO : 'Ya no te quedan tramos de viaje este turno.');
     if (j.perdido) return err('Estás perdido.');
     const dest = a.destino;
     if (!ciudadDe(data, dest) || dest === j.ciudad) return err('Destino inválido.');
@@ -1090,26 +1088,11 @@ export function caducarKanmakan(data, e, pid) {   // al terminar cada turno de s
 // ---------------------------------------------------------------- burro fuera de sus rutas (Jorge, 19 de noviembre)
 // Antes (10 de noviembre) el burro moría fuera de su zona. Ahora ya no muere: si lo llevas a otra ciudad (o al Jorasán) va contigo,
 // pero ahí no te mueve (solo viaja por sus rutas); lo puedes vender con sus reglas de siempre. Igual que el caballo y el camello.
-// El caballo mongol sí sigue muriendo fuera de sus ciudades.
+// El caballo mongol tampoco muere ya por viajar (Jorge, 21 de noviembre): va a cualquier ciudad y solo muere de viejo, a los 2 turnos.
 export const ZONA_BURRO = ['Bagdad', 'Damasco', 'Aleppo', 'Basra', 'El Cairo'];
 const conBurro = (mano) => (mano || []).some((c) => c.tipo === 'item' && c.ref === 'burro');
-export function avisoBurro(j, destino) {
-  const mongol = j && (j.mano || []).some((c) => c.tipo === 'item' && c.ref === 'caballoMongol') && !ZONA_MONGOL.includes(destino);
-  if (mongol) return `Tu caballo mongol no aguantará este viaje: morirá si sales de ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}. ¿Viajar de todos modos?`;
-  return null;
-}
-export function burroFueraDeZona(data, e, pid) {
-  mongolFueraDeZona(data, e, pid);   // el burro ya no muere fuera de sus rutas (Jorge, 19 de noviembre); el caballo mongol, sí
-}
-// El caballo mongol (Jorge, 12 de noviembre) muere si sales de sus ciudades, como el burro.
-function mongolFueraDeZona(data, e, pid) {
-  const j = e.jugadores[pid]; if (!j || ZONA_MONGOL.includes(j.ciudad)) return;
-  const cs = j.mano.filter((x) => x.tipo === 'item' && x.ref === 'caballoMongol'); if (!cs.length) return;
-  for (const c of cs) quitarCarta(j, c.uid);
-  const uno = cs.length === 1;
-  log(e, `${uno ? 'El caballo mongol' : 'Los caballos mongoles'} de ${j.nombre} no ${uno ? 'aguantó' : 'aguantaron'} el viaje a ${j.ciudad} y ${uno ? 'murió' : 'murieron'}.`, { pid, aviso: true });
-  info(e, pid, uno ? 'Tu caballo mongol murió' : 'Tus caballos mongoles murieron', `No aguantan fuera de ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.${cargaExcedida(j, e) ? ' ' + sobrecarga(j, e) : ''}`);
-}
+export function avisoBurro() { return null; }   // ya ningún animal muere por el viaje (burro, 19 de noviembre; caballo mongol, 21 de noviembre)
+export function burroFueraDeZona() {}
 // En las decisiones que te mueven (huir por un evento, deseo de ifrit): aviso en cada opción y, si tu burro llega, «Huir en tu burro».
 export const etiquetaBurro = () => '';   // el burro ya no muere fuera de sus rutas (Jorge, 19 de noviembre)
 export const destinosBurro = (data, j) => (conBurro(j?.mano) ? destinosTransporte(data, 'burro', j.ciudad) : []);

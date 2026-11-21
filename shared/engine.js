@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, huidaCuentaViaje, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -407,6 +407,7 @@ function iniciarTurno(data, e, id, idx) {
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
+  if (j.extra.huidaRonda) { if (j.extra.huidaRonda.ronda === e.ronda) t.huidas = j.extra.huidaRonda.n; j.extra.huidaRonda = null; }   // huida obligada de esta ronda: un viaje menos (Jorge, 21 de noviembre)
   if (j.extra.viajePalacio && j.turnos > PJ.PALACIOS.turnos) { j.extra.viajePalacio = false; log(e, `${j.nombre} ya no usó su viaje gratis a los palacios del Califa: se pierde.`, { pid: id }); }
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
   // Regla de Jorge (punto 1, solo Yafar NPC): llega ebrio a su primer turno y lo termina sin hacer nada.
@@ -522,7 +523,7 @@ function reconquista(data, e) {
 registrar('reconquista.sale', (data, e, args, resp) => {
   const j = e.jugadores[resp.pid]; if (!j || j.ciudad !== 'Andalucía') return;
   const d = RECONQUISTA.destinos.includes(resp.opcion) ? resp.opcion : 'Magreb', p = data.rutas.tarifas['Andalucía>' + d] ?? 0;
-  pagar(data, e, j.id, p); j.noches += RECONQUISTA.noches; j.ciudad = d;
+  pagar(data, e, j.id, p); j.noches += RECONQUISTA.noches; j.ciudad = d; huidaCuentaViaje(e, j.id);   // cuenta como viaje (Jorge, 21 de noviembre)
   const m = esRutaMar('Andalucía', d) ? viajePorMar(e, j.id, 'al huir de Andalucía') : null;
   log(e, `${j.nombre} huye de Andalucía a ${d}: paga ${p} dinares y recibe ${RECONQUISTA.noches} noches.${m ? ' ' + m : ''}`, { pid: j.id, aviso: true });
 });
@@ -958,7 +959,7 @@ export function viajar(data, e, pid, a) {
   if (j.perdido) return err('Estás perdido en el Jorasán.');
   if (j.transito) return err('Vas de camino.');
   if (t.omitido || t.fin) return err('Este turno está cerrado.');
-  if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') && t.tramos >= 1 ? MSJ_ALFORJA_TRAMO : 'Máximo 2 tramos por turno (R 7.3).');
+  if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') && t.tramos >= 1 ? MSJ_ALFORJA_TRAMO : t.huidas ? MSJ_HUIDA_TRAMO : 'Máximo 2 tramos por turno (R 7.3).');
   if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
   if (j.extra.sinViajar === e.ronda) return err('Un lazo te impide viajar esta ronda.');
   { const m = motivoNoSalir(e, j); if (m) return err(m); }
@@ -1525,7 +1526,7 @@ export function vista(data, e, pid) {
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };
   }
-  const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
+  const t = e.turno && { pid: e.turno.pid, fase: e.turno.fase, tramos: e.turno.tramos, huidas: e.turno.huidas || 0, movio: e.turno.movio, cc: e.turno.cc, ciudadInicio: e.turno.ciudadInicio, principal: e.turno.principal, heridoAhora: !!e.turno.heridoAhora, fin: !!e.turno.fin,
     ccActual: e.turno.ccActual ? { tipo: e.turno.ccActual.tipo, nro: e.turno.ccActual.nro, descartada: e.turno.ccActual.descartada ?? null } : null };
   const historial = e.historial.filter((h) => !h.para || h.para.includes(pid)).slice(-120).map((h) => {
     const { resuelto, ...resto } = h;

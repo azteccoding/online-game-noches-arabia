@@ -2991,19 +2991,23 @@ console.log('reglas de la casa OK');
     assert.ok(tieneCarga(B), 'el caballo mongol es animal de carga');
     assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok, 'se pueden tener varios'); assert.equal(e.mongoles.stock, 0);
     assert.match(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).error || '', /Agotado/);
-    // viajar: solo entre sus ciudades, sin terminar el turno
+    // viajar: a cualquier ciudad, incluida India, sin terminar el turno (Jorge, 21 de noviembre)
     turnoDe(e, b, 'Estambul'); e.turno.fase = 'acciones';
     const v = vistaDe(e, b).acciones.find((x) => x.k === 'usar' && /Caballo mongol/.test(x.titulo));
-    assert.deepEqual([...v.destinos].sort(), ['Aleppo', 'Bagdad', 'Damasco', 'Isfahán']);
+    const otras = data.ciudades.ciudades.map((q) => q.id).filter((q) => q !== 'Estambul' && !(e.cerradas || {})[q]).sort();
+    assert.deepEqual([...v.destinos].sort(), otras, 'a cualquier ciudad');
+    assert.ok(v.destinos.includes('India'), 'incluida India');
     const cm = B.mano.find((c) => c.ref === 'caballoMongol');
     assert.ok(g.act(b, { t: 'usar', uid: cm.uid, destino: 'Bagdad' }).ok); assert.equal(B.ciudad, 'Bagdad'); assert.ok(!e.turno.fin, 'no termina el turno');
     turnoDe(e, b, 'Bagdad'); e.turno.fase = 'acciones';
-    assert.match(g.act(b, { t: 'usar', uid: cm.uid, destino: 'Basra' }).error || '', /solo viaja entre/);
+    assert.ok(g.act(b, { t: 'usar', uid: cm.uid, destino: 'India' }).ok); assert.equal(B.ciudad, 'India'); assert.equal(B.mano.filter((c) => c.ref === 'caballoMongol').length, 2, 'en India no muere');
+    turnoDe(e, b, 'India'); e.turno.fase = 'acciones';
+    assert.ok(g.act(b, { t: 'usar', uid: cm.uid, destino: 'Basra' }).ok, 'también sale de India'); assert.equal(B.ciudad, 'Basra');
     // vive 2 turnos
     { const d = B.dinares; animalesInicioTurno(data, e, b); assert.equal(B.dinares, d - 6, 'cada caballo mongol paga 3, como el caballo'); } animalesFinTurno(data, e, b); assert.equal(B.mano.filter((c) => c.ref === 'caballoMongol').length, 2);
     animalesInicioTurno(data, e, b); animalesFinTurno(data, e, b); assert.equal(B.mano.filter((c) => c.ref === 'caballoMongol').length, 0, 'mueren a los 2 turnos');
   }
-  // fuera de su zona muere; venta a 2 solo en Estambul y ahí vuelve a la venta
+  // ya no muere por el viaje; venta a 2 solo en Estambul y ahí vuelve a la venta
   { const { g, e, a, b, A, B } = prep();
     e.mongoles = { habilitado: true, stock: 0 };
     darItem(e, B, 'caballoMongol'); darItem(e, B, 'caballoMongol'); B.ciudad = 'Damasco'; B.dinares = 50;
@@ -3012,8 +3016,8 @@ console.log('reglas de la casa OK');
     B.ciudad = 'Estambul';
     assert.ok(g.act(b, { t: 'vender', uid: B.mano.find((c) => c.ref === 'caballoMongol').uid }).ok); assert.equal(B.dinares, 52); assert.equal(e.mongoles.stock, 1, 'vuelve a la venta en Estambul');
     B.ciudad = 'Damasco'; const { avisoBurro, burroFueraDeZona } = await import('../shared/objetos.js');
-    assert.match(avisoBurro(B, 'El Cairo') || '', /caballo mongol no aguantará/); assert.equal(avisoBurro(B, 'Aleppo'), null);
-    B.ciudad = 'El Cairo'; burroFueraDeZona(data, e, b); assert.ok(!tieneItem(B, 'caballoMongol'), 'fuera de su zona muere'); }
+    assert.equal(avisoBurro(B, 'El Cairo'), null); assert.equal(avisoBurro(B, 'India'), null);
+    B.ciudad = 'El Cairo'; burroFueraDeZona(data, e, b); assert.ok(tieneItem(B, 'caballoMongol'), 'fuera de las 5 ciudades ya no muere (Jorge, 21 de noviembre)'); }
   // Yafar: no hace el reto; Yafar NPC fácil no compra caballos mongoles, normal hasta 1
   { const { g, e, a, b, A, B } = prep(['B', '7']);
     A.ciudad = 'Samarcanda'; A.dinares = 300; turnoDe(e, a, 'Samarcanda'); e.turno.fase = 'acciones';
@@ -5162,3 +5166,32 @@ console.log('R67 y deudas OK');
   Z.destreza = true; assert.equal(perfil(data, e, z, 'Samarcanda').cat, 'D', 'destreza general: con cualquier arma');
 }
 console.log('destreza con arma entrenada OK');
+
+// Jorge (21 de noviembre): cuando una carta te obliga a huir de una ciudad, la huida cuenta como uno de los 2 viajes de tu turno.
+{
+  const { aplicarHistorico } = await import('../shared/eventos.js');
+  const limpiar = (e) => { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.ccActual = null; };
+  // al inicio de la ronda (Rebelión de los Zanj): en su turno de esa ronda solo le queda un viaje
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  for (const id of e.orden) e.jugadores[id].ciudad = 'Damasco';
+  A.ciudad = 'Bagdad'; A.dinares = 100; A.mano = A.mano.filter((c) => !['caballo', 'camello', 'burro', 'alforja'].includes(c.ref));
+  limpiar(e); e.turno = null;
+  aplicarHistorico(data, e, 'H1');
+  while (e.pend && !e.pend.para.includes(a)) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto || e.pend.opciones[0].id });
+  const huye = e.pend.opciones.find((o) => o.id !== 'quedar' && !o.id.startsWith('burro:'));
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: huye.id }).ok); assert.equal(A.ciudad, huye.id);
+  assert.deepEqual(A.extra.huidaRonda, { ronda: e.ronda, n: 1 }, 'queda anotada para su turno');
+  limpiar(e); e.turno = null; e.orden = [a, ...e.orden.filter((x) => x !== a)]; BASE.HOOK.siguienteTurno(data, e);
+  assert.equal(e.turno?.pid, a);
+  assert.equal(e.turno.huidas, 1); assert.equal(BASE.tramosMax(data, e.turno, A), 1, 'solo un viaje más');
+  assert.ok(!A.extra.huidaRonda, 'se consume al empezar su turno');
+  // en su propio turno (p. ej. los fantasmas de Damasco): un viaje y ya no puede otro
+  const h = partida(['4', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
+  const f = h.e, [b] = h.ids, B = f.jugadores[b];
+  B.ciudad = 'Damasco'; B.dinares = 100; B.mano = []; turnoDe(f, b, 'Damasco'); f.turno.fase = 'acciones';
+  BASE.huidaCuentaViaje(f, b); assert.equal(f.turno.huidas, 1);
+  assert.ok(h.act(b, { t: 'viajar', destino: 'Aleppo' }).ok); limpiar(f);
+  assert.match(h.act(b, { t: 'viajar', destino: 'Damasco' }).error || '', /la huida cuenta como uno de tus 2 viajes/);
+}
+console.log('huidas cuentan como viaje OK');

@@ -88,7 +88,7 @@ export const ITEMS = {
   veneno: { nombre: 'Veneno', texto: 'Caduca a los 3 turnos. Con la Anciana Devota (20 dinares y el viaje desde Bagdad) envenenas a cualquiera; con tu acción principal, en secreto, dejas herido a otro jugador de tu ciudad (salvo que tenga Antídoto); y en el Jorasán envenenas a los ghul y escapas sin tirar. Se gasta al usarlo.' },
   mapaJorasan: { nombre: 'Mapa del Jorasán', precio: 20, texto: 'Se compra en el mercado de Bagdad por 20 dinares y no pesa. Si estás perdido en el Jorasán, úsalo en tu turno: tiras un dado y sales con cualquier resultado: impar, a Basra; par, a Samarcanda. Desde Yemen, los piratas se lo llevan por 5 dinares a un jugador perdido en el Jorasán: le llega en su próximo turno.' },
   yegua: { nombre: 'Yegua de la estepa', texto: 'Del reto R50 (Samarcanda). El mercado de Estambul paga 150 dinares por cada una, o véndesela a otro jugador en un trato, en cualquier ciudad, al precio que acuerden. No pesa ni carga nada y no sirve de transporte; te la pueden robar. Cada turno pagas albéitar y comida.' },
-  caballoMongol: { nombre: 'Caballo mongol', transporte: 1, texto: 'Se compra en Estambul por 32 dinares (hay uno por cada yegua de la estepa que llegó a su mercado). Te lleva sin tarifa, en el mismo turno y sin terminarlo, solo entre Estambul, Bagdad, Isfahán, Aleppo y Damasco; si sales de esas ciudades, muere. Es animal de carga. Vive 2 turnos y cada turno pagas albéitar y comida. Solo lo compra el mercado de Estambul, por 2 dinares, y ahí vuelve a la venta.' },
+  caballoMongol: { nombre: 'Caballo mongol', transporte: 1, texto: 'Se compra en Estambul por 32 dinares (hay uno por cada yegua de la estepa que llegó a su mercado). Te lleva sin tarifa, en el mismo turno y sin terminarlo, a cualquier ciudad, incluida India. Es animal de carga. Vive 2 turnos y cada turno pagas albéitar y comida. Solo lo compra el mercado de Estambul, por 2 dinares, y ahí vuelve a la venta.' },
   brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
   astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
@@ -256,7 +256,16 @@ export function devolverObjeto(data, e, id) {
 // solo puedes llevar 1; con animal, hasta 3 (no pesan, y con animal la carga ya no tiene límite). Si traes alforja solo te mueves una vez
 // por turno (una caravana). Dura 3 turnos (contando el de la compra); al deshilacharse se esfuma y vuelve al mercado de Basra. Se vende a
 // 1 dinar en cualquier mercado, recupera su estado y ese mercado la revende a 7 (en Basra, a 6).
-export const tramosMax = (data, t, j) => { const m = t.maxTramos || data.config.maxTramosPorTurno; return j && tieneItem(j, 'alforja') ? Math.min(1, m) : m; };   // con alforja, una sola caravana por turno
+export const tramosMax = (data, t, j) => { const m = t.maxTramos || data.config.maxTramosPorTurno; return Math.max(0, (j && tieneItem(j, 'alforja') ? Math.min(1, m) : m) - (t.huidas || 0)); };   // con alforja, una sola caravana por turno; cada huida obligada resta un viaje
+// Huidas (Jorge, 21 de noviembre): cuando una carta te obliga a huir de una ciudad, esa huida cuenta como uno de los 2 viajes de tu turno,
+// aunque te hayan obligado. Si pasa en tu turno, te queda un viaje menos ya; si pasa al inicio de la ronda (eventos e históricos), te queda
+// un viaje menos en tu turno de esa ronda.
+export function huidaCuentaViaje(e, pid) {
+  const j = e.jugadores[pid]; if (!j) return;
+  if (e.turno && e.turno.pid === pid) e.turno.huidas = (e.turno.huidas || 0) + 1;
+  else { const h = j.extra.huidaRonda; j.extra.huidaRonda = { ronda: e.ronda, n: (h && h.ronda === e.ronda ? h.n : 0) + 1 }; }
+}
+export const MSJ_HUIDA_TRAMO = 'Ya huiste de una ciudad este turno: la huida cuenta como uno de tus 2 viajes.';
 export const MSJ_ALFORJA_TRAMO = 'Con alforja solo te mueves una vez por turno.';
 // Lámpara de aceite (Jorge, 20 de noviembre): 1 en cada mercado menos India, a 8 dinares; pesa; no se repone.
 export const LAMPARA = { precio: 8, ciudades: ['Bagdad', 'Basra', 'Isfahán', 'Aleppo', 'Damasco', 'El Cairo', 'Estambul', 'Samarcanda', 'Andalucía', 'Magreb', 'Yemen'] };

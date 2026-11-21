@@ -1,5 +1,6 @@
 // Retos y misiones R1-R41 (R 14), Mensajes de los sheijs (R 18) y carta de Kanmakán (R 15.5).
 // Los retos con varios pasos usan decisiones pendientes (pend) con continuaciones registradas; los plazos cuentan turnos PROPIOS (R 14.1).
+import { huidaCuentaViaje } from './base.js';
 import {
   ok, err, rnd, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
@@ -637,7 +638,7 @@ T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugado
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
 T.R21 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 10; hacer(e, pid, 'R21'); const [x] = ctx.t(`${j.nombre}: casa embrujada`, 1);
-  if (x <= 3) { j.noches -= 20; ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; HOOK.llegada(data, e, pid, 'Damasco'); }
+  if (x <= 3) { j.noches -= 20; ctx.say('Los fantasmas te echan: pierdes 20 noches y huyes a Aleppo.'); ctx.fallo = true; j.ciudad = 'Aleppo'; e.turno.movio = true; huidaCuentaViaje(e, pid); HOOK.llegada(data, e, pid, 'Damasco'); }
   else { premio(data, e, pid, { dinares: 40 }, `${j.nombre} halla un cofre en la casa embrujada:`); if (x === 6) { darItem(e, j, 'mapa', { tesoro: 'ruman' }); ctx.say('Y un mapa de los Rumán.'); } }
 } };
 T.R22 = { ciudad: 'Damasco', req: (data, e, pid) => {

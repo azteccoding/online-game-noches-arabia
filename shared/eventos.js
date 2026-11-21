@@ -4,7 +4,7 @@ import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarPrimero, quitarCarta, uid, darItem, pagar, patrimonio, tarifa, esLibro, mostrarDados, consumirObj,
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 marcarBuscado,
-enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, rnd, } from './base.js';
+enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, rnd, huidaCuentaViaje, } from './base.js';
 import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, golpeAlEscudo } from './pelea.js';
 import * as NPC from './npc.js';
 import { burroFueraDeZona, etiquetaBurro, destinosBurro } from './objetos.js';
@@ -19,6 +19,7 @@ const mover = (data, e, pid, destino, costo = 0, motivo = '') => {
   if (!j.visitadas.includes(destino)) j.visitadas.push(destino);
   if (esRutaMar(o, destino) || (o === 'India' && destino === 'Basra')) viajePorMar(e, pid, o === 'India' ? 'en el barco de Sindbad' : 'en el viaje por mar');   // escorbuto (Jorge, 19 de noviembre)
   burroFueraDeZona(data, e, pid);   // Jorge (10 de noviembre): el burro muere fuera de su zona
+  huidaCuentaViaje(e, pid);   // Jorge (21 de noviembre): la huida cuenta como uno de los 2 viajes del turno
 };
 const conEscorbuto = (j) => (avisoEscorbuto(j) ? ' · sin cítricos quedarás herido por escorbuto' : '');
 const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]) => k.startsWith(ciudad + '>')).map(([k, v]) => ({ id: k.split('>')[1], tarifa: v }));
@@ -116,7 +117,7 @@ function cruzada(data, e) {
     if (j.eliminado || j.pj === 'B' || !LEVANTE.includes(j.ciudad)) continue;
     const de = j.ciudad, p = data.rutas.tarifas[de + '>Bagdad'] ?? 0;
     pagar(data, e, j.id, p);   // si no le alcanza, queda en deuda con el banco
-    j.ciudad = 'Bagdad'; j.transito = null;
+    j.ciudad = 'Bagdad'; j.transito = null; huidaCuentaViaje(e, j.id);   // la expulsión cuenta como viaje (Jorge, 21 de noviembre)
     log(e, `Los cruzados expulsan a ${j.nombre} de ${de}: paga ${p} dinares de caravana y llega a Bagdad.`, { pid: j.id, aviso: true });
   }
   log(e, 'Los cruzados conquistan el Levante: nadie puede ir a Damasco, Aleppo ni Estambul durante 2 rondas. Esperemos que Saladino devuelva esas tierras a los musulmanes.', { aviso: true });
