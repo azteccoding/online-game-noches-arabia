@@ -3,7 +3,7 @@
 import {
   ok, err, rnd, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, } from './base.js';
+itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, deudasDe, deudaDe, contraerDeuda, pagarDeuda, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -66,7 +66,7 @@ const OBJS = {
 };
 const hecho = (j, id) => j.retosHechos.includes(id);
 // «Sirve para»: retos (y mensajes) donde se usa o se entrega cada carta, para mostrarlo en la mano y en el mercado.
-const ITEM_RETO = { yegua: ['R50'], alfombraIsfahan: ['R17'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], camello: ['R29'], idolo: ['R41'],
+const ITEM_RETO = { yegua: ['R50'], alfombraIsfahan: ['R17'], esclava: ['R3'], mapa: ['R3'], libro: ['R4'], papiro: ['R4', 'R10'], cesta: ['R24'], sal: ['R23'], pergaminoSellado: ['R30'], cartaUrgente: ['R39'], esclavoSamarra: ['R67'], camello: ['R29'], idolo: ['R41'],
   alfanje: ['R8', 'R32', 'R36', 'R42'], cimitarra: ['R8', 'R32', 'R36', 'R18'], jambiya: ['R8', 'R32', 'R36', 'R19'], arco: ['R8', 'R32', 'R36', 'R43'] };
 export function sirvePara(data, c) {
   let ids = c.tipo === 'item' ? (ITEM_RETO[c.ref] || []) : Object.entries(OBJS).filter(([, l]) => l.includes(c.ref)).map(([r]) => r);
@@ -99,24 +99,27 @@ export function disponibles(data, e, pid) {
   }
   return r;
 }
-// Pagar la deuda con Bagdad (Jorge, 11 de noviembre): voluntario, en cualquier momento de tu turno mientras exista (también el mismo turno
-// en que la adquieres), sin gastar la acción principal; solo si te alcanzan los dinares. Si no la pagas a tiempo, se cobra sola como antes.
-export function opcionPagoDeuda(e, j) {
-  const deuda = j.misiones.find((m) => m.id === 'R1' && m.deuda > 0);
-  if (!deuda || j.ciudad !== 'Bagdad' || j.transito || j.perdido) return null;
-  const falta = deuda.deuda - j.dinares;
-  return { k: 'reto', id: 'R1', sub: 'pagar', titulo: `R1 · Pagar la deuda con la ciudad (${deuda.deuda} dinares)`, texto: 'Pagas con dinares y quedas libre para salir de Bagdad. No gasta tu acción principal.', bloqueado: falta > 0 ? `Te faltan ${falta} dinares para pagar tu deuda.` : undefined };
+// Pagar una deuda con una ciudad (Jorge, 21 de noviembre): solo en esa ciudad, en cualquier momento de tu turno, sin gastar la acción
+// principal y solo si te alcanzan los dinares. Ya no impide salir; al volver te la cobran sola (base.js).
+export function opcionesPagoDeuda(e, j) {
+  if (j.transito) return [];
+  return deudasDe(j).filter((d) => d.ciudad === j.ciudad).map((d) => {
+    const falta = d.monto - j.dinares;
+    return { k: 'reto', id: d.reto, sub: 'pagar', titulo: `${d.reto} · Pagar tu deuda con ${d.ciudad} (${d.monto} dinares)`, texto: `Pagas ahora con dinares y no gasta tu acción principal. Puedes irte sin pagarla: te la cobran solos cuando vuelvas a ${d.ciudad} (aunque quedes en negativo).`, bloqueado: falta > 0 ? `Te faltan ${falta} dinares para pagar tu deuda.` : undefined };
+  });
 }
 
 export function iniciarReto(data, e, pid, a) {
   const j = e.jugadores[pid], t = e.turno;
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
+  if (a.sub === 'comprar' && a.id === 'R67') return comprarEsclavos(data, e, pid);
   if (a.sub === 'pagar') {
-    const m = j.misiones.find((x) => x.id === 'R1' && x.deuda > 0);
-    if (!m) return err('No debes nada.');
-    if (j.dinares < m.deuda) return err(`Te faltan ${m.deuda - j.dinares} dinares para pagar tu deuda.`);   // sin dinero no hay trato
-    pagarDeudaR1(e, j, m); return ok();
+    const d = deudaDe(j, a.id) || (!a.id && deudasDe(j)[0]);
+    if (!d) return err('No debes nada.');
+    if (d.ciudad !== j.ciudad) return err(`Tu deuda con ${d.ciudad} solo se paga en ${d.ciudad}.`);   // Jorge (21 de noviembre)
+    if (j.dinares < d.monto) return err(`Te faltan ${d.monto - j.dinares} dinares para pagar tu deuda.`);   // sin dinero no hay trato
+    pagarDeuda(e, pid, d); return ok();
   }
   if (!puedePrincipal(t)) return err('No tienes acción principal disponible.');
   const def = T[a.id], d = m1(data, a.id);
@@ -225,6 +228,7 @@ const FALLO = {
     quitarPrimero(j, 'item', 'mapa');
     pagar(data, e, pid, 30); log(e, `${j.nombre} devuelve el mapa y las esclavas y paga 30 dinares a la ciudad.`, { pid });
   },
+  R67: (data, e, pid) => { const j = e.jugadores[pid]; let n = 0; for (const c of j.mano.slice()) if (c.tipo === 'item' && c.ref === 'esclavoSamarra') { quitarCarta(j, c.uid); n++; } log(e, `${j.nombre} no lleva los esclavos a tiempo${n ? ': los capataces se llevan sus ' + n + ' esclavos' : ''}. Sigue debiendo a Bagdad si no ha pagado.`, { pid }); },
   R2: (data, e, pid) => { pagar(data, e, pid, 50); e.jugadores[pid].extra.noBagdad = e.jugadores[pid].turnos + 2; },
 };
 
@@ -246,6 +250,7 @@ export function alLlegar(data, e, pid, origen) {
   if (j.extra.rep) for (const id of Object.keys(j.extra.rep)) if (m1(data, id).ciudad !== j.ciudad) delete j.extra.rep[id];
   for (const m of j.misiones.slice()) {
     if (m.id === 'R3') { if (j.ciudad === 'Estambul') m.visito = true; if (j.ciudad === 'Bagdad' && m.visito) completarR3(data, e, pid, m); continue; }
+    if (m.id === 'R67') { r67Llegar(data, e, pid, m); continue; }
     if (m.id === 'R29') { if (j.ciudad === 'Bagdad') { quitarMision(j, m); premio(data, e, pid, { dinares: 40, noches: 15 }, 'Cruzas el desierto con tu camello.'); hacer(e, pid, 'R29'); cerrarReto(data, e, pid, 'R29', true); } else if (!j.transito) perder(data, e, pid, m, 'te desviaste'); continue; }
     if ((m.destino && m.destino === j.ciudad) || m.destinos?.includes(j.ciudad)) entregar(data, e, pid, m);
   }
@@ -285,7 +290,9 @@ function completarR3(data, e, pid, m) {
 
 export function misionesVista(data, e, pid) {
   const j = e.jugadores[pid];
-  return j.misiones.map((m) => ({ id: m.id, nombre: m1(data, m.id)?.nombre, destino: m.destino || (m.destinos ? m.destinos.join(', ') : null), turnosRestantes: m.limite != null ? Math.max(0, m.limite - j.turnos + 1) : null, deuda: m.deuda || null, objetivo: m.objetivo ? nombre(e, m.objetivo) : null, texto: m.texto || null }));
+  return j.misiones.map((m) => ({ id: m.id, nombre: m1(data, m.id)?.nombre, destino: m.destino || (m.destinos ? m.destinos.join(', ') : null), turnosRestantes: m.limite != null ? Math.max(0, m.limite - j.turnos + 1) : null, deuda: m.deuda || null, objetivo: m.objetivo ? nombre(e, m.objetivo) : null, texto: m.texto || null }))
+    .concat(deudasDe(j).filter((d) => !j.misiones.some((m) => m.id === d.reto)).map((d) => ({ id: d.reto, nombre: `Deuda con ${d.ciudad}`, destino: null, turnosRestantes: null, deuda: d.monto, objetivo: null, texto: `Se paga solo en ${d.ciudad}; al volver te la cobran sola.` })))
+    .map((m) => (deudaDe(j, m.id) && !m.deuda ? { ...m, deuda: deudaDe(j, m.id).monto } : m));
 }
 export const tras = () => {};
 
@@ -306,26 +313,17 @@ function r1Turno(data, e, pid, m) {
     const v = ctx.t(`${j.nombre} y ${m.ayudantes} ayudante(s)`, 1 + m.ayudantes);
     m.busca = false;                                                       // regla de la casa: la deuda ya no se duplica
     if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); }
-    else { ctx.say('No hay cofre: abandonas la búsqueda y sigues debiendo el alojamiento. No puedes salir de Bagdad hasta pagarlo.'); cerrarReto(data, e, pid, 'R1', false); }
+    else { quitarMision(j, m); ctx.say(`No hay cofre: abandonas la búsqueda y sigues debiendo ${deudaDe(j, 'R1')?.monto ?? 15} dinares a Bagdad. Puedes pagarla aquí o irte: si te vas, te la cobran al volver a Bagdad.`); cerrarReto(data, e, pid, 'R1', false); }
     ctx.fin();
-    j.misiones.find((x) => x.id === 'R1') && (m.vence ??= j.turnos + 3);
-    return;
   }
-  if (m.deuda > 0 && j.turnos > m.vence) {
-    pagarDeudaR1(e, j, m);                                                 // regla de la casa: sin dinares, se paga con todas las noches (ya no hay crucifixión)
-  }
-}
-function pagarDeudaR1(e, j, m) {
-  if (j.dinares >= m.deuda) { j.dinares -= m.deuda; log(e, `${j.nombre} paga su deuda con la ciudad de Bagdad (${m.deuda} dinares).`, { pid: j.id }); }
-  else { log(e, `${j.nombre} no tiene dinares para su deuda con Bagdad y la paga con todas sus noches (${j.noches}).`, { pid: j.id }); j.noches = 0; }
-  quitarMision(j, m);
+  // Jorge (21 de noviembre): ya no vence ni se paga con noches; es una deuda con Bagdad como cualquier otra (base.js, contraerDeuda).
 }
 function r1Exito(data, e, pid, m) {
   const j = e.jugadores[pid];
   quitarMision(j, m); hacer(e, pid, 'R1');
   // Jorge (20 de noviembre): 35 dinares y 25 noches (antes 50 y 50) y eliges caballo o camello (uno solo); ya no da pergamino ni viaje gratis del Califa.
   premio(data, e, pid, { dinares: R1_PREMIO.dinares, noches: R1_PREMIO.noches }, `${j.nombre} halla el cofre del Éufrates:`);
-  pagar(data, e, pid, m.deuda);
+  { const d = deudaDe(j, 'R1'); if (d) { pagar(data, e, pid, d.monto); j.extra.deudas.splice(j.extra.deudas.indexOf(d), 1); if (!j.extra.deudas.length) delete j.extra.deudas; log(e, `${j.nombre} paga con el cofre su deuda con Bagdad (${d.monto} dinares).`, { pid }); } }
   pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · El cofre del Éufrates', texto: `Hallaste el cofre: ${R1_PREMIO.dinares} dinares y ${R1_PREMIO.noches} noches. Elige tu animal.`,
     opciones: [{ id: 'caballo', texto: 'Un caballo' }, { id: 'camello', texto: 'Un camello' }], porDefecto: 'caballo', cont: { fn: 'r1.animal', args: {} } });
   cerrarReto(data, e, pid, 'R1', true);
@@ -339,7 +337,7 @@ registrar('r1.animal', (data, e, args, resp) => {
 T.R1 = { ciudad: 'Bagdad', req: (data, e, pid) => (e.jugadores[pid].misiones.some((m) => m.id === 'R1') ? 'Ya lo tienes en curso.' : null),
   run(data, e, pid, ctx) {
     ctx.sinAnuncio = true;   // se anuncia al encontrar el cofre o al abandonar la búsqueda (si rechaza, no hay reto)
-    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda de 15 dinares con la ciudad; puedes pagar sirvientes, a ${data.config.r1?.costoAyudante ?? 12} dinares cada uno, para buscar con más dados. Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
+    pedir(e, { tipo: 'reto', para: [pid], titulo: 'R1 · Buscar un cofre en el Éufrates', texto: `Si aceptas, tu turno termina mientras buscas y contraes una deuda de 15 dinares con la ciudad (la pagas en Bagdad cuando quieras o te vas sin pagarla y te la cobran al volver); puedes pagar sirvientes, a ${data.config.r1?.costoAyudante ?? 12} dinares cada uno, para buscar con más dados. Si rechazas, vas en burro a Basra y no puedes volver a Bagdad en 2 turnos.`,
       opciones: [{ id: 'si', texto: 'Aceptar' }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', cont: { fn: 'r1.acepta', args: {} } });
   } };
 registrar('r1.acepta', (data, e, args, resp) => {
@@ -357,13 +355,14 @@ registrar('r1.ayudantes', (data, e, args, resp) => {
   const pid = resp.pid, j = e.jugadores[pid], cA = data.config.r1?.costoAyudante ?? 12;
   const n = Math.max(0, Math.min(resp.numero || 0, data.config.r1?.maxAyudantes ?? 3, Math.floor(Math.max(0, j.dinares) / cA)));
   if (n) { j.dinares -= cA * n; log(e, `${j.nombre} contrata ${n} sirviente(s) por ${cA * n} dinares.`, { pid }); }
-  const m = nuevaMision(e, pid, { id: 'R1', deuda: 15, ayudantes: n, busca: false, vence: j.turnos + 3, destino: null, texto: 'Deuda con Bagdad: no puedes salir hasta pagarla.' });
+  const m = nuevaMision(e, pid, { id: 'R1', ayudantes: n, busca: false, destino: null, texto: 'Buscas el cofre del Éufrates.' });
+  contraerDeuda(e, pid, { ciudad: 'Bagdad', monto: 15, reto: 'R1', motivo: 'alojamiento del cofre del Éufrates, reto R1' });
   const ctx = nuevoCtx(e, pid, 'R1');
   const v = ctx.t(`${j.nombre} y ${n} sirviente(s)`, 1 + n);
-  if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. No puedes salir de Bagdad hasta pagar tu deuda.'); m.busca = true; anunciarReto(data, e, pid, 'R1', 'curso'); }
+  if (v.some((x) => x <= 2)) { ctx.say('¡Encuentras el cofre!'); r1Exito(data, e, pid, m); } else { ctx.say('Sin cofre por hoy: repetirás en tu siguiente turno. Debes 15 dinares a Bagdad: puedes pagarlos aquí o irte y te los cobran al volver.'); m.busca = true; anunciarReto(data, e, pid, 'R1', 'curso'); }
   ctx.fin(); e.turno.movio = true;
   // Con deuda, el turno queda abierto para que puedas pagarla antes de terminarlo (Jorge, 11 de noviembre); sin más viajes ni acción principal.
-  if (j.misiones.some((x) => x.id === 'R1' && x.deuda > 0)) { e.turno.principal = true; e.turno.maxTramos = e.turno.tramos; } else e.turno.fin = true;
+  if (deudaDe(j, 'R1')) { e.turno.principal = true; e.turno.maxTramos = e.turno.tramos; } else e.turno.fin = true;
 });
 T.R1.sinSalir = true;
 
@@ -1098,6 +1097,75 @@ for (const [id, C] of Object.entries(COPIAS)) {
 export const MANUSCRITOS = { ciudad: 'Samarcanda', pago: 7 };
 T.R66 = { ciudad: MANUSCRITOS.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no lee manuscritos.' : hablaIdioma(j, 'árabe') ? null : 'Necesitas hablar árabe (reto R47, en Yemen).'; },
   run(data, e, pid, ctx) { const j = e.jugadores[pid]; j.dinares += MANUSCRITOS.pago; ctx.resultado = 'logro'; ctx.say(`Lees manuscritos de Historia y Ciencias en Samarcanda: te pagan ${MANUSCRITOS.pago} dinares.`); log(e, `${j.nombre} lee manuscritos de Historia y Ciencias en Samarcanda y cobra ${MANUSCRITOS.pago} dinares.`, { pid }); } };   // no queda hecho: se repite cada turno
+// R67 «Llevar esclavos a Samarra» (Jorge, 21 de noviembre): «La nueva ciudad abasí está en construcción y auge, lleva trabajadores».
+// Se contrata en Basra; en Bagdad te prestan 60 dinares (deuda con Bagdad, no son tuyos); vuelves a Basra a comprar esclavos (15 cada
+// uno) y los llevas a Bagdad. Plazo: el turno en que lo aceptas y uno más completo. Al llegar a Bagdad con al menos 2 esclavos, primero
+// te pagan 30 por esclavo, luego se cobra tu deuda y al final, si la pagaste completa, ganas 40 noches. Si no entregas a tiempo,
+// pierdes el reto y los esclavos, y la deuda sigue con Bagdad. Los esclavos no pesan ni producen ni cuestan mantenimiento; sin tope.
+// Una vez por jugador; Yafar NPC no lo toma. Comprar esclavos (ya con el préstamo) no gasta la acción principal.
+export const SAMARRA = { ciudad: 'Basra', prestamo: 60, precio: 15, pago: 30, noches: 40, minimo: 2, turnos: 2 };
+const esclavosSamarra = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclavoSamarra');
+T.R67 = { ciudad: SAMARRA.ciudad, req: (d, e, pid) => { const j = e.jugadores[pid]; return j.npc ? 'Yafar NPC no lleva esclavos a Samarra.' : deudaDe(j, 'R67') ? 'Todavía debes el préstamo de Bagdad de este reto.' : null; },
+  run(data, e, pid, ctx) {
+    nuevaMision(e, pid, { id: 'R67', fase: 'prestamo', destino: 'Bagdad', texto: `Ve a Bagdad: te prestan ${SAMARRA.prestamo} dinares.` }, SAMARRA.turnos);
+    ctx.say(`Aceptas llevar trabajadores a Samarra. Ve a Bagdad por el préstamo de ${SAMARRA.prestamo} dinares, vuelve a Basra a comprar al menos ${SAMARRA.minimo} esclavos (${SAMARRA.precio} dinares cada uno) y llévalos a Bagdad. Tienes este turno y el siguiente.`);
+  } };
+export function opcionesR67(e, j) {
+  const m = j.misiones.find((x) => x.id === 'R67');
+  if (!m || m.fase !== 'compra' || j.ciudad !== SAMARRA.ciudad || j.transito || j.perdido) return [];
+  const n = Math.floor(Math.max(0, j.dinares) / SAMARRA.precio);
+  return [{ k: 'reto', id: 'R67', sub: 'comprar', boton: 'Comprar', titulo: `R67 · Comprar esclavos (${SAMARRA.precio} dinares cada uno)`, texto: `Llevas ${esclavosSamarra(j).length}. Necesitas al menos ${SAMARRA.minimo} para entregar en Bagdad. No gasta tu acción principal.`, bloqueado: n ? undefined : `Te faltan ${SAMARRA.precio - Math.max(0, j.dinares)} dinares para comprar un esclavo.` }];
+}
+function comprarEsclavos(data, e, pid) {
+  const j = e.jugadores[pid], m = j.misiones.find((x) => x.id === 'R67');
+  if (!m || m.fase !== 'compra') return err('No tienes el reto R67 en curso.');
+  if (j.ciudad !== SAMARRA.ciudad) return err(`Los esclavos se compran en ${SAMARRA.ciudad}.`);
+  const max = Math.floor(Math.max(0, j.dinares) / SAMARRA.precio);
+  if (!max) return err(`Te faltan ${SAMARRA.precio - Math.max(0, j.dinares)} dinares para comprar un esclavo.`);   // sin dinero no hay trato
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R67 · Comprar esclavos', texto: `Cada esclavo cuesta ${SAMARRA.precio} dinares. En Bagdad te pagan ${SAMARRA.pago} por cada uno (mínimo ${SAMARRA.minimo}) y ${SAMARRA.noches} noches.`, nota: `Te alcanza para ${max}.`, modo: 'numero', min: 0, max, porDefecto: Math.min(max, SAMARRA.minimo), cont: { fn: 'r67.comprar', args: {} } });
+  return ok();
+}
+registrar('r67.comprar', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid]; if (!j || j.eliminado) return;
+  const n = Math.max(0, Math.min(resp.numero || 0, Math.floor(Math.max(0, j.dinares) / SAMARRA.precio)));
+  if (!n) return;
+  j.dinares -= n * SAMARRA.precio;
+  for (let i = 0; i < n; i++) darItem(e, j, 'esclavoSamarra');
+  log(e, `${j.nombre} compra ${n} ${n === 1 ? 'esclavo' : 'esclavos'} en Basra por ${n * SAMARRA.precio} dinares para llevarlos a Samarra.`, { pid });
+});
+// Préstamo al llegar a Bagdad (alLlegar, después del cobro de deudas, para que no se cobre en ese mismo momento).
+function r67Llegar(data, e, pid, m) {
+  const j = e.jugadores[pid];
+  if (j.ciudad !== 'Bagdad' || m.fase !== 'prestamo') return;
+  m.fase = 'compra'; m.destino = 'Basra'; m.texto = `Compra al menos ${SAMARRA.minimo} esclavos en Basra y llévalos a Bagdad.`;
+  j.dinares += SAMARRA.prestamo;
+  contraerDeuda(e, pid, { ciudad: 'Bagdad', monto: SAMARRA.prestamo, reto: 'R67', motivo: 'préstamo para los esclavos de Samarra, reto R67' });
+  info(e, pid, 'R67 · El préstamo de Bagdad', `Te prestan ${SAMARRA.prestamo} dinares: no son tuyos, son una deuda con Bagdad. Vuelve a Basra, compra al menos ${SAMARRA.minimo} esclavos (${SAMARRA.precio} dinares cada uno) y tráelos a Bagdad antes de que termine tu siguiente turno. Al volver a Bagdad te pagan los esclavos y después te cobran la deuda.`);
+}
+// Entrega (Jorge, 21 de noviembre): ANTES del cobro automático de deudas. Primero te pagan los esclavos, luego pagas tu deuda y al
+// final, solo si la pagaste completa (sin quedar en negativo), las 40 noches.
+export function antesDeCobrar(data, e, pid) {
+  const j = e.jugadores[pid], m = j.misiones.find((x) => x.id === 'R67');
+  if (!m || m.fase !== 'compra' || j.ciudad !== 'Bagdad') return;
+  if (m.limite != null && j.turnos > m.limite) return;
+  const n = esclavosSamarra(j).length;
+  if (n < SAMARRA.minimo) return;
+  for (const c of esclavosSamarra(j)) quitarCarta(j, c.uid);
+  quitarMision(j, m); hacer(e, pid, 'R67');
+  premio(data, e, pid, { dinares: SAMARRA.pago * n }, `${j.nombre} entrega ${n} esclavos para Samarra (R67):`);
+  const d = deudaDe(j, 'R67');
+  let pagada = true, txt = '';
+  if (d) {
+    pagada = j.dinares >= d.monto;
+    pagar(data, e, pid, d.monto); j.extra.deudas.splice(j.extra.deudas.indexOf(d), 1); if (!j.extra.deudas.length) delete j.extra.deudas;
+    log(e, `${j.nombre} paga su deuda con Bagdad (${d.monto} dinares, reto R67)${pagada ? '' : `: no le alcanzaba y queda en ${j.dinares} dinares`}.`, { pid });
+    txt = pagada ? ` Luego pagas tu deuda de ${d.monto} dinares.` : ` Luego te cobran tu deuda de ${d.monto} dinares: no te alcanzaba y quedas en ${j.dinares} dinares.`;
+  }
+  if (pagada) j.noches += SAMARRA.noches;
+  log(e, pagada ? `${j.nombre} pagó su deuda: gana ${SAMARRA.noches} noches (R67).` : `${j.nombre} no pagó completa su deuda: no gana las ${SAMARRA.noches} noches (R67).`, { pid });
+  info(e, pid, 'R67 · Esclavos para Samarra', `Entregas ${n} esclavos: te pagan ${SAMARRA.pago * n} dinares (${SAMARRA.pago} por cada uno).${txt}${pagada ? ` Como pagaste tu deuda, ganas ${SAMARRA.noches} noches.` : ` Como no la pagaste completa, no ganas las ${SAMARRA.noches} noches.`}`);
+  cerrarReto(data, e, pid, 'R67', pagada);
+}
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {
   T[id] = { ciudades: I.ciudades, req: (d, e, pid) => (hablaIdioma(e.jugadores[pid], I.idioma) ? null : `Necesitas hablar ${I.idioma} (reto ${id === 'R48' ? 'R46, en Isfahán' : 'R47, en Yemen'}).`),

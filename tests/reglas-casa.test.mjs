@@ -82,21 +82,20 @@ function partida(pjs, opciones = {}, semilla = 5) {
   e.dados.lanzado = false; e.jugadores[a].conectado = true;
   assert.ok(g.act(a, { t: 'lanzarDados' }).ok); assert.ok(e.dados.lanzado, 'su dueño los lanza');
 }
-// 10) Reto del Éufrates (R1): con deuda no se sale de Bagdad; sin dinares, se paga con todas las noches
+// 10) Reto del Éufrates (R1): con deuda ya se puede salir de Bagdad (Jorge, 21 de noviembre); pagarla es voluntario y solo si alcanza
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e;
   for (let k = 0; k < 40 && (e.pend || e.dados || !e.turno || e.jugadores[e.turno.pid].npc); k++) { e.dados = null; e.colaDados = []; g.tickear(100000); }
   const pid = e.turno.pid, j = e.jugadores[pid];
   if (e.turno.fase === 'ingreso') { assert.ok(g.act(pid, { t: 'tirarDados' }).ok); e.dados = null; e.colaDados = []; }
-  j.ciudad = 'Bagdad'; j.misiones.push({ id: 'R1', deuda: 21, ayudantes: 3, busca: false, vence: j.turnos + 3 });
-  const r = g.act(pid, { t: 'viajar', destino: 'Damasco' });
-  assert.ok(!r.ok && /deuda con Bagdad/.test(r.error), 'con deuda no puedes salir de Bagdad');
+  j.ciudad = 'Bagdad'; BASE.contraerDeuda(e, pid, { ciudad: 'Bagdad', monto: 21, reto: 'R1' });
+  assert.equal(BASE.motivoNoSalir(e, j), null, 'con deuda sí puedes salir de Bagdad');
   j.dinares = 3; j.noches = 140;
   // Jorge (11 de noviembre): pagarla es voluntario y solo si te alcanza; sin dinero no hay trato (antes se cobraba con las noches)
   assert.match(g.act(pid, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /Te faltan 18 dinares/);
   assert.equal(j.noches, 140, 'sin dinares no se cobra nada'); assert.equal(j.dinares, 3);
-  j.misiones = j.misiones.filter((m) => m.id !== 'R1');
+  delete j.extra.deudas;
 }
 // 13) Dado de Ibn Arabi: lo regalan sus mensajes y repite una pelea perdida
 {
@@ -657,9 +656,10 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
   assert.equal(e.pend.max, 3, 'con 40 dinares alcanzan 3 sirvientes');
   g.act(a, { t: 'decidir', id: e.pend.id, numero: 2 });
-  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 24 dinares')), 'paga 24 dinares al contratar'); assert.equal(j.misiones.find((m) => m.id === 'R1')?.deuda ?? 15, 15);
-  // no puede salir: sin destinos y con motivo
-  if (j.misiones.some((m) => m.id === 'R1')) { turnoDe(e, a, 'Bagdad'); e.turno.fase = 'mov'; const v = vistaDe(e, a); assert.ok(!v.acciones.some((x) => x.k === 'viajar') && /deuda con Bagdad/.test(v.noSalir)); }
+  assert.ok(e.log.some((l) => l.texto.includes('contrata 2 sirviente(s) por 24 dinares')), 'paga 24 dinares al contratar'); assert.equal(BASE.deudaDe(j, 'R1')?.monto ?? 15, 15);
+  // Jorge (21 de noviembre): con la deuda ya puede salir de Bagdad (en su siguiente turno)
+  if (BASE.deudaDe(j, 'R1')) { turnoDe(e, a, 'Bagdad'); e.turno.fase = 'mov'; const v = vistaDe(e, a); assert.ok(v.acciones.some((x) => x.k === 'viajar'), 'con deuda sí salen viajes'); }
+  delete j.extra.deudas;
   // entrenamientos: hay que tener el arma; entrenado suma +1
   const { bonosCombate } = await import('../shared/pelea.js');
   j.misiones = []; turnoDe(e, a, 'Damasco'); j.ciudad = 'Damasco'; j.dinares = 100; j.mano = []; j.destreza = false;
@@ -2692,18 +2692,29 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(a, { t: 'reto', id: 'R1' }).ok); g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' });
   if (e.pend) g.act(a, { t: 'decidir', id: e.pend.id, numero: 0 });
   e.dados = null; e.colaDados = [];
-  assert.ok(A.misiones.some((m) => m.id === 'R1' && m.deuda === 15), 'adquiere la deuda');
+  assert.equal(BASE.deudaDe(A, 'R1')?.monto, 15, 'adquiere la deuda');
   assert.ok(!e.turno.fin, 'el turno sigue abierto para poder pagar');
   const op = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.sub === 'pagar'); assert.ok(op && !op.bloqueado, 'el botón de pagar aparece en el mismo turno');
-  assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok); assert.equal(A.dinares, 5); assert.ok(!A.misiones.some((m) => m.id === 'R1'), 'pagada');
+  assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok); assert.equal(A.dinares, 5); assert.ok(!BASE.deudaDe(A, 'R1'), 'pagada');
   // otra vez: deuda y turno siguiente, ya con la acción principal gastada
-  A.misiones.push({ id: 'R1', deuda: 15, ayudantes: 0, busca: false, vence: A.turnos + 3 }); A.dinares = 10;
+  A.misiones = []; BASE.contraerDeuda(e, a, { ciudad: 'Bagdad', monto: 15, reto: 'R1' }); A.dinares = 10;
   turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; e.turno.principal = true;
   const op2 = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.sub === 'pagar');
   assert.ok(op2, 'aparece aunque ya usaste la acción principal'); assert.equal(op2.bloqueado, 'Te faltan 5 dinares para pagar tu deuda.');
   const n0 = A.noches; assert.match(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /Te faltan 5 dinares/); assert.equal(A.noches, n0, 'sin dinero no se cobra nada');
   A.dinares = 15; assert.ok(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).ok, 'con 15 sí'); assert.equal(A.dinares, 0);
   void RET;
+  // Jorge (21 de noviembre): solo se paga en Bagdad; al volver a Bagdad se cobra sola con aviso, aunque quede en negativo
+  BASE.contraerDeuda(e, a, { ciudad: 'Bagdad', monto: 15, reto: 'R1' }); A.ciudad = 'Damasco'; A.dinares = 20;
+  turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+  assert.match(g.act(a, { t: 'reto', id: 'R1', sub: 'pagar' }).error || '', /solo se paga en Bagdad/, 'solo se paga en Bagdad'); assert.equal(A.dinares, 20);
+  assert.ok(!vistaDe(e, a).acciones.some((x) => x.sub === 'pagar'), 'fuera de Bagdad no sale el botón de pagar');
+  A.dinares = 4; A.ciudadPrevia = null;
+  turnoDe(e, a, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'acciones'; e.turno.principal = true;
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Bagdad' }).ok || A.ciudad === 'Bagdad', 'viaja a Bagdad');
+  assert.ok(!BASE.deudaDe(A, 'R1'), 'cobrada al llegar'); assert.equal(A.dinares, 4 - 2 - 15, 'queda en negativo');
+  assert.ok(e.log.some((l) => /le cobran su deuda: 15 dinares/.test(l.texto)), 'queda en el registro');
+  assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && /Cobro de tu deuda con Bagdad/.test(p.titulo || '')), 'con aviso');
 }
 
 // Jorge (11 de noviembre): Sopa del mesón: 2 usos (dos turnos de alojamiento a mitad); solo en Bagdad, Andalucía, Damasco y Aleppo, 1 en
@@ -5064,3 +5075,64 @@ console.log('reglas de la casa OK');
   assert.equal(todos.filter((x) => x === 'E3').length, 2, 'dos Tormentas de arena');
   assert.equal(todos.filter((x) => x === 'E2').length, 1, 'las demás, una');
 }
+
+// Jorge (21 de noviembre): R67 «Llevar esclavos a Samarra» (Basra) y deudas con una ciudad (se cobran solas al volver)
+{
+  const RET = await import('../shared/retos.js');
+  const limpiar = (e) => { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; if (e.turno) e.turno.ccActual = null; };
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Basra'; A.ciudadPrevia = null; A.dinares = 10; A.mano = []; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R67' }).ok, 'se contrata en Basra'); limpiar(e);
+  const m = A.misiones.find((x) => x.id === 'R67'); assert.ok(m && m.fase === 'prestamo');
+  assert.ok(!vistaDe(e, a).acciones.some((x) => x.sub === 'comprar'), 'sin préstamo todavía no se compran esclavos');
+  const d0 = A.dinares;
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Bagdad' }).ok);
+  assert.equal(A.dinares, d0 - 1 + 60, 'en Bagdad le prestan 60'); assert.equal(BASE.deudaDe(A, 'R67')?.monto, 60, 'es deuda con Bagdad');
+  assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && /préstamo de Bagdad/.test(p.titulo || '')), 'con aviso'); limpiar(e);
+  { const r = g.act(a, { t: 'viajar', destino: 'Basra' }); assert.ok(r.ok, r.error); } limpiar(e);
+  assert.equal(BASE.deudaDe(A, 'R67')?.monto, 60, 'al salir de Bagdad no se cobra nada');
+  A.dinares = 64;
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.id === 'R67' && x.sub === 'comprar'); assert.ok(op && !op.bloqueado, 'botón de comprar en Basra');
+  assert.ok(g.act(a, { t: 'reto', id: 'R67', sub: 'comprar' }).ok); assert.equal(e.pend.max, 4, 'con 64 alcanzan 4');
+  g.act(a, { t: 'decidir', id: e.pend.id, numero: 4 }); limpiar(e);
+  assert.equal(A.mano.filter((c) => c.ref === 'esclavoSamarra').length, 4); assert.equal(A.dinares, 4);
+  assert.equal(BASE.nCarga(A), 0, 'los esclavos no pesan');
+  // siguiente turno: los lleva a Bagdad; se cobra la deuda y le pagan 30 por esclavo y 40 noches
+  A.turnos++; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones'; A.ciudadPrevia = 'Bagdad';
+  const n0 = A.noches, p0 = BASE.tarifa(data, e, A, 'Basra', 'Bagdad');
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Bagdad' }).ok);
+  assert.equal(A.dinares, 4 - p0 - 60 + 120, 'paga 60 y cobra 120'); assert.equal(A.noches - n0, 40);
+  assert.ok(!BASE.deudaDe(A, 'R67') && !A.misiones.some((x) => x.id === 'R67') && A.retosHechos.includes('R67'));
+  assert.ok(!A.mano.some((c) => c.ref === 'esclavoSamarra'), 'entrega los esclavos');
+  limpiar(e); A.ciudad = 'Basra'; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(!g.act(a, { t: 'reto', id: 'R67' }).ok, 'una vez por jugador');
+  // si gastó el préstamo y no le alcanza la deuda: le pagan los esclavos, queda en negativo y no gana las noches
+  { const h2 = partida(['4', '7']); h2.act(h2.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h2.iniciar().ok);
+    const f2 = h2.e, [c] = h2.ids, C = f2.jugadores[c];
+    C.ciudad = 'Bagdad'; C.mano = []; C.misiones.push({ id: 'R67', fase: 'compra', limite: C.turnos + 1 }); BASE.contraerDeuda(f2, c, { ciudad: 'Bagdad', monto: 60, reto: 'R67' });
+    darItem(f2, C, 'esclavoSamarra'); darItem(f2, C, 'esclavoSamarra'); C.dinares = -5; const nn = C.noches;
+    RET.antesDeCobrar(data, f2, c);
+    assert.equal(C.dinares, -5 + 60 - 60, 'primero cobra los esclavos y luego paga'); assert.equal(C.noches, nn, 'sin las 40 noches');
+    assert.ok(!BASE.deudaDe(C, 'R67') && C.retosHechos.includes('R67')); }
+
+  // plazo vencido: pierde los esclavos y la deuda se queda con Bagdad
+  const h = partida(['4', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
+  const f = h.e, [b] = h.ids, B = f.jugadores[b];
+  B.ciudad = 'Basra'; B.dinares = 10; B.mano = []; turnoDe(f, b, 'Basra'); f.turno.fase = 'acciones';
+  assert.ok(h.act(b, { t: 'reto', id: 'R67' }).ok); limpiar(f);
+  assert.ok(h.act(b, { t: 'viajar', destino: 'Bagdad' }).ok); limpiar(f);
+  assert.ok(h.act(b, { t: 'viajar', destino: 'Basra' }).ok); limpiar(f);
+  assert.ok(h.act(b, { t: 'reto', id: 'R67', sub: 'comprar' }).ok); h.act(b, { t: 'decidir', id: f.pend.id, numero: 1 }); limpiar(f);
+  B.turnos += 1; RET.inicioTurno(data, f, b); assert.ok(B.misiones.some((x) => x.id === 'R67'), 'el segundo turno todavía cuenta');
+  B.turnos += 1; RET.inicioTurno(data, f, b);
+  assert.ok(!B.misiones.some((x) => x.id === 'R67'), 'al empezar el tercer turno pierde el reto');
+  assert.ok(!B.mano.some((c) => c.ref === 'esclavoSamarra'), 'pierde los esclavos'); assert.equal(BASE.deudaDe(B, 'R67')?.monto, 60, 'sigue debiendo');
+  // con 1 solo esclavo no se entrega (dentro del plazo): llega, le cobran y espera
+  // Yafar NPC no lo toma
+  const k = partida(['4', '7']); assert.ok(k.iniciar().ok);
+  const npc = Object.values(k.e.jugadores).find((x) => x.npc); npc.ciudad = 'Basra';
+  assert.ok(!RET.puedeRetoNPC(data, k.e, npc.id, 'R67'), 'Yafar NPC no lleva esclavos');
+  // la deuda de R1 cobrada al volver deja en negativo (prueba de arriba): 4 - 2 de pasaje - 15 = -13
+}
+console.log('R67 y deudas OK');

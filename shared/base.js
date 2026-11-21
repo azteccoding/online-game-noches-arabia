@@ -92,6 +92,7 @@ export const ITEMS = {
   brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
   astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
+  esclavoSamarra: { nombre: 'Esclavo para Samarra', texto: 'Del reto R67: comprado en Basra para llevarlo a Bagdad (de ahí sale a construir Samarra). No pesa: camina. No produce noches ni cobra mantenimiento. Si no lo entregas a tiempo, lo pierdes.' },
   esclava: { nombre: 'Esclavas abisinias', texto: 'Dan +5 noches por turno; mantenimiento 1 dinar por turno.' },
   papiro: { nombre: 'Papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   pergaminoSellado: { nombre: 'Pergamino sellado', texto: 'Carga de R30: entrégalo en Bagdad.' },
@@ -448,6 +449,40 @@ export function pagar(data, e, pid, monto, { aJugador = null } = {}) {
   if (debe > 0) log(e, `${j.nombre} no tiene dinares suficientes y queda en deuda con el banco: ${j.dinares} dinares. Se cobrará de lo próximo que reciba.`, { pid });
   return { dinares: monto, noches: 0, pagado: monto, debe };
 }
+// Deudas con una ciudad (Jorge, 21 de noviembre): se pagan cuando quieras, desde cualquier ciudad y sin gastar la acción principal
+// (solo con los dinares completos: sin dinero no hay trato). Ya no impiden salir de la ciudad. Al volver a la ciudad de la deuda se
+// cobra sola, con aviso, y si no te alcanzan los dinares quedas en negativo (deuda con el banco). Viven en j.extra.deudas.
+export const deudasDe = (j) => j?.extra?.deudas || [];
+export const deudaDe = (j, reto) => deudasDe(j).find((d) => d.reto === reto) || null;
+export function contraerDeuda(e, pid, { ciudad, monto, reto, motivo }) {
+  const j = e.jugadores[pid];
+  const d = { ciudad, monto, reto, motivo: motivo || `reto ${reto}` };
+  (j.extra.deudas ||= []).push(d);
+  log(e, `${j.nombre} contrae una deuda de ${monto} dinares con ${ciudad} (${d.motivo}).`, { pid });
+  return d;
+}
+function quitarDeuda(j, d) { const l = deudasDe(j), i = l.indexOf(d); if (i >= 0) l.splice(i, 1); if (!l.length) delete j.extra.deudas; }
+// Pago voluntario: solo con los dinares completos.
+export function pagarDeuda(e, pid, d) {
+  const j = e.jugadores[pid];
+  if (!d || !deudasDe(j).includes(d)) return false;
+  if (j.dinares < d.monto) return false;
+  j.dinares -= d.monto; quitarDeuda(j, d);
+  log(e, `${j.nombre} paga su deuda con ${d.ciudad} (${d.monto} dinares, ${d.motivo}).`, { pid });
+  return true;
+}
+// Cobro automático al llegar a la ciudad de la deuda (aunque quedes en negativo), con aviso.
+export function cobrarDeudasAlLlegar(data, e, pid) {
+  const j = e.jugadores[pid];
+  for (const d of deudasDe(j).slice()) {
+    if (d.ciudad !== j.ciudad) continue;
+    const antes = j.dinares;
+    j.dinares -= d.monto; quitarDeuda(j, d);
+    const neg = j.dinares < 0;
+    log(e, `${j.nombre} vuelve a ${d.ciudad} y le cobran su deuda: ${d.monto} dinares (${d.motivo})${neg ? `; no le alcanzaba y queda en ${j.dinares} dinares` : ''}.`, { pid });
+    info(e, pid, `Cobro de tu deuda con ${d.ciudad}`, `Volviste a ${d.ciudad}: te cobran los ${d.monto} dinares que debías (${d.motivo}).${neg ? ` Tenías ${antes} y quedas en ${j.dinares} dinares: la diferencia se cobrará de lo próximo que recibas.` : ` Te quedan ${j.dinares} dinares.`}`);
+  }
+}
 export const puedePagar = (data, j, monto) => j.dinares >= monto;   // regla de la casa: solo con los dinares completos (las noches no cuentan)
 export const puedePagarDinares = (j, monto) => j.dinares >= monto;
 // Regla de la casa: una propuesta a otro jugador que no se acepta (duelo rechazado, compañía o cuentos rechazados) no gasta la acción principal.
@@ -582,7 +617,7 @@ export function textoBuscado(data, e, j) {
 
 // Por qué un jugador no puede salir de su ciudad ahora (o null). Lo usan el viaje, las acciones y los transportes propios.
 export function motivoNoSalir(e, j, enCaravana = true) {
-  if (j.ciudad === 'Bagdad' && j.misiones.some((m) => m.id === 'R1' && m.deuda > 0)) return 'Tienes una deuda con Bagdad (reto R1, el cofre del Éufrates): págala antes de salir de la ciudad.';
+  // Jorge (21 de noviembre): una deuda con la ciudad ya no impide salir de ella; se cobra sola al volver.
   if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
   if (j.extra?.estudio && j.ciudad === j.extra.estudio.ciudad) return `Estás estudiando ${j.extra.estudio.idioma} en ${j.extra.estudio.ciudad}: no puedes salir hasta terminar las clases.`;   // Jorge (10 de noviembre)
   if (j.extra?.forja && j.ciudad === 'Damasco') return 'Estás forjando acero de Damasco: no puedes salir hasta que te den tu cimitarra.';   // R52 (Jorge, 17 de noviembre)

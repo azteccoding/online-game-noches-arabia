@@ -23,6 +23,7 @@ export const PREMIO_MAX = {
   R38: { dinares: 30 },
   R39: { dinares: 45, noches: 10 },
   R45: { dinares: 40, noches: 10 },  // 10 + 5 por punto del dado
+  R67: { dinares: 120, noches: 40 }, // 4 esclavos (los 60 del préstamo) a 30; Jorge, 21 de noviembre
 };
 // Jorge (12 de noviembre): los demás, con una o dos palabras (tres si hace falta) de lo que dan.
 export const PREMIO_TEXTO = {

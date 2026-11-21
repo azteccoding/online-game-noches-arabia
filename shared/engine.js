@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -1099,6 +1099,8 @@ export function llegada(data, e, pid, origen) {
     log(e, `${j.nombre} gana ${n} noches en ${j.ciudad} (x${mult})${npcSolo ? ': la mitad, porque no hay ningún jugador en la ciudad' : ''}.`, { pid });
     if (e.evento.actual === 'E4' && nadieAntes) { j.noches += 20; log(e, `Peregrinación: ${j.nombre} gana 20 noches extra.`); }
   }
+  RET.antesDeCobrar(data, e, pid);      // R67: primero te pagan los esclavos y luego pagas tu deuda (Jorge, 21 de noviembre)
+  cobrarDeudasAlLlegar(data, e, pid);   // Jorge (21 de noviembre): al volver a la ciudad de una deuda te la cobran solos, con aviso
   PJ.alLlegar(data, e, pid, origen);
   NPC.revisarEncargo(data, e, pid);
   TES.quizaLampara(data, e, pid);
@@ -1430,7 +1432,8 @@ export function acciones(data, e, pid) {
   if (t.fase === 'ingreso') return [{ k: 'tirarDados', titulo: 'Tirar el dado de ingreso' }];
   const r = [];
   if (t.ccActual) r.push({ k: 'cc', titulo: 'Resolver la Carta de Trivias' });
-  { const pd = RET.opcionPagoDeuda(e, j); if (pd && !t.omitido) r.push(pd); }   // la deuda con Bagdad se paga en cualquier momento de tu turno
+  if (!t.omitido) for (const pd of RET.opcionesPagoDeuda(e, j)) r.push(pd);
+  if (!t.omitido && !t.fin) for (const x of RET.opcionesR67(e, j)) r.push(x);   // R67: comprar esclavos en Basra   // las deudas con una ciudad se pagan cuando quieras (Jorge, 21 de noviembre)
   if (t.fin || t.omitido) { r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (j.perdido) { if (tieneItem(j, 'alfombra')) r.push({ k: 'tesoro', sub: 'alfombra', titulo: 'Salir del Jorasán en tu alfombra mágica (sin dados)' }); for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x); r.push({ k: 'tesoro', sub: 'salir', titulo: 'Intentar salir del Jorasán', bloqueado: j.extra.salioJuntosRonda === e.ronda ? 'Ya intentaste salir esta ronda junto con otro jugador.' : (t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined) }); for (const c of TES.compañerosJorasan(e, pid)) r.push({ k: 'tesoro', sub: 'juntos', con: c, titulo: `Salir juntos del Jorasán con ${e.jugadores[c].nombre}`, texto: 'Cada uno tira su dado de rumbo y basta con que uno saque par; el genio y los ghul les tocan a los dos.', bloqueado: t.principal ? 'Ya usaste tu acción principal en este turno.' : undefined }); r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' }); return r; }
   if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
