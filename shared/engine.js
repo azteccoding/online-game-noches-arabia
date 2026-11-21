@@ -1470,8 +1470,9 @@ function datosMano(data, e, c) {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
-    // Dados del Cairo: su texto ya dice cuánto duran (y lo de Zein en El Cairo); aquí solo se añaden los turnos que quedan, sin repetir la leyenda (Jorge, 21 de noviembre).
-    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); const quedan = n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'; d.texto += c.ref === 'dadosCairo' ? ` Ahora ${quedan}.` : ` Duran ${OBJ.duracionDados(c)} turnos de su dueño: ${quedan}.`; }
+    // Dados: su texto en la mano dice cuántos turnos les quedan. Los Dados del Cairo ya traen en su texto cuánto duran (y lo de Zein en El Cairo), así que no se repite (Jorge, 21 de noviembre).
+    // Jorge (21 de noviembre): nada de «el actual (o el próximo)», que se contradecía: si es el turno de su dueño cuenta este turno; si no, desde su próximo turno.
+    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); const suTurno = e.turno?.pid === c.extra.dueno; const quedan = n > 1 ? `les quedan ${n}${c.ref === 'dadosCairo' ? ' turnos de su dueño' : ''}, ${suTurno ? 'contando este turno' : 'a partir de su próximo turno'}` : suTurno ? 'este es su último turno' : 'su próximo turno es el último'; d.texto += c.ref === 'dadosCairo' ? ` Ahora ${quedan}.` : ` Duran ${OBJ.duracionDados(c)} turnos de su dueño: ${quedan}.`; }
     if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }
