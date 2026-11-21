@@ -46,9 +46,12 @@ function usarKanmakan(e, j) {
 export function perfil(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
   const armas = armasUsables(data, e, j, ciudad || j.ciudad).filter((r) => ARMAS_ATAQUE.includes(r));   // el arco no cuenta como arma
-  const destreza = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
+  const general = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
+  // Jorge (21 de noviembre): entrenar un arma (R18, R19, R42, R54, deseo f) es tener destreza en ella: si peleas con un arma
+  // entrenada, peleas con destreza (categoría D, y puedes atacar a muerte). El +1 de la destreza general (R25) es aparte.
+  const destreza = general || armas.some((r) => !!j.extra?.entrenado?.[r]);
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
-  return { pid, armas, destreza, cat };
+  return { pid, armas, destreza, general, cat };
 }
 
 // Objeto de tipo Arma del mazo: máximo 1 por bando en cada pelea (R 15.2). Elige el mejor para ese bando.
@@ -212,7 +215,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   }
   if (a.tipo === 'matar') {
     if (e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede matar en las 2 primeras rondas.');
-    if (!npc && !(pa.armas.length && (pa.destreza || j.pj === '1'))) return err(j.pj === '1' ? 'Para matar necesitas un arma que puedas usar aquí.' : 'Para matar necesitas un arma y destreza con armas: sin ellas solo puedes robar.');   // Nur al Din, guerrero: ataca a muerte sin destreza
+    if (!npc && !(pa.armas.length && (pa.destreza || j.pj === '1'))) return err(j.pj === '1' ? 'Para matar necesitas un arma que puedas usar aquí.' : 'Para matar necesitas un arma y destreza (la general de Estambul o un arma entrenada): sin ella solo puedes robar.');   // Nur al Din, guerrero: ataca a muerte sin destreza
   }
   if (a.tipo === 'duelo' && tieneEsp(d, 'K1')) return err('Quien porta el Ejército de Kanmakán no puede ser desafiado a duelo.');
   return ok();
@@ -348,7 +351,7 @@ function seguirAtaque(data, e) {
 // herido (si pierde, muere) o el retador tiene más bonos de pelea visibles que él (armas, entrenamiento, destreza, escudo).
 export function fuerzaVisible(data, e, pid, rol) {
   const j = e.jugadores[pid], p = perfil(data, e, pid);
-  let f = p.destreza ? 1 : 0;
+  let f = p.general ? 1 : 0;   // el entrenado ya suma abajo con su arma
   for (const r of p.armas) {
     f += (r === 'jambiya' ? 1.5 : bonoArma(data, r)) + (j.extra?.entrenado?.[r] ? 1 : 0);   // jambiya: +3 con el dado de sorpresa par (media 1.5)
     if (r === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) f += data.config.armas?.cimitarra?.extraAtacante ?? 2;
@@ -772,7 +775,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
     let bn = (npc.bono || 0) - (arco?.cubre ? 1 : 0), jd = null;
     if (npc.jambiya) { jd = dado(e); if (par(jd)) bn += 3; }
-    const dest = p.destreza ? 1 : 0;
+    const dest = p.general ? 1 : 0;   // destreza general; el +1 del arma entrenada ya viene en los bonos
     const tj = suma(r) + b.total + dest, tn = suma(n) + bn - b.resta;
     mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] });
     primero = false;

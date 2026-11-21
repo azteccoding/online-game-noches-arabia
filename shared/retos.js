@@ -589,7 +589,8 @@ export function entrenamientosEn(ciudad) {
 export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
 const entrenado = (j, arma) => !!j.extra.entrenado?.[arma] || (j.extra.destrezaPend || []).some((q) => q.arma === arma);
 // Jorge (19 de noviembre, más tarde): la destreza y los entrenamientos (R25, R18, R19, R42, R43, R51 y el de R54) gastan la acción
-// principal y terminan el turno; se reciben al INICIO del siguiente turno (si antes te atacan, aún no la tienes; si mueres, no llega).
+// principal y terminan el turno. Jorge (21 de noviembre): se reciben al TERMINAR ese turno, no durante él (antes, al iniciar el
+// siguiente); si mueres antes de que termine, no llega.
 function aplazarDestreza(e, pid, q) {
   const j = e.jugadores[pid];
   (j.extra.destrezaPend ||= []).push(q);
@@ -602,19 +603,19 @@ export function recibirDestreza(data, e, pid) {
   j.extra.destrezaPend = [];
   for (const q of qs) {
     let texto;
-    if (q.t === 'general') { darDestreza(j); texto = soloJambiya(j) ? 'Empiezas tu turno con destreza, solo con la jambiya.' : 'Empiezas tu turno con destreza con armas: +1 en todas tus peleas.'; }
-    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = `Empiezas tu turno entrenado con ${q.arma}: +1 con ella en las peleas${q.arma === 'arco' ? ' (y con 3 o 4 en tu flecha el rival pelea con −1)' : ''}.`; }
-    else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Empiezas tu turno con la destreza máxima en arco: tus flechas siempre aciertan.'; }
+    if (q.t === 'general') { darDestreza(j); texto = soloJambiya(j) ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
+    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco (con 3 o 4 en tu flecha el rival pelea con −1).' : `Terminó tu turno de entrenamiento: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
     log(e, `${j.nombre}: ${texto}`, { pid, aviso: true });
-    if (!j.npc) info(e, pid, 'Tu entrenamiento', texto);
+    if (!j.npc) publicarCarta(e, { id: `entreno:${q.t}:${q.arma || ''}`, deck: 'reto', titulo: 'Tu entrenamiento', sub: 'Habilidad', texto, arte: 're' }, pid, [pid]);   // como las clases de idiomas: carta al terminar el turno
   }
 }
 HOOK.recibirDestreza = recibirDestreza;
 function entrenarArma(e, pid, id) {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
   j.dinares -= costo; j.noches += 50; hacer(e, pid, id); aplazarDestreza(e, pid, { t: 'arma', arma });
-  log(e, `${j.nombre} entrena con ${arma} y gana 50 noches: su turno termina y al iniciar el siguiente suma +1 con ella${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : ''}.`, { pid });
+  log(e, `${j.nombre} entrena con ${arma} y gana 50 noches: su turno termina y al terminar queda entrenado${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : `, con destreza en ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
@@ -630,7 +631,7 @@ T.R43 = { ciudad: 'Andalucía', ciudades: ['Andalucía', 'Yemen', 'Samarcanda'],
   run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
 T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; if (ctx) ctx.resultado = 'logro'; j.dinares -= DESTREZA.costo; aplazarDestreza(e, pid, { t: 'general' }); hacer(e, pid, 'R25');   // Jorge (20 de noviembre): ya no da noches (antes 50)   // Jorge (10 de noviembre): 50 (antes 45); Zein y Ruyán: solo con jambiya
-  log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul: su turno termina y al iniciar el siguiente tendrá destreza, solo con la jambiya.` : `${j.nombre} entrena en Estambul: su turno termina y al iniciar el siguiente tendrá destreza con armas (+1 en todas las peleas).`, { pid });
+  log(e, soloJambiya(j) ? `${j.nombre} entrena en Estambul: su turno termina y al terminar tendrá destreza, solo con la jambiya.` : `${j.nombre} entrena en Estambul: su turno termina y al terminar tendrá destreza con armas (+1 en todas las peleas).`, { pid });
 } };
 // Jorge (19 de noviembre): en el reto el velo cuesta 10 dinares (en el mercado sigue a 30).
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
@@ -1034,7 +1035,7 @@ function combateR54(e, pid, ctx, arma) {
   ctx.resultado = x % 2 ? 'fallo' : 'logro';   // impar: herido (las noches y dinares son por el servicio); par: entrenado
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
-    if (arma) aplazarDestreza(e, pid, { t: 'arma', arma });   // llega al iniciar el siguiente turno (Jorge, 19 de noviembre)
+    if (arma) aplazarDestreza(e, pid, { t: 'arma', arma });   // llega al terminar el turno (Jorge, 21 de noviembre)
     j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${arma ? `; quedas entrenado con ${arma} (+1 con ella en las peleas)` : soloJambiya(j) ? ' (solo puedes entrenar la jambiya)' : ' (ya estabas entrenado con tus armas)'}.`);
   }
   if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }

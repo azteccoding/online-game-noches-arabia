@@ -665,8 +665,8 @@ function avanzarHasta(g, cond, pasos = 400) {
   j.misiones = []; turnoDe(e, a, 'Damasco'); j.ciudad = 'Damasco'; j.dinares = 100; j.mano = []; j.destreza = false;
   assert.ok(disponibles(data, e, a).find((r) => r.id === 'R42').bloqueado, 'sin alfanje no entrena');
   darItem(e, j, 'alfanje'); const b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
-  assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.ok(e.turno?.pid !== a || e.turno.fin, 'entrenar termina el turno'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0, 'todavía no'); recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1 al iniciar el siguiente turno');
-  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(!j.destreza && (e.turno?.pid !== a || e.turno.fin), 'la destreza llega al siguiente turno'); recibirDestreza(data, e, a); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
+  assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.ok(e.turno?.pid !== a || e.turno.fin, 'entrenar termina el turno'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, e.turno?.pid === a ? b0 : b0 + 1, 'llega al terminar el turno, no durante él (Jorge, 21 de noviembre)'); recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
+  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok((e.turno?.pid === a ? !j.destreza : j.destreza) && (e.turno?.pid !== a || e.turno.fin), 'la destreza llega al terminar el turno'); recibirDestreza(data, e, a); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
   // jambiya escondida: no cuenta ni se la roban
   darItem(e, j, 'jambiya'); const conJ = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   assert.ok(g.act(a, { t: 'jambiya', ocultar: true }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, conJ - 1);
@@ -809,7 +809,7 @@ for (let k = 0; k < 6; k++) {
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; e.turno.fase = 'acciones'; A.dinares = 100; A.destreza = true;
   const r = g.act(a, { t: 'reto', id: 'R25' }); assert.ok(!r.ok && /destreza/.test(r.error), 'ya tiene destreza');
-  A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(!A.destreza, 'llega al siguiente turno'); recibirDestreza(data, e, a); assert.ok(A.destreza);
+  A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(e.turno?.pid === a ? !A.destreza : A.destreza, 'llega al terminar el turno'); recibirDestreza(data, e, a); assert.ok(A.destreza);
 }
 
 // Peleas: ninguna tirada es automática; cada bando lanza sus propios dados y el desglose sale al final
@@ -4806,19 +4806,19 @@ console.log('reglas de la casa OK');
   assert.equal(BASE.nCarga(A), n0, 'esconder no cambia el peso: cada una pesa');
   assert.ok(g.act(a, { t: 'jambiya', uid: j2.uid, ocultar: true }).ok); assert.ok(vistaDe(e, a).jambiyaOculta && !armasUsables(data, e, A).includes('jambiya'), 'las dos escondidas');
 }
-// Jorge (19 de noviembre): la destreza de Estambul (y los demás entrenamientos) gasta la acción principal, termina el turno y llega al iniciar el siguiente
+// Jorge (19 de noviembre): la destreza de Estambul (y los demás entrenamientos) gasta la acción principal y termina el turno;
+// Jorge (21 de noviembre): llega al TERMINAR ese turno (antes, al iniciar el siguiente)
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
   turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; e.turno.fase = 'acciones'; A.dinares = 100; A.destreza = false;
   assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok);
-  assert.ok(!A.destreza, 'todavía no la tiene'); assert.ok(e.turno?.pid !== a || (e.turno.fin && e.turno.principal), 'acción principal y fin del turno');
+  assert.ok(e.turno?.pid !== a || (e.turno.fin && e.turno.principal), 'acción principal y fin del turno');
+  assert.ok(e.turno?.pid !== a || !A.destreza, 'durante el turno todavía no la tiene');
   assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'ok' && /logró el reto R25/.test(x.texto)), 'alerta verde');
-  const { iniciarTurno } = await import('../shared/engine.js');
-  if (typeof iniciarTurno === 'function') { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; iniciarTurno(data, e, a); }
-  else recibirDestreza(data, e, a);
-  assert.ok(A.destreza, 'al iniciar el siguiente turno ya la tiene');
-  assert.ok(e.log.some((l) => /Empiezas tu turno con destreza/.test(l.texto)), 'con su aviso');
+  if (e.turno?.pid === a) g.act(a, { t: 'terminarTurno' });
+  assert.ok(A.destreza, 'al terminar el turno ya la tiene');
+  assert.ok(e.log.some((l) => /Terminó tu turno de entrenamiento: ya tienes destreza/.test(l.texto)), 'con su aviso');
 }
 // Jorge (19 de noviembre): los libros de transcribir se venden también en Samarcanda, Andalucía y Estambul (mitad de su valor, menos el impuesto)
 {
@@ -5136,3 +5136,29 @@ console.log('reglas de la casa OK');
   // la deuda de R1 cobrada al volver deja en negativo (prueba de arriba): 4 - 2 de pasaje - 15 = -13
 }
 console.log('R67 y deudas OK');
+
+// Jorge (21 de noviembre): entrenar un arma es tener destreza en ella. Zubayda con la cimitarra entrenada en Isfahán pelea con
+// destreza (categoría D) en el duelo que le propone Yafar NPC en Samarcanda; el +1 de la destreza general (R25) va aparte.
+{
+  const { perfil, bonosCombate } = await import('../shared/pelea.js');
+  const g = partida(['6', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [z] = g.ids, Z = e.jugadores[z];
+  turnoDe(e, z, 'Isfahán'); Z.ciudad = 'Isfahán'; Z.dinares = 100; Z.destreza = false; Z.mano = Z.mano.filter((c) => c.ref !== 'cimitarra');
+  darItem(e, Z, 'cimitarra');
+  assert.equal(perfil(data, e, z, 'Samarcanda').cat, 'C', 'sin entrenar: arma sin destreza');
+  const b0 = bonosCombate(data, e, z, 'def', 'Samarcanda').total;
+  assert.ok(g.act(z, { t: 'reto', id: 'R18' }).ok);
+  assert.notEqual(e.turno?.pid, z, 'entrenar termina el turno');
+  assert.ok(Z.extra.entrenado?.cimitarra, 'al terminar el turno ya está entrenado');
+  assert.ok(e.historial.some((h) => h.id === 'entreno:arma:cimitarra' && h.para?.includes(z)) || e.log.some((l) => /ya tienes destreza con la cimitarra/.test(l.texto)), 'con su carta');
+  Z.ciudad = 'Samarcanda';
+  const pf = perfil(data, e, z, 'Samarcanda');
+  assert.ok(pf.destreza && !pf.general && pf.cat === 'D', 'pelea con destreza con su cimitarra entrenada');
+  assert.equal(bonosCombate(data, e, z, 'def', 'Samarcanda').total, b0 + 1, 'solo +1 por el entrenamiento, no +2');
+  // sin la cimitarra (vendida o robada), el entrenamiento no le da destreza
+  Z.mano = Z.mano.filter((c) => c.ref !== 'cimitarra'); assert.equal(perfil(data, e, z, 'Samarcanda').cat, 'A', 'sin arma: sin armas ni destreza');
+  // con la destreza general de Estambul, sí la tiene con cualquier arma
+  darItem(e, Z, 'alfanje'); assert.equal(perfil(data, e, z, 'Samarcanda').cat, 'C', 'alfanje sin entrenar: sin destreza');
+  Z.destreza = true; assert.equal(perfil(data, e, z, 'Samarcanda').cat, 'D', 'destreza general: con cualquier arma');
+}
+console.log('destreza con arma entrenada OK');
