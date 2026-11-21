@@ -52,7 +52,7 @@ export function cartaDatos(data, tipo, id, deseos = null) {   // deseos: los 3 q
   if (tipo === 'cuento') { const c = data.cuentos.cuentos.find((x) => x.id === id); return { id, deck: 'cuento', titulo: c.titulo, sub: c.sub, texto: c.texto, premio: c.premio, premioEtiqueta: 'Quien la lea en voz alta recibe ' + c.premio + ' dinares', ciudad: c.clave === 'Respuestas' ? null : c.clave, arte: null, ref: c.refReglamento }; }
   if (tipo === 'personaje') { const c = pjDe(data, id); return { id, deck: 'personaje', titulo: c.nombre, sub: c.titulo, texto: c.habilidades.join(' '), limite: c.limite, stats: c.stats, statsEtiquetas: c.statsEtiquetas, cita: c.cita, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'reto') { const c = data.retos.retos.find((x) => x.id === id); return { id, deck: 'reto', titulo: c.id + ' · ' + c.nombre, sub: c.ciudad + ' · ' + c.tipo, texto: c.resolucion, requisito: c.requisito, premio: c.premio, riesgo: c.riesgo, arte: c.arte, ref: c.refReglamento }; }
-  if (tipo === 'ifrit') { const c = data.objetos.ifrit.cartas.find((x) => x.id === id) || { deseos: [], arte: 'if' }, ds = deseos || c.deseos; return { id, deck: 'ifrit', titulo: 'Genio de la lámpara', sub: 'Ifrit ' + String(id).slice(1), texto: ds.map((d) => d + ') ' + data.objetos.ifrit.deseos[d]).join('\n'), deseos: ds, arte: c.arte, ref: '15.4' }; }
+  if (tipo === 'ifrit') { const c = data.objetos.ifrit.cartas.find((x) => x.id === id) || { deseos: [], arte: 'if' }, ds = deseos || c.deseos; return { id, deck: 'ifrit', titulo: 'Genio de la lámpara', sub: 'Ifrit ' + String(id).slice(1), texto: ds.map((d) => data.objetos.ifrit.deseos[d]).join('\n'), deseos: ds, arte: c.arte, ref: '15.4' }; }
   if (tipo === 'item') return itemDatos(data, id);
   return null;
 }
@@ -278,7 +278,7 @@ export const alfombraPorVelo = (j, card) => !!j && !!card && tieneItem(j, 'velo'
 export const deseosIfrit = (j, card) => (alfombraPorVelo(j, card) ? [...card.deseos, DESEO_VELO] : card.deseos.slice());
 export const TEXTO_DESEO_VELO = 'Por tu velo quemado: alfombra mágica (el velo se gasta)';
 export function opcionesIfrit(data, j, card) {
-  return deseosIfrit(j, card).map((d) => ({ id: d, texto: alfombraPorVelo(j, card) && d === DESEO_VELO ? `${d}) ${TEXTO_DESEO_VELO}` : d + ') ' + data.objetos.ifrit.deseos[d] }));
+  return deseosIfrit(j, card).map((d) => ({ id: d, texto: alfombraPorVelo(j, card) && d === DESEO_VELO ? TEXTO_DESEO_VELO : data.objetos.ifrit.deseos[d] }));
 }
 // Al pedir el deseo: si la c vino por el velo, el velo se gasta.
 export function gastarVeloSiAlfombra(e, j, card, letra) {

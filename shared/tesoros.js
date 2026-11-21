@@ -482,7 +482,7 @@ export const ARMAS_DESEO = ['alfanje', 'cimitarra', 'jambiya', 'arco'];
 export function deseo(data, e, pid, letra, { alTerminar = null }) {
   const j = e.jugadores[pid];
   const fin = () => { if (alTerminar === 'ghul') ghul(data, e, pid); else if (alTerminar === 'juntos') juntoListo(data, e); };
-  log(e, `${j.nombre} pide el deseo ${letra}) ${data.objetos.ifrit.deseos[letra]}.`, { pid });
+  log(e, `${j.nombre} pide el deseo: ${data.objetos.ifrit.deseos[letra]}.`, { pid });
   switch (letra) {
     case 'a': j.dinares += 80; break;
     case 'b': j.noches += 110; break;   // el tope de 1,001 se aplica al cerrar la acción
