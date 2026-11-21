@@ -5107,13 +5107,13 @@ console.log('reglas de la casa OK');
   assert.ok(!A.mano.some((c) => c.ref === 'esclavoSamarra'), 'entrega los esclavos');
   limpiar(e); A.ciudad = 'Basra'; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
   assert.ok(!g.act(a, { t: 'reto', id: 'R67' }).ok, 'una vez por jugador');
-  // si gastó el préstamo y no le alcanza la deuda: le pagan los esclavos, queda en negativo y no gana las noches
+  // si gastó el préstamo y no le alcanza la deuda: le pagan los esclavos, paga y queda en negativo (cuenta como pagada) y gana las noches (Jorge)
   { const h2 = partida(['4', '7']); h2.act(h2.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h2.iniciar().ok);
     const f2 = h2.e, [c] = h2.ids, C = f2.jugadores[c];
     C.ciudad = 'Bagdad'; C.mano = []; C.misiones.push({ id: 'R67', fase: 'compra', limite: C.turnos + 1 }); BASE.contraerDeuda(f2, c, { ciudad: 'Bagdad', monto: 60, reto: 'R67' });
     darItem(f2, C, 'esclavoSamarra'); darItem(f2, C, 'esclavoSamarra'); C.dinares = -5; const nn = C.noches;
     RET.antesDeCobrar(data, f2, c);
-    assert.equal(C.dinares, -5 + 60 - 60, 'primero cobra los esclavos y luego paga'); assert.equal(C.noches, nn, 'sin las 40 noches');
+    assert.equal(C.dinares, -5 + 60 - 60, 'primero cobra los esclavos y luego paga'); assert.equal(C.noches, nn + 40, 'en negativo la deuda cuenta como pagada: 40 noches');
     assert.ok(!BASE.deudaDe(C, 'R67') && C.retosHechos.includes('R67')); }
 
   // plazo vencido: pierde los esclavos y la deuda se queda con Bagdad

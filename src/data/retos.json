@@ -926,7 +926,7 @@
    "tipo": "V",
    "requisito": "",
    "resolucion": "La nueva ciudad abasí está en construcción y auge: lleva trabajadores. Ve a Bagdad, donde te prestan 60 dinares (no son tuyos: son una deuda con Bagdad). Vuelve a Basra y compra al menos 2 esclavos, a 15 dinares cada uno y sin tope (no gasta tu acción principal), y llévalos a Bagdad. Plazo: el turno en que lo aceptas y uno más. Los esclavos no pesan, no producen y no cuestan. Una vez por jugador; Yafar NPC no lo juega.",
-   "premio": "Al llegar a Bagdad te pagan 30 dinares por esclavo; luego pagas tu deuda (se cobra sola) y, si la pagaste completa, ganas 40 noches.",
+   "premio": "Al llegar a Bagdad te pagan 30 dinares por esclavo, luego pagas tu deuda (se cobra sola; si quedas en negativo, cuenta como pagada) y ganas 40 noches.",
    "riesgo": "Si no entregas al menos 2 esclavos a tiempo, pierdes el reto y los esclavos, y sigues debiendo los 60 dinares a Bagdad.",
    "objetos": "",
    "humor": "",

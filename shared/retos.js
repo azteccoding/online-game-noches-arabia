@@ -1100,7 +1100,7 @@ T.R66 = { ciudad: MANUSCRITOS.ciudad, req: (d, e, pid) => { const j = e.jugadore
 // R67 «Llevar esclavos a Samarra» (Jorge, 21 de noviembre): «La nueva ciudad abasí está en construcción y auge, lleva trabajadores».
 // Se contrata en Basra; en Bagdad te prestan 60 dinares (deuda con Bagdad, no son tuyos); vuelves a Basra a comprar esclavos (15 cada
 // uno) y los llevas a Bagdad. Plazo: el turno en que lo aceptas y uno más completo. Al llegar a Bagdad con al menos 2 esclavos, primero
-// te pagan 30 por esclavo, luego se cobra tu deuda y al final, si la pagaste completa, ganas 40 noches. Si no entregas a tiempo,
+// te pagan 30 por esclavo, luego se cobra tu deuda (aunque quedes en negativo: cuenta como pagada) y al final ganas 40 noches. Si no entregas a tiempo,
 // pierdes el reto y los esclavos, y la deuda sigue con Bagdad. Los esclavos no pesan ni producen ni cuestan mantenimiento; sin tope.
 // Una vez por jugador; Yafar NPC no lo toma. Comprar esclavos (ya con el préstamo) no gasta la acción principal.
 export const SAMARRA = { ciudad: 'Basra', prestamo: 60, precio: 15, pago: 30, noches: 40, minimo: 2, turnos: 2 };
@@ -1143,7 +1143,7 @@ function r67Llegar(data, e, pid, m) {
   info(e, pid, 'R67 · El préstamo de Bagdad', `Te prestan ${SAMARRA.prestamo} dinares: no son tuyos, son una deuda con Bagdad. Vuelve a Basra, compra al menos ${SAMARRA.minimo} esclavos (${SAMARRA.precio} dinares cada uno) y tráelos a Bagdad antes de que termine tu siguiente turno. Al volver a Bagdad te pagan los esclavos y después te cobran la deuda.`);
 }
 // Entrega (Jorge, 21 de noviembre): ANTES del cobro automático de deudas. Primero te pagan los esclavos, luego pagas tu deuda y al
-// final, solo si la pagaste completa (sin quedar en negativo), las 40 noches.
+// final las 40 noches. Si al pagar quedas en negativo, la deuda cuenta como pagada: solo te queda una deuda nueva con el banco.
 export function antesDeCobrar(data, e, pid) {
   const j = e.jugadores[pid], m = j.misiones.find((x) => x.id === 'R67');
   if (!m || m.fase !== 'compra' || j.ciudad !== 'Bagdad') return;
@@ -1154,17 +1154,17 @@ export function antesDeCobrar(data, e, pid) {
   quitarMision(j, m); hacer(e, pid, 'R67');
   premio(data, e, pid, { dinares: SAMARRA.pago * n }, `${j.nombre} entrega ${n} esclavos para Samarra (R67):`);
   const d = deudaDe(j, 'R67');
-  let pagada = true, txt = '';
+  let txt = '';
   if (d) {
-    pagada = j.dinares >= d.monto;
+    const neg = j.dinares < d.monto;
     pagar(data, e, pid, d.monto); j.extra.deudas.splice(j.extra.deudas.indexOf(d), 1); if (!j.extra.deudas.length) delete j.extra.deudas;
-    log(e, `${j.nombre} paga su deuda con Bagdad (${d.monto} dinares, reto R67)${pagada ? '' : `: no le alcanzaba y queda en ${j.dinares} dinares`}.`, { pid });
-    txt = pagada ? ` Luego pagas tu deuda de ${d.monto} dinares.` : ` Luego te cobran tu deuda de ${d.monto} dinares: no te alcanzaba y quedas en ${j.dinares} dinares.`;
+    log(e, `${j.nombre} paga su deuda con Bagdad (${d.monto} dinares, reto R67)${neg ? `; no le alcanzaba y queda en ${j.dinares} dinares (deuda con el banco)` : ''}.`, { pid });
+    txt = neg ? ` Luego pagas tu deuda de ${d.monto} dinares: no te alcanzaba y quedas en ${j.dinares} dinares (deuda con el banco, que se cobra de lo próximo que recibas).` : ` Luego pagas tu deuda de ${d.monto} dinares.`;
   }
-  if (pagada) j.noches += SAMARRA.noches;
-  log(e, pagada ? `${j.nombre} pagó su deuda: gana ${SAMARRA.noches} noches (R67).` : `${j.nombre} no pagó completa su deuda: no gana las ${SAMARRA.noches} noches (R67).`, { pid });
-  info(e, pid, 'R67 · Esclavos para Samarra', `Entregas ${n} esclavos: te pagan ${SAMARRA.pago * n} dinares (${SAMARRA.pago} por cada uno).${txt}${pagada ? ` Como pagaste tu deuda, ganas ${SAMARRA.noches} noches.` : ` Como no la pagaste completa, no ganas las ${SAMARRA.noches} noches.`}`);
-  cerrarReto(data, e, pid, 'R67', pagada);
+  j.noches += SAMARRA.noches;
+  log(e, `${j.nombre} gana ${SAMARRA.noches} noches (R67).`, { pid });
+  info(e, pid, 'R67 · Esclavos para Samarra', `Entregas ${n} esclavos: te pagan ${SAMARRA.pago * n} dinares (${SAMARRA.pago} por cada uno).${txt} Ganas ${SAMARRA.noches} noches.`);
+  cerrarReto(data, e, pid, 'R67', true);
 }
 const ENSENAR = { R48: { idioma: 'persa', ciudades: ['Estambul', 'Bagdad'] }, R49: { idioma: 'árabe', ciudades: ['Andalucía'] } };
 for (const [id, I] of Object.entries(ENSENAR)) {
