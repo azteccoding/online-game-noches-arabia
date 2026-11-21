@@ -407,7 +407,7 @@ function iniciarTurno(data, e, id, idx) {
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
-  if (j.extra.huidaRonda) { if (j.extra.huidaRonda.ronda === e.ronda) t.huidas = j.extra.huidaRonda.n; j.extra.huidaRonda = null; }   // huida obligada de esta ronda: un viaje menos (Jorge, 21 de noviembre)
+  if (j.extra.huidasPend) { t.huidas = j.extra.huidasPend; j.extra.huidasPend = 0; }   // huida obligada fuera de su turno: un viaje menos (Jorge, 21 de noviembre)
   if (j.extra.viajePalacio && j.turnos > PJ.PALACIOS.turnos) { j.extra.viajePalacio = false; log(e, `${j.nombre} ya no usó su viaje gratis a los palacios del Califa: se pierde.`, { pid: id }); }
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
   // Regla de Jorge (punto 1, solo Yafar NPC): llega ebrio a su primer turno y lo termina sin hacer nada.
@@ -415,7 +415,7 @@ function iniciarTurno(data, e, id, idx) {
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
   if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
-  RET.recibirDestreza(data, e, id);   // por si quedó alguna pendiente de fuera de su turno (normalmente llega al terminar el turno: Jorge, 21 de noviembre)
+  RET.recibirDestreza(data, e, id, { inicio: true });   // por si quedó alguna pendiente de fuera de su turno (normalmente llega al terminar el turno: Jorge, 21 de noviembre)
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
   RET.turnoForja(data, e, id);     // R52: forjando acero de Damasco (Jorge, 17 de noviembre)
   turnoEmir(data, e, id);          // servicio del Emir: llega la Dádiva (Jorge, 18 de noviembre)

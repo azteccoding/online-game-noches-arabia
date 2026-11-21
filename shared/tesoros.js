@@ -1,4 +1,5 @@
 // Tesoros, mapas, tesoro propio escondido, el Jorasán, genios y cartas de Ifrit (R 16, R 15.4).
+import { huidaCuentaViaje } from './base.js';
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
@@ -328,7 +329,7 @@ function pedirGenio(data, e, j, card, fn) {
 function evitarGhul(data, e, pid, { juntos = false } = {}) {
   const j = e.jugadores[pid], cs = data.ciudades.ciudades.map((c) => c.id).filter((c) => !ciudadCerrada(e, c));
   const dest = cs[Math.floor(rnd(e) * cs.length) % cs.length];
-  j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest;
+  j.extra.destinoA = null; j.extra.enRumbo = false; j.perdido = false; j.ciudad = dest; huidaCuentaViaje(e, pid);   // cuenta como viaje (Jorge, 21 de noviembre)
   log(e, `${j.nombre} huye de los ghul: el genio lo deja en ${dest}.`, { pid, aviso: true });
   info(e, pid, 'Huyes de los ghul', `El genio te saca del Jorasán sin dados y te deja en ${dest}.`);
   if (!juntos && e.turno) { e.turno.movio = true; e.turno.fin = true; }

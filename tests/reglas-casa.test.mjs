@@ -410,7 +410,7 @@ function forzar(e, ...valores) {
   // entrenar
   turnoDe(e, pid, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50; n0 = j.noches;
   if (!tieneItem(j, 'cimitarra')) darItem(e, j, 'cimitarra');
-  assert.ok(g.act(pid, { t: 'reto', id: 'R18' }).ok); assert.equal(j.noches - n0, 50, 'entrenar da +50 noches');
+  assert.ok(g.act(pid, { t: 'reto', id: 'R18' }).ok); assert.equal(j.noches - n0, 30, 'entrenar da +30 noches (Jorge, 21 de noviembre)');
   // Jorasán
   const k = g.ids[1], jk = e.jugadores[k]; jk.transito = { destino: 'Jorasán', faltan: 1, desde: 'Yemen', jorasan: true }; n0 = jk.noches;
   turnoDe(e, pid, 'Isfahán'); avanzarHasta(g, () => jk.ciudad === 'Jorasán');
@@ -468,7 +468,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   j.noches = 990; turnoDe(e, a, 'Isfahán'); j.ciudad = 'Isfahán'; j.destreza = false; j.dinares = 50;
   if (!tieneItem(j, 'cimitarra')) darItem(e, j, 'cimitarra');
   assert.ok(g.act(a, { t: 'reto', id: 'R18' }).ok);
-  assert.equal(j.noches, 1001, 'entrenar con 990 noches deja 1,001, no 1,040');
+  assert.equal(j.noches, 1001, 'entrenar con 990 noches deja 1,001, no 1,020');
   assert.ok(e.log.some((l) => /tope de 1,001 noches/.test(l.texto)), 'se avisa del tope');
   const ult = e.log.filter((l) => l.saldo && l.pid === a).pop(); assert.equal(ult.saldo.dn, 11, 'el saldo anota +11');
 }
@@ -666,7 +666,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(disponibles(data, e, a).find((r) => r.id === 'R42').bloqueado, 'sin alfanje no entrena');
   darItem(e, j, 'alfanje'); const b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.ok(e.turno?.pid !== a || e.turno.fin, 'entrenar termina el turno'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, e.turno?.pid === a ? b0 : b0 + 1, 'llega al terminar el turno, no durante él (Jorge, 21 de noviembre)'); recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
-  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok((e.turno?.pid === a ? !j.destreza : j.destreza) && (e.turno?.pid !== a || e.turno.fin), 'la destreza llega al terminar el turno'); recibirDestreza(data, e, a); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
+  turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(!j.destreza && (e.turno?.pid !== a || e.turno.fin), 'la destreza de Estambul tarda 2 turnos'); assert.equal(j.pierdeTurno, 1, 'pierde el siguiente turno entrenando'); j.pierdeTurno = 0; recibirDestreza(data, e, a); assert.ok(!j.destreza, 'todavía no'); j.turnos++; recibirDestreza(data, e, a); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
   // jambiya escondida: no cuenta ni se la roban
   darItem(e, j, 'jambiya'); const conJ = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   assert.ok(g.act(a, { t: 'jambiya', ocultar: true }).ok); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, conJ - 1);
@@ -809,7 +809,7 @@ for (let k = 0; k < 6; k++) {
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; e.turno.fase = 'acciones'; A.dinares = 100; A.destreza = true;
   const r = g.act(a, { t: 'reto', id: 'R25' }); assert.ok(!r.ok && /destreza/.test(r.error), 'ya tiene destreza');
-  A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(e.turno?.pid === a ? !A.destreza : A.destreza, 'llega al terminar el turno'); recibirDestreza(data, e, a); assert.ok(A.destreza);
+  A.destreza = false; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(!A.destreza, 'tarda 2 turnos'); A.turnos++; recibirDestreza(data, e, a); assert.ok(A.destreza);
 }
 
 // Peleas: ninguna tirada es automática; cada bando lanza sus propios dados y el desglose sale al final
@@ -1201,7 +1201,7 @@ for (let k = 0; k < 6; k++) {
   turnoDe(e, n, 'Isfahán'); N.ciudad = 'Isfahán'; e.turno.fase = 'acciones'; N.dinares = 200;
   const r = g.act(n, { t: 'reto', id: 'R18' }); assert.ok(!r.ok && /Ya entrenaste/.test(r.error), 'no puede volver a entrenar la cimitarra');
   turnoDe(e, n, 'Estambul'); N.ciudad = 'Estambul'; e.turno.fase = 'acciones';
-  assert.ok(g.act(n, { t: 'reto', id: 'R25' }).ok, 'la destreza la aprende en Estambul'); recibirDestreza(data, e, n); assert.ok(N.destreza);
+  assert.ok(g.act(n, { t: 'reto', id: 'R25' }).ok, 'la destreza la aprende en Estambul'); N.turnos++; recibirDestreza(data, e, n); N.pierdeTurno = 0; assert.ok(N.destreza);
   darItem(e, N, 'alfanje'); turnoDe(e, n, 'Aleppo'); N.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
   assert.ok(g.act(n, { t: 'reto', id: 'R42' }).ok, 'el alfanje lo entrena normal'); recibirDestreza(data, e, n); assert.ok(N.extra.entrenado.alfanje);
   // por ser guerrero, Nur al Din puede atacar a muerte sin destreza; los demás no
@@ -3780,7 +3780,7 @@ console.log('reglas de la casa OK');
 }
 
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma; dos dados con botón. Primero impar: herido, +25 noches
-// y +5 dinares; par: entrenado (+1) con el arma que lleva y +10 noches (Jorge eligió el entrenamiento, no la destreza general). Segundo 4 a 6: pierde su siguiente turno; 1 a 3: no.
+// y +5 dinares; par: +10 noches y la destreza general (Jorge, 21 de noviembre; antes entrenamiento del arma). Segundo 4 a 6: pierde su siguiente turno; 1 a 3: no.
 {
   const prep = () => {
     const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
@@ -3797,18 +3797,14 @@ console.log('reglas de la casa OK');
     assert.ok(A.herido); assert.equal(A.noches, n0 + 25); assert.equal(A.dinares, d0 + 5); assert.ok(!A.extra.entrenado?.jambiya, 'impar: no entrena'); assert.ok(!(A.pierdeTurno > 0), 'con 1 a 3 no pierde el turno');
     assert.ok(A.retosHechos.includes('R54')); e.dados = null; e.colaDados = []; e.turno.principal = false; A.herido = false;
     assert.ok(!g.act(a, { t: 'reto', id: 'R54' }).ok, 'una sola vez'); }
+  // Jorge (21 de noviembre): con par gana la destreza general, en todas las armas (antes, entrenamiento de un arma); llega al terminar el turno
   { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); const n0 = A.noches; forzar(e, 4, 5);
     assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok);
-    assert.ok(!A.herido); recibirDestreza(data, e, a); assert.ok(A.extra.entrenado?.cimitarra, 'queda entrenado con la cimitarra'); assert.ok(!A.destreza, 'no es la destreza general'); assert.equal(A.noches, n0 + 10); assert.equal(A.pierdeTurno, 1, 'con 4 a 6 pierde su siguiente turno'); }
-  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); darItem(e, A, 'alfanje'); (A.extra.entrenado ||= {}).cimitarra = true; forzar(e, 2, 1);
-    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.ok(!e.pend, 'solo una sin entrenar: no pregunta'); recibirDestreza(data, e, a); assert.ok(A.extra.entrenado.alfanje, 'entrena la que no tenía'); }
-  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); (A.extra.entrenado ||= {}).cimitarra = true; const n0 = A.noches; forzar(e, 2, 1);
-    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.equal(A.noches, n0 + 10, 'ya entrenado: solo las 10 noches'); }
-  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); darItem(e, A, 'jambiya'); A.extra.clienteWeb = true; forzar(e, 4, 2);
-    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok);
-    assert.ok(e.pend && e.pend.opciones.map((o) => o.id).sort().join() === 'cimitarra,jambiya', 'con varias armas sin entrenar, elige cuál'); assert.ok(!e.dados, 'antes de los dados');
-    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'jambiya' }).ok);
-    assert.ok(e.dados && !e.dados.lanzado, 'luego tira con su botón'); recibirDestreza(data, e, a); assert.ok(A.extra.entrenado?.jambiya && !A.extra.entrenado?.cimitarra, 'entrena la elegida'); }
+    assert.ok(!A.herido); recibirDestreza(data, e, a); assert.ok(A.destreza, 'destreza general'); assert.ok(!A.extra.entrenado?.cimitarra, 'no es un entrenamiento de arma'); assert.equal(A.noches, n0 + 10); assert.equal(A.pierdeTurno, 1, 'con 4 a 6 pierde su siguiente turno'); }
+  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); darItem(e, A, 'alfanje'); A.extra.clienteWeb = true; forzar(e, 2, 1);
+    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.ok(!e.pend, 'ya no se elige arma'); }
+  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); A.destreza = true; const n0 = A.noches; forzar(e, 2, 1);
+    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.equal(A.noches, n0 + 10, 'ya con destreza: solo las 10 noches'); }
 }
 
 // R55 «Investigar el fuego griego» (Jorge, 19 de noviembre): en Estambul, con árabe y persa; como las clases de idiomas (5 dinares,
@@ -4184,7 +4180,7 @@ console.log('reglas de la casa OK');
     const e = g.e, [z] = g.ids, Z = e.jugadores[z];
     // R25 (destreza general): para ellos es destreza solo con la jambiya
     Z.ciudad = 'Estambul'; Z.dinares = 200; turnoDe(e, z, 'Estambul'); e.turno.fase = 'acciones'; Z.extra.destrezaJambiya = false;   // (Zein ya la trae de inicio)
-    { const r = g.act(z, { t: 'reto', id: 'R25' }); assert.ok(r.ok, r.error); recibirDestreza(data, e, z); }
+    { const r = g.act(z, { t: 'reto', id: 'R25' }); assert.ok(r.ok, r.error); e.jugadores[z].turnos++; recibirDestreza(data, e, z); e.jugadores[z].pierdeTurno = 0; }
     assert.ok(!Z.destreza, `${pj}: no gana la destreza general`); assert.ok(Z.extra.destrezaJambiya, `${pj}: solo con la jambiya`);
     Z.mano = Z.mano.filter((c) => !['cimitarra', 'alfanje', 'arco', 'jambiya'].includes(c.ref)); darItem(e, Z, 'cimitarra'); Z.ciudad = 'Damasco';
     assert.ok(!perfil(data, e, z).destreza, `${pj}: con cimitarra pelea sin destreza`);
@@ -4202,7 +4198,7 @@ console.log('reglas de la casa OK');
   // los demás sí ganan la destreza general
   const g = partida(['7', '4']); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a]; A.ciudad = 'Estambul'; A.dinares = 200; A.destreza = false; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
-  assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); recibirDestreza(data, e, a); assert.ok(A.destreza);
+  assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); A.turnos++; recibirDestreza(data, e, a); A.pierdeTurno = 0; assert.ok(A.destreza);
 }
 // Zein no puede hacer R26 «Acostarse con Zein en la Giralda» (Jorge, 19 de noviembre)
 {
@@ -4821,7 +4817,10 @@ console.log('reglas de la casa OK');
   assert.ok(e.turno?.pid !== a || !A.destreza, 'durante el turno todavía no la tiene');
   assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'ok' && /logró el reto R25/.test(x.texto)), 'alerta verde');
   if (e.turno?.pid === a) g.act(a, { t: 'terminarTurno' });
-  assert.ok(A.destreza, 'al terminar el turno ya la tiene');
+  assert.ok(!A.destreza, 'al terminar el primer turno aún no (Jorge, 21 de noviembre: tarda 2)');
+  const t0 = A.turnos; avanzarHasta(g, () => A.destreza || A.turnos > t0 + 1);
+  assert.ok(A.destreza && A.turnos === t0 + 1, 'al terminar el segundo turno ya la tiene');
+  assert.ok(e.turno?.pid !== a, 'el segundo turno lo pasa entrenando');
   assert.ok(e.log.some((l) => /Terminó tu turno de entrenamiento: ya tienes destreza/.test(l.texto)), 'con su aviso');
 }
 // Jorge (19 de noviembre): los libros de transcribir se venden también en Samarcanda, Andalucía y Estambul (mitad de su valor, menos el impuesto)
@@ -4994,7 +4993,7 @@ console.log('reglas de la casa OK');
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; A.dinares = 80; e.turno.fase = 'acciones'; const n0 = A.noches;
-  assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.equal(A.noches, n0, 'R25 ya no da noches');
+  assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.equal(A.noches, n0 + 60, 'R25 da 60 noches (Jorge, 21 de noviembre)');
   turnoDe(e, a, 'Magreb'); A.ciudad = 'Magreb'; e.turno.fase = 'acciones'; e.mansaGenerosa = null; const n1 = A.noches;
   assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok); assert.equal(A.noches - n1, 20, 'R44: 20 noches');
 }
@@ -5181,11 +5180,11 @@ console.log('destreza con arma entrenada OK');
   while (e.pend && !e.pend.para.includes(a)) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto || e.pend.opciones[0].id });
   const huye = e.pend.opciones.find((o) => o.id !== 'quedar' && !o.id.startsWith('burro:'));
   assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: huye.id }).ok); assert.equal(A.ciudad, huye.id);
-  assert.deepEqual(A.extra.huidaRonda, { ronda: e.ronda, n: 1 }, 'queda anotada para su turno');
+  assert.equal(A.extra.huidasPend, 1, 'queda anotada para su siguiente turno');
   limpiar(e); e.turno = null; e.orden = [a, ...e.orden.filter((x) => x !== a)]; BASE.HOOK.siguienteTurno(data, e);
   assert.equal(e.turno?.pid, a);
   assert.equal(e.turno.huidas, 1); assert.equal(BASE.tramosMax(data, e.turno, A), 1, 'solo un viaje más');
-  assert.ok(!A.extra.huidaRonda, 'se consume al empezar su turno');
+  assert.ok(!A.extra.huidasPend, 'se consume al empezar su turno');
   // en su propio turno (p. ej. los fantasmas de Damasco): un viaje y ya no puede otro
   const h = partida(['4', '7']); h.act(h.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(h.iniciar().ok);
   const f = h.e, [b] = h.ids, B = f.jugadores[b];
@@ -5194,4 +5193,18 @@ console.log('destreza con arma entrenada OK');
   assert.ok(h.act(b, { t: 'viajar', destino: 'Aleppo' }).ok); limpiar(f);
   assert.match(h.act(b, { t: 'viajar', destino: 'Damasco' }).error || '', /la huida cuenta como uno de tus 2 viajes/);
 }
+  // rechazar R1 (te vas en burro a Basra) y la Cortina de humo también cuentan (Jorge, 21 de noviembre)
+  { const k = partida(['4', '7']); k.act(k.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(k.iniciar().ok);
+    const f2 = k.e, [c, dd] = k.ids, C = f2.jugadores[c], DD = f2.jugadores[dd];
+    C.ciudad = 'Bagdad'; C.dinares = 100; C.mano = []; turnoDe(f2, c, 'Bagdad'); f2.turno.fase = 'acciones';
+    assert.ok(k.act(c, { t: 'reto', id: 'R1' }).ok); assert.ok(f2.pend?.titulo?.startsWith('R1'), 'pregunta de R1'); {
+      assert.ok(k.act(c, { t: 'decidir', id: f2.pend.id, opcion: 'no' }).ok); assert.equal(C.ciudad, 'Basra'); assert.equal(f2.turno.huidas, 1, 'rechazar R1 cuenta como viaje'); }
+    // cortina de humo: el atacado huye fuera de su turno y le cuenta en su siguiente turno
+    const lim = (x) => { x.dados = null; x.colaDados = []; x.pend = null; x.colaPend = []; x.pelea = null; };
+    lim(f2); turnoDe(f2, c, 'Damasco'); f2.turno.fase = 'acciones'; f2.ronda = Math.max(f2.ronda, 3); C.ciudad = 'Damasco'; DD.ciudad = 'Damasco'; DD.mano = []; BASE.darObjeto(data, f2, dd, 'OB25');
+    assert.ok(k.act(c, { t: 'atacar', tipo: 'duelo', objetivo: dd }).ok);
+    for (let n = 0; n < 10 && f2.pend && !f2.pend.opciones?.some((o) => o.id === 'cortina'); n++) k.act(f2.pend.para[0], { t: 'decidir', id: f2.pend.id, opcion: f2.pend.porDefecto || f2.pend.opciones[0].id });
+    assert.ok(f2.pend?.opciones?.some((o) => o.id === 'cortina'), 'puede usar la cortina');
+    assert.ok(k.act(dd, { t: 'decidir', id: f2.pend.id, opcion: 'cortina' }).ok);
+    assert.notEqual(DD.ciudad, 'Damasco'); assert.equal(DD.extra.huidasPend, 1, 'la cortina cuenta como viaje de su siguiente turno'); }
 console.log('huidas cuentan como viaje OK');

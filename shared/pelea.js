@@ -4,7 +4,7 @@
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE, huidaCuentaViaje } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
@@ -391,7 +391,8 @@ function elegirDefensa(data, e, resp) {
     else {
       const destino = vecinaBarata(data, d.ciudad);
       log(e, `${d.nombre} huye entre una cortina de humo hacia ${destino}.`, { pid: P.def });
-      d.ciudad = destino; return terminarPelea(data, e, { cancelada: true });
+      d.ciudad = destino; huidaCuentaViaje(e, P.def);   // la huida cuenta como viaje de su siguiente turno (Jorge, 21 de noviembre)
+      return terminarPelea(data, e, { cancelada: true });
     }
   }
   if (o === 'rechazar' && P.tipo === 'duelo' && puedePagarRechazo(data, d, P.pedirNur)) {

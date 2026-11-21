@@ -145,13 +145,15 @@ export function robar(e, mazo) {
 
 // ---------------------------------------------------------------- dados sobre la mesa (cola)
 // Los resultados se calculan y APLICAN al instante en el servidor; los dados son la vista pública del resultado (modal sincronizado).
-export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null, boton = null, alerta = false }) {
+export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], npc = false, titulo = null, boton = null, alerta = false, sinRegistro = 0 }) {
   const valores = grupos.flatMap((g) => g.valores);
   // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
   // Nadie los lanza por él: a los 60 segundos el banco puede sacarlo. (Bots y pruebas, sin cliente web, siguen como antes.)
   const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
   const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo, ...(boton ? { boton } : {}), ...(alerta ? { alerta: true } : {}) };
-  for (const r of resumen) if (r) log(e, r, { pid: por });
+  // sinRegistro { desde, n }: líneas del resumen que ya están en el registro (el desenlace de un reto) y no se repiten
+  const saltar = new Set(); if (sinRegistro) for (let i = sinRegistro.desde; i < sinRegistro.desde + sinRegistro.n; i++) saltar.add(i);
+  resumen.forEach((r, i) => { if (r && !saltar.has(i)) log(e, r, { pid: por, deDados: true }); });   // deDados: ya se vio en la ventana de los dados
   if (e.opciones?.rapido) return d;
   if (!e.dados) e.dados = d; else (e.colaDados ||= []).push(d);
   return d;
@@ -258,12 +260,12 @@ export function devolverObjeto(data, e, id) {
 // 1 dinar en cualquier mercado, recupera su estado y ese mercado la revende a 7 (en Basra, a 6).
 export const tramosMax = (data, t, j) => { const m = t.maxTramos || data.config.maxTramosPorTurno; return Math.max(0, (j && tieneItem(j, 'alforja') ? Math.min(1, m) : m) - (t.huidas || 0)); };   // con alforja, una sola caravana por turno; cada huida obligada resta un viaje
 // Huidas (Jorge, 21 de noviembre): cuando una carta te obliga a huir de una ciudad, esa huida cuenta como uno de los 2 viajes de tu turno,
-// aunque te hayan obligado. Si pasa en tu turno, te queda un viaje menos ya; si pasa al inicio de la ronda (eventos e históricos), te queda
-// un viaje menos en tu turno de esa ronda.
+// aunque te hayan obligado. Si pasa en tu turno, te queda un viaje menos ya; si pasa fuera de tu turno (eventos e históricos al inicio de
+// la ronda, o salir juntos del Jorasán), te queda un viaje menos en tu siguiente turno. También rechazar R1 y huir de los ghul.
 export function huidaCuentaViaje(e, pid) {
   const j = e.jugadores[pid]; if (!j) return;
   if (e.turno && e.turno.pid === pid) e.turno.huidas = (e.turno.huidas || 0) + 1;
-  else { const h = j.extra.huidaRonda; j.extra.huidaRonda = { ronda: e.ronda, n: (h && h.ronda === e.ronda ? h.n : 0) + 1 }; }
+  else j.extra.huidasPend = (j.extra.huidasPend || 0) + 1;
 }
 export const MSJ_HUIDA_TRAMO = 'Ya huiste de una ciudad este turno: la huida cuenta como uno de tus 2 viajes.';
 export const MSJ_ALFORJA_TRAMO = 'Con alforja solo te mueves una vez por turno.';

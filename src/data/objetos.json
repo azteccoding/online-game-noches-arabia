@@ -378,7 +378,7 @@
    "valor": 12,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Huyes de un asesinato o duelo sin pelear: terminas el turno del atacante en la ciudad vecina más barata (sin tarifa).",
+   "efecto": "Huyes de un asesinato o duelo sin pelear: terminas el turno del atacante en la ciudad vecina más barata (sin tarifa). Esa huida cuenta como uno de los 2 viajes de tu siguiente turno.",
    "sirvePara": "10.3 opción 3, duelo",
    "seConsigueEn": "Basra, Isfahán",
    "humor": "Desapareces con elegancia y mucha tos.",
