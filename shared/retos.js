@@ -1124,9 +1124,9 @@ T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
     if (b) ctx.say(`Bonos: ${[j.destreza && 'destreza +1', tieneItem(j, 'camello') && 'camello +1'].filter(Boolean).join(', ')} → ${r}.`);
     if (r >= 6) {
       hacer(e, pid, 'R40');
-      const id = robar(e, 'ifrit');
-      if (id) { j.mano.push({ uid: uid(e), tipo: 'ifrit', ref: id }); publicarCarta(e, cartaDatos(data, 'ifrit', id), pid, [pid]); ctx.say('Llegas a Abisinia y en sus montañas encuentras una lámpara: ganas una carta de Ifrit. Vuelves a Yemen.'); }
-      else { j.dinares += 40; ctx.say('Llegas a Abisinia, pero los genios ya se fueron: te llevas 40 dinares. Vuelves a Yemen.'); }
+      // Jorge (21 de noviembre): la carta de Ifrit no se guarda: el genio te ofrece 3 deseos al azar y pides uno en ese momento.
+      ctx.say('Llegas a Abisinia y en sus montañas encuentras una lámpara: el genio te concede un deseo. Vuelves a Yemen.');
+      HOOK.genioFuera(data, e, pid, { titulo: 'La lámpara de Abisinia', texto: 'Frotas la lámpara que encontraste en las montañas de Abisinia y sale un genio: te concede uno de estos 3 deseos.' });
     } else if (r >= 4) ctx.say('Las corrientes te regresan a Moca: pierdes el pasaje.');
     else { j.herido = true; ctx.say('Tormenta en el estrecho: pierdes el pasaje y quedas herido.'); }
     { const m = viajePorMar(e, pid, 'en el cruce del estrecho'); if (m) ctx.say(m); }   // escorbuto (Jorge, 19 de noviembre)

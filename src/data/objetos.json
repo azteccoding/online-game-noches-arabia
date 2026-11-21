@@ -363,7 +363,7 @@
    "valor": 35,
    "duracion": "1 vez",
    "momento": "Tu turno",
-   "efecto": "Un genio menor concede 30 dinares y 15 noches. Se puede vender al banco por 40 dinares como un deseo de ifrit (8.1). No sirve para pedir muertes ni Asesinos.",
+   "efecto": "Un genio menor concede 30 dinares y 15 noches. Se puede vender al banco por 40 dinares (8.1). No sirve para pedir muertes ni Asesinos.",
    "sirvePara": "R34",
    "seConsigueEn": "Solo botín (y R34)",
    "humor": "Pequeño genio, gran factura.",
@@ -393,8 +393,8 @@
    "valor": 25,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Devuelve al jugador que la lanzó una maldición de ifrit (deseo J) o un efecto de mala suerte de carta de reto.",
-   "sirvePara": "Ifrit J, R34",
+   "efecto": "Devuelve al jugador que la lanzó una maldición de ifrit (deseo d: quitarte 50 noches) o un efecto de mala suerte de carta de reto.",
+   "sirvePara": "Ifrit d, R34",
    "seConsigueEn": "Isfahán",
    "humor": "Refleja la maldición y devuelve la mirada.",
    "arte": "ob-magico",
@@ -971,135 +971,75 @@
  ],
  "ifrit": {
   "deseos": {
-   "A": "Viaje instantáneo (mismo turno, gratis) a cualquier ciudad del tablero, incluida Samarcanda y la casilla del Jorasán",
-   "B": "Contactar a los Asesinos (comodín: permite el contrato sin ir a Samarcanda)",
-   "C": "60 dinares del banco",
-   "D": "60 noches del banco",
-   "E": "Entrenamiento instantáneo: destreza con armas y un arma a elegir de hasta 35 dinares (no incluye el arco: el arco se entrena aparte)",
-   "F": "Firmán del Califa extra, aunque ya no quede ninguno a la venta (si ya tienes uno, o si eres Yafar, 30 dinares)",
-   "G": "Ventaja de combate: +3 a tus dados en tus próximas 2 peleas",
-   "H": "Alfombra mágica",
-   "I": "Mapa de tesoro (elige Persia, Rumán o Mansa Musa)",
-   "J": "Maldición: un jugador a tu elección (cualquier ciudad) pierde 50 noches y pasan a ti"
+   "a": "80 dinares",
+   "b": "110 noches",
+   "c": "Alfombra mágica",
+   "d": "Un jugador a tu elección pierde 50 noches y pasan a ti",
+   "e": "+4 a tu dado en tu próxima pelea",
+   "f": "Un arma a elegir y destreza en ella (incluido el arco)"
   },
+  "huir": "Huir de los ghul: sales sin tirar dados, sin nada más, y el genio te deja en una ciudad al azar",
   "cartas": [
    {
     "id": "I1",
     "deseos": [
-     "A",
-     "C",
-     "G",
-     "J"
+     "a",
+     "b",
+     "c"
     ],
     "arte": "if"
    },
    {
     "id": "I2",
     "deseos": [
-     "B",
-     "D",
-     "E",
-     "H"
+     "d",
+     "e",
+     "f"
     ],
     "arte": "if"
    },
    {
     "id": "I3",
     "deseos": [
-     "A",
-     "F",
-     "I",
-     "C"
+     "a",
+     "d",
+     "e"
     ],
     "arte": "if"
    },
    {
     "id": "I4",
     "deseos": [
-     "D",
-     "G",
-     "J",
-     "E"
+     "b",
+     "c",
+     "f"
     ],
     "arte": "if"
    },
    {
     "id": "I5",
     "deseos": [
-     "B",
-     "H",
-     "C",
-     "I"
+     "b",
+     "d",
+     "f"
     ],
     "arte": "if"
    },
    {
     "id": "I6",
     "deseos": [
-     "A",
-     "E",
-     "F",
-     "D"
+     "a",
+     "c",
+     "e"
     ],
     "arte": "if"
    },
    {
     "id": "I7",
     "deseos": [
-     "C",
-     "G",
-     "J",
-     "B"
-    ],
-    "arte": "if"
-   },
-   {
-    "id": "I8",
-    "deseos": [
-     "D",
-     "H",
-     "I",
-     "F"
-    ],
-    "arte": "if"
-   },
-   {
-    "id": "I9",
-    "deseos": [
-     "A",
-     "B",
-     "E",
-     "J"
-    ],
-    "arte": "if"
-   },
-   {
-    "id": "I10",
-    "deseos": [
-     "C",
-     "F",
-     "G",
-     "H"
-    ],
-    "arte": "if"
-   },
-   {
-    "id": "I11",
-    "deseos": [
-     "D",
-     "I",
-     "J",
-     "A"
-    ],
-    "arte": "if"
-   },
-   {
-    "id": "I12",
-    "deseos": [
-     "B",
-     "E",
-     "H",
-     "G"
+     "a",
+     "c",
+     "f"
     ],
     "arte": "if"
    }

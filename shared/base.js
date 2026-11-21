@@ -40,19 +40,19 @@ export const npcId = (e) => e.orden.find((id) => e.jugadores[id].npc) || null;
 export function log(e, texto, extra = {}) { e.logN = (e.logN || 0) + 1; e.log.push({ t: e.ahora, texto, n: e.logN, ...extra }); if (e.log.length > 300) e.log.shift(); }
 
 // ---------------------------------------------------------------- cartas (datos para dibujarlas en el cliente)
-export const MAULANA = 'Mientras la tengas, el Dado de Maulana te protege de los ghul del Jorasán.';   // Jorge (19 de noviembre)
-export function cartaDatos(data, tipo, id) {
+export const MAULANA = 'Te ayuda a escapar de los ghul.';   // Dado de Maulana (Jorge, 19 de noviembre); en renglón aparte y escueto (21 de noviembre)
+export function cartaDatos(data, tipo, id, deseos = null) {   // deseos: los 3 que el genio ofrece en línea (cartas de Ifrit)
   if (tipo === 'evento') { const c = data.eventos.eventos.find((x) => x.id === id); return { id, deck: 'evento', titulo: c.nombre, texto: c.efecto, detalle: c.detalle, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'historico') { const c = data.eventos.historicos.find((x) => x.id === id); return { id, deck: 'historico', titulo: c.nombre, texto: c.efecto, costo: c.costo, ciudades: c.ciudades, arte: c.arte, ref: c.refReglamento }; }
-  if (tipo === 'mensaje') { const c = data.mensajes.mensajes.find((x) => x.id === id); if (c.permiso) return { id, deck: 'mensaje', titulo: c.titulo, sub: c.honorifico, texto: `${c.texto} ${c.efecto} ${MAULANA}`, efecto: c.efecto, permiso: c.permiso, premio: null, plazo: null, arte: c.arte, ref: c.refReglamento };   // cartas de permiso (Jorge, 10 de noviembre)
-    return { id, deck: 'mensaje', titulo: c.de, sub: c.honorifico, texto: `${c.encargo} ${MAULANA}`, premio: c.premio, plazo: c.plazoTurnos, arte: c.arte, ref: c.refReglamento }; }
+  if (tipo === 'mensaje') { const c = data.mensajes.mensajes.find((x) => x.id === id); if (c.permiso) return { id, deck: 'mensaje', titulo: c.titulo, sub: c.honorifico, texto: `${c.texto} ${c.efecto}`, ghul: MAULANA, efecto: c.efecto, permiso: c.permiso, premio: null, plazo: null, arte: c.arte, ref: c.refReglamento };   // cartas de permiso (Jorge, 10 de noviembre)
+    return { id, deck: 'mensaje', titulo: c.de, sub: c.honorifico, texto: c.encargo, ghul: MAULANA, premio: c.premio, plazo: c.plazoTurnos, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'objeto') { const c = objDe(data, id); return { id, deck: 'objeto', titulo: c.nombre, sub: c.tipo + ' · ' + c.momento, texto: c.efecto, valor: c.valor, duracion: c.duracion, humor: c.humor, arte: c.arte, ref: '15.2' }; }
   if (tipo === 'trivia') { const c = data.trivias.trivias.find((x) => x.id === id); return { id, deck: 'trivia', titulo: 'Trivia de ' + c.ciudad, sub: c.categoria, texto: c.pregunta, opciones: c.opciones, premio: c.premio, gancho: c.gancho, ciudad: c.ciudad, arte: null, ref: '19.3' }; }
   if (tipo === 'mesa') { const c = data.trivias.deMesa.find((x) => x.id === id); return { id, deck: 'mesa', titulo: 'Trivia de ' + c.ciudad, sub: c.votacion ? 'De mesa · votación' : 'De mesa', texto: c.pregunta, premio: c.premio, gancho: c.comoSeComprueba, ciudad: c.ciudad, arte: null, ref: '19.4' }; }
   if (tipo === 'cuento') { const c = data.cuentos.cuentos.find((x) => x.id === id); return { id, deck: 'cuento', titulo: c.titulo, sub: c.sub, texto: c.texto, premio: c.premio, premioEtiqueta: 'Quien la lea en voz alta recibe ' + c.premio + ' dinares', ciudad: c.clave === 'Respuestas' ? null : c.clave, arte: null, ref: c.refReglamento }; }
   if (tipo === 'personaje') { const c = pjDe(data, id); return { id, deck: 'personaje', titulo: c.nombre, sub: c.titulo, texto: c.habilidades.join(' '), limite: c.limite, stats: c.stats, statsEtiquetas: c.statsEtiquetas, cita: c.cita, arte: c.arte, ref: c.refReglamento }; }
   if (tipo === 'reto') { const c = data.retos.retos.find((x) => x.id === id); return { id, deck: 'reto', titulo: c.id + ' · ' + c.nombre, sub: c.ciudad + ' · ' + c.tipo, texto: c.resolucion, requisito: c.requisito, premio: c.premio, riesgo: c.riesgo, arte: c.arte, ref: c.refReglamento }; }
-  if (tipo === 'ifrit') { const c = data.objetos.ifrit.cartas.find((x) => x.id === id); return { id, deck: 'ifrit', titulo: 'Genio de la lámpara', sub: 'Ifrit ' + id.slice(1), texto: c.deseos.map((d) => d + '. ' + data.objetos.ifrit.deseos[d]).join('\n'), deseos: c.deseos, arte: c.arte, ref: '15.4' }; }
+  if (tipo === 'ifrit') { const c = data.objetos.ifrit.cartas.find((x) => x.id === id) || { deseos: [], arte: 'if' }, ds = deseos || c.deseos; return { id, deck: 'ifrit', titulo: 'Genio de la lámpara', sub: 'Ifrit ' + String(id).slice(1), texto: ds.map((d) => d + ') ' + data.objetos.ifrit.deseos[d]).join('\n'), deseos: ds, arte: c.arte, ref: '15.4' }; }
   if (tipo === 'item') return itemDatos(data, id);
   return null;
 }
@@ -264,17 +264,22 @@ export const LIMITE_OBJETOS = 7, ANIMALES_CARGA = ['caballo', 'burro', 'camello'
 export const tieneCarga = (j) => ANIMALES_CARGA.some((r) => j.mano.some((c) => c.tipo === 'item' && c.ref === r));
 // Jorge (10 de noviembre): Yafar NPC en difícil no tiene límite; en fácil y normal carga hasta 10 (y vende lo que sobre antes de moverse).
 export const LIMITE_NPC = 10;
-// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae garantizada la alfombra mágica (deseo H), aunque la carta no la
-// traiga; si la eliges por el velo, el velo se gasta solo. Si la carta ya trae la H, el velo no se gasta. El velo sigue sirviendo, además,
+// Cartas de Ifrit (Jorge, 21 de noviembre): solo existen seis deseos, a) a f) (objetos.json → ifrit.deseos). En la mesa hay 7 cartas
+// distintas con 3 deseos cada una; en línea, cada vez que sale una carta el genio ofrece 3 deseos al azar de los seis. Además, en el
+// Jorasán siempre se puede huir de los ghul. La carta ya no se guarda ni se vende: el deseo se pide en ese momento.
+export const DESEOS_IFRIT = ['a', 'b', 'c', 'd', 'e', 'f'];
+export function deseosAlAzar(e) { return barajar(e, DESEOS_IFRIT.slice()).slice(0, 3).sort(); }
+// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae garantizada la alfombra mágica (deseo c), aunque la carta no la
+// traiga; si la eliges por el velo, el velo se gasta solo. Si la carta ya trae la c, el velo no se gasta. El velo sigue sirviendo, además,
 // para volver a tirar ante el genio malo o el que te ignora en el Jorasán (si se gastó ahí, ya no da la alfombra).
-export const DESEO_VELO = 'H';
+export const DESEO_VELO = 'c';
 export const alfombraPorVelo = (j, card) => !!j && !!card && tieneItem(j, 'velo') && !card.deseos.includes(DESEO_VELO);
 export const deseosIfrit = (j, card) => (alfombraPorVelo(j, card) ? [...card.deseos, DESEO_VELO] : card.deseos.slice());
 export const TEXTO_DESEO_VELO = 'Por tu velo quemado: alfombra mágica (el velo se gasta)';
 export function opcionesIfrit(data, j, card) {
-  return deseosIfrit(j, card).map((d) => ({ id: d, texto: alfombraPorVelo(j, card) && d === DESEO_VELO ? `${d}. ${TEXTO_DESEO_VELO}` : d + '. ' + data.objetos.ifrit.deseos[d] }));
+  return deseosIfrit(j, card).map((d) => ({ id: d, texto: alfombraPorVelo(j, card) && d === DESEO_VELO ? `${d}) ${TEXTO_DESEO_VELO}` : d + ') ' + data.objetos.ifrit.deseos[d] }));
 }
-// Al pedir el deseo: si la H vino por el velo, el velo se gasta.
+// Al pedir el deseo: si la c vino por el velo, el velo se gasta.
 export function gastarVeloSiAlfombra(e, j, card, letra) {
   if (letra !== DESEO_VELO || !alfombraPorVelo(j, card)) return;
   quitarPrimero(j, 'item', 'velo');

@@ -23,7 +23,7 @@
    "tipo": "evento",
    "nombre": "Tormenta de arena",
    "detalle": "Tormenta de arena",
-   "efecto": "Esta ronda no salen caravanas desde Bagdad. Solo se puede viajar con objeto de transporte, deseo de ifrit o caravanas que no salgan de Bagdad",
+   "efecto": "Esta ronda no salen caravanas desde Bagdad. Solo se puede viajar con objeto de transporte o caravanas que no salgan de Bagdad",
    "arte": "ev",
    "refReglamento": "17.1"
   },

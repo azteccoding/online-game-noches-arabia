@@ -87,7 +87,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duel
     }
   }
   if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
-  if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
+  if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
   const ob = objetoDeCombate(data, e, pid, rol, { contraNPC, duelo });
   let resta = 0;
   if (ob) {
@@ -503,7 +503,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (j.herido) { partes.push('herido −1'); total -= 1; }
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
   if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; usarKanmakan(e, j); }
-  if (j.ventajaCombate > 0) { total += 3; j.ventajaCombate--; partes.push('deseo de ifrit +3'); }
+  if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
   if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1'); total += 1; }
   return { total, resta, partes };
 }

@@ -65,6 +65,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
       <div className="c-pill"><span>{et}</span><span className="ar">{ar}</span></div>
       <div className="c-cuerpo">
         <p className="c-texto">{datos.texto}</p>
+        {datos.ghul && <p className="c-nota"><i>{datos.ghul}</i></p>}   {/* cartas de sheij: renglón aparte (Jorge, 21 de noviembre) */}
         {datos.limite && <p className="c-nota"><b>Límite:</b> {datos.limite}</p>}
         {datos.costo && <p className="c-nota"><b>Costo:</b> {datos.costo}</p>}
         {datos.deck === 'cuento' && <p className="c-nota c-premio">{datos.premioEtiqueta}.</p>}

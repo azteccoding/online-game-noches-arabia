@@ -430,7 +430,6 @@ export function vender(data, e, pid, a) {
     log(e, `${j.nombre} vende «${texto}» por ${precio - imp} dinares.`, { pid });
     return ok();
   }
-  if (c.tipo === 'ifrit') { quitarCarta(j, c.uid); j.dinares += 40; log(e, `${j.nombre} vende un deseo de ifrit al banco por 40 dinares.`, { pid }); return ok(); }
   if (c.tipo === 'especial') return err('Esa carta no se vende al banco.');
   if (c.tipo !== 'item') return err('No se puede vender.');
   if (esLibro(c)) {
@@ -645,7 +644,6 @@ export function estimarVenta(data, e, pid, c) {
       if (reventaDe(data, c.ref, ciudad) != null) { p = reventaDe(data, c.ref, ciudad); sin = true; } else if (c.ref === 'OB41') { p = 20; sin = true; } else if (c.ref === 'OB24') { p = 40; sin = true; } else if (MITAD_VENTA.includes(c.ref)) p = Math.floor(o.valor / 2);
       return p > 0 ? p - (sin ? 0 : impuesto(data, e, ciudad, p)) : 0;   // 0: sin precio, se regala
     }
-    if (c.tipo === 'ifrit') return 40;
     if (c.tipo !== 'item') return null;
     if (esLibro(c)) return ciudad === 'Bagdad' || libroTranscritoAqui(c, ciudad) ? precioLibro(data, e, c, ciudad) : null;
     if (c.ref === 'vino') { const p = valorVino(c, e); return p - impuesto(data, e, ciudad, p); }
@@ -695,7 +693,6 @@ export function dondeVender(data, e, pid, c) {
     if (o.reventa) { const [mc, mp] = Object.entries(o.reventa).sort((x, y) => y[1] - x[1])[0]; return `Mejor venta: ${mc} (${mp} dinares, sin impuesto). También: ${lista(o.reventa)}; en las demás ciudades, ${o.valor} menos el impuesto.`; }
     return `En cualquier ciudad por ${o.valor} dinares, menos el impuesto (mejor en Bagdad, sin impuesto).`;
   }
-  if (c.tipo === 'ifrit') return 'El banco paga 40 dinares en cualquier ciudad.';
   if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
   if (c.tipo !== 'item') return null;
   if (esLibro(c) && c.extra?.transcrito) return MSJ_TRANSCRITOS;
@@ -819,7 +816,6 @@ export function disponibles(data, e, pid) {
       else if (c.ref === 'caballoMongol') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Caballo mongol' + vida, bloqueado: `El caballo mongol solo viaja entre ${ZONA_MONGOL.slice(0, -1).join(', ')} y ${ZONA_MONGOL.at(-1)}.` });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
-    if (c.tipo === 'ifrit') { const card = data.objetos.ifrit.cartas.find((q) => q.id === c.ref); r.push({ k: 'usar', uid: c.uid, titulo: 'Usar carta de Ifrit', ifrit: deseosIfrit(j, card), ifritVelo: alfombraPorVelo(j, card) ? DESEO_VELO : null }); }
   }
   return r;
 }
@@ -903,7 +899,7 @@ export function usar(data, e, pid, a) {
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   const c = j.mano.find((x) => x.uid === a.uid);
   if (!c) return err('No tienes esa carta.');
-  if (c.tipo === 'ifrit') return HOOK.usarIfrit(data, e, pid, c, a);
+  if (c.tipo === 'ifrit') return err('Las cartas de Ifrit ya no se guardan: el deseo se pide cuando sale la carta.');   // Jorge (21 de noviembre)
   if (c.tipo === 'item' && TRANSPORTE[c.ref]) {
     if (t.ccActual) return err('Resuelve primero la Carta de Trivias.');
     if (t.tramos >= tramosMax(data, t, j)) return err(tieneItem(j, 'alforja') ? MSJ_ALFORJA_TRAMO : 'Ya no te quedan tramos de viaje este turno.');

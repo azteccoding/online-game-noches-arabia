@@ -1041,7 +1041,7 @@ for (let k = 0; k < 6; k++) {
   A.ciudad = 'Bagdad'; A.mano = A.mano.filter((c) => c.ref !== 'burro'); assert.ok(!g.act(a, { t: 'comprar', ref: 'burro' }).ok, 'en Bagdad no se venden');
 }
 
-// R40 Cruzar a Abisinia (Yemen): pasaje 15; herido no puede; con 6+ carta de Ifrit
+// R40 Cruzar a Abisinia (Yemen): pasaje 15; herido no puede; con 6+ el genio concede un deseo en ese momento (la carta no se guarda)
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
@@ -1050,7 +1050,13 @@ for (let k = 0; k < 6; k++) {
   A.dinares = 50; A.herido = true; r = g.act(a, { t: 'reto', id: 'R40' }); assert.ok(!r.ok && /Herido/.test(r.error));
   A.herido = false; A.destreza = false; A.mano = A.mano.filter((c) => c.ref !== 'camello'); forzar(e, 6);
   assert.ok(g.act(a, { t: 'reto', id: 'R40' }).ok); assert.equal(A.dinares, 35);
-  assert.ok(A.mano.some((c) => c.tipo === 'ifrit') || A.dinares === 75, 'con 6: carta de Ifrit (o 40 dinares)'); assert.ok(A.retosHechos.includes('R40'));
+  assert.ok(!A.mano.some((c) => c.tipo === 'ifrit'), 'la carta de Ifrit ya no se guarda'); assert.ok(A.retosHechos.includes('R40'));
+  const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'La lámpara de Abisinia');
+  assert.ok(p && p.opciones.length === 3 && p.opciones.every((o) => ['a', 'b', 'c', 'd', 'e', 'f'].includes(o.id)), 'con 6: 3 deseos al azar, sin huir');
+  e.dados = null; e.colaDados = []; e.pend = p; e.colaPend = [];
+  const op = p.opciones[0].id, d1 = A.dinares, n1 = A.noches;
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: op }).ok);
+  if (op === 'a') assert.equal(A.dinares, d1 + 80); if (op === 'b') assert.equal(A.noches, Math.min(1001, n1 + 110));
 }
 
 // R41 El ídolo de Toledo: uno por partida; destruirlo da 100 noches (Jorge, 10 de noviembre: antes 150)
@@ -1252,19 +1258,28 @@ for (let k = 0; k < 6; k++) {
   assert.ok(!e.jugadores[c].mano.some((x) => x.ref === 'mapa'), 'el asesino no recibe el mapa');
 }
 
-// Deseo F de ifrit (Jorge): Firmán extra aunque no quede ninguno a la venta; si ya tienes uno o eres Yafar, 30 dinares;
-// si su dueño muere, ese Firmán extra se pierde (no vuelve a la venta)
+// Deseos de ifrit (Jorge, 21 de noviembre): solo seis, a) a f); 7 cartas impresas de 3 deseos; en línea, 3 al azar
 {
   const { deseo } = await import('../shared/tesoros.js');
-  const g = partida(['4', '7', 'B']); assert.ok(g.iniciar().ok);
-  const e = g.e, [a, b, y] = g.ids, A = e.jugadores[a], Y = e.jugadores[y];
-  e.firmanes = 0;
-  let d0 = A.dinares; deseo(data, e, a, 'F', {});
-  assert.ok(tieneEsp(A, 'F1'), 'el deseo da Firmán aunque no quede a la venta'); assert.equal(A.dinares, d0); assert.equal(e.firmanes, 0);
-  d0 = A.dinares; deseo(data, e, a, 'F', {}); assert.equal(A.dinares, d0 + 30, 'si ya tienes uno, 30 dinares');
-  d0 = Y.dinares; deseo(data, e, y, 'F', {}); assert.equal(Y.dinares, d0 + 30, 'Yafar no lo recibe: 30 dinares');
-  eliminar(data, e, a, { por: b, causa: 'prueba' });
-  assert.equal(e.firmanes, 0, 'el Firmán extra se pierde al morir su dueño'); assert.ok(!tieneEsp(e.jugadores[b], 'F1'));
+  const { deseosAlAzar, DESEOS_IFRIT } = BASE;
+  assert.deepEqual(Object.keys(data.objetos.ifrit.deseos), ['a', 'b', 'c', 'd', 'e', 'f']); assert.deepEqual(DESEOS_IFRIT, ['a', 'b', 'c', 'd', 'e', 'f']);
+  assert.equal(data.objetos.ifrit.cartas.length, 7, '7 cartas impresas');
+  const combos = new Set(data.objetos.ifrit.cartas.map((c) => c.deseos.join('')));
+  assert.equal(combos.size, 7, 'todas distintas'); assert.ok(data.objetos.ifrit.cartas.every((c) => c.deseos.length === 3 && new Set(c.deseos).size === 3));
+  const cuenta = {}; for (const c of data.objetos.ifrit.cartas) for (const d of c.deseos) cuenta[d] = (cuenta[d] || 0) + 1;
+  assert.ok(Object.values(cuenta).every((n) => n === 3 || n === 4), 'cada deseo sale 3 o 4 veces');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (let k = 0; k < 30; k++) { const ds = deseosAlAzar(e); assert.equal(ds.length, 3); assert.equal(new Set(ds).size, 3); assert.ok(ds.every((d) => DESEOS_IFRIT.includes(d))); }
+  let d0 = A.dinares; deseo(data, e, a, 'a', {}); assert.equal(A.dinares, d0 + 80, 'a) 80 dinares');
+  A.noches = 100; deseo(data, e, a, 'b', {}); assert.equal(A.noches, 210, 'b) 110 noches');
+  deseo(data, e, a, 'c', {}); assert.ok(tieneItem(A, 'alfombra'), 'c) alfombra mágica');
+  e.pend = null; e.colaPend = []; B.noches = 300; A.noches = 100; deseo(data, e, a, 'd', {});
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok); assert.equal(B.noches, 250); assert.equal(A.noches, 150, 'd) 50 noches pasan a ti');
+  A.ventajaCombate = 0; deseo(data, e, a, 'e', {}); assert.equal(A.ventajaCombate, 1, 'e) +4 en la próxima pelea');
+  e.pend = null; e.colaPend = []; A.mano = A.mano.filter((c) => c.ref !== 'arco'); deseo(data, e, a, 'f', {});
+  assert.deepEqual(e.pend.opciones.map((o) => o.id), ['alfanje', 'cimitarra', 'jambiya', 'arco'], 'f) incluye el arco');
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'arco' }).ok); assert.ok(tieneItem(A, 'arco') && A.extra.entrenado?.arco, 'f) arco y destreza con él');
 }
 
 // Sala (Jorge, 7 de noviembre): «Esperar a más jugadores» se marca solo con un jugador listo y detiene la cuenta; solo el banco lo desmarca;
@@ -2417,9 +2432,6 @@ for (let k = 0; k < 6; k++) {
     if (A.dinares === d0 + 20) listo = true; else assert.equal(A.dinares, d0, 'si no sale, no cobra');
   }
   assert.ok(listo, 'se consigue el mapa por R9 y se cobran los 20 dinares');
-  // el deseo de ifrit también lo ofrece
-  const { cartaDatos } = await import('../shared/engine.js'); void cartaDatos;
-  assert.match(data.objetos.ifrit.deseos.I, /Mansa Musa/);
 }
 
 // Jorge (10 de noviembre): brújula = 1 intento extra; astrolabio = 2 intentos extra («una brújula con esteroides»); con los dos vale
@@ -2821,14 +2833,15 @@ for (let k = 0; k < 6; k++) {
     const pend = dadosPendientes(e);
     assert.ok(pend.size >= 3, 'dos dados de rumbo (uno cada quien), el del genio y los de los ghul');
     for (const [q, v] of [[a, v0], [b, v0b]]) { const vf = vistaCongelada(v, vistaDe(e, q), pend); assert.equal(JSON.stringify(vf.mano), JSON.stringify(v.mano), 'nada se ve antes de tirar'); }
-    // cada uno decide su genio por su cuenta (como solo): A guarda la carta y B pide 60 dinares al momento
+    // cada uno decide su genio por su cuenta (como solo): A huye de los ghul y B pide un deseo
     const pa = e.pend?.para[0] === a ? e.pend : (e.colaPend || []).find((p) => p.para[0] === a);
     assert.ok(pa && pa.titulo === 'Genio de la lámpara', 'A recibe su genio'); assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && p.para[0] === b && p.titulo === 'Genio de la lámpara'), 'y B el suyo');
     const dB = B.dinares;
-    for (let k = 0; k < 4 && e.pend; k++) { const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: p.para[0] === a ? 'guardar' : (p.opciones.find((o) => o.id === 'C') ? 'C' : 'guardar') }); }
-    assert.equal(A.mano.filter((x) => x.tipo === 'ifrit').length, 1, 'A guardó su carta de Ifrit');
-    assert.ok(B.mano.some((x) => x.tipo === 'ifrit') || B.dinares >= dB + 60 || B.eliminado, 'B pidió su deseo o guardó la suya');
-    assert.ok(A.perdido === B.perdido, 'los ghul les tocan a los dos por igual');
+    assert.ok(pa.opciones.length === 4 && pa.opciones.at(-1).id === 'evitar', '3 deseos y huir de los ghul');
+    for (let k = 0; k < 6 && e.pend; k++) { const p = e.pend; g.act(p.para[0], { t: 'decidir', id: p.id, opcion: p.titulo !== 'Genio de la lámpara' ? p.opciones[0].id : p.para[0] === a ? 'evitar' : (p.opciones.find((o) => o.id === 'a') ? 'a' : 'evitar') }); }
+    assert.ok(!A.mano.some((x) => x.tipo === 'ifrit') && !B.mano.some((x) => x.tipo === 'ifrit'), 'nadie guarda la carta');
+    assert.ok(!A.perdido && !A.eliminado, 'A huyó de los ghul'); void dB;
+    assert.ok(B.eliminado || !B.perdido && (B.ciudad === 'Basra' || B.dinares === dB), 'B: si se salva de los ghul, a Basra');
     assert.equal(B.extra.salioJuntosRonda, e.ronda, 'cuenta como el intento de B en esta ronda');
     turnoDe(e, b, 'Jorasán'); e.turno.fase = 'acciones';
     if (B.perdido) assert.match(g.act(b, { t: 'tesoro', sub: 'salir' }).error || '', /Ya intentaste salir esta ronda/);
@@ -4371,7 +4384,7 @@ console.log('reglas de la casa OK');
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['arco', 'flechas', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref));
   darItem(e, A, 'alfanje'); while (nCarga(A) < (LIMITE_OBJETOS ?? 7)) darItem(e, A, 'citricos');
-  A.destreza = true; const antes = nCarga(A), b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
+  A.destreza = true; (A.extra.entrenado ||= {}).alfanje = true; const antes = nCarga(A), b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;   // ya entrenado: la destreza del genio no suma otra vez
   CONT['tes.E'](data, e, {}, { pid: a, opcion: 'alfanje' });
   assert.equal(A.mano.filter((c) => c.ref === 'alfanje').length, 2, 'recibe el alfanje aunque ya tenía uno y aunque iba cargado');
   assert.equal(nCarga(A), antes + 1, 'la copia pesa');
@@ -4558,27 +4571,18 @@ console.log('reglas de la casa OK');
   }
   function responder(e, pid, p, opcion) { const { responderPend } = BASE; return !!responderPend(data, e, pid, { id: p.id, opcion }).ok; }
 }
-// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae la alfombra mágica (H); elegirla así gasta el velo
+// Jorge (19 de noviembre): con el velo quemado, toda carta de Ifrit trae la alfombra mágica (c); elegirla así gasta el velo
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
-  turnoDe(e, a, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
-  darItem(e, A, 'velo'); A.mano.push({ uid: 'i1', tipo: 'ifrit', ref: 'I1' }, { uid: 'i2', tipo: 'ifrit', ref: 'I2' });
-  const usos = (vistaDe(e, a).acciones || []).concat(vistaDe(e, a).accionesMano || []);
-  const u1 = JSON.stringify(vistaDe(e, a)).match(/"uid":"i1"[^}]*"ifrit":\[[^\]]*\][^}]*/)?.[0] || '';
-  assert.ok(/"ifrit":\["A","C","G","J","H"\]/.test(u1) && /"ifritVelo":"H"/.test(u1), 'I1 (sin H) ofrece la H por el velo'); void usos;
-  assert.ok(g.act(a, { t: 'usar', uid: 'i1', deseo: 'H' }).ok);
-  assert.ok(tieneItem(A, 'alfombra'), 'recibe la alfombra'); assert.ok(!tieneItem(A, 'velo'), 'el velo se gasta');
-  // I2 ya trae la H: sin velo sigue igual; con velo, no se gasta
-  darItem(e, A, 'velo'); A.mano = A.mano.filter((c) => c.ref !== 'alfombra');
-  assert.ok(g.act(a, { t: 'usar', uid: 'i2', deseo: 'H' }).ok);
-  assert.ok(tieneItem(A, 'velo'), 'si la carta ya traía la H, el velo no se gasta');
-  // sin velo, una carta sin H no la ofrece
-  A.mano = A.mano.filter((c) => c.ref !== 'velo'); A.mano.push({ uid: 'i3', tipo: 'ifrit', ref: 'I3' });
-  assert.ok(g.act(a, { t: 'usar', uid: 'i3', deseo: 'H' }).error, 'sin velo no hay H');
-  const { opcionesIfrit } = BASE;
+  const { opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra } = BASE;
   darItem(e, A, 'velo');
-  assert.ok(opcionesIfrit(data, A, data.objetos.ifrit.cartas.find((c) => c.id === 'I3')).some((o) => o.id === 'H' && /Por tu velo quemado: alfombra mágica/.test(o.texto)), 'texto claro en el genio');
+  const sinC = { id: 'I2', deseos: ['d', 'e', 'f'] }, conC = { id: 'I1', deseos: ['a', 'b', 'c'] };
+  assert.deepEqual(deseosIfrit(A, sinC), ['d', 'e', 'f', 'c'], 'una carta sin la c la ofrece por el velo');
+  assert.ok(opcionesIfrit(data, A, sinC).some((o) => o.id === 'c' && /Por tu velo quemado: alfombra mágica/.test(o.texto)), 'texto claro en el genio');
+  gastarVeloSiAlfombra(e, A, sinC, 'c'); assert.ok(!tieneItem(A, 'velo'), 'el velo se gasta');
+  darItem(e, A, 'velo'); gastarVeloSiAlfombra(e, A, conC, 'c'); assert.ok(tieneItem(A, 'velo'), 'si la carta ya traía la c, el velo no se gasta');
+  A.mano = A.mano.filter((c) => c.ref !== 'velo'); assert.deepEqual(deseosIfrit(A, sinC), ['d', 'e', 'f'], 'sin velo no hay c');
 }
 // Jorge (19 de noviembre): Dado de Maulana: con una carta de sheij, los ghul tiran un dado más que siempre saca 6 (verde, sin botón)
 {
@@ -4601,7 +4605,7 @@ console.log('reglas de la casa OK');
     assert.ok(ds.some((d) => (d.resumen || []).some((r) => /y el Dado de Maulana: 6\. Promedio 3/.test(r))), 'el resumen lo dice');
     assert.equal(A.mensajes.length, 1, 'la carta de sheij no se gasta'); }
 }
-// Jorge (19 de noviembre): el genio de lámpara siempre ofrece «Evitar a los ghul»: sin dados, sin nada más, a una ciudad al azar
+// Jorge (19 y 21 de noviembre): la carta de Ifrit siempre ofrece «Huir de los ghul»: sin dados, sin nada más, a una ciudad al azar
 {
   const prep = () => {
     const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
@@ -4614,14 +4618,15 @@ console.log('reglas de la casa OK');
   };
   { const { g, e, a, A } = prep();
     const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Genio de la lámpara');
-    assert.ok(p && p.opciones.some((o) => o.id === 'evitar' && /Evitar a los ghul/.test(o.texto)), 'siempre sale «Evitar a los ghul»');
+    assert.ok(p && p.opciones.some((o) => o.id === 'evitar' && /Huir de los ghul/.test(o.texto)), 'siempre sale «Huir de los ghul»');
+    assert.equal(p.opciones.length, 4, '3 deseos y huir'); assert.ok(!p.opciones.some((o) => o.id === 'guardar'), 'ya no se guarda');
     e.dados = null; e.colaDados = []; e.pend = p; e.colaPend = [];
     const d0 = A.dinares, n0 = A.mano.length;
     assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'evitar' }).ok);
     assert.ok(!A.perdido && !A.eliminado && data.ciudades.ciudades.some((c) => c.id === A.ciudad), 'sale a una ciudad del tablero');
     assert.ok(!e.dados && !(e.colaDados || []).some((d) => d.motivo === 'ghul'), 'sin tirada de ghul');
     assert.equal(A.dinares, d0); assert.equal(A.mano.length, n0, 'no gana nada más');
-    assert.ok(e.log.some((l) => new RegExp(`evita a los ghul: el genio lo deja en ${A.ciudad}`).test(l.texto)), 'queda en el registro'); }
+    assert.ok(e.log.some((l) => new RegExp(`huye de los ghul: el genio lo deja en ${A.ciudad}`).test(l.texto)), 'queda en el registro'); }
   // sin cartas de Ifrit: 60 dinares (y ghul) o evitar
   { const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
     const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
