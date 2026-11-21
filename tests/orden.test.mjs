@@ -11,3 +11,10 @@ assert.equal(cartaEspera({ cola0: 15, dados: { id: 14 }, votoPendiente: false })
 assert.equal(decisionVisible({ leyendo: null, porLeer: null, dados: { id: 14, cerrados: [] }, yo: 'a' }), false, 'la decisión espera a los dados');
 assert.equal(decisionVisible({ leyendo: null, porLeer: null, dados: { id: 14, cerrados: ['a'] }, yo: 'a' }), true, 'si ya los cerraste, no');
 assert.equal(cartaEspera({ cola0: 12, dados: null, votoPendiente: true }), true, 'el voto de reinicio sí tapa');
+// Desenlace de un reto propio (Jorge, 21 de noviembre): la alerta (id 20) no sale encima de la carta del reto (nro 18)
+{
+  const { alertaVisible } = await import('../src/game/orden.js');
+  assert.equal(alertaVisible({ leyendo: 18, porLeer: 18, id: 20 }), false, 'primero se cierra la carta del reto');
+  assert.equal(alertaVisible({ leyendo: null, porLeer: null, id: 20 }), true, 'cerrada la carta, sale el desenlace');
+  assert.equal(alertaVisible({ leyendo: 25, porLeer: 25, id: 20 }), true, 'una carta posterior no la tapa');
+}

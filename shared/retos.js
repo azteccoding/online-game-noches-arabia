@@ -13,7 +13,14 @@ const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
 // Las cartas que el reto publica antes de mostrar sus dados (un caballo, un camello, una carta de Ifrit…) son consecuencias: se marcan
 // con trasDados para que el servidor no las muestre hasta que el jugador tire y se cierren los dados (Jorge, 11 de noviembre).
 function marcarTrasDados(e, nro0, d) { if (d) for (const h of e.historial) if (h.nro > nro0 && h.nro < d.id && !h.causa && !(d.contexto && d.contexto === h.titulo)) h.trasDados = d.id; }
-function nuevoCtx(e, pid, id) { const nro0 = e.seq; return { grupos: [], res: [], t(etq, n = 1) { const v = dados(e, n); this.grupos.push({ etq, valores: v }); return v; }, say(x) { this.res.push(x); }, fin() { if (this.grupos.length) marcarTrasDados(e, nro0, mostrarDados(e, { por: pid, motivo: 'reto:' + id, grupos: this.grupos, resumen: [`Reto ${id}:`, ...this.res] })); else { for (const r of this.res) log(e, r, { pid }); if (this.res.length) info(e, pid, `Reto ${id}`, this.res.join(' ')); } } }; }
+// Desenlace (Jorge, 21 de noviembre): «cada reto que pierdas o ganes debe decirte qué pasó». Con dados, el desenlace va en la ventana de
+// los dados (y las consecuencias se ven al cerrarla); sin dados, sale una alerta de 5 segundos (se cierra sola, al tocarla o deslizándola).
+function nuevoCtx(e, pid, id) { const nro0 = e.seq; return { grupos: [], res: [], t(etq, n = 1) { const v = dados(e, n); this.grupos.push({ etq, valores: v }); return v; }, say(x) { this.res.push(x); },
+  fin(des = null) {
+    // des.previas ya están en el registro (las escribió el reto); des.cierre (si lo lograste y el saldo) se registra aquí
+    if (this.grupos.length) marcarTrasDados(e, nro0, mostrarDados(e, { por: pid, motivo: 'reto:' + id, grupos: this.grupos, resumen: [`Reto ${id}:`, ...this.res, ...(des ? [...des.previas, ...des.cierre] : [])], sinRegistro: des ? { desde: 1 + this.res.length, n: des.previas.length } : null }));
+    else { for (const r of this.res) log(e, r, { pid }); if (des) alertaPropia(e, pid, { ...des, previas: [...des.previas, ...this.res] }); else if (this.res.length) { const a = ACC.e === e && ACC.alertas[pid]; if (a) { const [t0, ...resto] = a.texto.split('\n'); a.texto = [t0, ...this.res, ...resto].join('\n'); } else info(e, pid, `Reto ${id}`, this.res.join(' ')); } }
+  } }; }
 const nProb = (e) => activos(e).length;
 export function premio(data, e, pid, { dinares = 0, noches = 0 }, texto = '') {
   const j = e.jugadores[pid];
@@ -171,12 +178,68 @@ function resultadoReto(e, pid, antes, ctx) {
   if (a.n > antes.n || a.d > antes.d || a.m > antes.m || a.ex !== antes.ex) return 'logro';
   return 'fallo';
 }
-export function anunciarReto(data, e, pid, id, res) {
+export function anunciarReto(data, e, pid, id, res, propio = true) {
   const j = e.jugadores[pid], d = m1(data, id); if (!j || !d || !res) return;
   const verbo = res === 'logro' ? 'logró' : res === 'curso' ? 'empezó' : 'no logró';
   const texto = `${j.nombre} ${verbo} el reto ${id} (${d.nombre}).`;
   log(e, texto, { pid });
   anunciar(e, pid, texto, res === 'logro' ? 'ok' : 'gris');
+  // Reto en varios pasos que termina ahora (entrega, plazo vencido, continuación): su desenlace para quien lo hizo (Jorge, 21 de noviembre).
+  if (propio && res !== 'curso' && ACC.e === e && !j.npc) alertaPropia(e, pid, desenlace(data, e, pid, id, res, ACC.fotos[pid], ACC.desde[pid] ?? ACC.logN, [texto]));
+}
+
+// ---------------------------------------------------------------- desenlace de cada reto para quien lo hace (Jorge, 21 de noviembre)
+// Cada acción (y cada tic del reloj) marca dónde empieza el registro y cómo estaba cada jugador; así un reto que termina en esa acción
+// puede decir qué pasó y qué ganaste o perdiste. No se guarda en la partida.
+const ACC = { e: null, logN: 0, fotos: {}, alertas: {}, desde: {} };
+const fotoSaldo = (j) => ({ d: j.dinares, n: j.noches, h: !!j.herido, mano: j.mano.map((c) => ({ uid: c.uid, tipo: c.tipo, ref: c.ref })) });
+// Al llegar a una ciudad y al iniciar el turno se vuelve a marcar al jugador: así el desenlace de una entrega no cuenta el pasaje ni las noches de la llegada.
+export function marcarJugador(e, pid) { if (ACC.e !== e) marcarAccion(e); const j = e.jugadores[pid]; if (j) { ACC.fotos[pid] = fotoSaldo(j); ACC.desde[pid] = e.logN || 0; } }
+export function marcarAccion(e) { ACC.e = e; ACC.logN = e.logN || 0; ACC.fotos = {}; ACC.alertas = {}; ACC.desde = {}; for (const j of Object.values(e.jugadores || {})) ACC.fotos[j.id] = fotoSaldo(j); }
+function nombreCarta(data, c) {
+  try {
+    if (c.tipo === 'item') return itemDatos(data, c.ref)?.titulo || ITEMS[c.ref]?.nombre || c.ref;
+    if (c.tipo === 'especial') return data.objetos.especiales.find((x) => x.id === c.ref)?.nombre || c.ref;
+    return cartaDatos(data, c.tipo, c.ref)?.titulo || c.ref;
+  } catch { return c.ref; }
+}
+const fmtN = (n) => Math.abs(n).toLocaleString('es-MX');
+function listaCartas(data, cs) {
+  const cuenta = new Map(); for (const c of cs) { const k = nombreCarta(data, c); cuenta.set(k, (cuenta.get(k) || 0) + 1); }
+  return [...cuenta].map(([k, n]) => (n > 1 ? `${n} × ${k}` : k)).join(', ');
+}
+// Lo que cambió para el jugador desde «antes»: dinares, noches, cartas que entran y salen, herido.
+function balance(data, j, antes) {
+  if (!antes) return '';
+  const partes = [], dd = j.dinares - antes.d, dn = j.noches - antes.n;
+  if (dd) partes.push(`${dd > 0 ? '+' : '−'}${fmtN(dd)} ${Math.abs(dd) === 1 ? 'dinar' : 'dinares'}`);
+  if (dn) partes.push(`${dn > 0 ? '+' : '−'}${fmtN(dn)} ${Math.abs(dn) === 1 ? 'noche' : 'noches'}`);
+  const uids0 = new Set(antes.mano.map((c) => c.uid)), uids1 = new Set(j.mano.map((c) => c.uid));
+  const entran = j.mano.filter((c) => !uids0.has(c.uid)), salen = antes.mano.filter((c) => !uids1.has(c.uid));
+  if (entran.length) partes.push(`recibes ${listaCartas(data, entran)}`);
+  if (salen.length) partes.push(`entregas ${listaCartas(data, salen)}`);
+  if (j.herido && !antes.h) partes.push('quedas herido');
+  return partes.length ? `En total: ${partes.join('; ')}.` : 'En total: no ganas ni pierdes nada.';
+}
+const TITULAR = { logro: '¡Lo lograste!', fallo: 'No lo lograste.', curso: 'El reto sigue en curso.' };
+// Desenlace: lo que pasó (lo que el reto escribió en el registro durante esta acción), si lo lograste y el saldo.
+function desenlace(data, e, pid, id, res, antes, logN0, omitir = []) {
+  const j = e.jugadores[pid], d = m1(data, id);
+  const fuera = new Set(omitir);
+  const lineas = e.log.filter((l) => (l.n || 0) > logN0 && l.pid === pid && !l.saldo && !l.deDados && !fuera.has(l.texto) && !/ intenta el reto | (logró|no logró|empezó) el reto /.test(l.texto)).map((l) => l.texto);
+  const cierre = [];
+  if (res && TITULAR[res]) cierre.push(TITULAR[res]);
+  if (res === 'logro' || res === 'fallo') { const b = balance(data, j, antes); if (b) cierre.push(b); }
+  return { id, titulo: `Reto ${id}${d ? ' · ' + d.nombre : ''}`, res, previas: lineas, cierre };
+}
+// Alerta propia de 5 segundos (cliente): solo la ve quien hizo el reto. Si mientras tanto salen dados, espera a que se cierren.
+function alertaPropia(e, pid, des) {
+  const j = e.jugadores[pid];
+  if (!j || j.npc || !des || !(des.previas.length + des.cierre.length)) return;
+  for (const l of des.cierre) log(e, l, { pid });
+  const a = { id: ++e.seq, t: e.ahora, para: [pid], texto: [des.titulo + ':', ...des.previas, ...des.cierre].join('\n'), tono: des.res === 'logro' ? 'ok' : des.res === 'fallo' ? 'rojo' : 'gris', propio: true };
+  (e.anuncios ||= []).push(a); if (ACC.e === e) ACC.alertas[pid] = a;   // si el reto escribe algo más en esta acción, se agrega aquí (ctx.fin)
+  if (e.anuncios.length > 30) e.anuncios.splice(0, e.anuncios.length - 30);
 }
 // Alerta para los demás jugadores (no para quien la causa): no bloquea y se quita al tocarla.
 export function anunciar(e, pid, texto, tono = 'gris') {
@@ -188,7 +251,7 @@ export function anunciar(e, pid, texto, tono = 'gris') {
 HOOK.anunciar = anunciar;
 const cerrarReto = (data, e, pid, id, ok) => anunciarReto(data, e, pid, id, ok ? 'logro' : 'fallo');   // resultado final de un reto en varios pasos
 function ejecutar(data, e, pid, id, usados) {
-  const antesReto = fotoReto(e.jugadores[pid]);
+  const antesReto = fotoReto(e.jugadores[pid]), saldo0 = fotoSaldo(e.jugadores[pid]), logN0 = e.logN || 0;
   const ctx = nuevoCtx(e, pid, id);
   { const antes = e.ctxCarta; e.ctxCarta = cartaDatos(data, 'reto', id).titulo; try { T[id].run(data, e, pid, ctx, usados); } finally { e.ctxCarta = antes; } }   // contexto de las tiradas del reto
   if (ctx.fallo && REINTENTABLES.includes(id)) {
@@ -197,8 +260,13 @@ function ejecutar(data, e, pid, id, usados) {
     if (j.ciudad === ciudad) { (j.extra.rep ||= {})[id] = true; ctx.say(`Puedes volver a intentarlo cuando salgas de ${ciudad} y regreses.`); }
     else ctx.say(`Puedes volver a intentarlo cuando regreses a ${ciudad}.`);
   }
-  anunciarReto(data, e, pid, id, resultadoReto(e, pid, antesReto, ctx));
-  ctx.fin();
+  const res = resultadoReto(e, pid, antesReto, ctx);
+  anunciarReto(data, e, pid, id, res, false);
+  const j = e.jugadores[pid];
+  const esperando = [e.pend, ...(e.colaPend || [])].some((p) => p && p.para?.includes(pid) && p.tipo !== 'info');
+  // Si el reto sigue con una decisión tuya, el desenlace sale cuando termine (anunciarReto); si no, sale ahora.
+  if (j.npc || (esperando && !ctx.grupos.length) || (ctx.sinAnuncio && !ctx.grupos.length)) { ctx.fin(); return; }
+  ctx.fin(desenlace(data, e, pid, id, ctx.sinAnuncio || esperando ? null : res, saldo0, logN0, ctx.res));
 }
 // Lazo de camellero (Jorge, 19 de noviembre): no se gasta en ningún caso.
 const NO_SE_GASTA = ['OB05'];
@@ -235,6 +303,7 @@ const FALLO = {
 
 export function inicioTurno(data, e, pid) {
   const j = e.jugadores[pid];
+  marcarJugador(e, pid);
   for (const c of j.mano.slice()) if (c.tipo === 'item' && c.ref === 'veneno' && j.turnos - (c.extra?.turnos ?? j.turnos) >= 3) quitarCarta(j, c.uid);
   for (const m of j.misiones.slice()) {
     if (m.id === 'R1') { r1Turno(data, e, pid, m); if (j.eliminado) return; continue; }
@@ -246,6 +315,7 @@ export function finTurno(data, e, pid) {}
 
 export function alLlegar(data, e, pid, origen) {
   const j = e.jugadores[pid];
+  marcarJugador(e, pid);
   e.ultimaCiudadVisita ||= {};
   if (j.ciudad === 'Damasco' || j.ciudad === 'Aleppo') e.ultimoDamasco = pid;   // Jorge (10 de noviembre): el testigo es el último que visitó Damasco o Aleppo
   if (j.extra.rep) for (const id of Object.keys(j.extra.rep)) if (m1(data, id).ciudad !== j.ciudad) delete j.extra.rep[id];

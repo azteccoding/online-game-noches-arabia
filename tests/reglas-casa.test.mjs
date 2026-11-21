@@ -4463,7 +4463,10 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(a, { t: 'reto', id: 'R44' }).ok);   // Timbuktú: siempre gana 20 noches
   const vb = vistaDe(e, b).anuncios || [], va = vistaDe(e, a).anuncios || [];
   assert.ok(vb.some((x) => x.tono === 'ok' && /logró el reto R44/.test(x.texto)), 'el otro jugador ve la alerta verde');
-  assert.ok(!va.length, 'quien hace el reto no recibe esa alerta');
+  assert.ok(!va.some((x) => !x.propio), 'quien hace el reto no recibe esa alerta');
+  // Jorge (21 de noviembre): quien hace el reto sí ve su desenlace (qué pasó, si lo logró y qué ganó o perdió) en una alerta propia
+  const des = va.find((x) => x.propio);
+  assert.ok(des && des.tono === 'ok' && /Visitar Timbuktú/.test(des.texto) && /cruza el Sahara/.test(des.texto) && /¡Lo lograste!/.test(des.texto) && /En total: −10 dinares; \+20 noches\./.test(des.texto), 'R44: alerta con el desenlace: ' + des?.texto);
   assert.ok(e.log.some((l) => /logró el reto R44/.test(l.texto)), 'queda en el registro');
   // R52 (forja): queda en curso → gris
   e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
@@ -4657,7 +4660,7 @@ console.log('reglas de la casa OK');
   const ingreso = (...vals) => { A.turnos += 1; e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; turnoDe(e, a, A.ciudad); e.turno.fase = 'ingreso'; forzar(e, ...vals); assert.ok(g.act(a, { t: 'tirarDados' }).ok); return [e.dados, ...(e.colaDados || [])].filter(Boolean); };
   const n0 = A.noches;
   assert.ok(visita('R57', 'Damasco').ok);
-  assert.equal(A.noches, n0 + 1, 'solo 1 noche'); assert.ok(e.turno.fin, 'gasta el turno');
+  assert.equal(A.noches, n0 + 1, 'solo 1 noche'); assert.ok(e.turno.fin || e.turno.pid !== a, 'gasta el turno');   // sin ventana «Entendido» el turno ya pasó (Jorge, 21 de noviembre: alerta de 5 s)
   assert.ok((vistaDe(e, b).anuncios || []).some((x) => x.tono === 'ok' && /logró el reto R57/.test(x.texto)), 'alerta verde para los demás');
   assert.equal(visita('R57', 'Damasco').error, MSJ_TUMBA_PENDIENTE, 'la misma tumba no, mientras su dado siga pendiente');
   // ingreso con 6: el dado extra se pierde sin lanzarse

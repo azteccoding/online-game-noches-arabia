@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useJuego, iniciarJuego, leer, avisar, avisarPerdida, enviar, cerrarAviso } from './game/store.js';
 import { ACCIONES } from './game/protocol.js';
+import { alertaVisible } from './game/orden.js';
 import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
@@ -29,6 +30,7 @@ import AlarmaDesconexion from './components/AlarmaDesconexion.jsx';
 import AvisoEspera from './components/AvisoEspera.jsx';
 import AvisoBuscado from './components/AvisoBuscado.jsx';
 import VotoReinicio from './components/VotoReinicio.jsx';
+import Alerta from './components/Alerta.jsx';
 import './styles/ui.css';
 
 const params = new URLSearchParams(location.search);
@@ -51,9 +53,11 @@ function Juego({ lienzo }) {
   useEffect(() => {
     const mi = s?.jugadores?.[s.yo];
     if (!s || !mi || s.fase !== 'juego') { prev.current = null; return; }
-    const p = prev.current; prev.current = { din: mi.dinares, noc: mi.noches, ronda: s.ronda, logN: s.log.length ? s.log[s.log.length - 1].n || 0 : 0 };
+    const propia = Math.max(0, ...(s.anuncios || []).filter((a) => a.propio).map((a) => a.id));   // última alerta con el desenlace de un reto propio
+    const p = prev.current; prev.current = { din: mi.dinares, noc: mi.noches, ronda: s.ronda, logN: s.log.length ? s.log[s.log.length - 1].n || 0 : 0, propia };
     if (!p) return;
     if (s.ronda > p.ronda) avisar(`Comienza la ronda ${s.ronda}`);
+    if (propia > p.propia) return;   // el desenlace del reto ya dice qué ganaste y qué perdiste: no se repite en otro aviso
     const dd = mi.dinares - p.din, dn = mi.noches - p.noc;
     if (dd < 0) {                                                       // pagos y pérdidas: aviso rojo con el motivo (alojamiento, robo, multa…)
       const motivo = s.log.filter((l) => (l.n || 0) > p.logN && !l.saldo && (l.pid === s.yo || l.texto.includes(mi.nombre))).pop()?.texto;
@@ -74,13 +78,15 @@ function Juego({ lienzo }) {
   const dadosAjenos = !!s?.dados && s.dados.por !== s.yo && (String(s.dados.motivo || '').startsWith('reto:') || (s.dados.motivo === 'ingreso' || s.dados.motivo === 'tumba'));
   const idDados = dadosAjenos ? null : s?.dados?.id;
   useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
-  // Resultado de los retos ajenos: alerta verde (lo logró) o gris (no lo logró / en curso), que se queda hasta tocarla.
+  // Resultado de los retos ajenos: alerta verde (lo logró) o gris (no lo logró / en curso). Y el desenlace de tus propios retos (Jorge,
+  // 21 de noviembre): verde si lo lograste, roja si no, gris si sigue en curso. Todas duran 5 s y se cierran al tocarlas o deslizarlas.
   const [anunciosVistos, setAnunciosVistos] = useState(null);
   useEffect(() => {
     if (!s?.anuncios || anunciosVistos) return;
     setAnunciosVistos(new Set(s.anuncios.filter((a) => s.ahora - a.t > 20000).map((a) => a.id)));   // al entrar o recargar, los viejos ya no salen
   }, [s?.anuncios]);   // eslint-disable-line react-hooks/exhaustive-deps
-  const anuncios = !anunciosVistos || s?.dados ? [] : (s?.anuncios || []).filter((a) => !anunciosVistos.has(a.id)).slice(-3);
+  const leyendo = useJuego((x) => x.cartaEnPantalla), porLeer = useJuego((x) => x.cartaPorLeer);
+  const anuncios = !anunciosVistos || s?.dados ? [] : (s?.anuncios || []).filter((a) => !anunciosVistos.has(a.id) && (!a.propio || alertaVisible({ leyendo, porLeer, id: a.id }))).slice(-3);
   // Cuando alguien se mueve de ciudad se cierran las ventanas abiertas en todas las pantallas; los dados y las decisiones siguen.
   const huellaCiudades = s ? Object.values(s.jugadores).map((j) => j.id + j.ciudad).join() : '';
   const ciudadesPrev = useRef(huellaCiudades);
@@ -157,9 +163,9 @@ function Juego({ lienzo }) {
       {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
-      {anuncios.length > 0 && <div className="anuncios-reto">{anuncios.map((a) => <div key={a.id} className={`toast-reto ${a.tono}`} role="status" title="Toca para cerrar" onClick={() => setAnunciosVistos((v) => new Set([...v, a.id]))}>{a.tono === 'ok' ? '✓ ' : ''}{a.texto}</div>)}</div>}
-      {error && <div className="toast" role="alert" onClick={() => cerrarAviso('error')} title="Toca para cerrar">{error}</div>}
-      {aviso && !error && <div className="toast ok" role="status" onClick={() => cerrarAviso('aviso')} title="Toca para cerrar">{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</div>}
+      {anuncios.length > 0 && <div className="anuncios-reto">{anuncios.map((a) => <Alerta key={a.id} className={`toast-reto ${a.tono}${a.propio ? ' propio' : ''}`} onCerrar={() => setAnunciosVistos((v) => new Set([...v, a.id]))}>{a.tono === 'ok' ? '✓ ' : ''}{a.texto}</Alerta>)}</div>}
+      {error && <Alerta key={'e:' + error} className="toast" role="alert" onCerrar={() => cerrarAviso('error')}>{error}</Alerta>}
+      {aviso && !error && <Alerta key={'a:' + aviso} className="toast ok" onCerrar={() => cerrarAviso('aviso')}>{/^(⚠|❌|🤝|🔄|🪔)/u.test(aviso) ? '' : '✓ '}{aviso}</Alerta>}
     </div>
   );
 }

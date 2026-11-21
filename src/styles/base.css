@@ -35,6 +35,10 @@ h1, h2, h3 { font-family: var(--f-titulo); font-weight: 400; margin: 0; letter-s
 .toast-reto { pointer-events: auto; cursor: pointer; padding: 8px 14px; border-radius: 10px; box-shadow: var(--sombra); color: #fff; font-size: .95rem; }
 .toast-reto.ok { background: #1f5a3a; border: 1px solid var(--oro-claro); }
 .toast-reto.gris { background: #55534e; border: 1px solid #8d8a82; }
+.toast-reto.rojo { background: var(--alerta); border: 1px solid #e3a49a; }
+/* Alertas de 5 s (Jorge, 21 de noviembre): se cierran al tocarlas o deslizarlas; el desenlace de un reto propio trae varias líneas */
+.alerta-5s { touch-action: pan-y; user-select: none; -webkit-user-select: none; transition: transform .15s ease-out, opacity .15s; }
+.toast-reto.propio { white-space: pre-line; text-align: left; line-height: 1.35; max-height: 45vh; overflow-y: auto; }
 
 /* Cruzada (Jorge, 19 de noviembre): una flama pequeña arde sobre las ciudades tomadas; no estorba los clics ni el arrastre */
 .llamas { pointer-events: none; }

@@ -10,3 +10,8 @@ export function decisionVisible({ leyendo, porLeer, dados, yo }) {
   if (dados && !dados.cerrados?.includes(yo)) return false;
   return true;
 }
+// ¿Sale ya la alerta con el desenlace de tu reto? (Jorge, 21 de noviembre) Nunca encima de la carta del reto ni de otra carta anterior a ella:
+// primero se lee y se cierra la carta, y solo entonces el desenlace (que dura 5 s desde que se ve).
+export function alertaVisible({ leyendo, porLeer, id }) {
+  return !((leyendo != null && leyendo < id) || (porLeer != null && porLeer < id));
+}
