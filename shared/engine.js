@@ -1470,7 +1470,8 @@ function datosMano(data, e, c) {
     const d = itemDatos(data, c.ref, c.extra || {});
     if (d && esLibro(c)) { d.valor = valorLibro(data, e, c); d.texto += ` Valor actual: ${d.valor} dinares.`; }
     if (d && c.ref === 'vino') { d.valor = valorVino(c, e); d.texto += ` Valor actual: ${d.valor} dinares.`; }
-    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); d.texto += ` Duran ${OBJ.duracionDados(c)} turnos de su dueño${c.ref === 'dadosCairo' ? ' (a Zein, si llega a El Cairo con los suyos, ' + OBJ.ZEIN_CAIRO.turnos + ' en total)' : ''}: ${n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'}.`; }
+    // Dados del Cairo: su texto ya dice cuánto duran (y lo de Zein en El Cairo); aquí solo se añaden los turnos que quedan, sin repetir la leyenda (Jorge, 21 de noviembre).
+    if (d && OBJ.DADOS_CADUCAN.includes(c.ref) && e.jugadores[c.extra?.dueno]) { const n = OBJ.turnosDados(e, e.jugadores[c.extra.dueno], c); const quedan = n > 1 ? `les quedan ${n}, contando el actual (o el próximo)` : 'este es su último turno'; d.texto += c.ref === 'dadosCairo' ? ` Ahora ${quedan}.` : ` Duran ${OBJ.duracionDados(c)} turnos de su dueño: ${quedan}.`; }
     if (d && OBJ.animalDe(data, c.ref)) { const n = OBJ.turnosAnimal(data, c); d.vida = n; d.texto += n ? ` Le quedan ${n} turno${n === 1 ? '' : 's'} de vida.` : ' Es su último turno: muere al terminar.'; }
     return d;
   }
