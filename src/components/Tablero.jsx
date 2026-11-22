@@ -47,12 +47,22 @@ const Rutas = memo(function Rutas({ vivas, animadas }) {
   );
 });
 
-const Pin = ({ id, c, resaltada, activa }) => (
-  <g className={`ciudad${resaltada ? ' alcance' : ''}${activa ? ' activa' : ''}`} data-ciudad={id} transform={`translate(${c.x},${c.y})`} role="button" aria-label={`Ciudad ${id}`}>
+// Jorge (22 de noviembre): durante la Cruzada, Damasco, Aleppo y Estambul llevan la flamita en lugar del pin; al tocarla solo se lee lo de la carta.
+const Llama = () => (
+  <g className="llama">
+    <path className="llama-fuera" d="M0,0 C-11,-6 -12,-20 -3,-30 C-4,-22 2,-20 3,-27 C10,-18 12,-6 0,0Z" />
+    <path className="llama-dentro" d="M0,-2 C-6,-5 -6,-13 -1,-18 C0,-13 3,-12 4,-16 C7,-10 6,-4 0,-2Z" />
+  </g>
+);
+
+const Pin = ({ id, c, resaltada, activa, quemada }) => (
+  <g className={`ciudad${quemada ? ' quemada' : ''}${resaltada ? ' alcance' : ''}${activa ? ' activa' : ''}`} data-ciudad={id} transform={`translate(${c.x},${c.y})`} role="button" aria-label={quemada ? `Ciudad ${id}, tomada por los cruzados` : `Ciudad ${id}`}>
     <g className="escala-pin">
       <circle className="hit" r="38" cy="-24" />
-      <path className="pin" d="M0,0 L-16,-30 A19,19 0 1 1 16,-30Z" />
-      <circle className="pin-ojo" cx="0" cy="-34" r="6" />
+      {quemada ? <g transform="scale(1.65)"><Llama /></g> : (<>
+        <path className="pin" d="M0,0 L-16,-30 A19,19 0 1 1 16,-30Z" />
+        <circle className="pin-ojo" cx="0" cy="-34" r="6" />
+      </>)}
     </g>
   </g>
 );
@@ -91,6 +101,7 @@ export default memo(function Tablero({ quemadas, jugadores, turnoPid, miId, viva
   const miCiudad = jugadores?.[miId]?.ciudad;
   const animadas = useMemo(() => caminoRutas(miCiudad, ciudadActiva), [miCiudad, ciudadActiva]);   // ruta hacia la ciudad elegida, en movimiento
   const ciudadMia = jugadores[miId]?.ciudad;
+  const enLlamas = useMemo(() => new Set(quemadas || []), [quemadas]);
 
   useEffect(() => {
     let vivo = true;
@@ -138,15 +149,9 @@ export default memo(function Tablero({ quemadas, jugadores, turnoPid, miId, viva
         <g ref={baseRef} className="base-mapa" />
         <Rutas vivas={vivas} animadas={animadas} />
         <g className="ciudades">
-          {Object.entries(tablero.cities).map(([id, c]) => <Pin key={id} id={id} c={c} resaltada={ciudadesAlcance?.has(id)} activa={id === ciudadActiva} />)}
+          {Object.entries(tablero.cities).map(([id, c]) => <Pin key={id} id={id} c={c} quemada={enLlamas.has(id)} resaltada={ciudadesAlcance?.has(id)} activa={id === ciudadActiva} />)}
           <g className="ciudad jorasan" transform={`translate(${tablero.jorasan.x},${tablero.jorasan.y})`}><g className="escala-pin"><polygon points="0,-30 9,-12 29,-9 14,5 18,26 0,16 -18,26 -14,5 -29,-9 -9,-12" /><circle r="6" /></g></g>
         </g>
-        {/* Jorge (19 de noviembre): durante la Cruzada, una flama pequeña arde sobre Damasco, Aleppo y Estambul; no estorba los clics */}
-        <g className="llamas" pointerEvents="none">{(quemadas || []).filter((id) => tablero.cities[id]).map((id) => { const c = tablero.cities[id]; return (
-          <g key={id} transform={`translate(${c.x + 22},${c.y - 62})`}><g className="llama">
-            <path className="llama-fuera" d="M0,0 C-11,-6 -12,-20 -3,-30 C-4,-22 2,-20 3,-27 C10,-18 12,-6 0,0Z" />
-            <path className="llama-dentro" d="M0,-2 C-6,-5 -6,-13 -1,-18 C0,-13 3,-12 4,-16 C7,-10 6,-4 0,-2Z" />
-          </g></g>); })}</g>
         <g className="peones">{peones.map((p) => <Peon key={p.j.id} {...p} tablero={tablero} yo={p.j.id === miId} onViaje={alViajar} />)}</g>
       </svg>
 

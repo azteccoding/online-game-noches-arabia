@@ -8,6 +8,7 @@ import { entrenamientosEn } from '../../shared/retos.js';
 import { objetosRaros, REPARA_ESCUDO } from '../../shared/objetos.js';
 import { textoPremio } from '../game/premiosRetos.js';
 import retosData from '../data/retos.json';
+import eventosData from '../data/eventos.json';
 const rotulo = (x) => x.nombre + (x.precio != null ? ` (${x.precio})` : '');
 // Jorge (11 de noviembre): la ficha de la ciudad dice qué entrenamiento ofrece, de la misma fuente que usa el motor.
 const entrenamientos = (c, yo) => entrenamientosEn(c.id).map((x) => `${x.que} (${x.costo} dinares)${(x.id === 'R25' ? yo?.destreza || yo?.destrezaJambiya : (yo?.entrenado || []).includes(x.que)) ? ' — ya lo tienes' : ''}`);
@@ -20,6 +21,19 @@ export default function HojaCiudad({ s, id, onCerrar }) {
   const [verVentas, setVerVentas] = useState(false);
   const yo = s.jugadores[s.yo];
   if (!c) return null;
+  if ((s.quemadas || []).includes(id)) {   // Jorge (22 de noviembre): tomada por los cruzados, sin ficha de ciudad; solo lo que dice la carta
+    const h = (eventosData.eventos || eventosData).find((x) => x.id === 'H21');
+    return (
+      <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}, tomada por los cruzados`}>
+        <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
+        <div className="desp-cuerpo">
+          <p><b>{h?.nombre || 'Cruzada'}</b></p>
+          {h?.efecto && <p>{h.efecto}.</p>}
+          {h?.costo && <p className="it">{h.costo}.</p>}
+        </div>
+      </div>
+    );
+  }
   const miTurno = s.turno?.pid === s.yo && s.fase === 'juego';
   const viaje = s.acciones.find((x) => x.k === 'viajar' && x.destino === id);
   const tarifa = viaje ? viaje.precio : DATA.rutas.tarifas[yo.ciudad + '>' + id];
