@@ -3207,7 +3207,10 @@ console.log('reglas de la casa OK');
     e.ronda = 5; turnoDe(e, 'npc', 'Bagdad'); e.turno.fase = 'acciones';
     return { g, e, Y };
   };
-  { const { Y } = prep(); assert.ok(!Y.destreza, 'Yafar NPC empieza sin destreza'); assert.ok(Y.extra.entrenado?.cimitarra, 'solo entrenado en cimitarra'); }
+  // Jorge (22 de noviembre): fácil, jambiya sin destreza; normal, destreza en la jambiya; difícil, destreza en todas las armas y en el arco
+  { const { Y } = prep('facil'); assert.ok(!Y.destreza && !Object.keys(Y.extra.entrenado || {}).length, 'fácil: sin destreza'); assert.ok(tieneItem(Y, 'jambiya')); }
+  { const { Y } = prep(); assert.ok(!Y.destreza && Y.extra.entrenado?.jambiya && !Y.extra.entrenado?.cimitarra, 'normal: destreza solo en la jambiya'); assert.ok(tieneItem(Y, 'jambiya')); }
+  { const { Y } = prep('dificil'); assert.ok(Y.destreza && Y.extra.entrenado?.arco, 'difícil: destreza en todas y en el arco'); assert.ok(tieneItem(Y, 'jambiya')); }
   // reto en Bagdad cuando no hay a quién atacar; uno solo en la partida
   { const { e, Y } = prep(); Y.ciudad = 'Bagdad'; Y.dinares = 50;
     NPC.accionPrincipal(data, e, 'npc'); assert.ok(['R5', 'R6'].includes(Y.extra.retosNPC?.Bagdad), 'hace R5 o R6');
@@ -5211,3 +5214,14 @@ console.log('destreza con arma entrenada OK');
     assert.ok(k.act(dd, { t: 'decidir', id: f2.pend.id, opcion: 'cortina' }).ok);
     assert.notEqual(DD.ciudad, 'Damasco'); assert.equal(DD.extra.huidasPend, 1, 'la cortina cuenta como viaje de su siguiente turno'); }
 console.log('huidas cuentan como viaje OK');
+
+// Jorge (22 de noviembre): Yafar jugador empieza con su jambiya y destreza solo en ella (ya no la destreza general)
+{
+  const { perfil } = await import('../shared/pelea.js');
+  const g = partida(['B', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [y] = g.ids, Y = e.jugadores[y];
+  assert.ok(!Y.destreza && Y.extra.entrenado?.jambiya && tieneItem(Y, 'jambiya'), 'Yafar jugador: jambiya con destreza, sin destreza general');
+  Y.ciudad = 'Damasco'; assert.equal(perfil(data, e, y, 'Damasco').cat, 'D', 'con su jambiya pelea con destreza');
+  darItem(e, Y, 'alfanje'); Y.mano = Y.mano.filter((c) => c.ref !== 'jambiya'); assert.equal(perfil(data, e, y, 'Damasco').cat, 'C', 'con otra arma, sin destreza');
+}
+console.log('destreza inicial de Yafar OK');

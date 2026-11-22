@@ -249,13 +249,21 @@ export function finRonda(data, e) {
   if (n) { e.jugadores[id].dinares += n; log(e, `Yafar NPC cobra ${n} dinares de la bolsa de sus parientes.`, { pid: id }); }
 }
 
+// Jorge (22 de noviembre): Yafar NPC empieza con su jambiya y, según la dificultad: fácil, sin destreza; normal, destreza en la
+// jambiya (jambiya entrenada); difícil, destreza en todas las armas y también en el arco (arco entrenado). Antes: sin destreza y
+// con la cimitarra entrenada.
+export function destrezaInicial(e, j) {
+  const d = dif(e);
+  j.destreza = d === 'dificil';
+  j.extra.entrenado = d === 'normal' ? { jambiya: true } : d === 'dificil' ? { arco: true } : {};
+}
 export function entraNPC(data, e) {
   const hv = humanosVivos(e);
   if (hv.length !== 1 || e.jugadores[hv[0]].pj === 'B' || e.jugadores.npc) return;
   const p = pjDe(data, 'B');
   const j = HOOK.nuevoJugador(e, 'npc', 'Yafar el Bermekí (NPC)', null);
   Object.assign(j, { pj: 'B', listo: true, npc: true, dinares: p.inicio.dinares, ciudad: 'Bagdad', visitadas: ['Bagdad'], destreza: false, mano: [{ uid: uid(e), tipo: 'item', ref: 'jambiya' }] });
-  j.extra.entrenado = { cimitarra: true };   // Jorge (12 de noviembre): Yafar NPC empieza sin destreza, solo entrenado en cimitarra
+  destrezaInicial(e, j);
   e.jugadores.npc = j;
   const iAdi = e.orden.findIndex((i) => e.jugadores[i].pj === '7' && !e.jugadores[i].eliminado);
   if (iAdi >= 0) e.orden.splice(iAdi, 0, 'npc'); else e.orden.push('npc');

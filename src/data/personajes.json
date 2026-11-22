@@ -285,10 +285,14 @@
    "arma": [
     "jambiya"
    ],
-   "destreza": true,
+   "destreza": false,
+   "entrenado": [
+    "jambiya"
+   ],
    "habilidades": [
     "Comisión de bolsillo: 3 dinares por cada otro jugador en su ciudad (máx. 9) en el juego en línea.",
-    "Paga la mitad de caravanas, sobornos y servicios; recibe un Firmán en su 3er turno."
+    "Paga la mitad de caravanas, sobornos y servicios; recibe un Firmán en su 3er turno.",
+    "Empieza con su jambiya y destreza solo en ella (como si la hubiera entrenado); la destreza en todas las armas la gana como cualquiera."
    ],
    "limite": "Doble alojamiento; blanco de todos; no puede esconder tesoro.",
    "stats": [
