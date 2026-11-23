@@ -1,0 +1,50 @@
+# Diferencias entre el juego 2D y el 3D
+
+Bitácora de lo que el juego 3D (rama `juego-3d`, https://3d.milyunanoches.net) hace distinto del juego 2D (rama `online-game`).
+La rama 2D no se toca: cada diferencia nueva se anota aquí con su fecha y su commit.
+
+Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de 2026). El 2D sigue en ese commit.
+
+## Reglas del juego
+
+| Fecha | Qué cambia en el 3D | En el 2D | Commit 3D |
+|---|---|---|---|
+| 23 nov | **R6 Álgebra en la Madrasa**: ganas si el dado extra cae igual al promedio, o uno más o uno menos. | Solo ganas con uno más o uno menos (igual al promedio no gana). | `785c4b8` |
+| 23 nov | **Caballos mongoles**: Jorge dice que en el 3D salen **2** caballos mongoles por cada yegua. | El código (igual en los dos) pone 1 a la venta por cada yegua vendida en Estambul. | por confirmar con Jorge |
+| 23 nov | **Toledo (H2)**: irse de Andalucía a Bagdad va por El Cairo y cobra los dos tramos (cada uno cuenta como viaje). | La opción a Bagdad salía «(null)» y el viaje era gratis. | `507b05f` |
+| 23 nov | **Zubayda en el harén**: sale la carta pintada y los 12 dinares llegan al cerrarla (o a los 90 s). | Los dinares llegan al instante, sin carta. | `71f423e` |
+| 23 nov | **Zubayda le renta a Adí, Anís o Jamil**: sale la carta pintada solo para los dos; el cobro y las consecuencias van al cerrarla. | Sin carta: las consecuencias son inmediatas. | `a1d0e08`, `66459ab` |
+
+## Sala en línea, turnos y banco
+
+| Fecha | Qué cambia en el 3D | En el 2D | Commit 3D |
+|---|---|---|---|
+| 23 nov | Al sacar a un jugador ya no se vuelve a ofrecer «Sacarlo». Si todos los que tienen personaje están sacados, la partida espera a que vuelva quien tiene el turno y lo avisa. | Si el sacado era el único jugador, el turno le volvía y «Sacarlo» salía otra vez sin fin. | `3659be2` |
+| 23 nov | Votación de partida nueva: el sacado no vota; el banco conectado vota aunque no tenga personaje. | El sacado contaba si seguía conectado; el banco sin personaje no votaba y la votación se caía con 0 a 0. | `3659be2` |
+| 23 nov | Quien estaba en la sala sin personaje cuando empezó la partida puede elegir personaje y entrar durante la primera ronda (botones «Ver el tablero» y «Elegir personaje y entrar»). | Quedaba fuera para siempre, sin personaje. | `3659be2` |
+| 23 nov | Al tomar el banco con el PIN sale el aviso «Ahora eres el banco». | No avisaba nada. | `3659be2` |
+
+## Pantalla y avisos
+
+| Fecha | Qué cambia en el 3D | En el 2D | Commit 3D |
+|---|---|---|---|
+| 23 nov | Todas las notificaciones duran **3 segundos** (se quitan antes al tocarlas o deslizarlas). | 5 segundos. | `3659be2` |
+| 23 nov | Los dados ruedan 3 segundos en la mesa 3D (también los de Yafar NPC). | 1.7 segundos. | `f01d748` |
+| 23 nov | Las cartas de la llegada salen cuando el monito ya llegó a la ciudad (termina la animación del viaje). | Salen al momento. | `f01d748` |
+| 23 nov | Cartas con pintura a carta completa (las pinturas de Jorge, con recuadro de texto semitransparente); las que no tienen pintura propia usan los fondos GEN-1, GEN-2 y GEN-3. La carta abierta es más grande y el texto crece al pasar el mouse o tocarla. | Cartas con su arte original. | varios (ver `arteCartas.json`) |
+| 23 nov | Elegir personaje: los monitos son las figuras pintadas del 3D, de frente. | Los monitos dibujados del 2D. | `0fc9667` |
+| 23 nov | Vista previa de WhatsApp con su propia miniatura y la dirección del link (3d.milyunanoches.net). | La vista previa del 2D. | `08f36f8`, `d99bf5f` |
+| 23 nov | La demo (`/demo/` y el botón «Ver demostración 3D») es la demo visual 3D. | La muestra del juego web 2D. | `c819212` |
+| 23 nov | Atajos de teclado: flechas mueven la cámara sobre el mapa; + y − (también del teclado numérico) acercan y alejan; **m** mercado, **a** acciones (en tu turno), **n** mensajes, **c** última carta, **v** la Carta de Trivias por responder, **z** cierra la carta abierta (si ya se puede) o la ventana abierta, **Alt + espacio** termina el turno. | En el mapa 2D solo flechas y + / − con el mapa enfocado; sin atajos de letras. | `c819212` |
+
+## Tablero y animaciones (solo existen en el 3D)
+
+- Tablero, figuras de los personajes, monturas (caballo, camello, caballo mongol, burro gris, alfombra), dhow, lámpara y genio hechos con las pinturas de Jorge (`c30377b` y anteriores).
+- Cámara de vista de pájaro a pie de calle con la rueda del mouse (`f01d748`).
+- Día y noche: el día dura la ronda y la luz se reparte por turnos; con 4 o más jugadores el último juega de noche, con 6 o más los dos últimos (`d0ec823`, `051d9a8`).
+- Dados que caen en el mapa, levantan polvo, se entierran en la arena y salpican en el mar; incendio de la Cruzada con sonido (`5c116e3`, `766d68f`).
+- Sonidos del 3D (mp3, ogg, wav, m4a) (`5609ece`).
+
+## Despliegue
+
+- El 3D va en su propio servicio de Render, desde la rama `juego-3d` (`182dc2c`), con clave de sala `MUN_CLAVE`.
