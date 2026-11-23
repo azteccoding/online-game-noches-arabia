@@ -63,3 +63,22 @@
 .nota-crp { margin-top: 2cqw; padding: 2cqw; border-left: 1cqw solid #3d7a4a; background: rgba(61, 122, 74, .15); font-size: 3.4cqw; line-height: 1.25; }
 
 .c-premio { font-weight: 700; color: var(--acento); font-size: 4.2cqw; }
+
+/* Carta pintada: la ilustración llena toda la carta; el título va sobre el cielo y el texto en un recuadro claro abajo. */
+.carta.pintada { --tinta: #2b130c; --lema: #5a3a17; background: #1a0e0a; }
+.pintada .c-arte { position: absolute; inset: 0; flex: none; border: 0; border-radius: 0; background: #1a0e0a; z-index: 0; }
+.pintada .c-arte::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(10, 4, 2, .62) 0, rgba(10, 4, 2, 0) 24%, rgba(10, 4, 2, 0) 58%, rgba(10, 4, 2, .55) 100%); }
+.pintada .arte-img { object-position: 50% 30%; }
+.pintada > :not(.c-arte) { position: relative; z-index: 1; }
+.pintada .c-tit { color: #f6dc98; font-size: 6.6cqw; text-shadow: 0 .3cqw .9cqw #000, 0 0 2.4cqw rgba(0, 0, 0, .9); }
+.pintada .c-sub { color: #f3e6c4; text-shadow: 0 .2cqw .7cqw #000, 0 0 1.6cqw #000; }
+.pintada .c-pill { margin-top: auto; align-self: flex-start; margin-left: 1.5cqw; margin-bottom: -2.2cqw; background: #8e1f2a; color: #f6ecd0; border-color: #e3b873; }
+.pintada .c-pill .ar { color: #efd08f; }
+.pintada .c-cuerpo { flex: 0 1 auto; max-height: 40%; background: rgba(243, 233, 201, .94); border: .45cqw solid #b9803a; box-shadow: 0 .6cqw 2cqw rgba(0, 0, 0, .5); padding-top: 3cqw; }
+.pintada .c-cita { color: #f3e6c4; text-shadow: 0 .2cqw .7cqw #000; }
+.pintada.tit-abajo .c-cab, .pintada.tit-abajo .c-sub { order: 1; }
+.pintada.tit-abajo .c-cab { margin-top: auto; }
+.pintada.tit-abajo .c-pill, .pintada.tit-abajo .c-cuerpo, .pintada.tit-abajo .c-cita, .pintada.tit-abajo .chips { order: 2; }
+.pintada.tit-abajo .c-pill { margin-top: 1cqw; }
+.pintada.tit-abajo .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, 0) 0, rgba(10, 4, 2, 0) 40%, rgba(10, 4, 2, .7) 62%, rgba(10, 4, 2, .6) 100%); }
+.pintada .chip-c { background: rgba(243, 233, 201, .94); color: #2b130c; border-color: #b9803a; }

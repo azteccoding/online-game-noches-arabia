@@ -1,7 +1,12 @@
 import React, { useEffect, useRef } from 'react';
 import { Icono, ETIQUETA, DORSO, Adorno } from './iconos.jsx';
 import { useArte } from '../hooks/useArte.js';
+import PINTADAS from '../data/arteCartas.json';
 import '../styles/cards.css';
+
+// Cartas con pintura propia (public/arte/cartas/<clave>.webp): la pintura llena toda la carta, con el título encima y el texto en un recuadro abajo.
+// La clave es el id de la carta (R26, H21…) o, si no, su clave de arte (pj-6). «titulo: abajo» baja el título cuando arriba hay un rostro.
+const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : null);
 
 // Carta construida en el cliente (HTML/SVG/CSS) a partir de DATOS. No hay una imagen por carta.
 // tam: 'completa' (modal; ventana de arte perezosa) | 'mini' (miniatura ligera de la mano) | 'dorso' (WebP de 360 px del mazo).
@@ -39,6 +44,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   useContadorCartas(completa);
   if (!datos) return null;
   const [et, ar] = ETIQUETA[datos.deck] || ETIQUETA.especial;
+  const pintada = completa ? pintadaDe(datos) : null;
   if (tam === 'dorso') {
     return <img className={`carta-dorso ${className}`} src={`/cartas/dorsos/${DORSO[datos.deck] || 'objetos'}.webp`} alt={`Dorso: ${et}`} loading="lazy" draggable="false" />;
   }
@@ -55,13 +61,13 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   }
   return (
     <div className="carta-caja">
-    <article className={`carta tam-completa deck-${datos.deck} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
+    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
       <header className="c-cab">
         <span className="c-ico"><Icono deck={datos.deck} size={22} /></span>
         <h3 className="c-tit">{datos.titulo}</h3>
       </header>
       {datos.sub && <p className="c-sub">{datos.sub}</p>}
-      <figure className="c-arte">{datos.arte ? <Arte clave={datos.arte} /> : <Adorno />}</figure>
+      <figure className="c-arte">{pintada ? <Arte clave={'cartas/' + pintada} /> : datos.arte ? <Arte clave={datos.arte} /> : <Adorno />}</figure>
       <div className="c-pill"><span>{et}</span><span className="ar">{ar}</span></div>
       <div className="c-cuerpo">
         <p className="c-texto">{datos.texto}</p>
