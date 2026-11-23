@@ -52,5 +52,6 @@
   "H23": {"letra": "mini", "texto": "medio"},
   "R8": {"letra": "mini"},
   "S1": {"letra": "mini"},
-  "palacio": {"titulo": "abajo", "letra": "mini"}
+  "palacio": {"titulo": "abajo", "letra": "mini"},
+  "F1": {"letra": "mini"}
 }
