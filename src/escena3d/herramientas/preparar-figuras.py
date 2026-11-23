@@ -27,6 +27,7 @@ HOJAS = {'1': 'hoja-personaje-1-nur-al-din.png', '2': 'hoja-personaje-2-zein-al-
          '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png'}
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
 HOJA_LAMINA = (2480, 1754); LIBRE = False
+VISTAS_M = []          # hoja libre: la máscara propia de cada una de las cuatro vistas
 TEXTURA = 0            # hoja libre: umbral de textura («textura» en AJUSTES) para personajes vestidos del color del papel; 0 = por color
 UMBRAL_LIBRE = 26      # hoja libre: cuánto puede apartarse un color del papel y seguir siendo papel («umbral» en AJUSTES; se baja si se come ropa clara)
 TH = 896                                 # alto de la figura en la textura
@@ -84,7 +85,7 @@ def vistas(m):
     # Hoja de formato libre (no la lámina de 2480 × 1754): las figuras se separan por los valles entre ellas (las columnas con
     # menos figura entre cada dos, sin contar la franja de los pies y su sombra) y se toman las cuatro primeras de izquierda a derecha; si hay
     # una quinta, por ejemplo una pose de ataque, se ignora.
-    cortes = None
+    cortes = None; VISTAS_M.clear()
     if LIBRE:
         ys = np.where(m.any(axis=1))[0]; arriba = m[:int(ys[0] + (ys[-1] - ys[0]) * 0.86)]
         masa = ndi.uniform_filter1d(arriba.sum(axis=0).astype(np.float32), max(5, W // 120))
@@ -94,6 +95,23 @@ def vistas(m):
         if len(picos) >= 4:
             entre = [picos[k] + int(np.argmin(masa[picos[k]:picos[k + 1]])) for k in range(len(picos) - 1)]
             cortes = [0, entre[0], entre[1], entre[2], entre[3] if len(entre) > 3 else W]
+            # El corte entre dos figuras no es una recta: en cada fila pasa por el hueco de papel más cercano al valle, para no
+            # rebanar un escudo o un manto que se mete en la franja de la vecina.
+            costuras = [np.zeros(H)]
+            for k in range(len(entre)):
+                a, b, v = picos[k], picos[k + 1], entre[k]; s = np.full(H, np.nan)
+                for y in range(H):
+                    libre = ~m[y, a:b]
+                    if libre.all(): s[y] = v; continue
+                    et, n = ndi.label(libre)
+                    if n == 0: continue
+                    cs = [(np.where(et == j)[0][0] + np.where(et == j)[0][-1]) / 2 + a for j in range(1, n + 1)]
+                    s[y] = min(cs, key=lambda c: abs(c - v))
+                hay = ~np.isnan(s); s = np.interp(np.arange(H), np.arange(H)[hay], s[hay]) if hay.any() else np.full(H, float(v))
+                costuras.append(s)
+            if len(costuras) < 5: costuras.append(np.full(H, float(W)))
+            xx = np.arange(W)[None, :]
+            VISTAS_M[:] = [m & (xx >= costuras[k][:, None]) & (xx < costuras[k + 1][:, None]) for k in range(4)]
     if cortes is not None: pass
     else:
         cortes = [0]
@@ -101,6 +119,14 @@ def vistas(m):
             a, b = int(W * (f - 0.09)), int(W * (f + 0.09)); cortes.append(a + int(np.argmin(col[a:b])))
         cortes.append(W)
     cajas = []
+    if LIBRE and cortes is not None and len(VISTAS_M) == 4:      # cada figura con su propia máscara (la caja puede pisar a la vecina)
+        for k in range(4):
+            sub = VISTAS_M[k]; et, n = ndi.label(sub)
+            if n == 0: continue
+            tam = ndi.sum(sub, et, range(1, n + 1)); sub = np.isin(et, 1 + np.where(tam > tam.max() * 0.025)[0]); VISTAS_M[k] = sub
+            xs = np.where(sub.any(axis=0))[0]; ys = np.where(sub.any(axis=1))[0]
+            cajas.append((xs[0], ys[0], xs[-1] + 1, ys[-1] + 1))
+        return cajas
     for k in range(4):
         sub = m[:, cortes[k]:cortes[k + 1]]
         et, n = ndi.label(sub)
@@ -145,31 +171,32 @@ def procesar(pid, archivo):
             et, n = ndi.label(hueco)
             if n:
                 tam = ndi.sum(hueco, et, range(1, n + 1)); m[ya:y1, x0:x1] &= ~np.isin(et, 1 + np.where(tam > 120)[0])
-        m = ndi.binary_opening(m, iterations=1)
+        m = ndi.binary_opening(m, iterations=1); cajas = vistas(m)
     if LIBRE and TEXTURA:      # silueta de túnica y manto: se cierran las mordidas, se rellena cada fila de borde a borde y se recorta el halo de papel
-        for (x0, y0, x1, y1) in cajas:
-            sub = np.pad(m[y0:y1, x0:x1], 20); sub = ndi.binary_closing(sub, structure=np.ones((17, 17)), iterations=1)[20:-20, 20:-20]
+        nueva = np.zeros_like(m)
+        for k, (x0, y0, x1, y1) in enumerate(cajas):
+            sub = np.pad(VISTAS_M[k][y0:y1, x0:x1], 20); sub = ndi.binary_closing(sub, structure=np.ones((17, 17)), iterations=1)[20:-20, 20:-20]
             for y in range(sub.shape[0]):
                 xs = np.where(sub[y])[0]
                 if len(xs): sub[y, xs[0]:xs[-1] + 1] = True
             for x in range(sub.shape[1]):      # y cada columna de arriba abajo: el manto cae recto, sin entrantes
                 ys = np.where(sub[:, x])[0]
                 if len(ys): sub[ys[0]:ys[-1] + 1, x] = True
-            sub = ndi.binary_erosion(sub, iterations=4)
-            m[y0:y1, x0:x1] = sub
+            nueva[y0:y1, x0:x1] |= ndi.binary_erosion(sub, iterations=4)
+        m = nueva
         cajas = vistas(m)
     rgb = np.asarray(hoja, dtype=np.uint8)
 
-    def recorte(c, espejo=False):
-        x0, y0, x1, y1 = c
-        mm = m[y0:y1, x0:x1].copy(); cc = rgb[y0:y1, x0:x1].copy()
+    def recorte(k, espejo=False):
+        x0, y0, x1, y1 = cajas[k]
+        mm = (VISTAS_M[k] if len(VISTAS_M) == 4 else m)[y0:y1, x0:x1].copy(); cc = rgb[y0:y1, x0:x1].copy()
         et, n = ndi.label(mm)
         if n > 1:      # solo la figura (lo más grande) y lo que casi la toca
             tam = ndi.sum(mm, et, range(1, n + 1)); mm = np.isin(et, 1 + np.where(tam > tam.max() * (0.025 if LIBRE else 0.004))[0])      # hoja libre: el papel pintado deja motas más grandes
         if espejo: mm = mm[:, ::-1]; cc = cc[:, ::-1]
         return mm, cc
 
-    mf, cf = recorte(cajas[0]); mb, cb = recorte(cajas[3], espejo=True); mp, cp = recorte(cajas[2], espejo=pid in PERFIL_A_LA_DERECHA)
+    mf, cf = recorte(0); mb, cb = recorte(3, espejo=True); mp, cp = recorte(2, espejo=pid in PERFIL_A_LA_DERECHA)
     for (qx0, qy0, qx1, qy1) in aj.get('quitar', []):
         hh, ww = mf.shape; mf[int(qy0 * hh):int(qy1 * hh), int(qx0 * ww):int(qx1 * ww)] = False
     hf, wf = mf.shape; esc = TH / hf
