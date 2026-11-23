@@ -54,5 +54,6 @@
   "S1": {"letra": "mini"},
   "palacio": {"titulo": "abajo", "letra": "mini"},
   "F1": {"letra": "mini"},
-  "E9": {"titulo": "abajo", "letra": "mini"}
+  "E9": {"titulo": "abajo", "letra": "mini"},
+  "E1": {"letra": "mini"}
 }
