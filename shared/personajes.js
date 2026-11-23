@@ -178,9 +178,9 @@ registrar('pj.prost', (data, e, args, resp) => {
   if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza la propuesta de compañía de ${v?.nombre}.`, { pid: args.vend }); return devolverPrincipal(e, args.vend, 'su propuesta no fue aceptada'); }
   if (!v || v.eliminado || c.eliminado || v.ciudad !== c.ciudad || c.dinares < args.precio) return devolverPrincipal(e, args.vend, 'la propuesta no se llevó a cabo');
   log(e, `${c.nombre} acepta la propuesta de compañía de ${v.nombre}.`, { pid: args.vend });
-  // Jorge (23 de noviembre): si Zubayda le renta a Adí o a Anís, sale la carta con su pintura, solo para los dos. La carta va primero:
+  // Jorge (23 de noviembre): si Zubayda le renta a Adí, a Anís o a Jamil, sale la carta con su pintura, solo para los dos. La carta va primero:
   // el cobro, las noches y el dado de apedreo se ven al cerrarla (el cliente del juego congela saldo, registro y dados mientras tanto).
-  const pintura = v.pj === '6' ? { 7: 'zubayda-adi', 3: 'zubayda-anis' }[c.pj] : null;
+  const pintura = v.pj === '6' ? { 7: 'zubayda-adi', 3: 'zubayda-anis', 4: 'zubayda-jamil' }[c.pj] : null;
   if (pintura) { const n = Math.min(50, v.noches);
     publicarCarta(e, { id: pintura, deck: 'especial', titulo: 'Una noche de compañía', sub: `${v.nombre} y ${c.nombre}`, texto: `${c.nombre} paga ${args.precio} dinares por una noche de compañía con ${v.nombre}${n > 0 ? ` y recibe ${n} noches de su haber` : ''}.`, arte: 'es' }, args.vend, [args.vend, resp.pid]); }
   const impuesto = v.ciudad === 'Yemen' ? Math.floor(args.precio / 10) : 0;

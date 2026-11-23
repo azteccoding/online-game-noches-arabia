@@ -47,5 +47,6 @@
   "E3": {"letra": "mini"},
   "zubayda-haren": {"titulo": "abajo", "letra": "mini", "imagen": "pj-6"},
   "zubayda-adi": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"},
-  "zubayda-anis": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"}
+  "zubayda-anis": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"},
+  "zubayda-jamil": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"}
 }

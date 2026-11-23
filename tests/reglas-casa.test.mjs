@@ -5231,10 +5231,10 @@ console.log('huidas cuentan como viaje OK');
 }
 console.log('destreza inicial de Yafar OK');
 
-// Jorge (23 de noviembre): si Zubayda le renta a Adí o a Anís y aceptan, sale la carta con su pintura, solo para los dos, antes de
+// Jorge (23 de noviembre): si Zubayda le renta a Adí, a Anís o a Jamil y aceptan, sale la carta con su pintura, solo para los dos, antes de
 // las consecuencias (el dado de apedreo lleva un número posterior al de la carta). Con otro cliente no sale carta.
 {
-  for (const [pjCliente, carta] of [['7', 'zubayda-adi'], ['3', 'zubayda-anis'], ['4', null]]) {
+  for (const [pjCliente, carta] of [['7', 'zubayda-adi'], ['3', 'zubayda-anis'], ['4', 'zubayda-jamil'], ['1', null]]) {
     const g = partida(['6', pjCliente]); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
     const e = g.e, [z, c] = g.ids, Z = e.jugadores[z], C = e.jugadores[c];
     turnoDe(e, z, 'Damasco'); Z.ciudad = C.ciudad = 'Damasco'; e.turno.fase = 'acciones'; Z.noches = 80; Z.dinares = 0; C.dinares = 20; C.noches = 0;
@@ -5250,5 +5250,5 @@ console.log('destreza inicial de Yafar OK');
     }
     assert.equal(C.dinares, 13); assert.equal(C.noches, 50);
   }
-  console.log('cartas pintadas de Zubayda con Adí y con Anís OK');
+  console.log('cartas pintadas de Zubayda con Adí, Anís y Jamil OK');
 }
