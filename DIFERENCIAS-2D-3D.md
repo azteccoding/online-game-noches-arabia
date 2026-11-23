@@ -35,7 +35,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 23 nov | Elegir personaje: los monitos son las figuras pintadas del 3D, de frente. | Los monitos dibujados del 2D. | `0fc9667` |
 | 23 nov | Vista previa de WhatsApp con su propia miniatura y la dirección del link (3d.milyunanoches.net). | La vista previa del 2D. | `08f36f8`, `d99bf5f` |
 | 23 nov | La demo (`/demo/` y el botón «Ver demostración 3D») es la demo visual 3D. | La muestra del juego web 2D. | `c819212` |
-| 23 nov | Atajos de teclado: flechas mueven la cámara sobre el mapa; + y − (también del teclado numérico) acercan y alejan; **m** mercado, **a** acciones (en tu turno), **n** mensajes, **c** última carta, **v** la Carta de Trivias por responder, **z** cierra la carta abierta (si ya se puede) o la ventana abierta, **Alt + espacio** termina el turno. | En el mapa 2D solo flechas y + / − con el mapa enfocado; sin atajos de letras. | `c819212` |
+| 23 nov | Atajos de teclado: flechas mueven la cámara sobre el mapa; + y − (también del teclado numérico) acercan y alejan; **m** mercado, **a** acciones (en tu turno), **n** mensajes, **c** última carta, **v** la Carta de Trivias por responder, **z** cierra la carta abierta (si ya se puede) o la ventana abierta, **x + espacio** termina el turno (antes Alt + espacio, que en Windows abre el menú de la ventana). | En el mapa 2D solo flechas y + / − con el mapa enfocado; sin atajos de letras. | `c819212`, `6eed7af` |
 
 ## Tablero y animaciones (solo existen en el 3D)
 
