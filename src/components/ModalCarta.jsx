@@ -95,6 +95,20 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   }, [modoLectura, nroActual, fase]);
 
   useEffect(() => { if (puedeCerrarRef.current) botonCerrar.current?.focus({ preventScroll: true }); });
+  // Jorge (23 de noviembre): toda carta trae el foco en Cerrar y Enter la cierra (cuando ya se puede); el espacio ni cierra ni hace de Enter.
+  const hayCarta = !!carta;
+  useEffect(() => {
+    if (!hayCarta) return undefined;
+    const tecla = (ev) => {
+      if (ev.key !== 'Enter' || ev.ctrlKey || ev.metaKey || ev.altKey) return;
+      const t = ev.target, b = botonCerrar.current;
+      if (t && t !== b && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName || '')) && t.closest?.('.carta, .modal-pie')) return;   // Enter sobre una opción de la carta elige esa opción
+      ev.preventDefault(); ev.stopImmediatePropagation(); if (ev.repeat) return;
+      if (b && !b.disabled) b.click();
+    };
+    window.addEventListener('keydown', tecla, true);
+    return () => window.removeEventListener('keydown', tecla, true);
+  }, [hayCarta]);
   if (!carta) return null;
   if (modoLectura && fase === 'espera') return null;
   if (modoLectura && carta.deck === 'ifrit' && s.pend?.tipo === 'ifrit' && escenaActual() && !ifritFuera) return null;   // primero sale el genio; luego se presenta su carta
@@ -149,7 +163,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
         </Carta>
         <div className="modal-pie">
           {consultaObj?.uid && s.mano.some((c) => c.uid === consultaObj.uid && c.venta != null) && s.turno?.pid === s.yo && <button className="btn sec" onClick={() => { enviar(ACCIONES.vender(consultaObj.uid)); onCerrarConsulta(); }}>Vender</button>}
-          <button className="btn modal-cerrar" ref={botonCerrar} disabled={!puedeCerrar} onClick={cerrar}>
+          <button className="btn modal-cerrar" ref={botonCerrar} disabled={!puedeCerrar} onClick={cerrar} onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }} onKeyUp={(e) => { if (e.key === ' ') e.preventDefault(); }}>
             {puedeCerrar ? 'Cerrar' : `Leyendo… ${resta}`}
           </button>
         </div>
