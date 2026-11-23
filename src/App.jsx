@@ -47,6 +47,7 @@ function Juego({ lienzo }) {
   const aviso = useJuego((x) => x.aviso);
   const demo = useJuego((x) => x.demo);
   const pids = useJuego((x) => x.pids);
+  const [verTablero, setVerTablero] = useState(false);   // sin personaje en la primera ronda: mirar la partida en vez de la sala
   const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
@@ -82,7 +83,7 @@ function Juego({ lienzo }) {
   const idDados = dadosAjenos ? null : s?.dados?.id;
   useEffect(() => { if (idDados) setPanel(null); }, [idDados]);
   // Resultado de los retos ajenos: alerta verde (lo logró) o gris (no lo logró / en curso). Y el desenlace de tus propios retos (Jorge,
-  // 21 de noviembre): verde si lo lograste, roja si no, gris si sigue en curso. Todas duran 5 s y se cierran al tocarlas o deslizarlas.
+  // 21 de noviembre): verde si lo lograste, roja si no, gris si sigue en curso. Todas duran 3 s (23 de noviembre) y se cierran al tocarlas o deslizarlas.
   const [anunciosVistos, setAnunciosVistos] = useState(null);
   useEffect(() => {
     if (!s?.anuncios || anunciosVistos) return;
@@ -127,7 +128,9 @@ function Juego({ lienzo }) {
 
   if (DEMO && params.get('galeria')) return <React.Suspense fallback={null}><Galeria mazo={params.get('galeria')} ancho={Number(params.get('ancho')) || 360} /></React.Suspense>;
   if (!s) return conexion === 'inicio' ? <div className="app"><Entrada demoDisponible={DEMO} /></div> : <div className="app"><div className="pantalla"><p className="it">Conectando con el servidor…</p></div></div>;
-  if (s.fase === 'lobby' || (s.fase === 'juego' && s.jugadores[s.yo]?.tarde)) return <div className="app"><Lobby s={s} />{error && <div className="toast" role="alert">{error}</div>}</div>;
+  // Sin personaje en la primera ronda se ve la sala para entrar tarde; con «Ver el tablero» se mira la partida (y se puede ser el banco).
+  const sinEntrar = s.fase === 'juego' && s.puedeUnirse && (s.jugadores[s.yo]?.tarde || !s.jugadores[s.yo]?.pj);
+  if (s.fase === 'lobby' || (sinEntrar && !verTablero)) return <div className="app"><Lobby s={s} onVerTablero={s.fase === 'juego' ? () => setVerTablero(true) : null} />{error && <div className="toast" role="alert">{error}</div>}</div>;
 
   const ciudadPanel = panel?.startsWith('ciudad:') ? panel.slice(7) : null;
   return (
@@ -158,6 +161,7 @@ function Juego({ lienzo }) {
       <PanelAcciones s={s} abrir={abrir} panel={panel} />
       <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} huellaCiudades={huellaCiudades} />
       {s.fase === 'fin' && verFin && <Fin s={s} onCerrar={() => setVerFin(false)} />}
+      {sinEntrar && <button className="btn entrar-tarde" onClick={() => setVerTablero(false)}>Elegir personaje y entrar</button>}
       {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}

@@ -253,6 +253,8 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .peon.camino { opacity: .7; }
 .flotante { position: absolute; z-index: 22; right: 10px; bottom: 10px; }
 /* Tras el fin de la partida, con el tablero a la vista: siempre arriba y al centro, por encima de paneles y botones flotantes. */
+/* Sin personaje en la primera ronda (23 de noviembre): botón para elegir personaje y entrar, abajo a la izquierda */
+.entrar-tarde { position: fixed; left: 12px; bottom: calc(var(--acciones-alto, 64px) + 14px); z-index: 60; box-shadow: var(--sombra); }
 .volver-fin { position: fixed; top: calc(var(--barra-alto) + 10px); left: 50%; transform: translateX(-50%); z-index: 96; box-shadow: var(--sombra); max-width: calc(100vw - 120px); }
 .lienzo[data-forma='alta'] .barra { height: auto; min-height: var(--barra-alto); flex-wrap: wrap; padding: calc(4px + var(--seg-arriba)) max(8px, var(--seg-der)) 4px max(8px, var(--seg-izq)); row-gap: 4px; }
 .lienzo[data-forma='alta'] .barra-izq { flex: 1 1 100%; flex-wrap: wrap; }

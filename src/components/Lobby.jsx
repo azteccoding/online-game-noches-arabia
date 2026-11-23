@@ -6,7 +6,7 @@ import { ACCIONES } from '../game/protocol.js';
 
 const NIVEL = { facil: 'Fácil', normal: 'Normal', dificil: 'Difícil' };
 
-export default function Lobby({ s }) {
+export default function Lobby({ s, onVerTablero }) {
   const yo = s.jugadores[s.yo];
   const tomados = Object.fromEntries(Object.values(s.jugadores).filter((j) => j.pj).map((j) => [j.pj, j]));
   const todos = Object.values(s.jugadores);
@@ -58,7 +58,10 @@ export default function Lobby({ s }) {
           </label>
         )}
         <div className="fila-btn">
-          {tarde ? <button className="btn" disabled={!yo?.pj || !s.puedeUnirse} onClick={() => enviar(ACCIONES.listo(true))}>Entrar a la partida</button> : <>
+          {tarde ? <>
+            <button className="btn" disabled={!yo?.pj || !s.puedeUnirse} onClick={() => enviar(ACCIONES.listo(true))}>Entrar a la partida</button>
+            {onVerTablero && <button className="btn sec" onClick={onVerTablero}>Ver el tablero</button>}
+          </> : <>
             <button className="btn sec" disabled={!yo?.pj} onClick={() => enviar(ACCIONES.listo(!yo.listo))}>{yo?.listo ? 'Ya no estoy listo' : 'Estoy listo'}</button>
             <button className="btn" disabled={!puedeIniciar} onClick={() => enviar(ACCIONES.iniciar())}>Comenzar partida</button>
           </>}

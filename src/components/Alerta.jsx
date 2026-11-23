@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 
 // Alerta (Jorge, 21 de noviembre): «todas las alertas duran 5 segundos y luego se quitan, sin perjuicio de que las puedas cerrar
 // (deslizándolas en teléfonos) y tocándolas en cualquier dispositivo».
-export const DURA_ALERTA_MS = 5000;
+// Jorge (23 de noviembre): ahora duran 3 segundos.
+export const DURA_ALERTA_MS = 3000;
 const UMBRAL_PX = 50;   // cuánto hay que deslizarla para cerrarla
 
 export default function Alerta({ className, role = 'status', onCerrar, children }) {

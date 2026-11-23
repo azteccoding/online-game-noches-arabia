@@ -5268,3 +5268,39 @@ console.log('destreza inicial de Yafar OK');
   }
   console.log('cartas pintadas de Zubayda con Adí, Anís y Jamil OK');
 }
+
+// Bug del 23 de noviembre (3D en línea): Jorge entró sin personaje y la única jugadora se desconectó. Al sacarla, el turno volvía a ella
+// y el banco seguía viendo «Sacarlo»; la votación de partida nueva la contaba y no contaba al banco; y Jorge no podía entrar tarde.
+{
+  const e = nuevoJuego(data, { semilla: 5, ahora: 1000, opciones: {} });
+  let now = 1000; const act = (pid, a) => { now += 300; return reducir(data, e, pid, a, now); };
+  const A = unir(e, { nombre: 'Angela', token: 'ta' }), J = unir(e, { nombre: 'Jorge', token: 'tj' });
+  assert.ok(act(A, { t: 'elegirPj', pj: '4' }).ok); act(A, { t: 'listo', v: true }); assert.ok(act(e.host, { t: 'iniciar' }).ok);
+  for (const id of [A, J]) e.jugadores[id].extra.clienteWeb = true;
+  for (let i = 0; i < 40 && (e.dados || e.pend); i++) { if (e.dados) e.dados.lanzado = true; if (e.pend) for (const q of e.pend.para) if (!e.pend.resp[q]) act(q, { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones[0]?.id }); now += 31000; tick(data, e, now); }
+  assert.equal(e.turno.pid, A); conexion(e, A, false);
+  assert.ok(vistaDe(e, J).puedoSacar, 'con el banco ausente, Jorge puede sacarla');
+  assert.ok(act(J, { t: 'host.sacarEspera', pid: A }).ok);
+  const v = vistaDe(e, J);
+  assert.equal(v.espera, null, 'ya sacada, no se vuelve a ofrecer sacarla'); assert.ok(!v.puedoSacar);
+  assert.equal(v.esperaVuelta, A, 'la partida espera a que vuelva');
+  assert.ok(!act(J, { t: 'host.sacarEspera', pid: A }).ok, 'no se saca dos veces');
+  assert.ok(act(J, { t: 'reclamarAnfitrion', pin: e.pinHost }).ok); assert.equal(e.host, J, 'sin personaje también puede ser el banco');
+  // entra tarde en la primera ronda aunque estuviera en la sala sin personaje al empezar
+  assert.ok(puedeUnirse(e));
+  assert.ok(act(J, { t: 'elegirPj', pj: '7' }).ok); assert.ok(e.jugadores[J].tarde);
+  assert.ok(act(J, { t: 'listo', v: true }).ok); assert.ok(!e.jugadores[J].eliminado && !e.jugadores[J].tarde, 'ya está en la partida');
+  assert.ok(e.turno.pid === J || e.orden.includes(J));
+  // votación: la sacada no vota; el banco sí
+  assert.ok(act(J, { t: 'host.reiniciar' }).ok);
+  assert.equal(e.fase, 'lobby', 'Jorge es el único que puede votar: con su sí basta');
+  // y con una jugadora conectada que no es el banco, ella vota y el sacado no cuenta
+  console.log('sacar a la única jugadora, votación y entrar tarde sin personaje OK');
+}
+{
+  const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids; e.host = a; e.jugadores[c].sacado = true;
+  assert.ok(g.act(a, { t: 'host.reiniciar' }).ok);
+  assert.equal(vistaDe(e, a).votoReinicio.total, 2, 'el sacado no cuenta en la votación');
+  assert.ok(g.act(b, { t: 'votarReinicio', si: true }).ok); assert.equal(e.fase, 'lobby');
+}

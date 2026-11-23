@@ -18,7 +18,8 @@ export function marcarCartaPorLeer(nro) { if (S.cartaPorLeer !== nro) poner({ ca
 // Juego 3D: la carta del Ifrit se presenta cuando el genio ya salió de la lámpara (Tablero3D lo marca).
 export function marcarIfrit(fuera) { if (!!S.ifritFuera !== !!fuera) poner({ ifritFuera: !!fuera }); }
 // Jorge (21 de noviembre): todas las alertas duran 5 segundos (y se cierran antes al tocarlas o deslizarlas: components/Alerta.jsx).
-const DURA_MS = 5000;
+// Jorge (23 de noviembre): ahora 3 segundos.
+const DURA_MS = 3000;
 // Aviso verde local (premios, nueva ronda…). Como mucho dos avisos juntos.
 // Aviso rojo local (pagos y pérdidas propias).
 export function avisarPerdida(msg) { poner({ error: msg }); setTimeout(() => { if (S.error === msg) poner({ error: null }); }, DURA_MS); }
@@ -29,7 +30,7 @@ export async function iniciarJuego(params) {
   adaptador = await crearAdaptador(params);
   adaptador.onEstado((estado) => poner({ estado, error: null }));
   adaptador.onConexion((conexion) => poner({ conexion }));
-  // 5 segundos todas (Jorge, 21 de noviembre); se cierran antes al tocarlas o deslizarlas (cerrarAviso)
+  // 3 segundos todas (Jorge, 23 de noviembre); se cierran antes al tocarlas o deslizarlas (cerrarAviso)
   adaptador.onError((error) => { poner({ error }); setTimeout(() => { if (S.error === error) poner({ error: null }); }, DURA_MS); });
   adaptador.onHecho?.((aviso) => { poner({ aviso }); setTimeout(() => { if (S.aviso === aviso) poner({ aviso: null }); }, DURA_MS); });   // confirmación de entregas y tesoro
   adaptador.onReaccion?.((r) => {                                       // burbujas de reacción: como mucho 3 a la vez, 4.5 s cada una

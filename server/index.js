@@ -162,6 +162,7 @@ function difundir() {
 function confirmacion(a, pid) {
   const nom = (id) => estado.jugadores[id]?.nombre || '?', yo = estado.jugadores[pid];
   switch (a.t) {
+    case 'reclamarAnfitrion': return 'Ahora eres el banco.';
     case 'host.dar': return `Entregado a ${nom(a.pid)}: ${Math.floor(a.dinares || 0)} dinares y ${Math.floor(a.noches || 0)} noches.`;
     case 'host.repartir': return `Entregado a ${nom(a.pid)}: ${a.mazo === 'objeto' ? 'un objeto' : a.mazo === 'mensaje' ? 'un mensaje' : 'una carta'}.`;
     case 'host.corregir': return `Corregido: ${a.campo} de ${nom(a.pid)}.`;

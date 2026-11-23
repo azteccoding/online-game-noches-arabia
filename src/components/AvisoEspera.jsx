@@ -12,6 +12,8 @@ export default function AvisoEspera({ s }) {
   useEffect(() => { if (!espera) return undefined; const iv = setInterval(() => setReloj((n) => n + 1), 500); return () => clearInterval(iv); }, [espera]);
   const yo = s.jugadores[s.yo];
   if (yo?.sacado) return <div className="aviso-espera panel" role="alert"><p>El banco te sacó de tu turno. Tu turno pasa al final del orden.</p><button className="btn mini" onClick={() => enviar(ACCIONES.volver())}>Volver a la partida</button></div>;
+  const vuelta = s.esperaVuelta && s.jugadores[s.esperaVuelta];   // todos los jugadores están sacados: la partida espera, no da vueltas sola
+  if (vuelta && !yo?.sacado) return <div className="aviso-espera panel" role="status"><p>La partida espera a que vuelva <b>{vuelta.nombre}</b>: no queda nadie más en juego. Cuando vuelva, sigue su turno.</p></div>;
   const x = s.espera;
   if (!x?.sacable || !s.puedoSacar) return null;
   const clave = x.pid + ':' + x.desde;

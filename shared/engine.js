@@ -115,7 +115,7 @@ function incorporarTarde(data, e, pid) {
   for (const ref of p.cartasInicio || []) j.mano.push({ uid: uid(e), tipo: 'item', ref, pub: true });   // Zein: Dados del Cairo
   inicioExtra(e, j, p);
   { const n = e.orden.filter((i) => e.jugadores[i].pj && !e.jugadores[i].npc).length + (e.orden.includes(pid) ? 0 : 1); e.firmanes += Math.max(0, firmanesEnVenta(n) - firmanesEnVenta(n - 1)); }   // quien entra tarde puede sumar uno a la venta
-  j.tarde = false; j.listo = true;
+  j.tarde = false; j.listo = true; j.eliminado = false;
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
   if (e.turno) e.turno.idx = e.orden.indexOf(e.turno.pid);
   e.participantes = (e.participantes || 0) + 1; e.solitario = false;
@@ -329,9 +329,12 @@ const ESPERA_SACAR_MS = 60000;
 export function esperaDado(e) {
   if (e.fase !== 'juego' || e.pend) return null;
   const d = e.dados, t = e.turno;
-  if (d) return !d.lanzado && !d.npc && e.jugadores[d.por] && !e.jugadores[d.por].npc ? { pid: d.por, desde: d.t0 } : null;
-  return t && t.fase === 'ingreso' && !e.jugadores[t.pid]?.npc ? { pid: t.pid, desde: t.t0 ?? e.ahora } : null;
+  const fuera = (id) => !e.jugadores[id] || e.jugadores[id].npc || e.jugadores[id].sacado;   // a quien ya sacaron no se le vuelve a ofrecer sacarlo (bug del 23 de noviembre)
+  if (d) return !d.lanzado && !d.npc && !fuera(d.por) ? { pid: d.por, desde: d.t0 } : null;
+  return t && t.fase === 'ingreso' && !fuera(t.pid) ? { pid: t.pid, desde: t.t0 ?? e.ahora } : null;
 }
+// Si todos los jugadores con personaje están sacados, la partida no da vueltas sola: se queda esperando a que vuelva quien tiene el turno.
+const esperaVuelta = (e) => (e.fase === 'juego' && e.turno && !e.turno.npc && e.jugadores[e.turno.pid]?.sacado ? e.turno.pid : null);
 const sacable = (e, x = esperaDado(e)) => !!x && (e.jugadores[x.pid]?.conectado === false || e.ahora - x.desde >= ESPERA_SACAR_MS);   // desconectado: de inmediato
 const pierdeSuTurno = (e, id) => {
   const j = e.jugadores[id];
@@ -746,7 +749,9 @@ function despachar(data, e, pid, j, a, ahora) {
   switch (a.t) {
     // ---- lobby
     case 'elegirPj': {
-      if (e.fase !== 'lobby' && !(j.tarde && puedeUnirse(e))) return err('La partida ya empezó.');
+      // Quien estaba en la sala sin personaje cuando empezó la partida también puede entrar tarde en la primera ronda (Jorge, 23 de noviembre).
+      if (e.fase !== 'lobby' && !((j.tarde || (!j.pj && !j.npc)) && puedeUnirse(e))) return err('La partida ya empezó.');
+      if (e.fase !== 'lobby') j.tarde = true;
       if (!pjDe(data, a.pj)) return err('Personaje inexistente.');
       if (Object.values(e.jugadores).some((x) => x.pj === a.pj && x.id !== pid)) return err('Ese personaje ya está tomado.');
       j.pj = a.pj; j.listo = false; j.listoEn = null; bancoDeSala(e); return ok();
@@ -1553,7 +1558,7 @@ export function vista(data, e, pid) {
     publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},
     miMano: yo ? yo.mano.map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) })) : [],
     sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
-    espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid,
+    espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid, esperaVuelta: esperaVuelta(e),
     noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo && tieneItem(yo, 'jambiya') && !jambiyaALaMano(yo),
     caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, puedeVolver: puedeVolver(e) && (esHost(e, pid) || (e.ganadores || []).includes(pid)), trasFin: !!e.trasFin, puedoGanarYa: puedeGanarYa(data, e, pid), victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
@@ -1575,7 +1580,8 @@ const publicMods = (e) => { const { sinIngreso, varado, huir, ...r } = e.mods ||
 // El banco lo propone en cualquier momento; votan los jugadores humanos conectados y basta la mayoría (más de la mitad).
 // Al terminar la partida de forma normal, el banco empieza la nueva sin votación. La partida anterior se guarda en datos/.
 export const VOTO_REINICIO_MS = 60000;
-const votantes = (e) => e.orden.filter((id) => { const j = e.jugadores[id]; return j && !j.npc && j.pj && j.conectado !== false; });
+// Bug del 23 de noviembre: el sacado no vota (está fuera hasta que vuelva) y el banco conectado vota aunque no tenga personaje.
+const votantes = (e) => Object.keys(e.jugadores).filter((id) => { const j = e.jugadores[id]; return !j.npc && !j.sacado && j.conectado !== false && (j.pj && !j.tarde ? e.orden.includes(id) : id === e.host); });
 function proponerReinicio(data, e, pid) {
   if (e.fase === 'lobby') return err('La partida todavía no empieza.');
   if (e.fase === 'fin') return reiniciar(data, e);
