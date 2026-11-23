@@ -98,9 +98,14 @@ assert.equal(medioDeViaje('Jorge viaja de Bagdad a Damasco.'), null);
   assert.ok(deDia(b[0]) && deDia(b[1]) && b[0] < 0.5 && b[1] > 0.5, 'el segundo tiene el mediodía');
   assert.ok(deDia(c[0]) && cerca(c[1], OCASO), 'el tercero empieza con sol y termina de noche');
   // con 4 o más: los tramos con sol son de todos menos el último, que juega de noche
-  for (const n of [4, 5, 6]) {
+  for (const n of [4, 5]) {
     assert.ok(cerca(tramoDeTurno(n - 2, n)[1], OCASO), 'el penúltimo ve caer la noche');
     assert.deepEqual(tramoDeTurno(n - 1, n), [OCASO, NOCHE], 'el último juega sin sol');
+  }
+  // con 6 (Jorge: «con 6 los dos últimos juegan de noche»): el cuarto ve caer la noche y el quinto y el sexto juegan sin sol
+  for (const n of [6, 7, 8]) {
+    assert.ok(cerca(tramoDeTurno(n - 3, n)[1], OCASO) && deDia(tramoDeTurno(n - 3, n)[0]), 'el antepenúltimo empieza con sol y ve caer la noche');
+    assert.ok(cerca(tramoDeTurno(n - 2, n)[0], OCASO) && cerca(tramoDeTurno(n - 1, n)[1], NOCHE), 'los dos últimos juegan sin sol');
   }
   // los tramos se encadenan sin huecos, con cualquier número de jugadores
   for (let n = 1; n <= 8; n++) for (let i = 1; i < n; i++) assert.ok(cerca(tramoDeTurno(i - 1, n)[1], tramoDeTurno(i, n)[0]), `tramos seguidos (${n} jugadores)`);

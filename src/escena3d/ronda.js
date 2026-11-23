@@ -1,13 +1,14 @@
 // Ronda: ciclo de luz. Al terminar la ronda atardece y cae la noche; la ronda nueva empieza amaneciendo.
 // Solo es un contador visual («Ronda 2», «Ronda 3»…): el demo no decide qué pasa en una ronda.
 // Luz por turnos (Jorge, 23 de noviembre): en la partida el día dura la ronda entera y se reparte entre los jugadores. Con 3, en el
-// turno del primero aclara, en el del segundo es pleno día y en el del tercero atardece y anochece. Con 4 o más, el sol se reparte
-// entre todos menos el último, que juega de noche, con las lámparas de la mesa. La luz avanza despacio dentro de cada turno.
+// turno del primero aclara, en el del segundo es pleno día y en el del tercero atardece y anochece. Con 4 o 5, el sol se reparte
+// entre todos menos el último, que juega de noche, con las lámparas de la mesa; con 6 o más, de noche juegan los dos últimos. La luz avanza despacio dentro de cada turno.
 export const ALBA = 0.2, OCASO = 0.8, NOCHE = 0.95;      // horas: aún de noche antes de aclarar, noche recién caída y noche cerrada
 const CRUZAR_TRAMO = 45;                                  // segundos que tarda la luz en recorrer el tramo de un turno
 export function tramoDeTurno(indice, total) {             // [hora al empezar el turno, hora a la que llega]
-  const n = Math.max(1, total | 0), i = Math.min(n - 1, Math.max(0, indice | 0)), conSol = n >= 4 ? n - 1 : n;
-  if (i >= conSol) return [OCASO, NOCHE];
+  // de noche juegan: nadie con 3 o menos, el último con 4 o 5 y los dos últimos con 6 o más (Jorge: «con 6 los dos últimos juegan de noche»)
+  const n = Math.max(1, total | 0), i = Math.min(n - 1, Math.max(0, indice | 0)), deNoche = n >= 6 ? 2 : n >= 4 ? 1 : 0, conSol = n - deNoche;
+  if (i >= conSol) return [OCASO + (NOCHE - OCASO) * (i - conSol) / deNoche, OCASO + (NOCHE - OCASO) * (i - conSol + 1) / deNoche];
   return [ALBA + (OCASO - ALBA) * i / conSol, ALBA + (OCASO - ALBA) * (i + 1) / conSol];
 }
 export function crearRonda(amb, { alRotulo, sonido }) {

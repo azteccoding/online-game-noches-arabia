@@ -101,7 +101,7 @@ Las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el es
 | --- | --- |
 | `transicionRonda(numero)` | Atardecer, noche y amanecer de la ronda nueva (unos 7 s). Avisa con `alCambiarRonda` ya de noche. |
 | `amanecer()` | Amanecer del inicio de la partida (unos 4 s). |
-| `ponerLuzTurno(indice, total)` | Luz por turnos: el día dura la ronda entera y se reparte entre los jugadores (0 = el primero del orden). La luz avanza despacio por el tramo de ese turno (unos 45 s); con 4 o más, el último juega de noche. Con esto activo, `transicionRonda` solo termina de anochecer y enseña el rótulo, y `amanecer` deja la luz justo antes del alba. `null` vuelve a la luz fija. |
+| `ponerLuzTurno(indice, total)` | Luz por turnos: el día dura la ronda entera y se reparte entre los jugadores (0 = el primero del orden). La luz avanza despacio por el tramo de ese turno (unos 45 s); con 4 o 5, el último juega de noche; con 6 o más, los dos últimos. Con esto activo, `transicionRonda` solo termina de anochecer y enseña el rótulo, y `amanecer` deja la luz justo antes del alba. `null` vuelve a la luz fija. |
 | `ponerHora(fase, { duracion })` | Hora fija: `'noche'`, `'amanecer'`, `'dia'`, `'mediodia'`, `'atardecer'` o un número de 0 a 1. |
 | `ponerCiudadesQuemadas(lista)` | Ciudades que arden (lista completa cada vez; `[]` las apaga). El incendio suena (ranura `fuego-ardiendo`, con provisional sintetizado): el volumen sube al acercar la cámara a una ciudad en llamas y de lejos no se oye. |
 | `resaltarCiudades(lista, { desde })` | Marca las ciudades a las que se puede ir; `null` o `[]` quita la marca. |
