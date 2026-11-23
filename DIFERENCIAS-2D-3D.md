@@ -49,6 +49,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 - Barcos (dhows): navegan por el agua apartados de la costa (rodean cabos en vez de cruzar tierra); atracan junto a la orilla solo para subir o bajar a alguien y luego esperan donde no tapan nombres ni dibujos del mapa. Esperan paralelos a la costa; el del Mar Rojo espera afuera, en el golfo frente al Cuerno de África, debajo del nombre de Yemen; en mares estrechos el barco es algo más chico (`d337d63`, `0fe6f14`).
 | 23 nov | Pelea entre dos jugadores en tres tiempos: con los primeros dados de la pelea se plantan uno frente al otro; si hay arcos, la flecha sale desde ahí; el choque de armas va después de la última tirada y al final sale el conteo. MIENTRAS HAY ANIMACIÓN DE PELEA (golpes o flecha) no se ve ninguna ventana ni aviso ni actúan los atajos: todo sale al terminar. | No hay animación de pelea. | `ee4eb0f` |
 | 23 nov | Solo tu monito gira: da vueltas despacio con el acercamiento máximo sobre él y da una vuelta entera si lo tocas. Los de los demás no giran. | No aplica. | `ee4eb0f` |
+| 23 nov | Toda carta trae el foco en el botón Cerrar y Enter la cierra (respetando el tiempo mínimo de lectura); el espacio ni cierra ni hace de Enter. | Como antes: el espacio también aprieta el botón enfocado. | `992ab78` |
 | 23 nov | El texto de una carta pintada se agranda solo con el mouse sobre la carta, no sobre el botón Cerrar ni sobre sus botones. | Igual que antes. | `ee4eb0f` |
 
 ## Despliegue
