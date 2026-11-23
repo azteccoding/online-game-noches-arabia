@@ -151,10 +151,35 @@ def vistas(m):
         cortes.append(W)
     cajas = []
     if LIBRE and cortes is not None and len(VISTAS_M) == 4:      # cada figura con su propia máscara (la caja puede pisar a la vecina)
+        tiradas = []
         for k in range(4):
             sub = VISTAS_M[k]; et, n = ndi.label(sub)
-            if n == 0: continue
-            tam = ndi.sum(sub, et, range(1, n + 1)); sub = np.isin(et, 1 + np.where(tam > tam.max() * 0.025)[0]); VISTAS_M[k] = sub
+            if n == 0: tiradas.append(np.zeros_like(sub)); continue
+            tam = ndi.sum(sub, et, range(1, n + 1)); keep = np.isin(et, 1 + np.where(tam > tam.max() * 0.025)[0])
+            tiradas.append(sub & ~keep); VISTAS_M[k] = keep
+        # Jorge (23 de noviembre): a Nur al Din le faltaba la mano izquierda. La muñeca es tan delgada que el «opening» la separa del
+        # puño, y la costura entre dos vistas la partía: un trozo quedaba suelto en su vista y otro en la vecina, y los dos se tiraban
+        # como motas. Un pedazo tirado que queda a pocos píxeles de una figura (de su vista o de la vecina) se le devuelve; se repite
+        # para que vuelvan también los que tocan a un pedazo ya devuelto.
+        piezas = []
+        for j in range(4):
+            et, n = ndi.label(tiradas[j])
+            for l, sl in enumerate(ndi.find_objects(et), start=1):
+                if sl is None: continue
+                y0, y1 = max(0, sl[0].start - 8), min(H, sl[0].stop + 8); x0, x1 = max(0, sl[1].start - 8), min(W, sl[1].stop + 8)
+                pieza = et[y0:y1, x0:x1] == l
+                piezas.append((y0, y1, x0, x1, pieza, ndi.binary_dilation(pieza, iterations=6)))
+        for _ in range(3):
+            quedan = []
+            for (y0, y1, x0, x1, pieza, cerca) in piezas:
+                k = next((k for k in range(4) if (cerca & VISTAS_M[k][y0:y1, x0:x1]).any()), None)
+                if k is None: quedan.append((y0, y1, x0, x1, pieza, cerca))
+                else: VISTAS_M[k][y0:y1, x0:x1] |= pieza
+            if len(quedan) == len(piezas): break
+            piezas = quedan
+        for k in range(4):
+            sub = VISTAS_M[k]
+            if not sub.any(): continue
             xs = np.where(sub.any(axis=0))[0]; ys = np.where(sub.any(axis=1))[0]
             cajas.append((xs[0], ys[0], xs[-1] + 1, ys[-1] + 1))
         return cajas
@@ -224,6 +249,11 @@ def procesar(pid, archivo):
         et, n = ndi.label(mm)
         if n > 1:      # solo la figura (lo más grande) y lo que casi la toca
             tam = ndi.sum(mm, et, range(1, n + 1)); mm = np.isin(et, 1 + np.where(tam > tam.max() * (0.025 if LIBRE else 0.004))[0])      # hoja libre: el papel pintado deja motas más grandes
+            if LIBRE and len(VISTAS_M) == 4:      # lo que está a pocos píxeles de la figura (una mano con la muñeca delgada) se queda
+                for _ in range(3):
+                    mas = np.isin(et, np.unique(et[ndi.binary_dilation(mm, iterations=6) & (et > 0)]))
+                    if (mas == mm).all(): break
+                    mm = mas
         if espejo: mm = mm[:, ::-1]; cc = cc[:, ::-1]
         return mm, cc
 
