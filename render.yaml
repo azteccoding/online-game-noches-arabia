@@ -2,8 +2,9 @@
 # En Render: New → Blueprint → elegir este repositorio. El PIN del banco aparece en la pestaña «Logs».
 services:
   - type: web
-    name: mil-y-una-noches
+    name: mil-y-una-noches-3d       # el 3D es otro servicio (rama juego-3d), con su propio link; el 2D sigue en el suyo
     runtime: node
+    branch: juego-3d
     plan: free
     buildCommand: npm install && npm run build
     startCommand: node server/index.js --sin-qr
