@@ -1,7 +1,7 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
   ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
-enPartida, marcarBuscado, } from './base.js';
+enPartida, marcarBuscado, publicarCarta, } from './base.js';
 import { peleaNPC } from './pelea.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -116,9 +116,12 @@ export function accion(data, e, pid, a) {
   switch (a.sub) {
     case 'haren': {
       if (j.pj !== '6' || j.ciudad !== 'Bagdad') return err('Solo Zubayda, en Bagdad.');
-      j.dinares += HAREN_DINARES; j.extra.bajoTecho = true; j.extra.techoRonda = e.ronda;
+      cobrarHaren(e, j);   // por si quedó una noche anterior sin cobrar
+      j.extra.bajoTecho = true; j.extra.techoRonda = e.ronda;
       t.principal = true; t.sinAlojamiento = true; t.fin = true;
-      log(e, `${j.nombre} pasa la noche en el harén del Califa: gana ${HAREN_DINARES} dinares y queda bajo su techo.`, { pid });
+      // Jorge (23 de noviembre): sale la carta pintada de Zubayda en el harén; los dinares llegan al cerrarla (la carta va primero)
+      const ent = publicarCarta(e, { id: 'zubayda-haren', deck: 'especial', titulo: 'El harén del Califa', sub: 'Zubayda', texto: `Pasas la noche en el harén del Califa: ganas ${HAREN_DINARES} dinares y quedas bajo su techo. Allí nadie puede robarte ni asesinarte.`, arte: 'es' }, pid, [pid]);
+      j.extra.harenPend = { monto: HAREN_DINARES, nro: ent.nro, t: e.ahora };
       return ok();
     }
     case 'prost': {
@@ -189,3 +192,9 @@ registrar('pj.prost', (data, e, args, resp) => {
 // Zein ya no tiene «Noche discreta» (Jorge, 8 de noviembre): se quitó junto con el esposo y su pelea.
 
 void dados; void zeinId; void sobornoGuardias; void nuevoCtx;   // los guardias del Califa (R 12.5) ya no salen al rentar el cuerpo en Bagdad
+
+// La noche en el harén se cobra al cerrar su carta (o a los 90 s, como el mahr de Zein).
+export function cobrarHaren(e, j) {
+  const m = j.extra?.harenPend; if (!m) return; j.extra.harenPend = null;
+  j.dinares += m.monto; log(e, `${j.nombre} pasa la noche en el harén del Califa: gana ${m.monto} dinares y queda bajo su techo.`, { pid: j.id });
+}

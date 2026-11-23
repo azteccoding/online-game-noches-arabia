@@ -811,7 +811,7 @@ function despachar(data, e, pid, j, a, ahora) {
       log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} ${objetivo.length > 1 ? 'sus jambiyas' : 'una jambiya'}.`, { pid });
       return ok();
     }
-    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
+    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (j.extra.harenPend && Number(a.nro) >= j.extra.harenPend.nro) PJ.cobrarHaren(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay Carta de Trivias pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
@@ -1633,6 +1633,7 @@ function tick0(data, e, ahora) {
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
   for (const j of Object.values(e.jugadores)) if (j.extra?.cuentoPend && ahora - j.extra.cuentoPend.t > 90000) { cobrarCuento(e, j); cambio = true; }   // si nunca cierra la carta, cobra igual
   for (const j of Object.values(e.jugadores)) if (j.extra?.mahrPend && ahora - j.extra.mahrPend.t > 90000) { cobrarMahr(e, j); cambio = true; }   // el mahr de Zein, igual
+  for (const j of Object.values(e.jugadores)) if (j.extra?.harenPend && ahora - j.extra.harenPend.t > 90000) { PJ.cobrarHaren(e, j); cambio = true; }   // la noche de Zubayda en el harén, igual
   if (e.fase === 'lobby') {
     if (!e.esperarDecidido) { const v = enSala(e).filter((j) => j.pj && j.listo).length <= 1; if (v !== !!e.esperarMas) { e.esperarMas = v; cambio = true; } }
     for (const j of Object.values(e.jugadores)) if (j.conectado === false && j.desconectadoEn != null && !j.avisoSacarSala && ahora - j.desconectadoEn >= SACAR_SALA_MS) { j.avisoSacarSala = true; cambio = true; }

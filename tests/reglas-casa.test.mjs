@@ -3939,7 +3939,12 @@ console.log('reglas de la casa OK');
   const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [z] = g.ids, Z = e.jugadores[z]; turnoDe(e, z, 'Bagdad'); Z.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; Z.dinares = 0;
   assert.ok(vistaDe(e, z).acciones.some((x) => x.sub === 'haren' && /\+12 dinares/.test(x.titulo)), 'el botón dice +12');
-  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok); assert.equal(Z.dinares, 12); assert.ok(e.log.some((l) => /gana 12 dinares y queda bajo su techo/.test(l.texto)));
+  assert.ok(g.act(z, { t: 'pj', sub: 'haren' }).ok);
+  // Jorge (23 de noviembre): sale la carta pintada del harén, solo para ella, y los 12 dinares llegan al cerrarla
+  const cartaHaren = e.historial[e.historial.length - 1];
+  assert.equal(cartaHaren.id, 'zubayda-haren'); assert.deepEqual(cartaHaren.para, [z]); assert.equal(Z.dinares, 0, 'aún no cobra: primero la carta');
+  assert.ok(g.act(z, { t: 'leido', nro: cartaHaren.nro }).ok); assert.equal(Z.dinares, 12); assert.equal(Z.extra.harenPend, null);
+  assert.ok(e.log.some((l) => /gana 12 dinares y queda bajo su techo/.test(l.texto)));
 }
 // Jorge (19 de noviembre): «dormir con el Califa consume tu acción principal; si ya hiciste otra acción ya no puedes».
 {
