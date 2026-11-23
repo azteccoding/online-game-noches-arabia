@@ -29,6 +29,7 @@ async function iniciar() {
     tablero, ciudades: datosCiudades.ciudades, jorasan: JORASAN, rutas: datosRutas.rutas, personajes: datosPersonajes.personajes, sonidos: SONIDOS,
     opciones: {
       calidad: opciones.get('calidad') || undefined, calidadAuto: !opciones.has('calidad'), densidad: +opciones.get('densidad') || undefined, anchoMapa: +opciones.get('mapa') || undefined,
+      dadosEnMapa: !opciones.has('bandeja'),      // #bandeja: los dados ruedan en su bandeja en vez de caer sobre el mapa
       hora: opciones.get('hora') || (opciones.has('quieto') ? 'dia' : 'noche'), alProgreso: (txt) => { $('velo-texto').textContent = txt; },
     },
   });

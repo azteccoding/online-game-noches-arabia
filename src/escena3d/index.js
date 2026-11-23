@@ -7,6 +7,7 @@ import { crearMateriales, crearEntorno, crearAmbiente } from './ambiente.js';
 import { crearTablero } from './tablero.js';
 import { crearFichas, ALTO_FICHA } from './fichas.js';
 import { crearDados } from './dados.js';
+import { crearDadosMapa } from './dadosMapa.js';
 import { crearCamara } from './camara.js';
 import { crearSonido } from './sonido.js';
 import { crearEfectos } from './efectos.js';
@@ -90,7 +91,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   const efectos = crearEfectos(escena);
   const flota = crearFlota({ escena, tablero, mats, efectos, sonido });
   const fichas = crearFichas({ escena, tablero, mats, personajes: PJ, recursos, tex: { sombra: amb.tex.sombra }, sonido, flota, efectos, aniso: renderer.capabilities.getMaxAnisotropy() });
-  const dados = crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento });
+  // Los dados caen sobre el mapa (opciones.dadosEnMapa, encendida si no se dice otra cosa); con false ruedan en su bandeja.
+  const dadosMapa = opciones.dadosEnMapa !== false ? crearDadosMapa({ escena, tablero, camara: () => camara, fichas: () => fichas, sonido, menosMovimiento }) : null;
+  const dados = crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento, enMapa: dadosMapa });
   const camara = crearCamara(el);
   const pelea = crearPelea({ escena, tablero, fichas, camara, efectos, sonido, mats });
   const ifrit = crearIfrit({ escena, mats, efectos, sonido, camara, tablero });
@@ -251,7 +254,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
       let lanzado;
       try { lanzado = dados.lanzar(pedido, (res, err) => { if (err) return mal(err); if (conCamara) relojVuelta = setTimeout(() => { const p = previaDados; previaDados = null; if (p && !camara.tocado && !camara.enVuelo && !destruida) camara.volar(p, 1.25); }, 1900); ok(pedido.grupos ? res : res[0]); }); } catch (e) { return mal(e); }
       if (!lanzado) return mal(new Error('Los dados no están listos.'));
-      if (conCamara && !pelea.activa) { clearTimeout(relojVuelta); if (!previaDados) previaDados = camara.leer(); camara.tocado = false; camara.volar(camara.vistaDados(previaDados.az), menosMovimiento ? 0.01 : 0.85); }
+      if (conCamara && !pelea.activa) { clearTimeout(relojVuelta); if (!previaDados) previaDados = camara.leer(); camara.tocado = false; camara.volar(dados.vistaTirada?.() ?? camara.vistaDados(previaDados.az), menosMovimiento ? 0.01 : 0.85); }
       pedirCuadro();
     });
   }

@@ -11,6 +11,7 @@ export const SONIDOS = {
   // --- Dados
   'dados-lanzar': null,      //   al soltar una fila de dados sobre la bandeja
   'dados-golpe': null,       // * cada choque de un dado contra el fieltro, la madera u otro dado
+  'dados-arena': null,       //   con los dados sobre el mapa: cada golpe de un dado contra la arena (si queda en null, suena 'dados-golpe')
   'dados-resultado': null,   //   cuando la última fila de la tirada queda quieta
   // --- Fichas
   'ficha-elegir': null,      //   al elegir una ficha (lo toca la interfaz: escena.tocar('ficha-elegir'))

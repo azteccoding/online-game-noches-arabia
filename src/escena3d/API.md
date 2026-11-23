@@ -28,7 +28,7 @@ bustos y relieve).
 
 Opciones: `base` (prefijo de las URL, por defecto `/`), `calidad` (`'alta'`, `'media'` o `'baja'`), `calidadAuto` (por
 defecto `true`: si el equipo no da, baja primero las sombras y al final la nitidez), `hora` (`'dia'`, `'noche'`… o un número
-de 0 a 1), `menosMovimiento` (por defecto sigue a `prefers-reduced-motion`), `densidad`, `sombra` y `anchoMapa` (para fijar
+de 0 a 1), `menosMovimiento` (por defecto sigue a `prefers-reduced-motion`), `dadosEnMapa` (por defecto `true`; ver «Dados»), `densidad`, `sombra` y `anchoMapa` (para fijar
 a mano píxeles por punto, tamaño del mapa de sombras y ancho de la textura del mapa), `alProgreso(texto)` y cualquiera de
 los avisos `al…` de abajo.
 
@@ -68,10 +68,17 @@ una ruta.
 `lanzarDados({ valores: [..], color })` o `lanzarDados({ grupos: [{ etq, valores, color, fijo }] })`.
 
 Los dados ruedan con física y **quedan exactamente en los valores pedidos**. Hasta 6 dados por fila; las filas ruedan una
-tras otra y quedan ordenadas en la bandeja hasta `limpiarDados()`. `fijo: true` coloca la fila sin rodar. `color`:
-`'rojo'`, `'amarillo'`, `'azul'`, `'verde'` o cualquier color CSS. `camara: false` evita que la cámara vaya a la bandeja.
+tras otra y quedan ordenadas en renglones hasta `limpiarDados()`. `fijo: true` coloca la fila sin rodar. `color`:
+`'rojo'`, `'amarillo'`, `'azul'`, `'verde'` o cualquier color CSS. `camara: false` evita que la cámara vaya a los dados.
 La promesa se cumple al detenerse, con los valores de arriba (un arreglo, o uno por grupo). Una fila sola tarda de 2,6 a 3,0 s;
 si la tirada trae varias filas, cada una tarda de 2,2 a 2,6 s.
+
+**Dónde caen.** Con `opciones.dadosEnMapa` encendida (así viene), los dados caen sobre el mapa: en un claro cerca de donde
+mira la cámara, sin ciudades ni fichas debajo y, si se puede, en tierra. Al tocar el suelo levantan polvo y granos de arena,
+y al asentarse quedan en renglones, un poco hundidos y con su reborde de arena. Si la vista del momento no deja verlos
+enteros y legibles (muy lejos, muy cerca o a pie de calle), la cámara se abre lo justo para encuadrarlos y vuelve sola al
+terminar. Con `dadosEnMapa: false` ruedan en su bandeja, al fondo de la mesa, como antes. El API, los valores y los tiempos
+son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la dirección apaga la opción.
 
 ## Pelea, flecha e Ifrit (solo animación)
 

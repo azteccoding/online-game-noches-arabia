@@ -28,12 +28,16 @@ export const COLORES_DADO = {
 };
 
 // recursos.carasSVG: { 1: '<svg…>', …, 6: '<svg…>' } (las caras reales del juego; aquí se tiñen del color pedido y se rasterizan).
-export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento = false } = {}) {
+// enMapa: ayudante opcional (dadosMapa.js) para que la tirada caiga sobre el mapa en lugar de en la bandeja; sin él, nada cambia.
+export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento = false, enMapa = null } = {}) {
   const pisoY = MESA_Y + 0.12;       // fondo de terciopelo de la bandeja
   const B = BANDEJA;
 
   // --- Bandeja
   const grupo = new THREE.Group(); grupo.position.set(B.x, 0, B.z); escena.add(grupo);
+  // Dados y rótulos cuelgan de «raiz»: en la bandeja no se mueve; sobre el mapa, dadosMapa.js la lleva entera al claro elegido.
+  const raiz = new THREE.Group(); escena.add(raiz);
+  if (enMapa) grupo.visible = false;
   const forma = rectRedondeado(new THREE.Shape(), -B.w / 2 - B.pared, -B.h / 2 - B.pared, B.w + 2 * B.pared, B.h + 2 * B.pared, 0.5);
   const hueco = rectRedondeado(new THREE.Path(), -B.w / 2, -B.h / 2, B.w, B.h, 0.22); forma.holes.push(hueco);
   const bis = 0.06, gMarco = new THREE.ExtrudeGeometry(forma, { depth: B.alto + 0.12 - 2 * bis, bevelEnabled: true, bevelThickness: bis, bevelSize: bis, bevelSegments: 3, curveSegments: 10 });
@@ -92,9 +96,9 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   function tomarDado() {
     let d = libres.pop();
     if (!d) {
-      const malla = new THREE.Mesh(geo, []); malla.castShadow = true; malla.receiveShadow = true; escena.add(malla);
+      const malla = new THREE.Mesh(geo, []); malla.castShadow = true; malla.receiveShadow = true; raiz.add(malla);
       const cuerpo = new CANNON.Body({ mass: 1, shape: new CANNON.Box(new CANNON.Vec3(LADO / 2, LADO / 2, LADO / 2)), material: mDado, angularDamping: 0.07, linearDamping: 0.02, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.3 });
-      cuerpo.addEventListener('collide', (e) => { const v = Math.abs(e.contact.getImpactVelocityAlongNormal()); if (grabando && v > 0.6) grabando.push({ t: tSim, fuerza: Math.min(1, v / 14), variante: e.body === piso ? 'fieltro' : 'madera' }); });
+      cuerpo.addEventListener('collide', (e) => { const v = Math.abs(e.contact.getImpactVelocityAlongNormal()); if (grabando && v > 0.6) grabando.push({ t: tSim, fuerza: Math.min(1, v / 14), variante: e.body === piso ? 'fieltro' : 'madera', x: cuerpo.position.x, z: cuerpo.position.z }); });
       d = { malla, cuerpo, fix: new THREE.Quaternion(), de: new THREE.Vector3(), a: new THREE.Vector3(), qDe: new THREE.Quaternion(), qA: new THREE.Quaternion(), qAFix: new THREE.Quaternion(), enMundo: false };
     }
     d.malla.visible = true; d.malla.scale.setScalar(0.001); d.fix.identity(); d.saliendo = 0;
@@ -106,9 +110,9 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   function rotuloDe(texto) {
     const cv = lienzo(512, 96), g = cv.getContext('2d'); g.font = 'italic 500 54px "Alegreya", Georgia, serif'; g.textAlign = 'right'; g.textBaseline = 'middle';
     let t = texto; while (g.measureText(t).width > 496 && t.length > 4) t = t.slice(0, -2); if (t !== texto) t = t.trimEnd() + '…';
-    g.shadowColor = 'rgba(0,0,0,.7)'; g.shadowBlur = 6; g.fillStyle = '#f6e6bd'; g.fillText(t, 506, 50);
+    g.shadowColor = enMapa ? 'rgba(255,244,214,.9)' : 'rgba(0,0,0,.7)'; g.shadowBlur = 6; g.fillStyle = enMapa ? '#3b2208' : '#f6e6bd'; g.fillText(t, 506, 50);      // sobre el mapa, tinta oscura
     const tex = aTextura(cv, { aniso: 8 }), m = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.43), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0 }));
-    m.rotation.x = -Math.PI / 2; m.renderOrder = 4; escena.add(m); return m;
+    m.rotation.x = -Math.PI / 2; m.renderOrder = 4; raiz.add(m); return m;
   }
   // Sitio de cada dado de una fila ya ordenada (al fondo de la bandeja, una fila detrás de otra)
   function sitio(iFila, k, n, out) { return out.set(B.x + (k - (n - 1) / 2) * PASO_X + 0.55, pisoY + (LADO * ESC_FILA) / 2, B.z - B.h / 2 + 0.42 + iFila * PASO_Z); }
@@ -132,6 +136,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   // tirada trae varias filas, cada una rueda algo menos (de 2,2 a 2,6 s) para que el conjunto no se alargue de más.
   const DUR_RODAR = [2.0, 2.4], DUR_RODAR_VARIAS = [1.6, 2.0];
   let ultima = null, enTanda = 1;
+  const T = enMapa?.tiro || null;      // sobre el mapa los dados se dejan caer desde arriba en vez de cruzar la bandeja
 
   // Simula la tirada completa de una fila de una vez (sin dibujar) y la guarda. Devuelve null si algún dado no quedó bien plano.
   function simular(lote) {
@@ -141,7 +146,8 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
       const c = d.cuerpo; alMundo(d, true);
       c.position.set(d.a.x, d.a.y, d.a.z); c.quaternion.set(d.qA.x, d.qA.y, d.qA.z, d.qA.w);
       // lanzados con brío: caen hacia la mitad de la bandeja y siguen dando tumbos y rebotes hasta la pared de enfrente
-      c.velocity.set(-d.lado * rnd(8.5, 11.5), rnd(2.2, 5.2) * brio, rnd(-2.4, 3.8));
+      if (T) c.velocity.set(-d.lado * rnd(T.vx[0], T.vx[1]), rnd(T.vy[0], T.vy[1]) * brio, rnd(-T.vz, T.vz));
+      else c.velocity.set(-d.lado * rnd(8.5, 11.5), rnd(2.2, 5.2) * brio, rnd(-2.4, 3.8));
       c.angularVelocity.set(rnd(-26, 26) * brio, rnd(-18, 18), rnd(-26, 26) * brio);
       c.wakeUp(); d.atasco = 0;
     }
@@ -178,6 +184,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     const grupos = pedido.grupos || [{ etq: pedido.etq || '', valores: pedido.valores, color: pedido.color, fijo: pedido.fijo }];
     validar(grupos);
     estado = 'preparando'; alTerminar = cb; resultado = []; enTanda = grupos.filter((g) => !g.fijo).length;
+    if (enMapa) { for (const d of saliendo) soltarDado(d); saliendo = []; retirar(true); enMapa.alEmpezar(); }
     Promise.all(grupos.map((g) => materialesDe(g.color || 'rojo'))).then((mm) => {
       retirar(true); cola = grupos.map((g, i) => ({ ...g, mats: mm[i] })); siguiente();
     }).catch((e) => { estado = 'quieto'; const f = alTerminar; alTerminar = null; f?.(null, e); });
@@ -188,17 +195,18 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     const g = cola.shift(), N = g.valores.length, iFila = filas.length, lado = Math.random() < 0.5 ? 1 : -1;
     const lote = g.valores.map(() => { const d = tomarDado(); d.malla.material = g.mats; return d; });
     const fila = { etq: g.etq || '', dados: lote, rotulo: g.etq ? rotuloDe(g.etq) : null, valores: g.valores.slice() };
-    if (fila.rotulo) { sitio(iFila, 0, N, v); fila.rotulo.position.set(v.x - PASO_X / 2 - 1.2, pisoY + 0.012, v.z); }
+    if (fila.rotulo) { sitio(iFila, 0, N, v); fila.rotulo.position.set(v.x - PASO_X / 2 - 1.2, pisoY + 0.012, v.z); if (enMapa) fila.rotulo.position.y += enMapa.apoyoRotulo(fila.rotulo.position); }
     const zLibre = B.z - B.h / 2 + (iFila ? 0.1 + iFila * PASO_Z : 0), zMed = (zLibre + B.z + B.h / 2) / 2, hondo = B.z + B.h / 2 - zLibre;
     actual = { fila, iFila, lote, fijo: !!g.fijo || menosMovimiento || hondo < 1.7 };      // sin sitio para rodar (muchas filas), la fila aparece ya ordenada
     if (actual.fijo) {      // sin rodar: los dados aparecen ya en su sitio con su valor
-      lote.forEach((d, k) => { sitio(iFila, k, N, d.malla.position); d.malla.quaternion.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(g.valores[k])], EJE_Y); d.orden = k; });
+      lote.forEach((d, k) => { sitio(iFila, k, N, d.malla.position); d.malla.quaternion.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(g.valores[k])], EJE_Y); d.orden = k; if (enMapa) d.malla.position.y += enMapa.apoyo(d.malla.position) - enMapa.hunde; });
       filas.push(fila); ajustarFondo(); estado = 'ordenando'; tFase = 0; actual.directo = true; return;
     }
     lote.forEach((d, i) => {
       d.lado = lado; d.malla.scale.setScalar(0.001);
       const fila3 = i % 3, col = Math.floor(i / 3), zs = N === 1 ? 0 : (fila3 - Math.min(2, N - 1 - col * 3) / 2) * Math.min(1.0, hondo * 0.28);
       d.a.set(B.x + lado * (B.w / 2 - 0.9 - fila3 * 0.22 - col * 0.95), pisoY + 2.2 + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
+      if (T) d.a.set(B.x + lado * (T.dx + fila3 * 0.3 + col * 0.8), pisoY + T.alto + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
       d.de.copy(d.a); d.de.x += lado * 1.2; d.de.y += 0.5;
     });
     let rec = null;
@@ -227,15 +235,16 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   // Valores a la vista, fila por fila (cada fila de izquierda a derecha), leídos de la cara que mira hacia arriba.
   function leer() { return filas.map((f) => f.dados.slice().sort((p, q) => p.orden - q.orden).map((d) => caraArriba(d.malla.quaternion).valor)); }
   function retirar(yaMismo = false) {
-    for (const f of filas) { for (const d of f.dados) { if (yaMismo) soltarDado(d); else d.saliendo = 1; } if (f.rotulo) { escena.remove(f.rotulo); f.rotulo.material.map.dispose(); f.rotulo.material.dispose(); f.rotulo.geometry.dispose(); } }
-    const viejas = filas.splice(0); ajustarFondo(); return viejas;
+    for (const f of filas) { for (const d of f.dados) { if (yaMismo) soltarDado(d); else d.saliendo = 1; } if (f.rotulo) { raiz.remove(f.rotulo); f.rotulo.material.map.dispose(); f.rotulo.material.dispose(); f.rotulo.geometry.dispose(); } }
+    const viejas = filas.splice(0); ajustarFondo(); enMapa?.alRetirar(); return viejas;
   }
   let saliendo = [];
   // Retira los dados de la bandeja (se encogen y desaparecen).
-  function limpiar() { if (estado !== 'quieto') return false; saliendo.push(...retirar(false).flatMap((f) => f.dados)); return true; }
+  function limpiar() { if (estado !== 'quieto') return false; saliendo.push(...retirar(false).flatMap((f) => f.dados)); enMapa?.limpiar(); return true; }
 
   let sucio = false;
   function actualizar(dt) {
+    if (enMapa) enMapa.actualizar(dt);
     sucio = estado !== 'quieto' || saliendo.length > 0;
     if (saliendo.length) { for (const d of saliendo) { d.saliendo -= dt / 0.25; d.malla.scale.setScalar(Math.max(0.001, d.saliendo) * ESC_FILA); if (d.saliendo <= 0) soltarDado(d); } saliendo = saliendo.filter((d) => d.saliendo > 0); }
     if (estado === 'alzando') {
@@ -251,8 +260,9 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
         d.malla.position.set(A[k] + (Bq[k] - A[k]) * u, A[k + 1] + (Bq[k + 1] - A[k + 1]) * u, A[k + 2] + (Bq[k + 2] - A[k + 2]) * u);
         q1.set(A[k + 3], A[k + 4], A[k + 5], A[k + 6]); q2.set(Bq[k + 3], Bq[k + 4], Bq[k + 5], Bq[k + 6]);
         d.malla.quaternion.slerpQuaternions(q1, q2, u).multiply(d.fix); d.malla.scale.setScalar(1);
+        if (enMapa) d.malla.position.y += enMapa.apoyo(d.malla.position);      // sobre el mapa el suelo tiene relieve
       });
-      while (iGolpe < cinta.golpes.length && cinta.golpes[iGolpe].t <= tFase) { const g = cinta.golpes[iGolpe++]; sonido?.tocar('dados-golpe', g.fuerza, g.variante); }
+      while (iGolpe < cinta.golpes.length && cinta.golpes[iGolpe].t <= tFase) { const g = cinta.golpes[iGolpe++]; if (!enMapa?.alGolpe(g)) sonido?.tocar('dados-golpe', g.fuerza, g.variante); }
       if (tFase >= cinta.viva) {
         estado = 'ordenando'; tFase = 0; ajustarFondo();
         for (const d of actual.lote) { d.de.copy(d.malla.position); d.qDe.copy(d.malla.quaternion); encarado(d.qDe, d.qA); }
@@ -262,20 +272,22 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
       const s = tFase * tFase * (3 - 2 * tFase), N = actual.lote.length;
       for (const d of actual.lote) {
         if (actual.directo) { d.malla.scale.setScalar(Math.max(0.001, s * ESC_FILA)); continue; }
-        sitio(actual.iFila, d.orden, N, v); d.malla.position.lerpVectors(d.de, v, s); d.malla.position.y += Math.sin(Math.PI * s) * 0.18;
+        sitio(actual.iFila, d.orden, N, v); if (enMapa) v.y += enMapa.apoyo(v) - enMapa.hunde; d.malla.position.lerpVectors(d.de, v, s); d.malla.position.y += Math.sin(Math.PI * s) * 0.18;
         d.malla.quaternion.slerpQuaternions(d.qDe, d.qA, s); d.malla.scale.setScalar(1 + (ESC_FILA - 1) * s);
       }
       if (actual.fila.rotulo) actual.fila.rotulo.material.opacity = s;
-      if (tFase >= 1) { resultado.push(actual.fila.valores); siguiente(); }
+      if (tFase >= 1) { enMapa?.alAsentar(actual.lote, !!actual.directo); resultado.push(actual.fila.valores); siguiente(); }
     }
   }
   const centro = new THREE.Vector3(B.x, pisoY, B.z);
-  function destruir() { retirar(true); for (const p of juegos.values()) p.then((m) => m.forEach((x) => { x.map.dispose(); x.dispose(); })).catch(() => {}); geo.dispose(); }
+  function destruir() { retirar(true); enMapa?.destruir(); for (const p of juegos.values()) p.then((m) => m.forEach((x) => { x.map.dispose(); x.dispose(); })).catch(() => {}); geo.dispose(); }
   // dos dados rojos de adorno, en reposo, hasta la primera tirada
+  enMapa?.montar(raiz, { x: B.x, y: pisoY, z: B.z, w: B.w, h: B.h, lado: LADO * ESC_FILA });
   const listos = materialesDe('rojo').then((m) => {
+    if (enMapa) return;      // la bandeja no se ve: sin dados de adorno
     const fila = { etq: '', dados: [], rotulo: null, valores: [5, 3], adorno: true };
     [[-0.9, 0.35, 0.5, 5], [0.75, -0.3, -0.35, 3]].forEach(([x, z, giro, valor], k) => { const d = tomarDado(); d.malla.material = m; d.malla.position.set(B.x + x, pisoY + LADO / 2, B.z + z); d.malla.quaternion.setFromAxisAngle(EJE_Y, giro).multiply(q1.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(valor)], EJE_Y)); d.malla.scale.setScalar(1); d.orden = k; fila.dados.push(d); });
     filas.push(fila);
   });
-  return { lanzar, limpiar, actualizar, leer, filas, centro, destruir, MAX_POR_FILA, MAX_FILAS, get estado() { return estado === 'quieto' ? 'quieto' : 'rodando'; }, get sucio() { return sucio; }, get listos() { return listos; }, get ultima() { return ultima; } };
+  return { lanzar, limpiar, actualizar, leer, filas, centro, destruir, MAX_POR_FILA, MAX_FILAS, get estado() { return estado === 'quieto' ? 'quieto' : 'rodando'; }, get sucio() { return sucio; }, get listos() { return listos; }, get ultima() { return ultima; }, raiz, vistaTirada: enMapa ? () => enMapa.vista() : null };
 }
