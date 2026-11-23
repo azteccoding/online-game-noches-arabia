@@ -28,7 +28,7 @@ export default function Entrada({ demoDisponible }) {
       </form>
       <a className="btn-demo" href="/demo/">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12Z" /><circle cx="12" cy="12" r="3.2" /></svg>
-        Ver demostración
+        Ver demostración 3D
       </a>
       {demoDisponible && <p className="it">Modo demostración: <a href="?demo=1">partida con bots</a> · <a href="?demo=lobby">sala</a></p>}
     </main>

@@ -115,6 +115,35 @@ function Juego({ lienzo }) {
     setPanel((a) => (a === p ? null : p));
   }, []);
   const cerrar = useCallback(() => setPanel(null), []);
+  // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
+  // responder, Alt + espacio termina el turno, z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
+  useEffect(() => {
+    const tecla = (ev) => {
+      if (ev.ctrlKey || ev.metaKey || ev.repeat) return;
+      const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
+      const e = leer().estado; if (!e || e.fase === 'lobby') return;
+      if (ev.altKey) {   // Alt + espacio: terminar el turno (como el botón, con sus mismos avisos si todavía no se puede)
+        if (ev.code !== 'Space' && ev.key !== ' ') return;
+        ev.preventDefault();
+        const b = [...document.querySelectorAll('.acc-botones button')].find((x) => x.textContent.trim() === 'Terminar turno');
+        if (b) b.click();
+        return;
+      }
+      const k = String(ev.key || '').toLowerCase();
+      if (k === 'v') { if (e.turno?.pid === e.yo && e.turno.ccActual) abrir('carta:' + e.turno.ccActual.nro); else return; }   // la Carta de Trivias que falta responder
+      else if (k === 'm') abrir(e.tratos?.some((x) => x.con === e.yo) ? 'mercado-tratos' : 'mercado');
+      else if (k === 'a') { if (e.turno?.pid === e.yo && e.turno.fase !== 'ingreso') abrir('acciones'); else return; }
+      else if (k === 'n') { if (e.fase === 'juego') abrir('chat'); else return; }
+      else if (k === 'c') abrir('ultima');
+      else if (k === 'z') {
+        const b = document.querySelector('.modal-cerrar:not([disabled])');
+        if (b) b.click(); else setPanel(null);
+      } else return;
+      ev.preventDefault();
+    };
+    window.addEventListener('keydown', tecla);
+    return () => window.removeEventListener('keydown', tecla);
+  }, [abrir]);
   const onCiudad = useCallback((id) => setPanel('ciudad:' + id), []);
 
   const mi = s?.jugadores[s.yo];
