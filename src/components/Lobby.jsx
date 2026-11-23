@@ -1,5 +1,5 @@
 import React from 'react';
-import Sprite from './Sprite.jsx';
+import FiguraPj from './FiguraPj.jsx';
 import { DATA } from '../game/data.js';
 import { enviar } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
@@ -30,7 +30,7 @@ export default function Lobby({ s }) {
             const t = tomados[p.id], mio = t?.id === s.yo;
             return (
               <button key={p.id} className={`pj-opcion${mio ? ' mio' : ''}`} disabled={!!t && !mio} onClick={() => enviar(ACCIONES.elegirPj(p.id))} aria-pressed={mio}>
-                <Sprite pj={p.id} alto={84} />
+                <FiguraPj pj={p.id} alto={120} />
                 <span className="nom">{p.nombre}</span><span className="it">{p.titulo}</span>
                 {t && <span className="chip">{mio ? 'Tuyo' : t.nombre}</span>}
               </button>
@@ -43,7 +43,7 @@ export default function Lobby({ s }) {
         <ul className="lista-jug">
           {todos.map((j) => (
             <li key={j.id}>
-              {j.pj ? <Sprite pj={j.pj} alto={34} /> : <span className="sin-pj" />}
+              {j.pj ? <FiguraPj pj={j.pj} alto={40} /> : <span className="sin-pj" />}
               <span className="nom">{j.nombre}{j.id === s.yo ? ' (tú)' : ''}{j.id === s.host && j.listo ? ' · banco' : ''}</span>
               <span className={`chip${j.conectado ? '' : ' mal'}`}>{j.conectado ? 'conectado' : 'desconectado'}</span>
               <span className={`chip${j.listo ? '' : ' mal'}`}>{j.listo ? 'listo' : j.pj ? 'sin confirmar' : 'sin personaje'}</span>
