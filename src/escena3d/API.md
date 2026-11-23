@@ -70,8 +70,8 @@ una ruta.
 Los dados ruedan con física y **quedan exactamente en los valores pedidos**. Hasta 6 dados por fila; las filas ruedan una
 tras otra y quedan ordenadas en la bandeja hasta `limpiarDados()`. `fijo: true` coloca la fila sin rodar. `color`:
 `'rojo'`, `'amarillo'`, `'azul'`, `'verde'` o cualquier color CSS. `camara: false` evita que la cámara vaya a la bandeja.
-La promesa se cumple al detenerse, con los valores de arriba (un arreglo, o uno por grupo). Cada fila tarda entre 1,6 y
-2,1 s.
+La promesa se cumple al detenerse, con los valores de arriba (un arreglo, o uno por grupo). Una fila sola tarda de 2,6 a 3,0 s;
+si la tirada trae varias filas, cada una tarda de 2,2 a 2,6 s.
 
 ## Pelea, flecha e Ifrit (solo animación)
 

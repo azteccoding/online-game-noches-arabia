@@ -1169,7 +1169,7 @@ export function sacarCuento(data, e, pid, clave) {
 }
 
 export const CRP_RUYAN = 5;
-export const RODAR_NPC_MS = 1700;   // lo que tarda en rodar cada fila de dados en el cliente (Dados.jsx, RUEDA_MS)
+export const RODAR_NPC_MS = 3000;   // lo que tarda en rodar cada fila de dados en la mesa 3D (Dados.jsx, RUEDA_3D_MS)
 export const dadosDeNPC = (e, d) => !!(d && d.motivo === 'npc:Yafar' && !d.alerta);   // ingreso, movimiento, decisión y CC de Yafar NPC (las peleas sí tienen ventana)
 function responderCC(data, e, pid, a) {
   const t = e.turno;

@@ -369,7 +369,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // ----- Ciudades y cámara
     ponerCiudadesQuemadas(lista) { tablero.ponerQuemadas(lista || []); pedirCuadro(); },
     resaltarCiudades(lista, { desde = null } = {}) { tablero.marcarAlcance(desde, lista && lista.length ? new Set(lista) : null); pedirCuadro(); },
-    enfocar(objetivo, { duracion = 0.9, distancia } = {}) { const p = posicionDe(objetivo), a = camara.leer(); return volar({ ...a, x: p.x, z: p.z, d: distancia ?? Math.min(a.d, 13) }, duracion); },
+    enfocar(objetivo, { duracion = 0.9, distancia } = {}) { const p = posicionDe(objetivo), a = camara.leer(), d = distancia ?? Math.min(a.d, 13); return volar({ ...a, x: p.x, z: p.z, d, pol: camara.polDe(d) }, duracion); },
     vistaGeneral({ duracion = 1.25 } = {}) { clearTimeout(relojVuelta); previaDados = null; return volar(camara.vistaGeneral(), duracion, { alTerminar: () => { camara.enGeneral = true; } }); },
     girar(pasos = 1) { camara.girar(pasos); pedirCuadro(); },
     leerCamara() { return camara.leer(); },

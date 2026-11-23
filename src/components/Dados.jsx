@@ -40,6 +40,7 @@ export function colorGrupo(s, d, g) {
 const ROT = { 1: 'rotateX(0deg) rotateY(0deg)', 2: 'rotateX(-90deg) rotateY(0deg)', 3: 'rotateX(0deg) rotateY(-90deg)', 4: 'rotateX(0deg) rotateY(90deg)', 5: 'rotateX(90deg) rotateY(0deg)', 6: 'rotateX(0deg) rotateY(180deg)' };
 const FACES = [['f1', 'translateZ(var(--m))', 1], ['f2', 'rotateX(90deg) translateZ(var(--m))', 2], ['f3', 'rotateY(90deg) translateZ(var(--m))', 3], ['f4', 'rotateY(-90deg) translateZ(var(--m))', 4], ['f5', 'rotateX(-90deg) translateZ(var(--m))', 5], ['f6', 'rotateY(180deg) translateZ(var(--m))', 6]];
 export const RUEDA_MS = 1700;   // lo que tarda en rodar cada fila; las filas ruedan una después de otra
+export const RUEDA_3D_MS = 3000;   // en la mesa 3D cada fila rueda más (shared/engine.js, RODAR_NPC_MS)
 
 function Cubo({ valor, rodando, idx, color }) {
   return (
@@ -72,19 +73,21 @@ export default function Dados({ s }) {
     if (idVisto.current === d.id) return undefined;
     idVisto.current = d.id;
     const transcurrido = espero.current === d.id ? 0 : Math.max(0, s.ahora - d.t0);   // reloj del servidor: quien se une tarde ve el final
-    const total = RUEDA_MS * nFilas;
-    if (transcurrido >= total) { setFila(-1); return undefined; }
-    // Juego 3D: los dados ruedan de verdad sobre la bandeja y caen en los valores que decidió el servidor; al detenerse sale el resultado.
     // Los dados que este jugador no ve (reto o ingreso ajeno) tampoco ruedan en su mesa.
     const ajeno = d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba');
-    if (escenaActual() && !ajeno && !document.hidden) {
+    const enMesa = !!escenaActual() && !ajeno && !document.hidden;
+    const total = (enMesa ? RUEDA_3D_MS : RUEDA_MS) * nFilas;
+    if (transcurrido >= total) { setFila(-1); return undefined; }
+    // Juego 3D: los dados ruedan de verdad sobre la bandeja y caen en los valores que decidió el servidor; al detenerse sale el resultado.
+    if (enMesa) {
       const gs = (d.grupos?.length ? d.grupos : [{ etq: '', valores: d.valores }]).map((g) => ({ etq: g.etq || '', valores: g.valores.slice(0, 6), color: colorGrupo(s, d, g), fijo: !!g.fijo }));
       let vivo = true; setFila(-1); setEn3d(true);
       // La flecha del arco (su dado y su botón van antes de la pelea): primero cae el dado y luego vuela la flecha, que da o falla según ese dado.
       const P = s.e3d?.pelea;
       const flecha = d.boton === 'Disparar flecha' && P && (d.por === P.atk || d.por === P.def) ? { de: d.por, a: d.por === P.atk ? P.def : P.atk, acierta: /^¡Le da!/.test(d.resumen?.[0] || '') } : null;
       const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha ? 14000 : 9000));   // por si la animación no avisara
-      enCola(async (e) => { await e.lanzarDados({ grupos: gs }); if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {}); })
+      enCola(async (e) => { if (!vivo) return; await e.lanzarDados({ grupos: gs });   // si estos dados ya se cerraron mientras esperaban su turno en la cola, no se animan tarde
+        if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {}); })
         .then(() => { if (vivo) { clearTimeout(reloj); setEn3d(false); } });
       return () => { vivo = false; clearTimeout(reloj); };
     }

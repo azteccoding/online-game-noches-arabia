@@ -7,6 +7,7 @@ import Dinares from './Dinares.jsx';
 import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
 import { contadoresCarrera } from '../game/carrera.js';
 import { textoEquipo } from '../game/equipo.js';
+import { turnoVisible } from '../game/escena3d.js';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
@@ -24,8 +25,9 @@ export default function PanelAcciones({ s, abrir, panel }) {
   const t = s.turno, yo = s.jugadores[s.yo];
   const memSaldo = useRef({});
   const saldo = saldoVisible(memSaldo.current, yo, !!cartaSinCerrar(s));   // consecuencias de una carta: al cerrarla
-  const miTurno = t?.pid === s.yo && s.fase === 'juego';
-  const enTurno = t && s.jugadores[t.pid];
+  const quien = turnoVisible(s), acaba = !!t && quien !== t.pid;   // el anterior aún no cierra sus dados: la mesa sigue siendo suya
+  const miTurno = t?.pid === s.yo && s.fase === 'juego' && !acaba;
+  const enTurno = t && s.jugadores[quien];
   const ocupado = !!s.dados || !!s.pend;
   const sinCC = !t?.ccActual;
   // Jorge (18 de noviembre): el número solo cuenta lo que todavía puedes hacer; los retos apagados (acción principal gastada, requisito sin cumplir) no cuentan
@@ -47,7 +49,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
         {enTurno && <Sprite pj={enTurno.pj} alto={40} />}
         <div className="acc-txt">
           <b>{miTurno ? 'Es tu turno' : `Turno de ${enTurno?.nombre || '—'}`}</b>
-          <small>{miTurno ? FASE[t.fase] : `${nombreCorto(enTurno?.pj) || ''} · ${t ? FASE[t.fase] : ''}`} · ronda {s.ronda}</small>
+          <small>{miTurno ? FASE[t.fase] : `${nombreCorto(enTurno?.pj) || ''} · ${acaba ? (t.pid === s.yo ? 'termina su jugada; sigues tú' : 'termina su jugada') : t ? FASE[t.fase] : ''}`} · ronda {s.ronda}</small>
         </div>
         <div className="acc-yo">
           <Dinares valor={saldo.dinares} /><span className="chip" title="Noches">{saldo.noches} noches</span>

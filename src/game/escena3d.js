@@ -22,4 +22,12 @@ export function viajeDe(id, fn) {
   viajes[id] = p;
   return p;
 }
+// De quién se muestra el turno. El servidor pasa el turno en cuanto el anterior termina, pero sus últimos dados pueden seguir
+// rodando (Yafar NPC tira varios seguidos): hasta que se cierren, la mesa sigue mostrando que juega él y no «Es tu turno»
+// con el botón de tirar apagado (Jorge, 23 de noviembre).
+export function turnoVisible(s) {
+  const t = s?.turno, d = s?.dados;
+  if (t && d && t.fase === 'ingreso' && d.por !== t.pid && s.jugadores?.[d.por]) return d.por;
+  return t?.pid ?? null;
+}
 export const quietos = (...ids) => Promise.all(ids.map((id) => viajes[id] || Promise.resolve()));

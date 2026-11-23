@@ -13,7 +13,7 @@ import { MARCO } from './tablero.js';
 
 // La bandeja queda al fondo de la mesa (norte), entre los dos faroles.
 export const BANDEJA = { x: 0, z: -(ALTO / 2 + MARCO + 3.0 + 2.1), w: 7.0, h: 4.2, pared: 0.55, alto: 0.72 };
-const LADO = 0.66, G = -58;
+const LADO = 0.66, G = -44;
 // Orden de materiales de una caja: +x, -x, +y, -y, +z, -z. Caras opuestas suman 7.
 const VALOR_CARA = [3, 4, 1, 6, 2, 5];
 const NORMALES = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].map((n) => new THREE.Vector3(...n));
@@ -76,9 +76,9 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   const mundo = new CANNON.World({ gravity: new CANNON.Vec3(0, G, 0) });
   mundo.allowSleep = true; mundo.solver.iterations = 14;
   const mDado = new CANNON.Material('dado'), mPiso = new CANNON.Material('piso'), mPared = new CANNON.Material('pared');
-  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mPiso, { friction: 0.32, restitution: 0.36 }));
-  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mPared, { friction: 0.12, restitution: 0.5 }));
-  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mDado, { friction: 0.2, restitution: 0.4 }));
+  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mPiso, { friction: 0.3, restitution: 0.56 }));
+  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mPared, { friction: 0.12, restitution: 0.62 }));
+  mundo.addContactMaterial(new CANNON.ContactMaterial(mDado, mDado, { friction: 0.2, restitution: 0.44 }));
   const piso = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane(), material: mPiso });
   piso.quaternion.setFromEuler(-Math.PI / 2, 0, 0); piso.position.set(0, pisoY, 0); mundo.addBody(piso);
   const pared = (x, z, sx, sz) => { const b = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Box(new CANNON.Vec3(sx, 4, sz)), material: mPared }); b.position.set(B.x + x, pisoY + 4, B.z + z); mundo.addBody(b); return b; };
@@ -93,7 +93,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     let d = libres.pop();
     if (!d) {
       const malla = new THREE.Mesh(geo, []); malla.castShadow = true; malla.receiveShadow = true; escena.add(malla);
-      const cuerpo = new CANNON.Body({ mass: 1, shape: new CANNON.Box(new CANNON.Vec3(LADO / 2, LADO / 2, LADO / 2)), material: mDado, angularDamping: 0.12, linearDamping: 0.03, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.3 });
+      const cuerpo = new CANNON.Body({ mass: 1, shape: new CANNON.Box(new CANNON.Vec3(LADO / 2, LADO / 2, LADO / 2)), material: mDado, angularDamping: 0.07, linearDamping: 0.02, allowSleep: true, sleepSpeedLimit: 0.2, sleepTimeLimit: 0.3 });
       cuerpo.addEventListener('collide', (e) => { const v = Math.abs(e.contact.getImpactVelocityAlongNormal()); if (grabando && v > 0.6) grabando.push({ t: tSim, fuerza: Math.min(1, v / 14), variante: e.body === piso ? 'fieltro' : 'madera' }); });
       d = { malla, cuerpo, fix: new THREE.Quaternion(), de: new THREE.Vector3(), a: new THREE.Vector3(), qDe: new THREE.Quaternion(), qA: new THREE.Quaternion(), qAFix: new THREE.Quaternion(), enMundo: false };
     }
@@ -128,17 +128,21 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   let tFase = 0, cinta = null, iGolpe = 0, cola = null, actual = null, alTerminar = null, resultado = null;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const PASO = 1 / 120, CADA = 2;      // la simulación va a 120 pasos por segundo y se guarda un cuadro cada dos
-  const DUR_RODAR = [1.0, 1.4];        // segundos que rueda una fila a la vista; con alzar (0,25) y ordenar (0,35), entre 1,6 y 2,05 s por fila
-  let ultima = null;
+  // Segundos que rueda una fila a la vista. Sumando alzar (0,25) y ordenar (0,35): una fila sola, de 2,6 a 3,0 s; cuando la
+  // tirada trae varias filas, cada una rueda algo menos (de 2,2 a 2,6 s) para que el conjunto no se alargue de más.
+  const DUR_RODAR = [2.0, 2.4], DUR_RODAR_VARIAS = [1.6, 2.0];
+  let ultima = null, enTanda = 1;
 
   // Simula la tirada completa de una fila de una vez (sin dibujar) y la guarda. Devuelve null si algún dado no quedó bien plano.
   function simular(lote) {
     const golpes = []; grabando = golpes; tSim = 0;
+    const brio = lote.length === 1 ? 1.25 : lote.length <= 3 ? 1.12 : 1;      // pocos dados se estorban menos y se asientan antes: salen con algo más de impulso
     for (const d of lote) {
       const c = d.cuerpo; alMundo(d, true);
       c.position.set(d.a.x, d.a.y, d.a.z); c.quaternion.set(d.qA.x, d.qA.y, d.qA.z, d.qA.w);
-      c.velocity.set(-d.lado * rnd(7, 10.5), rnd(-1.5, 1), rnd(-1.2, 3.2));
-      c.angularVelocity.set(rnd(-20, 20), rnd(-15, 15), rnd(-20, 20));
+      // lanzados con brío: caen hacia la mitad de la bandeja y siguen dando tumbos y rebotes hasta la pared de enfrente
+      c.velocity.set(-d.lado * rnd(8.5, 11.5), rnd(2.2, 5.2) * brio, rnd(-2.4, 3.8));
+      c.angularVelocity.set(rnd(-26, 26) * brio, rnd(-18, 18), rnd(-26, 26) * brio);
       c.wakeUp(); d.atasco = 0;
     }
     const cuadros = []; let quieto = 0, empujones = 0, n = 0;
@@ -173,7 +177,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     if (estado !== 'quieto') return false;
     const grupos = pedido.grupos || [{ etq: pedido.etq || '', valores: pedido.valores, color: pedido.color, fijo: pedido.fijo }];
     validar(grupos);
-    estado = 'preparando'; alTerminar = cb; resultado = [];
+    estado = 'preparando'; alTerminar = cb; resultado = []; enTanda = grupos.filter((g) => !g.fijo).length;
     Promise.all(grupos.map((g) => materialesDe(g.color || 'rojo'))).then((mm) => {
       retirar(true); cola = grupos.map((g, i) => ({ ...g, mats: mm[i] })); siguiente();
     }).catch((e) => { estado = 'quieto'; const f = alTerminar; alTerminar = null; f?.(null, e); });
@@ -194,22 +198,24 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     lote.forEach((d, i) => {
       d.lado = lado; d.malla.scale.setScalar(0.001);
       const fila3 = i % 3, col = Math.floor(i / 3), zs = N === 1 ? 0 : (fila3 - Math.min(2, N - 1 - col * 3) / 2) * Math.min(1.0, hondo * 0.28);
-      d.a.set(B.x + lado * (B.w / 2 - 0.9 - fila3 * 0.22 - col * 0.95), pisoY + 1.8 + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
+      d.a.set(B.x + lado * (B.w / 2 - 0.9 - fila3 * 0.22 - col * 0.95), pisoY + 2.2 + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
       d.de.copy(d.a); d.de.x += lado * 1.2; d.de.y += 0.5;
     });
     let rec = null;
-    // Se presimula hasta dar con una tirada limpia; si tarda mucho en asentarse se prueban otras pocas y se queda la más ágil.
-    let giros = null;
-    for (let intento = 0, buenas = 0; intento < 14 && buenas < 4; intento++) {
+    // Se presimulan unas cuantas tiradas limpias y se queda la que, por sí sola, dura lo más parecido a lo previsto: así se ve a
+    // su ritmo natural (con todo su recorrido, sus tumbos y sus rebotes) y no hace falta acelerarla ni frenarla apenas.
+    const [durMin, durMax] = enTanda > 1 ? DUR_RODAR_VARIAS : DUR_RODAR, durMedia = (durMin + durMax) / 2, lejos = (r) => Math.abs(Math.log(r.viva / durMedia));
+    let giros = null, intentos = 0, buenas = 0; const tPre = performance.now();
+    for (; intentos < 22 && buenas < 10; intentos++) {
       for (const d of lote) d.qA.setFromEuler(new THREE.Euler(rnd(0, 6.28), rnd(0, 6.28), rnd(0, 6.28)));
       const r = simular(lote); if (!r) continue; buenas++;
-      if (!rec || r.viva < rec.viva) { rec = r; giros = lote.map((d) => d.qA.clone()); }
-      if (rec.viva <= DUR_RODAR[1] * 1.25) break;
+      if (!rec || lejos(r) < lejos(rec)) { rec = r; giros = lote.map((d) => d.qA.clone()); }
+      if ((rec.viva >= durMin && rec.viva <= durMax) || performance.now() - tPre > 70) break;      // sin pasarse de tiempo de cálculo: nada de tirones
     }
     if (rec) lote.forEach((d, i) => d.qA.copy(giros[i]));
     if (!rec) { const f = Float32Array.from(lote.flatMap((d, i) => [B.x + (i - (N - 1) / 2) * 0.95, pisoY + LADO / 2, zMed, 0, 0, 0, 1])); rec = { cuadros: [f, f], golpes: [], dur: 0, viva: 0.3 }; for (const d of lote) d.qA.identity(); }
     // la tirada se reproduce al ritmo que la deja dentro de la duración prevista por fila (ver DUR_RODAR)
-    rec.k = rec.viva / Math.min(DUR_RODAR[1], Math.max(DUR_RODAR[0], rec.viva)); ultima = { viva: rec.viva, k: rec.k };
+    rec.k = rec.viva / Math.min(durMax, Math.max(durMin, rec.viva)); ultima = { viva: rec.viva, k: rec.k, intentos, buenas, ms: performance.now() - tPre };
     // de izquierda a derecha según quedan: a cada dado, el valor que le toca y el giro de caras que lo deja arriba
     const fin = rec.cuadros[rec.cuadros.length - 1], orden = lote.map((d, i) => i).sort((p, q) => fin[p * 7] - fin[q * 7]);
     orden.forEach((i, k) => {

@@ -10,9 +10,20 @@ const suaveCubo = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 const suaveSal = (t) => 1 - (1 - t) ** 3;
 
 export function crearCamara(el) {
-  const cam = new THREE.PerspectiveCamera(36, 1, 0.5, 2500);
+  const cam = new THREE.PerspectiveCamera(36, 1, 0.2, 2500);
   const estado = { W: 1, H: 1, margen: { izq: 0, der: 0, arr: 0, aba: 0 } };
   let dMeta = null, ancla = null, vuelo = null, compas = null, tocado = false, enGeneral = true;
+  // La rueda (o el pellizco) lleva de la vista de pájaro al pie de calle: lejos se mira casi desde arriba y, al acercarse, la cámara
+  // baja hasta quedar a la altura de las figuras, mirando hacia el horizonte.
+  const POL_LEJOS = 0.14, POL_CERCA = 1.40, D_CERCA = 3.2;
+  let dLejos = 40, dPrevia = null, inclinar = 0;
+  // A pie de calle la cámara sube a la altura de los ojos de las figuras (si no, les cortaría la cabeza): se suma al final de cada cuadro.
+  const ALZA = 0.85; let alza = 0;
+  const alzaDe = (pol) => ALZA * clamp((pol - 0.85) / (POL_CERCA - 0.85), 0, 1) ** 2;
+  function polDe(d) {
+    const t = clamp(Math.log(dLejos / Math.max(d, 0.01)) / Math.log(dLejos / D_CERCA), 0, 1);
+    return POL_LEJOS + (POL_CERCA - POL_LEJOS) * t ** 1.3;
+  }
   const plano = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), rayo = new THREE.Raycaster(), ndc = new THREE.Vector2(), v1 = new THREE.Vector3(), v2 = new THREE.Vector3();
 
   function puntoSuelo(cx, cy) {
@@ -35,7 +46,7 @@ export function crearCamara(el) {
   ctl.screenSpacePanning = false;
   ctl.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
   ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  ctl.minPolarAngle = 0.1; ctl.maxPolarAngle = 1.43; ctl.minDistance = 4.5; ctl.maxDistance = 120;
+  ctl.minPolarAngle = 0.1; ctl.maxPolarAngle = 1.43; ctl.minDistance = D_CERCA; ctl.maxDistance = 120;
   ctl.addEventListener('start', () => { interrumpir(); dMeta = null; });
   function interrumpir() { if (vuelo) { const f = vuelo.alInterrumpir; vuelo = null; f?.(); } compas = null; tocado = true; enGeneral = false; }
 
@@ -43,8 +54,8 @@ export function crearCamara(el) {
   const limitar = (t) => { t.x = clamp(t.x, -LIM.x, LIM.x); t.z = clamp(t.z, LIM.z0, LIM.z1); t.y = 0; };
 
   const esf = new THREE.Spherical();
-  function leer() { v1.copy(cam.position).sub(ctl.target); esf.setFromVector3(v1); return { x: ctl.target.x, z: ctl.target.z, d: esf.radius, pol: esf.phi, az: esf.theta }; }
-  function poner(p) { ctl.target.set(p.x, 0, p.z); esf.set(p.d, clamp(p.pol, 0.02, 1.5), p.az); cam.position.setFromSpherical(esf).add(ctl.target); cam.lookAt(ctl.target); }
+  function leer() { v1.copy(cam.position).sub(ctl.target); v1.y -= alza; esf.setFromVector3(v1); return { x: ctl.target.x, z: ctl.target.z, d: esf.radius, pol: esf.phi, az: esf.theta }; }
+  function poner(p) { ctl.target.set(p.x, 0, p.z); esf.set(p.d, clamp(p.pol, 0.02, 1.5), p.az); cam.position.setFromSpherical(esf).add(ctl.target); cam.lookAt(ctl.target); alza = 0; }
 
   // Distancia a la que un conjunto de puntos cabe en la zona libre de la pantalla (sin los paneles).
   const camPrueba = new THREE.PerspectiveCamera();
@@ -64,7 +75,7 @@ export function crearCamara(el) {
   const PUNTOS_MESA = [[-X, -Z], [X, -Z], [-X, Z], [X, Z], [BANDEJA.x - BANDEJA.w / 2 - 0.6, Zb], [BANDEJA.x + BANDEJA.w / 2 + 0.6, Zb]].map(([x, z]) => new THREE.Vector3(x, MARCO_Y, z));
   const PUNTOS_DADOS = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sz]) => new THREE.Vector3(BANDEJA.x + sx * (BANDEJA.w / 2 + 1.2), 1.4, BANDEJA.z + sz * (BANDEJA.h / 2 + 1.2)));
 
-  function vistaGeneral() { const p = { x: 0, z: -1.5, pol: 0.74, az: 0 }; p.d = distanciaParaVer(PUNTOS_MESA, p); return p; }
+  function vistaGeneral() { const p = { x: 0, z: -1.5, pol: POL_LEJOS, az: 0 }; p.d = distanciaParaVer(PUNTOS_MESA, p); return p; }
   function vistaDados(az = 0) { const p = { x: BANDEJA.x, z: BANDEJA.z + 0.3, pol: 0.66, az: clamp(az, -0.5, 0.5) }; p.d = Math.max(10, distanciaParaVer(PUNTOS_DADOS, p, 0.8)); return p; }
 
   function volar(a, dur = 1.4, { curva = suaveCubo, alTerminar, alInterrumpir } = {}) {
@@ -86,11 +97,11 @@ export function crearCamara(el) {
     // centra la escena en la zona libre de paneles
     cam.setViewOffset(W, H, -(margen.izq - margen.der) / 2, -(margen.arr - margen.aba) / 2, W, H);
     cam.updateProjectionMatrix();
-    ctl.maxDistance = Math.max(60, vistaGeneral().d * 1.25);
+    dLejos = vistaGeneral().d; ctl.maxDistance = Math.max(60, dLejos * 1.25);
   }
 
   function actualizar(dt) {
-    cam.position.sub(desvio); desvio.set(0, 0, 0);
+    cam.position.sub(desvio); desvio.set(0, 0, 0); cam.position.y -= alza; alza = 0;
     if (vuelo) {
       vuelo.t = Math.min(1, vuelo.t + dt / vuelo.dur); const e = vuelo.curva(vuelo.t), A = vuelo.de, Bv = vuelo.a, L = (x, y) => x + (y - x) * e;
       poner({ x: L(A.x, Bv.x), z: L(A.z, Bv.z), d: L(A.d, Bv.d), pol: L(A.pol, Bv.pol), az: L(A.az, Bv.az) });
@@ -108,8 +119,20 @@ export function crearCamara(el) {
       cam.position.copy(ctl.target).add(v1);
     }
     ctl.update(dt);
+    // Inclinación ligada a la distancia: mientras cambia el zoom (rueda o pellizco) y un instante después, la cámara busca el ángulo
+    // que le toca a esa distancia. Los vuelos de presentación (dados, pelea, genio) llevan su propio ángulo.
+    if (!vuelo) {
+      const p = leer();
+      if (dPrevia != null && Math.abs(p.d - dPrevia) > 1e-4 * p.d) inclinar = 0.5;
+      if (inclinar > 0) {
+        inclinar -= dt; const meta = polDe(dMeta ?? p.d);
+        if (Math.abs(meta - p.pol) > 0.002) { p.pol += (meta - p.pol) * (1 - Math.exp(-dt * 8)); poner(p); }
+      }
+      dPrevia = p.d;
+    } else { dPrevia = null; inclinar = 0; }
     const antes = v2.copy(ctl.target); limitar(ctl.target);
     if (!antes.equals(ctl.target)) { /* el objetivo tocó el límite: la cámara lo acompaña para no cambiar el ángulo */ cam.position.add(v1.copy(ctl.target).sub(antes)); }
+    alza = alzaDe(leer().pol); cam.position.y += alza;
     if (tiembla > 0.002) { desvio.set((Math.random() - 0.5) * 2 * tiembla, (Math.random() - 0.5) * 2 * tiembla, (Math.random() - 0.5) * tiembla); cam.position.add(desvio); tiembla *= Math.exp(-dt * 11); } else tiembla = 0;
   }
   // Encuadre para que un grupo de puntos quepa en la zona libre, y temblor breve para los golpes.
@@ -119,5 +142,5 @@ export function crearCamara(el) {
   function girar(pasos) { const p = leer(); volar({ ...p, az: p.az + pasos * (Math.PI / 4) }, 0.7, { curva: suaveSal }); }
 
   function destruir() { el.removeEventListener('wheel', alRodar); ctl.dispose(); }
-  return { destruir, cam, ctl, leer, poner, volar, acompanar, enPantalla, vistaGeneral, vistaDados, encuadre, temblor, redimensionar, actualizar, girar, interrumpir, puntoSuelo, get enVuelo() { return !!vuelo; }, get tocado() { return tocado; }, set tocado(v) { tocado = v; }, get enGeneral() { return enGeneral; }, set enGeneral(v) { enGeneral = v; } };
+  return { destruir, cam, ctl, leer, poner, polDe, volar, acompanar, enPantalla, vistaGeneral, vistaDados, encuadre, temblor, redimensionar, actualizar, girar, interrumpir, puntoSuelo, get enVuelo() { return !!vuelo; }, get tocado() { return tocado; }, set tocado(v) { tocado = v; }, get enGeneral() { return enGeneral; }, set enGeneral(v) { enGeneral = v; } };
 }

@@ -7,6 +7,8 @@ import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
 import Lobby from './components/Lobby.jsx';
 import Tablero3D from './components/Tablero3D.jsx';
+import { turnoVisible } from './game/escena3d.js';
+import { useTrasViajes } from './hooks/useTrasViajes.js';
 import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
 import BarraEstado from './components/BarraEstado.jsx';
 import PanelAcciones from './components/PanelAcciones.jsx';
@@ -38,7 +40,8 @@ const DEMO = import.meta.env.VITE_DEMO === '1';
 const Galeria = DEMO ? React.lazy(() => import('./components/Galeria.jsx')) : null;
 
 function Juego({ lienzo }) {
-  const s = useJuego((x) => x.estado);
+  const sVivo = useJuego((x) => x.estado);
+  const [s, enViaje] = useTrasViajes(sVivo);   // cartas y consecuencias esperan a que la ficha llegue a su ciudad
   const conexion = useJuego((x) => x.conexion);
   const error = useJuego((x) => x.error);
   const aviso = useJuego((x) => x.aviso);
@@ -128,10 +131,10 @@ function Juego({ lienzo }) {
 
   const ciudadPanel = panel?.startsWith('ciudad:') ? panel.slice(7) : null;
   return (
-    <div className="app">
+    <div className={enViaje ? 'app en-viaje' : 'app'}>
       <BarraEstado s={s} demo={demo} pids={pids} panel={panel} abrir={abrir} />
       <main className="mesa">
-        <Tablero3D quemadas={s.quemadas} jugadores={s.jugadores} e3d={s.e3d} turnoPid={s.turno?.pid} miId={s.yo} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} ronda={s.ronda} pend={s.pend} dados={s.dados} />
+        <Tablero3D quemadas={s.quemadas} jugadores={(sVivo || s).jugadores} e3d={(sVivo || s).e3d} turnoPid={turnoVisible(s)} miId={s.yo} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} ronda={s.ronda} pend={s.pend} dados={s.dados} />
         <Dados s={s} />
         {panel === 'personajes' && <MenuPersonajes s={s} onCerrar={cerrar} />}
         {panel === 'mano' && <Mano s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}
