@@ -74,3 +74,25 @@ export function crearFlecha(mats) {
   grupo.traverse((o) => { if (o.isMesh) o.castShadow = true; });
   return { grupo };
 }
+
+// Escudo de cuero (OB04) pintado (Jorge, 23 de noviembre: hoja de vistas de ChatGPT). Un disco abombado con la vista de frente
+// por delante y la de atrás (con sus correas) por detrás. Mira hacia +Z; el centro está en el origen.
+let texEscudo = null;
+export function crearEscudo(diametro = 0.44) {
+  if (!texEscudo) { texEscudo = new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + 'arte3d/escudo.webp'); texEscudo.colorSpace = THREE.SRGBColorSpace; texEscudo.anisotropy = 8; }
+  const R = diametro / 2, NR = 10, NA = 36, grupo = new THREE.Group();
+  const cara = (frente) => {
+    const pos = [], uv = [], idx = [];
+    for (let i = 0; i <= NR; i++) for (let j = 0; j <= NA; j++) {
+      const r = i / NR, a = (j / NA) * Math.PI * 2, x = Math.cos(a) * r, y = Math.sin(a) * r;
+      const comba = 0.16 * (1 - r * r) + (frente ? 0.22 * Math.max(0, 1 - (r / 0.28) ** 2) : 0);      // disco abombado; por delante, el umbo
+      pos.push(x * R, y * R, (frente ? comba : comba - 0.05) * R);
+      uv.push(((frente ? x : -x) * 0.49 + 0.5) / 2 + (frente ? 0 : 0.5), y * 0.49 + 0.5);
+    }
+    for (let i = 0; i < NR; i++) for (let j = 0; j < NA; j++) { const p = i * (NA + 1) + j, q = p + NA + 1; if (frente) idx.push(p, q, p + 1, p + 1, q, q + 1); else idx.push(p, p + 1, q, p + 1, q + 1, q); }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: texEscudo, roughness: 0.6, metalness: 0.15, envMapIntensity: 0.6 })); m.castShadow = true; grupo.add(m);
+  };
+  cara(true); cara(false);
+  return { grupo, destruir() { grupo.traverse((o) => { o.geometry?.dispose(); o.material?.dispose?.(); }); } };
+}

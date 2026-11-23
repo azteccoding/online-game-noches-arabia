@@ -19,7 +19,7 @@ AJ = {
   'camello': dict(asiento=0.5, patas=True),
   'burro': dict(asiento=0.5, patas=True),
   'caballoMongol': dict(asiento=0.45, patas=True),
-  'dhow': dict(asiento=0.5, patas=False),
+  'dhow': dict(asiento=0.5, patas=False, fino=(0.66, 0.12)),      # fino: por encima de esa fracción de la altura (la vela y la jarcia) el relieve se queda en esa parte: una vela es plana
   'lampara': dict(asiento=0.5, patas=False),
 }[aid]
 PASO = 5            # lado de la celda de la malla, en píxeles del recorte
@@ -91,6 +91,9 @@ Rr = medio[:, None]
 z = np.sqrt(np.maximum(0, Rr ** 2 - (Rr - np.minimum(dt, Rr)) ** 2))
 z = np.minimum(z, 1.15 * dt)
 z[~ms] = 0
+if AJ.get('fino'):
+    corte, cuanto = AJ['fino']; filas_n = np.arange(th) / th
+    z *= (cuanto + (1 - cuanto) * np.clip((filas_n - corte + 0.04) / 0.08, 0, 1))[:, None]
 # --- patas: la panza es la fila más baja en que la vista de frente es un solo tramo ancho
 ancho = mf.sum(axis=1)
 datos = dict(tw=tw, th=th, paso=PASO)

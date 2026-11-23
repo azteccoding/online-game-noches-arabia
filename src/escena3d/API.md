@@ -36,7 +36,7 @@ los avisos `al…` de abajo.
 
 | Función | Qué hace |
 | --- | --- |
-| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, transporte, turno }`. Devuelve una promesa (figuras cargadas). |
+| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, escudo, transporte, turno }` (`escudo: true` le pone al brazo el escudo de cuero pintado). Devuelve una promesa (figuras cargadas). |
 | `actualizarJugador(id, cambios)` | Cambia campos de un jugador. Con `ciudad` lo coloca ahí sin animación. |
 | `quitarJugador(id)` | Quita la ficha. |
 | `jugadores()` | Estado actual de cada ficha. |

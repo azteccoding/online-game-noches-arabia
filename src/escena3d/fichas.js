@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { crearMontura, esAnimal, TRANSPORTES } from './monturas.js';
 import { NIVEL_MAR } from './relieve.js';
 import { texAro } from './texturas.js';
-import { crearArma } from './armas.js';
+import { crearArma, crearEscudo } from './armas.js';
 import { crearFigura, cargarTexturaFigura, ALTO_FIGURA } from './figuras.js';
 
 export const ALTO_FICHA = ALTO_FIGURA;
@@ -37,7 +37,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     const promesa = texturaDe(pid).then((t) => {
       if (f.pid !== pid || f.fuera) return;
       if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; }
-      f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true;
+      f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true; if (f.conEscudo) ponerEscudo(f);
     });
     f.lista = promesa; return promesa;
   }
@@ -75,6 +75,14 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     cambios = true;
   }
 
+  // Escudo de cuero: va al brazo contrario al del arma, a media altura, un poco por delante del cuerpo.
+  function ponerEscudo(f) {
+    if (f.escudo && (!f.conEscudo || f.escudo.fig !== f.fig)) { f.escudo.grupo.removeFromParent(); f.escudo.destruir(); f.escudo = null; }
+    if (!f.conEscudo || !f.fig || f.escudo) { cambios = true; return; }
+    const e = crearEscudo(0.38 * f.fig.alto), b = f.fig.brazo.position, lado = Math.abs(b.x) > 0.06 * f.fig.alto ? -Math.sign(b.x) : 1;
+    e.fig = f.fig; e.grupo.position.set(lado * Math.max(Math.abs(b.x), 0.17 * f.fig.alto), 0.56 * f.fig.alto, f.fig.fondo * 0.75 + 0.03 * f.fig.alto); e.grupo.rotation.y = lado * 0.5;
+    f.fig.grupo.add(e.grupo); f.escudo = e; cambios = true;
+  }
   // Pone o actualiza un jugador: { id, nombre, personaje, color, ciudad, arma, transporte, turno }. Devuelve una promesa (figura lista).
   function poner(j) {
     let f = porId(j.id); const nuevo = !f;
@@ -82,6 +90,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     const pid = j.personaje ?? f.pid;
     let p = f.lista; if (pid !== f.pid) p = vestir(f, pid);
     if (j.arma !== undefined) f.arma = j.arma || ''; else if (nuevo) f.arma = f.pj.arma || '';
+    if (j.escudo !== undefined) { f.conEscudo = !!j.escudo; Promise.resolve(p).then(() => ponerEscudo(f), () => {}); }
     if (j.turno !== undefined) f.turno = !!j.turno;
     if (j.transporte !== undefined) ponerTransporte(f, j.transporte);
     if (j.ciudad && (nuevo || (j.ciudad !== f.ciudad && !f.viaje))) colocar(f, j.ciudad);

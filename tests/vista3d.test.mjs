@@ -48,6 +48,12 @@ assert.equal(medioDeViaje('Jorge viaja de Bagdad a Damasco.'), null);
   darItem(e, e.jugadores[jamil], 'caballoMongol');
   assert.equal(vista3d(data, e).jugadores[jamil].transporte, 'caballoMongol');
 
+  // Escudo de cuero (OB04): se le ve a quien lo tiene.
+  assert.equal(vista3d(data, e).jugadores[jamil].escudo, false);
+  e.jugadores[jamil].mano.push({ uid: 'prueba-escudo', tipo: 'objeto', ref: 'OB04' });
+  assert.equal(vista3d(data, e).jugadores[jamil].escudo, true);
+  e.jugadores[jamil].mano = e.jugadores[jamil].mano.filter((c) => c.uid !== 'prueba-escudo');
+
   // Viaje con transporte propio: el motor escribe el medio en el registro y la vista lo entrega con su número de línea.
   const pid = e.turno.pid, j = e.jugadores[pid];
   const destino = j.ciudad === 'Basra' ? 'Bagdad' : 'Basra';

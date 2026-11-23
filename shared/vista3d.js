@@ -1,6 +1,6 @@
 // Datos públicos que la capa 3D necesita para animar lo que YA decidió el motor: qué arma se le ve a cada jugador, qué animal
 // lleva, con qué viajó la última vez y quiénes pelean. No decide nada ni revela nada que no fuera público ya.
-import { tieneItem, jambiyaALaMano, ITEMS } from './base.js';
+import { tieneItem, tieneObj, jambiyaALaMano, ITEMS } from './base.js';
 import { armasUsables, ARMAS_ATAQUE } from './pelea.js';
 
 const ORDEN_ARMAS = ['cimitarra', 'alfanje', 'jambiya'];
@@ -35,6 +35,7 @@ export function vista3d(data, e) {
     const j = e.jugadores[id]; if (!j?.mano) continue;
     const u = armasUsables(data, e, j, j.ciudad);                                // en Bagdad, sin Firmán, se pelea sin armas
     jugadores[id] = { arma: armaVisible(j), armaPelea: ORDEN_ARMAS.find((r) => u.includes(r) && ARMAS_ATAQUE.includes(r)) || '', arco: u.includes('arco'),
+      escudo: !!tieneObj(j, 'OB04'),      // el escudo de cuero va a la vista (Jorge, 12 de noviembre: lo ven su dueño y los demás)
       transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null };
   }
   // viva: la pelea sigue abierta (falta que el retado decida, o faltan dados). La animación empieza con los primeros dados de la pelea.

@@ -14,7 +14,7 @@ const IFRIT_MAX_MS = 9000;   // si la animación no terminara, la carta del geni
 function fichasDe(jugadores, e3d, turnoPid) {
   return Object.values(jugadores).filter((j) => j.pj && !j.eliminado && !j.sacado).map((j) => ({
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
-    arma: e3d?.jugadores?.[j.id]?.arma || '', transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
+    arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
   }));
 }
@@ -61,7 +61,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       const a = antes[f.id];
       if (!a) { viajeDe(f.id, (e) => e.actualizarJugador(f.id, limpio(f))); continue; }
       const cambios = {};
-      for (const k of ['nombre', 'personaje', 'color', 'arma', 'transporte', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
+      for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
       if (Object.keys(cambios).length) viajeDe(f.id, (e) => e.actualizarJugador(f.id, cambios));
       if (a.ciudad !== f.ciudad) {
         const medio = f.viajeN !== a.viajeN ? f.medio : null;                   // con su animal o su alfombra; si no, a pie (o en dhow por mar)
