@@ -27,6 +27,8 @@ HOJAS = {'1': 'hoja-personaje-1-nur-al-din.png', '2': 'hoja-personaje-2-zein-al-
          '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png'}
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
 HOJA_LAMINA = (2480, 1754); LIBRE = False
+TEXTURA = 0            # hoja libre: umbral de textura («textura» en AJUSTES) para personajes vestidos del color del papel; 0 = por color
+UMBRAL_LIBRE = 26      # hoja libre: cuánto puede apartarse un color del papel y seguir siendo papel («umbral» en AJUSTES; se baja si se come ropa clara)
 TH = 896                                 # alto de la figura en la textura
 PERFIL_A_LA_DERECHA = set()              # personajes cuya vista de perfil mira a la derecha (se voltea para que todos miren a la izquierda)
 PASO = 8                                 # paso de la rejilla del relieve, en píxeles de textura
@@ -35,13 +37,13 @@ PASO = 8                                 # paso de la rejilla del relieve, en p�
 # de la imagen, y desde arriba). «tela»: tramo de altura (desde arriba) donde la capa, el velo o el chal tienen vuelo.
 AJUSTES = {
     '1': dict(mano=(0.19, 0.55), tela=(0.2, 0.9), piernas=0.86),
-    '2': dict(mano=(0.86, 0.50), tela=(0.12, 0.62), piernas=0),
-    '3': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0.6),
+    '2': dict(mano=(0.53, 0.44), tela=(0.12, 0.9), piernas=0, umbral=18),      # manos juntas al frente: ahí va el arma
+    '3': dict(mano=(0.16, 0.50), tela=(0.15, 0.9), piernas=0, textura=7.5),
     '4': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0),
-    '5': dict(mano=(0.20, 0.40), tela=(0.15, 0.7), piernas=0),
+    '5': dict(mano=(0.17, 0.52), tela=(0.15, 0.9), piernas=0, textura=7.5),
     '6': dict(mano=(0.13, 0.52), tela=(0.15, 0.8), piernas=0),
     '7': dict(mano=(0.12, 0.52), tela=(0.15, 0.6), piernas=0),
-    'B': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0),
+    'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
 }
 
 def mascara(rgb):
@@ -62,9 +64,13 @@ def mascara(rgb):
     dist = np.sqrt(((a - modelo) ** 2).sum(axis=2))
     lum = a.mean(axis=2); lp = modelo.mean(axis=2)
     croma = np.sqrt((((a / np.maximum(lum[..., None], 1)) - modelo / lp[..., None]) ** 2).sum(axis=2))
-    como_papel = dist < 26
+    como_papel = dist < (UMBRAL_LIBRE if LIBRE else 26)
     como_sombra = (croma < 0.105) & (lum > lp * 0.42) & (lum < lp * 1.04)      # sombra en el suelo: papel más oscuro, sin color propio
     if LIBRE: como_sombra = (croma < 0.24) & (lum > lp * 0.56) & (lum < lp * 1.04)      # hoja libre: el suelo va pintado, con manchas de arena clara
+    if LIBRE and TEXTURA:      # ropa del color del papel: la figura se distingue por la pincelada (textura fina), no por el color
+        fino = lum - ndi.gaussian_filter(lum, 2.0); tex = np.sqrt(ndi.uniform_filter(fino ** 2, 11))
+        fig = ndi.binary_closing((tex > TEXTURA) | (dist > 45), structure=np.ones((9, 9)), iterations=2)
+        como_papel = ~fig; como_sombra = np.zeros_like(como_papel)
     return a, como_papel, como_sombra
 
 def fondo_desde_borde(libre):
@@ -99,7 +105,7 @@ def vistas(m):
         sub = m[:, cortes[k]:cortes[k + 1]]
         et, n = ndi.label(sub)
         if n == 0: continue
-        tam = ndi.sum(sub, et, range(1, n + 1)); sub = np.isin(et, 1 + np.where(tam > tam.max() * 0.004)[0])
+        tam = ndi.sum(sub, et, range(1, n + 1)); sub = np.isin(et, 1 + np.where(tam > tam.max() * (0.025 if LIBRE else 0.004))[0])
         xs = np.where(sub.any(axis=0))[0]; ys = np.where(sub.any(axis=1))[0]
         cajas.append((cortes[k] + xs[0], ys[0], cortes[k] + xs[-1] + 1, ys[-1] + 1))
     return cajas
@@ -110,7 +116,8 @@ def rellenar(rgb, m):
     return rgb[idx[0], idx[1]]
 
 def procesar(pid, archivo):
-    global LIBRE
+    global LIBRE, UMBRAL_LIBRE, TEXTURA
+    UMBRAL_LIBRE = AJUSTES[pid].get('umbral', 26); TEXTURA = AJUSTES[pid].get('textura', 0)
     hoja = Image.open(os.path.join(ORIGEN, archivo)).convert('RGB')
     LIBRE = hoja.size != HOJA_LAMINA      # una hoja de otro tamaño es de formato libre: toda la imagen es la lámina
     if not LIBRE: hoja = hoja.crop(PANEL)
@@ -139,6 +146,18 @@ def procesar(pid, archivo):
             if n:
                 tam = ndi.sum(hueco, et, range(1, n + 1)); m[ya:y1, x0:x1] &= ~np.isin(et, 1 + np.where(tam > 120)[0])
         m = ndi.binary_opening(m, iterations=1)
+    if LIBRE and TEXTURA:      # silueta de túnica y manto: se cierran las mordidas, se rellena cada fila de borde a borde y se recorta el halo de papel
+        for (x0, y0, x1, y1) in cajas:
+            sub = np.pad(m[y0:y1, x0:x1], 20); sub = ndi.binary_closing(sub, structure=np.ones((17, 17)), iterations=1)[20:-20, 20:-20]
+            for y in range(sub.shape[0]):
+                xs = np.where(sub[y])[0]
+                if len(xs): sub[y, xs[0]:xs[-1] + 1] = True
+            for x in range(sub.shape[1]):      # y cada columna de arriba abajo: el manto cae recto, sin entrantes
+                ys = np.where(sub[:, x])[0]
+                if len(ys): sub[ys[0]:ys[-1] + 1, x] = True
+            sub = ndi.binary_erosion(sub, iterations=4)
+            m[y0:y1, x0:x1] = sub
+        cajas = vistas(m)
     rgb = np.asarray(hoja, dtype=np.uint8)
 
     def recorte(c, espejo=False):
@@ -146,7 +165,7 @@ def procesar(pid, archivo):
         mm = m[y0:y1, x0:x1].copy(); cc = rgb[y0:y1, x0:x1].copy()
         et, n = ndi.label(mm)
         if n > 1:      # solo la figura (lo más grande) y lo que casi la toca
-            tam = ndi.sum(mm, et, range(1, n + 1)); mm = np.isin(et, 1 + np.where(tam > tam.max() * 0.004)[0])
+            tam = ndi.sum(mm, et, range(1, n + 1)); mm = np.isin(et, 1 + np.where(tam > tam.max() * (0.025 if LIBRE else 0.004))[0])      # hoja libre: el papel pintado deja motas más grandes
         if espejo: mm = mm[:, ::-1]; cc = cc[:, ::-1]
         return mm, cc
 
