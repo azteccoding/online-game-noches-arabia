@@ -1,7 +1,7 @@
 // Figuras de los personajes: miniaturas con volumen levantadas a partir de la ilustración de cada hoja de referencia.
 // preparar-figuras.py entrega, por personaje, una textura (frente | espalda) y un relieve (cuánto sale cada punto del cuerpo);
 // aquí se arman dos cáscaras —la de delante y la de detrás— que se cierran en el contorno y se pintan con la ilustración.
-// La figura mira hacia +Z y tiene los pies en el origen. El rostro va siempre cubierto o en sombra, como en las hojas.
+// La figura mira hacia +Z y tiene los pies en el origen. En la cabeza, por delante, manda la vista de frente: así el rostro no se mezcla con el de perfil al mirar la figura en diagonal.
 import * as THREE from 'three';
 
 export const ALTO_FIGURA = 1.16;
@@ -22,7 +22,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   // fondo máximo de cada fila: el costado se pinta con la vista de perfil, repartida de delante (u = 0) a atrás (u = 1)
   const zFila = new Float32Array(gy); for (let j = 0; j < gy; j++) { let m = 0; for (let i = 0; i < gx; i++) m = Math.max(m, zEn(i, j)); zFila[j] = m; }
   for (let j = 0; j < gy; j++) zFila[j] = Math.max(zFila[j], 0.25 * Math.max(zFila[Math.max(0, j - 1)], zFila[Math.min(gy - 1, j + 1)]), 1e-4);
-  const pos = [], uv = [], uvL = [], idx = [], peso = [];      // peso: [piernas (con signo), tela, altura normalizada]
+  const pos = [], uv = [], uvL = [], cara = [], idx = [], peso = [];      // peso: [piernas (con signo), tela, altura normalizada]
   const mapa = [new Int32Array(gx * gy).fill(-1), new Int32Array(gx * gy).fill(-1)];
   const [t0, t1] = datos.tela, piernas = datos.piernas || 0;
   function vertice(c, i, j) {
@@ -31,6 +31,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     const x = (i * P - tw / 2) * k, y = (th - j * P) * k, z = zEn(i, j) * (c ? -1 : 1), yn = (j * P) / th;
     pos.push(x, y, z); uv.push((c + (i * P) / tw) / NT, 1 - yn);
     uvL.push((NT - 1 + Math.min(0.995, Math.max(0.005, 0.5 - (0.5 * z) / zFila[j]))) / NT, 1 - yn);
+    cara.push(c ? 0 : 1 - paso(0.2, 0.26, yn));      // cabeza de la cáscara de delante
     const ancho = Math.max(1, der[j] - izq[j]), rel = Math.abs(((i - izq[j]) / ancho) * 2 - 1), xn = x / (alto * 0.2);
     // piernas: bajo el borde de la túnica, cada lado se mueve por su cuenta; con túnica larga solo se mece el bajo
     const wp = piernas ? paso(piernas - 0.02, piernas + 0.06, yn) * Math.sign(xn || 1) : 0.4 * paso(0.5, 1.0, yn) ** 1.5 * Math.tanh(xn * 3);
@@ -47,7 +48,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     idx.push(a2, b2, c2, b2, d2, c2);
   }
   const geo = new THREE.BufferGeometry(), base = new Float32Array(pos);
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2)); geo.setAttribute('uvLado', new THREE.BufferAttribute(new Float32Array(uvL), 2));
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2)); geo.setAttribute('uvLado', new THREE.BufferAttribute(new Float32Array(uvL), 2)); geo.setAttribute('cara', new THREE.BufferAttribute(new Float32Array(cara), 1));
   geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere(); geo.boundingSphere.radius *= 1.25;
   const mat = new THREE.MeshStandardMaterial({ map: textura, alphaTest: 0.5, roughness: 0.86, metalness: 0, envMapIntensity: 0.55, emissive: 0xfff0d0, emissiveMap: textura, emissiveIntensity: 0 });
   // Vista de costado: donde la superficie mira hacia los lados se pinta con la vista de perfil de la hoja, tanto más cuanto
@@ -56,12 +57,12 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   if (NT >= 3) {
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uLado = uLado;
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;')
-        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado; vPesoLado = abs(objectNormal.x);');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;')
-        .replace('#include <map_fragment>', '#include <map_fragment>\n{ float wL = uLado * smoothstep(0.3, 0.72, vPesoLado); if (wL > 0.003) diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(map, vUvLado).rgb, wL); }');
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nattribute float cara;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado; vPesoLado = abs(objectNormal.x); vCara = cara;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
+        .replace('#include <map_fragment>', '#include <map_fragment>\n{ float wL = uLado * smoothstep(mix(0.3, 0.86, vCara), mix(0.72, 0.99, vCara), vPesoLado); if (wL > 0.003) diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(map, vUvLado).rgb, wL); }');
     };
-    mat.customProgramCacheKey = () => 'figura-lado';
+    mat.customProgramCacheKey = () => 'figura-lado-2';
   }
   const malla = new THREE.Mesh(geo, mat); malla.castShadow = true; malla.receiveShadow = true;
   const grupo = new THREE.Group(); grupo.add(malla);
