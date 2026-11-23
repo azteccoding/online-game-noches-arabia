@@ -1,0 +1,5 @@
+/* Tablero 3D: el lienzo WebGL ocupa toda la mesa; encima solo van los controles y el rótulo de la ficha apuntada. */
+.tablero3d { cursor: default; }
+.tablero3d:active { cursor: default; }
+.tablero3d-lienzo { position: absolute; inset: 0; }
+.tablero3d .tip3d { left: 50%; top: 12px; transform: translateX(-50%); pointer-events: none; }

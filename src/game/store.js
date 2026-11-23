@@ -15,6 +15,8 @@ export const leer = () => S;
 export function marcarCartaEnPantalla(nro) { if (S.cartaEnPantalla !== nro) poner({ cartaEnPantalla: nro }); }
 // Primera carta de la cola de lectura, se esté mostrando o no (Jorge, 19 de noviembre): ningún dado ni decisión posterior sale antes que ella.
 export function marcarCartaPorLeer(nro) { if (S.cartaPorLeer !== nro) poner({ cartaPorLeer: nro }); }
+// Juego 3D: la carta del Ifrit se presenta cuando el genio ya salió de la lámpara (Tablero3D lo marca).
+export function marcarIfrit(fuera) { if (!!S.ifritFuera !== !!fuera) poner({ ifritFuera: !!fuera }); }
 // Jorge (21 de noviembre): todas las alertas duran 5 segundos (y se cierran antes al tocarlas o deslizarlas: components/Alerta.jsx).
 const DURA_MS = 5000;
 // Aviso verde local (premios, nueva ronda…). Como mucho dos avisos juntos.

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { escenaActual, enCola } from '../game/escena3d.js';
 
 // Dados rojos con puntos blancos, 100 % SVG (caras) sobre un cubo CSS 3D. El servidor decide los valores; el cliente solo anima.
 // Todos los clientes ven los mismos dados; cualquiera puede cerrar el resultado y entonces desaparecen para todos (estado.dados = null).
@@ -58,6 +59,7 @@ export default function Dados({ s }) {
   const cartaPrevia = useJuego((x) => x.cartaEnPantalla);
   const porLeer = useJuego((x) => x.cartaPorLeer);   // primera carta de la cola, aunque todavía no esté en pantalla
   const [fila, setFila] = useState(-1);          // fila que está rodando; -1 = ninguna (todas fijas)
+  const [en3d, setEn3d] = useState(false);       // juego 3D: la tirada está rodando en la bandeja de la mesa
   const idVisto = useRef(null);
   const nFilas = Math.max(1, d?.grupos?.length || 1);
   // Jorge (19 de noviembre): ningún dado sale ya resuelto. Si la tirada espera detrás de la carta que la explica, no rueda a escondidas:
@@ -66,12 +68,26 @@ export default function Dados({ s }) {
   const espero = useRef(null);
   if (d && esperaCarta) espero.current = d.id;
   useEffect(() => {
-    if (!d || !d.lanzado || esperaCarta) { setFila(-1); idVisto.current = null; return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
+    if (!d || !d.lanzado || esperaCarta) { setFila(-1); setEn3d(false); idVisto.current = null; if (!d) enCola((e) => e.limpiarDados()); return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
     if (idVisto.current === d.id) return undefined;
     idVisto.current = d.id;
     const transcurrido = espero.current === d.id ? 0 : Math.max(0, s.ahora - d.t0);   // reloj del servidor: quien se une tarde ve el final
     const total = RUEDA_MS * nFilas;
     if (transcurrido >= total) { setFila(-1); return undefined; }
+    // Juego 3D: los dados ruedan de verdad sobre la bandeja y caen en los valores que decidió el servidor; al detenerse sale el resultado.
+    // Los dados que este jugador no ve (reto o ingreso ajeno) tampoco ruedan en su mesa.
+    const ajeno = d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba');
+    if (escenaActual() && !ajeno && !document.hidden) {
+      const gs = (d.grupos?.length ? d.grupos : [{ etq: '', valores: d.valores }]).map((g) => ({ etq: g.etq || '', valores: g.valores.slice(0, 6), color: colorGrupo(s, d, g), fijo: !!g.fijo }));
+      let vivo = true; setFila(-1); setEn3d(true);
+      // La flecha del arco (su dado y su botón van antes de la pelea): primero cae el dado y luego vuela la flecha, que da o falla según ese dado.
+      const P = s.e3d?.pelea;
+      const flecha = d.boton === 'Disparar flecha' && P && (d.por === P.atk || d.por === P.def) ? { de: d.por, a: d.por === P.atk ? P.def : P.atk, acierta: /^¡Le da!/.test(d.resumen?.[0] || '') } : null;
+      const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha ? 14000 : 9000));   // por si la animación no avisara
+      enCola(async (e) => { await e.lanzarDados({ grupos: gs }); if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {}); })
+        .then(() => { if (vivo) { clearTimeout(reloj); setEn3d(false); } });
+      return () => { vivo = false; clearTimeout(reloj); };
+    }
     const ts = [];
     const primera = Math.floor(transcurrido / RUEDA_MS);
     setFila(primera);
@@ -79,6 +95,7 @@ export default function Dados({ s }) {
     return () => ts.forEach(clearTimeout);
   }, [d?.id, d?.lanzado, esperaCarta]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rodando = fila >= 0;
+  if (en3d) return null;                                                // rodando en la bandeja 3D: nada encima
   if (!d) return null;
   const por = s.jugadores[d.por];
   // Jorge (19 de noviembre): orden estricto carta → dados → decisión. Los dados ya no esperan detrás de tu decisión (en R23 elegías

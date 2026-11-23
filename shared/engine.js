@@ -18,6 +18,7 @@ import * as TES from './tesoros.js';
 import * as EVE from './eventos.js';
 import * as NPC from './npc.js';
 import * as PJ from './personajes.js';
+import { vista3d } from './vista3d.js';
 
 export { VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, cartaDatos, clone };
 
@@ -1565,6 +1566,7 @@ export function vista(data, e, pid) {
     asesinos: { actuaron: e.asesinos.actuaron }, kanmakan: { dueno: e.kanmakan.dueno, usada: e.kanmakan.usada }, firmanesLibres: e.firmanes,
     host_info: esAnf ? { pinHost: e.pinHost, stock: e.stock, mazos: { eventos: e.mazos?.eventos.length, historicos: e.mazos?.historicos.length, mensajes: e.mazos?.mensajes.length, botin: e.mazos?.botin.length, ifrit: e.mazos?.ifrit.length } } : undefined,
     stockPublico: e.stock,
+    e3d: vista3d(data, e),   // capa 3D: armas a la vista, animales, último medio de viaje y pelea en curso
   };
 }
 const publicMods = (e) => { const { sinIngreso, varado, huir, ...r } = e.mods || {}; return r; };

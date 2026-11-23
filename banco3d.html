@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1d0709">
+<meta name="robots" content="noindex">
+<title>Mil y Una Noches — Banco de pruebas de la escena 3D</title>
+</head>
+<body>
+<div id="escena" aria-label="Tablero 3D de Mil y Una Noches"></div>
+<div id="vineta" aria-hidden="true"></div>
+
+<div id="ui">
+  <header id="cabecera">
+    <div class="titulo">
+      <h1>Mil y Una Noches</h1>
+      <span class="ar" lang="ar" dir="rtl">ألف ليلة وليلة</span>
+    </div>
+    <div class="bajo-titulo"><span class="insignia">Banco de pruebas 3D</span><span class="credito">Qunawi SDT</span></div>
+  </header>
+
+  <section id="jugadores" aria-label="Jugadores"></section>
+
+  <div id="pista" role="status" aria-live="polite"></div>
+  <div id="cartel" role="status" aria-live="polite" hidden><span class="orla" aria-hidden="true"></span><span class="txt">Ronda 1</span><span class="orla" aria-hidden="true"></span></div>
+
+  <button id="abrir-banco" class="ctl ancho" type="button" aria-expanded="true" aria-controls="banco"><span>Pruebas</span></button>
+  <aside id="banco" aria-label="Pruebas de la escena">
+    <section>
+      <h2>Dados</h2>
+      <div class="fila">
+        <label class="campo">Valores <input id="dados-valores" type="text" inputmode="numeric" placeholder="al azar" autocomplete="off" aria-label="Valores que deben salir, separados por comas (vacío: al azar)"></label>
+        <label class="campo">Color <select id="dados-color"><option value="rojo">Rojo</option><option value="amarillo">Amarillo</option><option value="azul">Azul</option><option value="verde">Verde</option></select></label>
+      </div>
+      <div class="fila">
+        <button id="lanzar" class="btn chica" type="button">Lanzar dados</button>
+        <button id="lanzar-grupos" class="btn chica" type="button" title="Varias filas con etiqueta, una tras otra">Tirada por grupos</button>
+        <button id="limpiar-dados" class="btn chica sec" type="button">Limpiar</button>
+      </div>
+      <p id="resultado" role="status" aria-live="polite"></p>
+    </section>
+    <section>
+      <h2>Ronda y luz</h2>
+      <div class="fila">
+        <span id="ronda-num">Ronda 1</span>
+        <button id="fin-ronda" class="btn chica" type="button" title="Atardece, cae la noche y amanece la ronda siguiente">Terminar ronda</button>
+        <label class="campo">Hora <select id="hora"><option value="dia">Día</option><option value="mediodia">Mediodía</option><option value="atardecer">Atardecer</option><option value="noche">Noche</option><option value="amanecer">Amanecer</option></select></label>
+      </div>
+    </section>
+    <section>
+      <h2>Pelea e Ifrit</h2>
+      <div class="fila">
+        <button id="pelear" class="btn chica" type="button" disabled title="Elige una ficha y luego otra de la misma ciudad">Pelear</button>
+        <label class="casilla"><input id="con-arco" type="checkbox"> Disparo de arco antes</label>
+      </div>
+      <div class="fila">
+        <button id="flecha-si" class="btn chica" type="button" disabled title="La primera ficha elegida dispara a la segunda y acierta">Flecha: acierta</button>
+        <button id="flecha-no" class="btn chica sec" type="button" disabled title="La primera ficha elegida dispara a la segunda y falla">Flecha: falla</button>
+      </div>
+      <div class="fila">
+        <button id="ifrit" class="btn chica" type="button" title="La lámpara aparece junto a la ficha elegida (o en Bagdad)">Ifrit</button>
+      </div>
+    </section>
+    <section>
+      <h2>Viajes</h2>
+      <div class="fila">
+        <label class="casilla" title="La figura camina y su animal va a su lado, sin montarlo"><input id="llevar" type="checkbox"> A pie, con el animal del cabestro</label>
+      </div>
+      <div class="fila">
+        <label class="casilla" title="Como cuando hay una carta encima: la escena dibuja menos cuadros"><input id="atenuar" type="checkbox"> Atenuar la escena</label>
+      </div>
+    </section>
+    <section>
+      <h2>Ciudades</h2>
+      <div class="fila">
+        <label class="casilla"><input id="quemadas" type="checkbox"> Damasco, Aleppo y Estambul en llamas</label>
+      </div>
+      <div class="fila">
+        <button id="jorasan" class="btn chica sec" type="button" title="Coloca la ficha elegida en el Jorasán, o la devuelve a Bagdad">Ficha elegida ⇄ Jorasán</button>
+      </div>
+    </section>
+    <section>
+      <h2>Calidad</h2>
+      <div class="fila">
+        <label class="campo">Nivel <select id="calidad"><option value="auto">Automática</option><option value="alta">Alta</option><option value="media">Media</option><option value="baja">Baja</option></select></label>
+        <span id="calidad-actual"></span>
+      </div>
+    </section>
+  </aside>
+
+  <div id="carta-ifrit" hidden>
+    <p>Aquí aparece la carta del Ifrit</p>
+    <button id="elegir-ifrit" class="btn chica" type="button">Elegir</button>
+  </div>
+
+  <nav id="controles" aria-label="Cámara">
+    <button id="girar-izq" class="ctl" type="button" title="Girar a la izquierda" aria-label="Girar a la izquierda"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 8.5A7 7 0 1 1 5 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M3.2 4.6l4.6 4.4 1.1-6z"/></svg></button>
+    <button id="vista" class="ctl ancho" type="button" title="Volver a la vista general"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="6" width="17" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 12h8M12 9v6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg><span>Vista general</span></button>
+    <button id="girar-der" class="ctl" type="button" title="Girar a la derecha" aria-label="Girar a la derecha"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 8.5A7 7 0 1 0 19 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M20.8 4.6l-4.6 4.4-1.1-6z"/></svg></button>
+    <button id="sonido" class="ctl" type="button" title="Sonido" aria-label="Sonido" aria-pressed="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="ondas" d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a7.6 7.6 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path class="mudo" d="M15.5 9.5l5 5M20.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg></button>
+  </nav>
+
+  <div id="rotulo" hidden><span class="nom"></span><span class="ar" lang="ar" dir="rtl"></span></div>
+  <div id="tip" role="tooltip" hidden></div>
+</div>
+
+<div id="velo"><div class="velo-caja"><p class="velo-titulo">Mil y Una Noches</p><p class="velo-texto" id="velo-texto">Desplegando el mapa…</p></div></div>
+<noscript><div class="sin-js">Esta página necesita JavaScript activado en el navegador.</div></noscript>
+<script type="module" src="/src/escena3d/banco/main.js"></script>
+</body>
+</html>

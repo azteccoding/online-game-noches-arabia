@@ -5,5 +5,6 @@ export const dadosPendientes = (e) => new Set([e.dados, ...(e.colaDados || [])].
 export function vistaCongelada(antes, v, pendientes) {
   if (pendientes?.size) v = { ...v, historial: (v.historial || []).filter((h) => !pendientes.has(h.trasDados)) };
   if (!antes || antes.fase !== v.fase) return v;
-  return { ...antes, turno: v.turno, acciones: v.acciones, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true };   // las decisiones esperan
+  return { ...antes, turno: v.turno, acciones: v.acciones, dados: v.dados, enCola: v.enCola, espera: v.espera, puedoSacar: v.puedoSacar, ahora: v.ahora, historial: v.historial, ultimaCarta: v.ultimaCarta, pend: null, congelada: true,
+    ...(antes.e3d && v.e3d ? { e3d: { ...antes.e3d, pelea: v.e3d.pelea } } : {}) };   // capa 3D: solo se adelanta quién pelea con quién, para animar el choque antes de los dados   // las decisiones esperan
 }

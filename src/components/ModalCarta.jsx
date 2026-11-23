@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Carta from './Carta.jsx';
-import { enviar, marcarCartaEnPantalla, marcarCartaPorLeer } from '../game/store.js';
+import { enviar, marcarCartaEnPantalla, marcarCartaPorLeer, useJuego } from '../game/store.js';
+import { escenaActual } from '../game/escena3d.js';
 import { ACCIONES } from '../game/protocol.js';
 import { cartaEspera } from '../game/orden.js';
 import { nombreCorto } from '../game/data.js';
@@ -29,6 +30,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   const [resta, setResta] = useState(0);
   const [fase, setFase] = useState('frente');      // espera | dorso | frente
   const veniaVacia = useRef(true);
+  const ifritFuera = useJuego((x) => x.ifritFuera);   // juego 3D: el genio ya salió de la lámpara
 
   useEffect(() => {
     // Al montar (inicio de partida o recarga) solo se dan por leídas las cartas antiguas; la del arranque (evento de la ronda 1) sí se muestra.
@@ -95,6 +97,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   useEffect(() => { if (puedeCerrarRef.current) botonCerrar.current?.focus({ preventScroll: true }); });
   if (!carta) return null;
   if (modoLectura && fase === 'espera') return null;
+  if (modoLectura && carta.deck === 'ifrit' && s.pend?.tipo === 'ifrit' && escenaActual() && !ifritFuera) return null;   // primero sale el genio; luego se presenta su carta
   if (modoLectura && fase === 'dorso') {
     return (
       <div className="modal-fondo" role="dialog" aria-modal="true" aria-label={carta.titulo}>

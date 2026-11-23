@@ -1,0 +1,44 @@
+﻿MIL Y UNA NOCHES 3D
+===================
+
+Esta carpeta es el juego completo con el tablero en 3D. Es el mismo juego de siempre (mismo servidor, mismas
+reglas, salas, cartas, mercado y retos); lo único que cambia es la mesa: el tablero, las fichas y los dados
+ahora son una escena 3D.
+
+No toca el juego 2D: la carpeta onlineGame y la rama online-game quedan exactamente como estaban.
+Esta versión vive aparte (rama juego-3d) y tendrá su propio link.
+
+CÓMO ABRIRLO EN ESTA PC
+  1. Doble clic en PROBAR-3D.bat (está junto a juego-3d.zip, en juegoMilNoches_src).
+  2. Abre en el navegador:  http://localhost:8081
+  O a mano, en PowerShell:
+       cd C:\Users\jorge\Documents\juegoMilNoches_src\juego-3d
+       npm install --omit=dev
+       node server/index.js --puerto 8081
+  Usa el puerto 8081 para no chocar con el juego 2D (8080). La partida se guarda en juego-3d\datos,
+  separada de la del 2D. PIN del banco en local: 1234.
+
+QUÉ HAY EN 3D
+  - Mapa con relieve y sombras; amanece al empezar cada ronda y anochece al terminar.
+  - Personajes según las hojas de personaje, con el rostro cubierto.
+  - Viaje normal caminando; con burro (blanco), caballo, camello o caballo mongol se monta el animal;
+    por mar se sube a un dhow; la alfombra mágica levita todo el trayecto y luego se guarda.
+  - Dados 3D: siempre con tu botón, y caen en el número que decide el servidor.
+  - Peleas según el arma de cada quien, justo antes de los dados de la pelea. La flecha del arco vuela
+    después de su dado.
+  - Ifrit: sale el genio de la lámpara, se presenta su carta y, al elegir, se esconde y la lámpara desaparece.
+  - Ciudades tomadas por los cruzados, en llamas.
+  - Sonidos: están los espacios listos (src/escena3d/sonido.js); faltan los archivos de sonido.
+
+CONTROLES DEL TABLERO
+  Arrastrar: mover.   Botón derecho o dos dedos: girar.   Rueda o pellizco: acercar y alejar.
+  Clic en una ciudad: su ficha (y viajar).   Botones de la esquina: girar, vista general y centrar en ti.
+
+PARA QUIEN PROGRAME
+  src/escena3d/            la escena 3D (three.js 0.170.0 y cannon-es 0.20.0); su manual está en src/escena3d/API.md
+  src/components/Tablero3D.jsx   une el estado del juego con la escena (sustituye a Tablero.jsx en App.jsx)
+  src/game/escena3d.js     cola de animaciones
+  shared/vista3d.js        datos públicos que el motor entrega a la capa 3D (armas, animales, medio de viaje, pelea)
+  banco3d.html             banco de pruebas de la escena (npm run dev y abrir /banco3d.html)
+  Del motor solo se tocaron dos líneas en shared/engine.js y una en shared/congelar.js, para entregar esos datos.
+  Pruebas: npm test (incluye tests/vista3d.test.mjs).

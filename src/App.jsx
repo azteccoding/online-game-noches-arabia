@@ -6,7 +6,7 @@ import { DATA } from './game/data.js';
 import { useLienzo, LienzoCtx } from './hooks/useLienzo.js';
 import Entrada from './components/Entrada.jsx';
 import Lobby from './components/Lobby.jsx';
-import Tablero from './components/Tablero.jsx';
+import Tablero3D from './components/Tablero3D.jsx';
 import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
 import BarraEstado from './components/BarraEstado.jsx';
 import PanelAcciones from './components/PanelAcciones.jsx';
@@ -131,7 +131,7 @@ function Juego({ lienzo }) {
     <div className="app">
       <BarraEstado s={s} demo={demo} pids={pids} panel={panel} abrir={abrir} />
       <main className="mesa">
-        <Tablero quemadas={s.quemadas} jugadores={s.jugadores} turnoPid={s.turno?.pid} miId={s.yo} vivas={vivas} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} rot={lienzo.rotTablero} uiRot={lienzo.rotUi} />
+        <Tablero3D quemadas={s.quemadas} jugadores={s.jugadores} e3d={s.e3d} turnoPid={s.turno?.pid} miId={s.yo} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} ronda={s.ronda} pend={s.pend} dados={s.dados} />
         <Dados s={s} />
         {panel === 'personajes' && <MenuPersonajes s={s} onCerrar={cerrar} />}
         {panel === 'mano' && <Mano s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}
