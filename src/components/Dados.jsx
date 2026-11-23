@@ -101,6 +101,16 @@ export default function Dados({ s }) {
     return () => ts.forEach(clearTimeout);
   }, [d?.id, d?.lanzado, esperaCarta]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rodando = fila >= 0;
+  // Jorge (23 de noviembre): la ventana de qué salió en tu dado de ingreso solo se cierra a mano si hay carta de sheij (el 6). Si no,
+  // se queda 1.5 s y se cierra sola; con el mouse encima espera, y en cuanto lo quitas se cierra.
+  const solo = !!d && d.lanzado && !en3d && !rodando && !esperaCarta && !!d.sheij && !d.sheij.ok && d.por === s.yo && !d.cerrados?.includes(s.yo);
+  const encima = useRef(false), vencido = useRef(false);
+  useEffect(() => {
+    if (!solo) return undefined;
+    vencido.current = false; encima.current = false;
+    const reloj = setTimeout(() => { vencido.current = true; if (!encima.current) enviar(ACCIONES.cerrarDados()); }, 1500);
+    return () => clearTimeout(reloj);
+  }, [solo, d?.id]);
   if (en3d) return null;                                                // rodando en la bandeja 3D: nada encima
   if (!d) return null;
   const por = s.jugadores[d.por];
@@ -144,7 +154,7 @@ export default function Dados({ s }) {
       )}
       {!rodando && !d.cerrados?.includes(s.yo) && (d.motivo !== 'npc:Yafar' || d.alerta) && (   /* Jorge: las tiradas propias de Yafar NPC no tienen ventana (las peleas sí) */
         <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Resultado de los dados">
-          <div className="dados-resultado panel">
+          <div className="dados-resultado panel" onPointerEnter={() => { encima.current = true; }} onPointerLeave={() => { encima.current = false; if (solo && vencido.current) enviar(ACCIONES.cerrarDados()); }}>
             {(grupos.length > 1 || !grupos[0].etq || s.enCola > 0) && <p className="quien">{por?.nombre || 'Banco'} · {motivo}{s.enCola ? ` · ${s.enCola} tirada(s) más en cola` : ''}</p>}
             {grupos.map((g, gi) => (
               <div key={gi} className="dados-grupo">

@@ -1091,7 +1091,7 @@ export function finForja(data, e, pid) {
   j.extra.forja = null; darItem(e, j, 'cimitarra');
   const primero = !e.forjaDamasco;   // Jorge (17 de noviembre): el primero que forja gana 50 noches y abre la venta de cimitarras
   if (primero) { e.forjaDamasco = true; j.noches += FORJA.nochesPrimero; } else j.noches += FORJA.noches;   // Jorge (20 de noviembre): los demás, 10
-  publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ' y ganas 10 noches'}. Ya puedes salir de la ciudad.`, arte: 're' }, pid, [pid]);
+  publicarCarta(e, { id: 'forja:cimitarra', deck: 'reto', titulo: 'Acero de Damasco', sub: 'R52 · Forjar acero de Damasco', texto: `Tu acero está listo: recibes una cimitarra de acero de Damasco${primero ? ' y ganas 50 noches por ser el primero en forjarlo. Desde ahora se venden cimitarras en los mercados' : ' y ganas 10 noches'}. Ya puedes salir de la ciudad.`, arte: 'R52' }, pid, [pid]);
   log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ' y gana 10 noches'}.`, { pid, aviso: true });
 }
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán

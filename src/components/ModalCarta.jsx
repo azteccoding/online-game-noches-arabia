@@ -104,6 +104,8 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
       const t = ev.target, b = botonCerrar.current;
       if (t && t !== b && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(t.tagName || '')) && t.closest?.('.carta, .modal-pie')) return;   // Enter sobre una opción de la carta elige esa opción
       ev.preventDefault(); ev.stopImmediatePropagation(); if (ev.repeat) return;
+      const m = document.querySelector('.carta .fila-marcada');   // una opción marcada con Shift + flechas
+      if (m && !m.disabled && m.offsetParent) { m.click(); return; }
       if (b && !b.disabled) b.click();
     };
     window.addEventListener('keydown', tecla, true);

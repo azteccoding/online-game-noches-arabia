@@ -398,3 +398,5 @@ fieldset:disabled { opacity: .5; }
 
 /* Durante la animación de pelea (golpes o flecha) la pantalla queda despejada: solo el tablero (Jorge, 23 de noviembre) */
 body.viendo-pelea .app > *:not(.mesa), body.viendo-pelea .mesa > *:not(.tablero), body.viendo-pelea .tablero > *:not(.tablero3d-lienzo) { visibility: hidden !important; }
+/* Igual durante la animación de un viaje (Jorge, 23 de noviembre): todo espera a que la ficha llegue */
+.app.en-viaje > *:not(.mesa), .app.en-viaje .mesa > *:not(.tablero), .app.en-viaje .tablero > *:not(.tablero3d-lienzo) { visibility: hidden !important; }

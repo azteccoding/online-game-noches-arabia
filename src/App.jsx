@@ -121,15 +121,23 @@ function Juego({ lienzo }) {
     let xAbajo = false;      // la x sostenida, para x + espacio
     // Shift + flecha arriba o abajo recorre las filas del menú abierto (acciones o mercado) y Enter elige la marcada (Jorge, 23 de noviembre).
     const marcarFila = (paso) => {
-      const filas = [...document.querySelectorAll('[role="dialog"] .accion-fila, [role="dialog"] .lista-merc > li, [role="dialog"] .trato.entrante')].filter((f) => f.offsetParent);
+      // primero lo que pide respuesta: las opciones de la carta abierta (trivia), luego las de la decisión (Rebelión de los Zanj, ifrit…), luego el menú
+      const visibles = (sel) => [...document.querySelectorAll(sel)].filter((f) => f.offsetParent && !f.disabled);
+      let filas = visibles('.carta .opciones button');
+      if (!filas.length) filas = visibles('.decision .decision-botones > button, .decision .decision-opc > li, .decision > button, .decision-num ~ button');
+      if (!filas.length) filas = visibles('[role="dialog"] .accion-fila, [role="dialog"] .lista-merc > li, [role="dialog"] .trato.entrante');
       if (!filas.length) return;
       const ant = document.querySelector('.fila-marcada'), i = filas.indexOf(ant);
       const sig = filas[i < 0 ? (paso > 0 ? 0 : filas.length - 1) : (i + paso + filas.length) % filas.length];
       if (ant) ant.classList.remove('fila-marcada');
       sig.classList.add('fila-marcada'); sig.scrollIntoView({ block: 'nearest' });
     };
-    const soltar = (ev) => { if (!ev || ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') xAbajo = false; };
+    const soltar = (ev) => { if (ev) sinEspacio(ev); if (!ev || ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') xAbajo = false; };
+    // Jorge (23 de noviembre): el espacio solo tira el dado de ingreso (y x + espacio termina el turno). Nunca aprieta el botón enfocado,
+    // ni cierra cartas, ni hace de Enter: se le quita su efecto de siempre fuera de los campos de texto.
+    const sinEspacio = (ev) => { if (ev.key !== ' ' && ev.code !== 'Space') return false; const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return false; ev.preventDefault(); return true; };
     const tecla = (ev) => {
+      const espacio = sinEspacio(ev);
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
       const e = leer().estado; if (!e || e.fase === 'lobby') return;
@@ -146,9 +154,16 @@ function Juego({ lienzo }) {
       if (ev.key === 'Enter') {   // Enter elige la fila marcada con Shift + flechas
         const f = document.querySelector('.fila-marcada');
         if (!f || !f.isConnected || !f.offsetParent) return;
+        if (f.tagName === 'BUTTON') { ev.preventDefault(); if (!f.disabled) f.click(); return; }
+        const caja = f.querySelector('input[type="checkbox"], input[type="radio"]'); if (caja) { ev.preventDefault(); if (!caja.disabled) caja.click(); return; }
         const bs = [...f.querySelectorAll('button')].filter((x) => !x.disabled && !x.getAttribute('aria-label') && !/^(Detalles|Menos)$/.test(x.textContent.trim()));
         const b = bs.find((x) => !x.classList.contains('sec')) || bs[0];
         ev.preventDefault(); if (b) b.click();
+        return;
+      }
+      if (espacio) {   // espacio solo: tirar el dado de ingreso, si es lo que toca
+        const b = [...document.querySelectorAll('.acciones button')].find((x) => x.textContent.trim() === 'Tirar dado de ingreso');
+        if (b && !b.disabled && b.offsetParent) b.click();
         return;
       }
       const k = String(ev.key || '').toLowerCase();
@@ -165,8 +180,8 @@ function Juego({ lienzo }) {
       ev.preventDefault();
     };
     const perder = () => soltar();
-    window.addEventListener('keydown', tecla); window.addEventListener('keyup', soltar); window.addEventListener('blur', perder);
-    return () => { window.removeEventListener('keydown', tecla); window.removeEventListener('keyup', soltar); window.removeEventListener('blur', perder); };
+    window.addEventListener('keydown', tecla, true); window.addEventListener('keyup', soltar, true); window.addEventListener('blur', perder);
+    return () => { window.removeEventListener('keydown', tecla, true); window.removeEventListener('keyup', soltar, true); window.removeEventListener('blur', perder); };
   }, [abrir]);
   const onCiudad = useCallback((id) => setPanel('ciudad:' + id), []);
 
