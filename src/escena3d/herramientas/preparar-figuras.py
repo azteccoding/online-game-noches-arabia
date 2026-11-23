@@ -39,7 +39,7 @@ AJUSTES = {
     '3': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0.6),
     '4': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0),
     '5': dict(mano=(0.20, 0.40), tela=(0.15, 0.7), piernas=0),
-    '6': dict(mano=(0.14, 0.50), tela=(0.15, 0.7), piernas=0),
+    '6': dict(mano=(0.13, 0.52), tela=(0.15, 0.8), piernas=0),
     '7': dict(mano=(0.12, 0.52), tela=(0.15, 0.6), piernas=0),
     'B': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0),
 }
