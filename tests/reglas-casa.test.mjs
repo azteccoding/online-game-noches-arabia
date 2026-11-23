@@ -4921,6 +4921,22 @@ console.log('reglas de la casa OK');
   assert.equal(A.ciudad, 'El Cairo'); assert.ok(e.log.some((l) => /huye de Andalucía a El Cairo: paga 15 dinares y recibe 60 noches/.test(l.texto)) && A.noches >= n0 + 60, '60 noches');
   e.ronda = 40; assert.ok(BASE.ciudadCerrada(e, 'Andalucía'), 'sigue cerrada');
 }
+// Jorge (23 de noviembre): con «Los cristianos toman Toledo», Bagdad ya no sale «(null)» ni gratis: se va por El Cairo, se cobran los dos tramos y gasta los 2 viajes
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  const EVE = await import('../shared/eventos.js');
+  A.ciudad = 'Andalucía'; A.dinares = 50; A.mano = A.mano.filter((c) => c.ref !== 'citricos'); A.herido = false; e.pend = null; e.colaPend = [];
+  EVE.aplicarHistorico(data, e, 'H2');
+  const p = e.pend; assert.ok(p && p.para.includes(a), 'pregunta a quien está en Andalucía');
+  assert.ok(p.opciones.every((o) => !/null|undefined/.test(o.texto)), 'ninguna opción con precio (null)');
+  const ob = p.opciones.find((o) => o.id === 'Bagdad'); assert.ok(ob, 'Bagdad sigue');
+  assert.match(ob.texto, /pasando por El Cairo \(15 \+ 4 = 19; gasta tus 2 viajes\)/);
+  assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'Bagdad' }).ok);
+  assert.equal(A.ciudad, 'Bagdad'); assert.equal(A.dinares, 31, 'cobra 15 + 4');
+  assert.ok(A.herido, 'escorbuto en el barco a El Cairo');
+  assert.equal(e.turno?.pid === a ? e.turno.huidas : A.extra.huidasPend, 2, 'gasta los 2 viajes del turno'); void b;
+}
 // Jorge (19 de noviembre): «Los cristianos toman Toledo» cierra Andalucía hasta que sale «Yusuf ibn Tashfín derrota a los infieles»
 {
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);

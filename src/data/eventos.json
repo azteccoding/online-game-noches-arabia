@@ -156,7 +156,7 @@
    "tipo": "historico",
    "nombre": "Los cristianos toman Toledo",
    "ciudades": "Andalucía; refugio: Magreb",
-   "efecto": "Quienes estén en Andalucía pagan a un rey cristiano para quedarse o abandonan al-Ándalus en su turno a tarifa normal (Magreb 2, El Cairo 15, Bagdad 25). Si no tienen dinero para ninguna opción, pagan lo que lleven y el rey los escolta gratis al Magreb",
+   "efecto": "Quienes estén en Andalucía pagan a un rey cristiano para quedarse o abandonan al-Ándalus en su turno a tarifa normal (Magreb 6, El Cairo 15, o Bagdad pasando por El Cairo: 15 + 4 = 19, y gasta los 2 viajes del turno). Si no tienen dinero para ninguna opción, pagan lo que lleven y el rey los escolta gratis al Magreb",
    "costo": "Quedarse: 20 dinares. Irse: tarifa normal",
    "fomenta": "M, P",
    "arte": "hi",
