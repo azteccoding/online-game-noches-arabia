@@ -45,7 +45,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 - Dados que caen en el mapa, levantan polvo, se entierran en la arena y salpican en el mar; incendio de la Cruzada con sonido (`5c116e3`, `766d68f`).
 - Sonidos del 3D (mp3, ogg, wav, m4a) (`5609ece`).
 - Nur al Din ya no sale con la mano izquierda cortada, ni en la selección de personaje ni en el tablero (`65f8a39`).
-- Barcos (dhows): navegan por el agua apartados de la costa (rodean cabos en vez de cruzar tierra); atracan junto a la orilla solo para subir o bajar a alguien y luego esperan donde no tapan nombres ni dibujos del mapa. El del Mar Rojo espera afuera, cerca del Cuerno de África; en mares estrechos el barco es algo más chico (`d337d63`).
+- Barcos (dhows): navegan por el agua apartados de la costa (rodean cabos en vez de cruzar tierra); atracan junto a la orilla solo para subir o bajar a alguien y luego esperan donde no tapan nombres ni dibujos del mapa. Esperan paralelos a la costa; el del Mar Rojo espera afuera, en el golfo frente al Cuerno de África, debajo del nombre de Yemen; en mares estrechos el barco es algo más chico (`d337d63`, `0fe6f14`).
 
 ## Despliegue
 
