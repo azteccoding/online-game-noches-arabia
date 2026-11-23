@@ -71,7 +71,7 @@
    "ciudad": "Bagdad",
    "tipo": "A",
    "requisito": "",
-   "resolucion": "Tira 3 dados, promedia hacia abajo; un dado más debe ser ±1.",
+   "resolucion": "Tira 3 dados y suma los puntos. Divide la suma entre 3 y redondea hacia abajo: ese es tu promedio. Luego tira un dado más: si cae igual a tu promedio, o uno más o uno menos, resuelves el problema.",
    "premio": "50 dinares y 1 libro.",
    "riesgo": "Si no: segunda tirada (par 20 dinares) o pagas 1 dinar y tomas 1 libro.",
    "objetos": "",

@@ -483,10 +483,11 @@ T.R5 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   if (v[v.length - 1] === 6) { const pr = [50, 40, 30][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
   else { ctx.resultado = 'fallo'; darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
 } };
+// R6 (Jorge, 23 de noviembre): ganas si el dado extra cae igual al promedio, o uno más o uno menos.
 T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R6');
   const v = ctx.t(`${j.nombre}: álgebra`, 3); const prom = Math.floor(suma(v) / 3); const [x] = ctx.t('Un dado más', 1);
-  if (Math.abs(x - prom) === 1) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}: ganas 50 dinares y un libro.`); }
+  if (Math.abs(x - prom) <= 1) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}: ganas 50 dinares y un libro.`); }
   else { ctx.resultado = 'fallo'; const [y] = ctx.t('Segunda tirada', 1); if (par(y)) { premio(data, e, pid, { dinares: 20 }); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y} (par): 20 dinares.`); } else { pagar(data, e, pid, 1); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y}: pagas 1 dinar y tomas un libro.`); } }
 } };
 // ---------------------------------------------------------------- R17 (R7, entregar las alfombras al Califa, ya no existe: Jorge, 18 de noviembre)
