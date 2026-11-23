@@ -116,14 +116,17 @@ function Juego({ lienzo }) {
   }, []);
   const cerrar = useCallback(() => setPanel(null), []);
   // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
-  // responder, Alt + espacio termina el turno, z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
+  // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
   useEffect(() => {
+    let xAbajo = false;      // la x sostenida, para x + espacio
+    const soltar = (ev) => { if (!ev || ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') xAbajo = false; };
     const tecla = (ev) => {
-      if (ev.ctrlKey || ev.metaKey || ev.repeat) return;
+      if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
       const e = leer().estado; if (!e || e.fase === 'lobby') return;
-      if (ev.altKey) {   // Alt + espacio: terminar el turno (como el botón, con sus mismos avisos si todavía no se puede)
-        if (ev.code !== 'Space' && ev.key !== ' ') return;
+      if (ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') { xAbajo = true; return; }
+      if (ev.repeat) return;
+      if (xAbajo && (ev.code === 'Space' || ev.key === ' ')) {   // x + espacio: terminar el turno (como el botón, con sus mismos avisos si todavía no se puede)
         ev.preventDefault();
         const b = [...document.querySelectorAll('.acc-botones button')].find((x) => x.textContent.trim() === 'Terminar turno');
         if (b) b.click();
@@ -141,8 +144,9 @@ function Juego({ lienzo }) {
       } else return;
       ev.preventDefault();
     };
-    window.addEventListener('keydown', tecla);
-    return () => window.removeEventListener('keydown', tecla);
+    const perder = () => soltar();
+    window.addEventListener('keydown', tecla); window.addEventListener('keyup', soltar); window.addEventListener('blur', perder);
+    return () => { window.removeEventListener('keydown', tecla); window.removeEventListener('keyup', soltar); window.removeEventListener('blur', perder); };
   }, [abrir]);
   const onCiudad = useCallback((id) => setPanel('ciudad:' + id), []);
 
