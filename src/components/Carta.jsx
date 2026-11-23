@@ -5,7 +5,7 @@ import PINTADAS from '../data/arteCartas.json';
 import '../styles/cards.css';
 
 // Cartas con pintura propia (public/arte/cartas/<clave>.webp): la pintura llena toda la carta, con el título encima y el texto en un recuadro abajo.
-// La clave es el id de la carta (R26, H21…) o, si no, su clave de arte (pj-6). «titulo: abajo» baja el título cuando arriba hay un rostro. «texto: arriba» sube el recuadro de texto cuando lo importante está abajo.
+// La clave es el id de la carta (R26, H21…) o, si no, su clave de arte (pj-6). «titulo: abajo» baja el título cuando arriba hay un rostro. «texto: arriba» sube el recuadro de texto cuando lo importante está abajo; «texto: medio» lo pone bajo los rostros. «letra: chica» achica el texto para que el recuadro ocupe solo la franja de abajo.
 const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : null);
 
 // Carta construida en el cliente (HTML/SVG/CSS) a partir de DATOS. No hay una imagen por carta.
@@ -72,7 +72,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   }
   return (
     <div className="carta-caja">
-    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
+    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : PINTADAS[pintada].texto === 'medio' ? ' txt-medio' : '') + (PINTADAS[pintada].letra === 'chica' ? ' letra-chica' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
       <header className="c-cab">
         <span className="c-ico"><Icono deck={datos.deck} size={22} /></span>
         <h3 className="c-tit">{datos.titulo}</h3>

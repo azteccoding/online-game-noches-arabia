@@ -93,3 +93,12 @@
 .pintada.txt-arriba .c-cita + .chips { margin-top: 0; }
 .pintada.txt-arriba .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .6) 0, rgba(10, 4, 2, .3) 45%, rgba(10, 4, 2, 0) 58%, rgba(10, 4, 2, 0) 85%, rgba(10, 4, 2, .45) 100%); }
 .pintada.txt-arriba .arte-img { object-position: 50% 100%; }
+/* Letra chica: recuadro bajo y angosto, para pinturas cuyo motivo llega casi hasta abajo. */
+.pintada.letra-chica .c-texto { font-size: 3.5cqw; line-height: 1.22; }
+.pintada.letra-chica .c-cuerpo { padding: 2cqw 2.8cqw; }
+.pintada.letra-chica .chip-c { font-size: 2.4cqw; }
+.pintada.letra-chica .c-pill { font-size: 2.6cqw; }
+/* Texto al medio: el recuadro baja hasta debajo de los rostros y deja libre la parte de abajo de la pintura. */
+.pintada.txt-medio .c-pill { margin-top: 21cqw; }
+.pintada.txt-medio .chips { margin-top: auto; }
+.pintada.txt-medio .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .62) 0, rgba(10, 4, 2, 0) 22%, rgba(10, 4, 2, 0) 85%, rgba(10, 4, 2, .5) 100%); }
