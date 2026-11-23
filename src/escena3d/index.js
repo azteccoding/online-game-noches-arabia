@@ -214,6 +214,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     if (cuadros < 4 || conIfrit || sombraSucia || amb.cielo.tomarSucio()) { renderer.shadowMap.needsUpdate = true; sombraSucia = false; }
     if (punteroSucio) { punteroSucio = false; apuntar(puntero ? bajoPuntero(puntero.x, puntero.y) : null); }
     renderer.render(escena, camara.cam);
+    sonido.fuego(tablero.cercaniaFuego(camara.cam.position));      // el crepitar del incendio crece al acercarse a una ciudad en llamas
     llamar('alCuadro', dt);
     // Calidad automática: si el equipo va justo se bajan las sombras; solo al final, y nunca por debajo de 1, la densidad de píxeles.
     const real = realCuadro;

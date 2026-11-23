@@ -3,6 +3,7 @@
 // como un dado es simétrico, se gira qué cara lleva cada número para que esa misma caída muestre el valor pedido.
 // Admite varias filas (grupos) de hasta 6 dados, cada una de un color; al terminar de rodar, cada fila se ordena al fondo
 // de la bandeja y ahí se queda hasta limpiar().
+// Sobre el mapa (dadosMapa.js) no hay orden final: cada dado se queda donde para, un poco enterrado, y cada fila cae en su carril.
 import * as THREE from 'three';
 import * as CANNON from 'cannon-es';
 import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
@@ -86,11 +87,12 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   const piso = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Plane(), material: mPiso });
   piso.quaternion.setFromEuler(-Math.PI / 2, 0, 0); piso.position.set(0, pisoY, 0); mundo.addBody(piso);
   const pared = (x, z, sx, sz) => { const b = new CANNON.Body({ type: CANNON.Body.STATIC, shape: new CANNON.Box(new CANNON.Vec3(sx, 4, sz)), material: mPared }); b.position.set(B.x + x, pisoY + 4, B.z + z); mundo.addBody(b); return b; };
-  pared(-B.w / 2 - 1, 0, 1, B.h / 2 + 2); pared(B.w / 2 + 1, 0, 1, B.h / 2 + 2); pared(0, B.h / 2 + 1, B.w / 2 + 2, 1);
+  pared(-B.w / 2 - 1, 0, 1, 12); pared(B.w / 2 + 1, 0, 1, 12);
+  const frente = pared(0, B.h / 2 + 1, B.w / 2 + 2, 1);      // la de delante solo se mueve sobre el mapa (carriles)
   const fondo2 = pared(0, -B.h / 2 - 1, B.w / 2 + 2, 1);      // la pared del fondo avanza para dejar sitio a las filas ordenadas
 
   // --- Dados y filas
-  const ESC_FILA = 0.8, PASO_X = LADO * ESC_FILA + 0.13, PASO_Z = LADO * ESC_FILA + 0.12;
+  const ESC_FILA = 0.8, ESC_FIN = enMapa ? 1 : ESC_FILA, PASO_X = LADO * ESC_FIN + 0.13, PASO_Z = LADO * ESC_FIN + 0.12;      // sobre el mapa el dado no se reordena ni se encoge: se queda tal como cayó
   const libres = [], filas = [];      // filas: [{ etq, dados: [...], rotulo }]
   let grabando = null, tSim = 0;
   function tomarDado() {
@@ -101,7 +103,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
       cuerpo.addEventListener('collide', (e) => { const v = Math.abs(e.contact.getImpactVelocityAlongNormal()); if (grabando && v > 0.6) grabando.push({ t: tSim, fuerza: Math.min(1, v / 14), variante: e.body === piso ? 'fieltro' : 'madera', x: cuerpo.position.x, z: cuerpo.position.z }); });
       d = { malla, cuerpo, fix: new THREE.Quaternion(), de: new THREE.Vector3(), a: new THREE.Vector3(), qDe: new THREE.Quaternion(), qA: new THREE.Quaternion(), qAFix: new THREE.Quaternion(), enMundo: false };
     }
-    d.malla.visible = true; d.malla.scale.setScalar(0.001); d.fix.identity(); d.saliendo = 0;
+    d.malla.visible = true; d.malla.scale.setScalar(0.001); d.fix.identity(); d.saliendo = 0; d.hoyo = -1; d.hundido = 0;
     return d;
   }
   const alMundo = (d, v) => { if (v !== d.enMundo) { d.enMundo = v; if (v) mundo.addBody(d.cuerpo); else mundo.removeBody(d.cuerpo); } };
@@ -115,8 +117,18 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     m.rotation.x = -Math.PI / 2; m.renderOrder = 4; raiz.add(m); return m;
   }
   // Sitio de cada dado de una fila ya ordenada (al fondo de la bandeja, una fila detrás de otra)
-  function sitio(iFila, k, n, out) { return out.set(B.x + (k - (n - 1) / 2) * PASO_X + 0.55, pisoY + (LADO * ESC_FILA) / 2, B.z - B.h / 2 + 0.42 + iFila * PASO_Z); }
-  function ajustarFondo() { fondo2.aabbNeedsUpdate = true; fondo2.position.z = B.z - B.h / 2 - 1 + (filas.length ? 0.1 + filas.length * PASO_Z : 0); }
+  // (sobre el mapa, la fila que no rueda aparece en renglón en el centro de su carril)
+  function sitio(iFila, k, n, out) { return enMapa ? out.set(B.x + (k - (n - 1) / 2) * PASO_X, pisoY + LADO / 2, zCarril(iFila)) : out.set(B.x + (k - (n - 1) / 2) * PASO_X + 0.55, pisoY + (LADO * ESC_FIN) / 2, B.z - B.h / 2 + 0.42 + iFila * PASO_Z); }
+  function ajustarFondo() { if (enMapa) return; fondo2.aabbNeedsUpdate = true; fondo2.position.z = B.z - B.h / 2 - 1 + (filas.length ? 0.1 + filas.length * PASO_Z : 0); }
+  // Sobre el mapa (Jorge, 23 de noviembre) los dados se quedan donde paran: nada los ordena ni los mueve después. Para que las
+  // filas de una misma tirada no se mezclen ni se encimen, cada fila cae en su propio carril (una franja del claro, de lado a
+  // lado, la primera al fondo), con su rótulo a la izquierda, fuera de donde ruedan los dados. Hasta 3 filas se reparten el claro
+  // de siempre; con más, el claro crece hacia delante para que cada carril conserve un hondo en el que los dados puedan rodar.
+  const HONDO_CARRIL = B.h / 3, MARGEN_ROTULO = 2.45;
+  let carril = null;      // { n, hondo, z0 } de la tirada en curso
+  function ponerCarriles(n) { const hondo = Math.max(HONDO_CARRIL, B.h / n); carril = { n, hondo, total: hondo * n, z0: B.z - (hondo * n) / 2 }; }
+  const zCarril = (i) => carril.z0 + (i + 0.5) * carril.hondo;
+  function cercar(i) { fondo2.aabbNeedsUpdate = frente.aabbNeedsUpdate = true; fondo2.position.z = carril.z0 + i * carril.hondo - 1; frente.position.z = carril.z0 + (i + 1) * carril.hondo + 1; }
 
   // Cara superior de un dado: la normal local que más apunta hacia arriba.
   const v = new THREE.Vector3(), q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), EJE_Y = new THREE.Vector3(0, 1, 0);
@@ -135,6 +147,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   // Segundos que rueda una fila a la vista. Sumando alzar (0,25) y ordenar (0,35): una fila sola, de 2,6 a 3,0 s; cuando la
   // tirada trae varias filas, cada una rueda algo menos (de 2,2 a 2,6 s) para que el conjunto no se alargue de más.
   const DUR_RODAR = [2.0, 2.4], DUR_RODAR_VARIAS = [1.6, 2.0];
+  const T_HUNDIR = 0.3;      // sobre el mapa: segundos, justo antes de quedar quieto, en los que el dado se va enterrando
   let ultima = null, enTanda = 1;
   const T = enMapa?.tiro || null;      // sobre el mapa los dados se dejan caer desde arriba en vez de cruzar la bandeja
 
@@ -184,7 +197,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     const grupos = pedido.grupos || [{ etq: pedido.etq || '', valores: pedido.valores, color: pedido.color, fijo: pedido.fijo }];
     validar(grupos);
     estado = 'preparando'; alTerminar = cb; resultado = []; enTanda = grupos.filter((g) => !g.fijo).length;
-    if (enMapa) { for (const d of saliendo) soltarDado(d); saliendo = []; retirar(true); enMapa.alEmpezar(); }
+    if (enMapa) { for (const d of saliendo) soltarDado(d); saliendo = []; retirar(true); ponerCarriles(grupos.length); enMapa.alEmpezar({ hondo: carril.total, margen: grupos.some((g) => g.etq) ? MARGEN_ROTULO : 0 }); }
     Promise.all(grupos.map((g) => materialesDe(g.color || 'rojo'))).then((mm) => {
       retirar(true); cola = grupos.map((g, i) => ({ ...g, mats: mm[i] })); siguiente();
     }).catch((e) => { estado = 'quieto'; const f = alTerminar; alTerminar = null; f?.(null, e); });
@@ -195,18 +208,24 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
     const g = cola.shift(), N = g.valores.length, iFila = filas.length, lado = Math.random() < 0.5 ? 1 : -1;
     const lote = g.valores.map(() => { const d = tomarDado(); d.malla.material = g.mats; return d; });
     const fila = { etq: g.etq || '', dados: lote, rotulo: g.etq ? rotuloDe(g.etq) : null, valores: g.valores.slice() };
-    if (fila.rotulo) { sitio(iFila, 0, N, v); fila.rotulo.position.set(v.x - PASO_X / 2 - 1.2, pisoY + 0.012, v.z); if (enMapa) fila.rotulo.position.y += enMapa.apoyoRotulo(fila.rotulo.position); }
-    const zLibre = B.z - B.h / 2 + (iFila ? 0.1 + iFila * PASO_Z : 0), zMed = (zLibre + B.z + B.h / 2) / 2, hondo = B.z + B.h / 2 - zLibre;
-    actual = { fila, iFila, lote, fijo: !!g.fijo || menosMovimiento || hondo < 1.7 };      // sin sitio para rodar (muchas filas), la fila aparece ya ordenada
-    if (actual.fijo) {      // sin rodar: los dados aparecen ya en su sitio con su valor
-      lote.forEach((d, k) => { sitio(iFila, k, N, d.malla.position); d.malla.quaternion.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(g.valores[k])], EJE_Y); d.orden = k; if (enMapa) d.malla.position.y += enMapa.apoyo(d.malla.position) - enMapa.hunde; });
-      filas.push(fila); ajustarFondo(); estado = 'ordenando'; tFase = 0; actual.directo = true; return;
-    }
+    if (fila.rotulo && enMapa) { fila.rotulo.position.set(B.x - B.w / 2 - MARGEN_ROTULO / 2, pisoY + 0.012, zCarril(iFila)); fila.rotulo.position.y += enMapa.apoyoRotulo(fila.rotulo.position); }      // a la izquierda de su carril
+    else if (fila.rotulo) { sitio(iFila, 0, N, v); fila.rotulo.position.set(v.x - PASO_X / 2 - 1.2, pisoY + 0.012, v.z); }
+    if (enMapa) cercar(iFila);
+    // dónde puede rodar esta fila: en la bandeja, lo que dejan libre las filas ya ordenadas al fondo; sobre el mapa, su carril
+    const zLibre = enMapa ? carril.z0 + iFila * carril.hondo : B.z - B.h / 2 + (iFila ? 0.1 + iFila * PASO_Z : 0), hondo = enMapa ? carril.hondo : B.z + B.h / 2 - zLibre, zMed = zLibre + hondo / 2;
+    actual = { fila, iFila, lote, fijo: !!g.fijo || menosMovimiento || (!enMapa && hondo < 1.7) };      // sin sitio para rodar (muchas filas), la fila aparece ya ordenada
+    const puesta = () => {      // sin rodar: los dados aparecen ya en su sitio con su valor
+      lote.forEach((d, k) => { sitio(iFila, k, N, d.malla.position); d.malla.quaternion.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(g.valores[k])], EJE_Y); d.fix.identity(); d.orden = k; if (enMapa) d.malla.position.y += enMapa.apoyo(d.malla.position) - enMapa.hunde; });
+      filas.push(fila); ajustarFondo(); estado = 'ordenando'; tFase = 0; actual.directo = true;
+    };
+    if (actual.fijo) return puesta();
+    const estrecho = hondo < 2, zs0 = enMapa ? Math.max(0, Math.min(1.0, hondo * 0.28, hondo / 2 - 0.6)) : Math.min(1.0, hondo * 0.28);      // en un carril, sin salirse de él al soltarlos
     lote.forEach((d, i) => {
       d.lado = lado; d.malla.scale.setScalar(0.001);
-      const fila3 = i % 3, col = Math.floor(i / 3), zs = N === 1 ? 0 : (fila3 - Math.min(2, N - 1 - col * 3) / 2) * Math.min(1.0, hondo * 0.28);
+      const fila3 = i % 3, col = Math.floor(i / 3), zs = N === 1 ? 0 : (fila3 - Math.min(2, N - 1 - col * 3) / 2) * zs0;
       d.a.set(B.x + lado * (B.w / 2 - 0.9 - fila3 * 0.22 - col * 0.95), pisoY + 2.2 + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
       if (T) d.a.set(B.x + lado * (T.dx + fila3 * 0.3 + col * 0.8), pisoY + T.alto + fila3 * 0.45 + col * 0.3, zMed + zs + rnd(-0.15, 0.15));
+      if (T && estrecho) d.a.set(B.x + lado * (T.dx + 1.4 - i * 0.9), pisoY + T.alto + (i % 2) * 0.55, zMed + rnd(-0.1, 0.1));      // en un carril estrecho caen en hilera, a lo largo
       d.de.copy(d.a); d.de.x += lado * 1.2; d.de.y += 0.5;
     });
     let rec = null;
@@ -220,16 +239,29 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
       if (!rec || lejos(r) < lejos(rec)) { rec = r; giros = lote.map((d) => d.qA.clone()); }
       if ((rec.viva >= durMin && rec.viva <= durMax) || performance.now() - tPre > 70) break;      // sin pasarse de tiempo de cálculo: nada de tirones
     }
+    ultima = { viva: rec?.viva ?? 0, k: 1, intentos, buenas, ms: performance.now() - tPre };
+    if (!rec && enMapa) return puesta();      // ninguna tirada salió limpia (rarísimo): la fila aparece puesta en su carril, sin saltos
     if (rec) lote.forEach((d, i) => d.qA.copy(giros[i]));
     if (!rec) { const f = Float32Array.from(lote.flatMap((d, i) => [B.x + (i - (N - 1) / 2) * 0.95, pisoY + LADO / 2, zMed, 0, 0, 0, 1])); rec = { cuadros: [f, f], golpes: [], dur: 0, viva: 0.3 }; for (const d of lote) d.qA.identity(); }
     // la tirada se reproduce al ritmo que la deja dentro de la duración prevista por fila (ver DUR_RODAR)
-    rec.k = rec.viva / Math.min(durMax, Math.max(durMin, rec.viva)); ultima = { viva: rec.viva, k: rec.k, intentos, buenas, ms: performance.now() - tPre };
+    rec.k = rec.viva / Math.min(durMax, Math.max(durMin, rec.viva)); ultima.viva = rec.viva; ultima.k = rec.k;
     // de izquierda a derecha según quedan: a cada dado, el valor que le toca y el giro de caras que lo deja arriba
     const fin = rec.cuadros[rec.cuadros.length - 1], orden = lote.map((d, i) => i).sort((p, q) => fin[p * 7] - fin[q * 7]);
     orden.forEach((i, k) => {
       const d = lote[i], arriba = caraArriba(q1.set(fin[i * 7 + 3], fin[i * 7 + 4], fin[i * 7 + 5], fin[i * 7 + 6])).indice;
       d.fix.setFromUnitVectors(NORMALES[VALOR_CARA.indexOf(g.valores[k])], NORMALES[arriba]); d.qAFix.copy(d.qA).multiply(d.fix); d.qDe.copy(d.qAFix); d.orden = k;
     });
+    if (enMapa) {
+      // Cuándo deja de moverse cada dado (último cuadro en que se desplaza o gira): en los últimos instantes antes de parar se va
+      // hundiendo en la arena, y una vez quieto ya nada lo mueve. La tirada acaba cuando para el último.
+      const C = rec.cuadros, dtC = PASO * CADA;
+      lote.forEach((d, i) => {
+        const k = i * 7; let ult = 0;
+        for (let c = C.length - 1; c > 0; c--) { const A = C[c - 1], Z = C[c]; const dp = Math.hypot(Z[k] - A[k], Z[k + 1] - A[k + 1], Z[k + 2] - A[k + 2]), dq = Math.abs(A[k + 3] * Z[k + 3] + A[k + 4] * Z[k + 4] + A[k + 5] * Z[k + 5] + A[k + 6] * Z[k + 6]); if (dp > 0.0012 || dq < 0.99998) { ult = c; break; } }
+        d.tPara = Math.max(T_HUNDIR, ult * dtC); d.hundido = 0; d.hoyo = -1;
+      });
+      rec.fin = Math.min(rec.dur, Math.max(...lote.map((d) => d.tPara)) + 0.05);
+    }
     filas.push(fila); cinta = rec; iGolpe = 0; estado = 'alzando'; tFase = 0;
   }
   // Valores a la vista, fila por fila (cada fila de izquierda a derecha), leídos de la cara que mira hacia arriba.
@@ -246,11 +278,12 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   function actualizar(dt) {
     if (enMapa) enMapa.actualizar(dt);
     sucio = estado !== 'quieto' || saliendo.length > 0;
-    if (saliendo.length) { for (const d of saliendo) { d.saliendo -= dt / 0.25; d.malla.scale.setScalar(Math.max(0.001, d.saliendo) * ESC_FILA); if (d.saliendo <= 0) soltarDado(d); } saliendo = saliendo.filter((d) => d.saliendo > 0); }
+    if (saliendo.length) { for (const d of saliendo) { d.saliendo -= dt / 0.25; d.malla.scale.setScalar(Math.max(0.001, d.saliendo) * ESC_FIN); if (d.saliendo <= 0) soltarDado(d); } saliendo = saliendo.filter((d) => d.saliendo > 0); }
     if (estado === 'alzando') {
       tFase = Math.min(1, tFase + dt / 0.25);
       const s = 1 - (1 - tFase) ** 3;
       for (const d of actual.lote) { d.malla.position.lerpVectors(d.de, d.a, s); d.malla.quaternion.copy(d.qAFix); d.malla.scale.setScalar(Math.max(0.001, s)); }
+      if (enMapa && actual.fila.rotulo) actual.fila.rotulo.material.opacity = s;
       if (tFase >= 1) { estado = 'rodando'; tFase = 0; sonido?.tocar('dados-lanzar'); }
     } else if (estado === 'rodando') {
       tFase += dt * cinta.k;
@@ -260,10 +293,17 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
         d.malla.position.set(A[k] + (Bq[k] - A[k]) * u, A[k + 1] + (Bq[k + 1] - A[k + 1]) * u, A[k + 2] + (Bq[k + 2] - A[k + 2]) * u);
         q1.set(A[k + 3], A[k + 4], A[k + 5], A[k + 6]); q2.set(Bq[k + 3], Bq[k + 4], Bq[k + 5], Bq[k + 6]);
         d.malla.quaternion.slerpQuaternions(q1, q2, u).multiply(d.fix); d.malla.scale.setScalar(1);
-        if (enMapa) d.malla.position.y += enMapa.apoyo(d.malla.position);      // sobre el mapa el suelo tiene relieve
+        if (enMapa) {      // sobre el mapa el suelo tiene relieve; y en sus últimos instantes de movimiento el dado se entierra un poco
+          const h = Math.min(1, Math.max(0, (tFase - (d.tPara - T_HUNDIR)) / T_HUNDIR)); d.hundido = h * h * (3 - 2 * h);
+          d.malla.position.y += enMapa.apoyo(d.malla.position) - enMapa.hunde * d.hundido;
+          if (d.hundido > 0 && d.hoyo < 0) d.hoyo = enMapa.alHundir(d);
+          if (d.hoyo >= 0) enMapa.hoyoCrece(d.hoyo, d);
+        }
       });
       while (iGolpe < cinta.golpes.length && cinta.golpes[iGolpe].t <= tFase) { const g = cinta.golpes[iGolpe++]; if (!enMapa?.alGolpe(g)) sonido?.tocar('dados-golpe', g.fuerza, g.variante); }
-      if (tFase >= cinta.viva) {
+      if (enMapa && tFase >= cinta.fin) {      // quietos donde cayeron, ya enterrados: no se ordenan ni se mueven más (Jorge, 23 de noviembre)
+        resultado.push(actual.fila.valores); siguiente();
+      } else if (!enMapa && tFase >= cinta.viva) {
         estado = 'ordenando'; tFase = 0; ajustarFondo();
         for (const d of actual.lote) { d.de.copy(d.malla.position); d.qDe.copy(d.malla.quaternion); encarado(d.qDe, d.qA); }
       }
@@ -271,7 +311,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
       tFase = Math.min(1, tFase + dt / (actual.directo ? 0.22 : 0.35));
       const s = tFase * tFase * (3 - 2 * tFase), N = actual.lote.length;
       for (const d of actual.lote) {
-        if (actual.directo) { d.malla.scale.setScalar(Math.max(0.001, s * ESC_FILA)); continue; }
+        if (actual.directo) { d.malla.scale.setScalar(Math.max(0.001, s * ESC_FIN)); continue; }
         sitio(actual.iFila, d.orden, N, v); if (enMapa) v.y += enMapa.apoyo(v) - enMapa.hunde; d.malla.position.lerpVectors(d.de, v, s); d.malla.position.y += Math.sin(Math.PI * s) * 0.18;
         d.malla.quaternion.slerpQuaternions(d.qDe, d.qA, s); d.malla.scale.setScalar(1 + (ESC_FILA - 1) * s);
       }
@@ -282,7 +322,7 @@ export function crearDados(escena, mats, recursos, renderer, sonido, { menosMovi
   const centro = new THREE.Vector3(B.x, pisoY, B.z);
   function destruir() { retirar(true); enMapa?.destruir(); for (const p of juegos.values()) p.then((m) => m.forEach((x) => { x.map.dispose(); x.dispose(); })).catch(() => {}); geo.dispose(); }
   // dos dados rojos de adorno, en reposo, hasta la primera tirada
-  enMapa?.montar(raiz, { x: B.x, y: pisoY, z: B.z, w: B.w, h: B.h, lado: LADO * ESC_FILA });
+  enMapa?.montar(raiz, { x: B.x, y: pisoY, z: B.z, w: B.w, h: B.h, lado: LADO * ESC_FIN });
   const listos = materialesDe('rojo').then((m) => {
     if (enMapa) return;      // la bandeja no se ve: sin dados de adorno
     const fila = { etq: '', dados: [], rotulo: null, valores: [5, 3], adorno: true };

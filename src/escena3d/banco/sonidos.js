@@ -12,6 +12,7 @@ export const SONIDOS = {
   'dados-lanzar': null,      //   al soltar una fila de dados sobre la bandeja
   'dados-golpe': null,       // * cada choque de un dado contra el fieltro, la madera u otro dado
   'dados-arena': null,       //   con los dados sobre el mapa: cada golpe de un dado contra la arena (si queda en null, suena 'dados-golpe')
+  'dados-agua': null,        // * con los dados sobre el mapa: cada golpe de un dado que cae en el mar (chapoteo)
   'dados-resultado': null,   //   cuando la última fila de la tirada queda quieta
   // --- Fichas
   'ficha-elegir': null,      //   al elegir una ficha (lo toca la interfaz: escena.tocar('ficha-elegir'))
@@ -51,6 +52,8 @@ export const SONIDOS = {
   'alfombra-despegue': null, // * cuando la alfombra se desenrolla y se eleva
   'alfombra-vuelo': null,    //   bucle mientras la alfombra vuela
   'alfombra-guardar': null,  // * cuando la alfombra se enrolla y se guarda al llegar
+  // --- Incendio (ciudades quemadas)
+  'fuego-ardiendo': null,    // * bucle mientras arde alguna ciudad: el volumen sube al acercar la cámara al incendio y de lejos casi no se oye
   // --- Ifrit
   'ifrit-lampara': null,     //   cuando aparece la lámpara y empieza a temblar y a humear
   'ifrit-aparece': null,     //   cuando el genio brota de la lámpara

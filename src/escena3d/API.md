@@ -68,14 +68,18 @@ una ruta.
 `lanzarDados({ valores: [..], color })` o `lanzarDados({ grupos: [{ etq, valores, color, fijo }] })`.
 
 Los dados ruedan con física y **quedan exactamente en los valores pedidos**. Hasta 6 dados por fila; las filas ruedan una
-tras otra y quedan ordenadas en renglones hasta `limpiarDados()`. `fijo: true` coloca la fila sin rodar. `color`:
+tras otra y ahí se quedan hasta `limpiarDados()` (en la bandeja, ordenadas en renglones; sobre el mapa, cada dado donde
+paró). `fijo: true` coloca la fila sin rodar. `color`:
 `'rojo'`, `'amarillo'`, `'azul'`, `'verde'` o cualquier color CSS. `camara: false` evita que la cámara vaya a los dados.
 La promesa se cumple al detenerse, con los valores de arriba (un arreglo, o uno por grupo). Una fila sola tarda de 2,6 a 3,0 s;
 si la tirada trae varias filas, cada una tarda de 2,2 a 2,6 s.
 
 **Dónde caen.** Con `opciones.dadosEnMapa` encendida (así viene), los dados caen sobre el mapa: en un claro cerca de donde
-mira la cámara, sin ciudades ni fichas debajo y, si se puede, en tierra. Al tocar el suelo levantan polvo y granos de arena,
-y al asentarse quedan en renglones, un poco hundidos y con su reborde de arena. Si la vista del momento no deja verlos
+mira la cámara, sin ciudades ni fichas debajo y, si se puede, en tierra. Al tocar el suelo levantan polvo y granos de arena
+(si caen al mar, salpican y dejan ondas; ranura de sonido `dados-agua`). Pueden rodar, pero **se quedan donde paran**: justo
+antes de detenerse se entierran un poco en la arena, con su reborde, y después nada los mueve ni los ordena. Si la tirada
+trae varias filas, cada una cae en su propio carril (una franja del claro, la primera al fondo) con su rótulo a la
+izquierda, así no se mezclan ni se enciman; con más de 3 filas el claro crece hacia delante. Si la vista del momento no deja verlos
 enteros y legibles (muy lejos, muy cerca o a pie de calle), la cámara se abre lo justo para encuadrarlos y vuelve sola al
 terminar. Con `dadosEnMapa: false` ruedan en su bandeja, al fondo de la mesa, como antes. El API, los valores y los tiempos
 son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la dirección apaga la opción.
@@ -98,7 +102,7 @@ Las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el es
 | `transicionRonda(numero)` | Atardecer, noche y amanecer de la ronda nueva (unos 7 s). Avisa con `alCambiarRonda` ya de noche. |
 | `amanecer()` | Amanecer del inicio de la partida (unos 4 s). |
 | `ponerHora(fase, { duracion })` | Hora fija: `'noche'`, `'amanecer'`, `'dia'`, `'mediodia'`, `'atardecer'` o un número de 0 a 1. |
-| `ponerCiudadesQuemadas(lista)` | Ciudades que arden (lista completa cada vez; `[]` las apaga). |
+| `ponerCiudadesQuemadas(lista)` | Ciudades que arden (lista completa cada vez; `[]` las apaga). El incendio suena (ranura `fuego-ardiendo`, con provisional sintetizado): el volumen sube al acercar la cámara a una ciudad en llamas y de lejos no se oye. |
 | `resaltarCiudades(lista, { desde })` | Marca las ciudades a las que se puede ir; `null` o `[]` quita la marca. |
 
 ## Cámara

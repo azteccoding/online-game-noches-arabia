@@ -1,14 +1,14 @@
 // Dados sobre el mapa (opción «dadosEnMapa» de crearEscena): en vez de rodar en su bandeja, los dados caen en un claro del
-// mapa, en la zona que mira la cámara; al tocar el suelo levantan polvo y granos de arena, y al asentarse quedan en renglones,
-// un poco hundidos, cada uno con su reborde de arena.
-// Este módulo solo añade «dónde» y «con qué adorno»: la física, los valores forzados, los tiempos y el orden en renglones son los
-// de siempre (dados.js). La tirada se simula en el mismo recinto de la bandeja y ese recinto entero se traslada, se gira y se
-// escala hasta el claro elegido; por eso, apagando la opción, todo vuelve a ser exactamente la bandeja.
+// mapa, en la zona que mira la cámara; al tocar el suelo levantan polvo y granos de arena (o salpican, si caen al mar) y se
+// quedan donde paran: justo antes de detenerse se entierran un poco, cada uno con su reborde de arena, y ya nada los mueve.
+// Este módulo solo añade «dónde» y «con qué adorno»: la física, los valores forzados y los tiempos son los de siempre (dados.js).
+// La tirada se simula en el recinto de la bandeja y ese recinto entero se traslada, se gira y se escala hasta el claro elegido;
+// por eso, apagando la opción, todo vuelve a ser exactamente la bandeja.
 import * as THREE from 'three';
 import { ANCHO, ALTO } from './medidas.js';
 
 const ESCALA = 0.85;        // tamaño del recinto (y de los dados) sobre el mapa, respecto a la bandeja
-const HUNDE = 0.085;        // cuánto queda hundido cada dado al asentarse (en unidades de la bandeja)
+const HUNDE = 0.1;          // cuánto queda hundido cada dado al asentarse (en unidades de la bandeja)
 const MAX_HOYOS = 36, MAX_PARTICULAS = 520;
 const al = (a, b) => a + Math.random() * (b - a);
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
@@ -17,6 +17,7 @@ const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosMovimiento = false }) {
   const EJE_Y = new THREE.Vector3(0, 1, 0), v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), m4 = new THREE.Matrix4(), q0 = new THREE.Quaternion(), col = new THREE.Color();
   let raiz = null, R = null;       // R: el recinto de la bandeja { x, y, z, w, h, lado } en sus propias unidades
+  let margen = 0;                  // franja a la izquierda del recinto donde van los rótulos de las filas (mismas unidades): solo cuenta para el encuadre
   let zona = null, vistaZona = null;
 
   // ------------------------------------------------------------------------------------------------------------------
@@ -38,8 +39,8 @@ export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosM
   }
   function elegirZona() {
     const cam = camara().leer(), giro = cam.az, w = R.w * ESCALA, h = R.h * ESCALA;
-    // si la cámara sigue donde la dejó la tirada anterior, se repite el claro (mientras siga despejado)
-    if (zona && vistaZona && Math.hypot(cam.x - vistaZona.x, cam.z - vistaZona.z) < 1 && Math.abs(cam.d - vistaZona.d) < 1.2) {
+    // si la cámara sigue donde la dejó la tirada anterior, se repite el claro (mientras siga despejado y sea del mismo tamaño)
+    if (zona && vistaZona && zona.w === w && zona.h === h && Math.hypot(cam.x - vistaZona.x, cam.z - vistaZona.z) < 1 && Math.abs(cam.d - vistaZona.d) < 1.2) {
       const e = estorbo(zona.x, zona.z, zona.giro, w, h); if (e.pena <= zona.pena + 0.5) return zona;
     }
     const c = Math.cos(giro), s = Math.sin(giro), ex = Math.abs(c) * w / 2 + Math.abs(s) * h / 2 + 0.35, ez = Math.abs(s) * w / 2 + Math.abs(c) * h / 2 + 0.35;
@@ -49,7 +50,7 @@ export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosM
       const lejos = Math.hypot(i, j); if (lejos > radio) continue;
       const x = clamp(cam.x + i * c + j * s, -topeX, topeX), z = clamp(cam.z - i * s + j * c, -topeZ, topeZ);
       const e = estorbo(x, z, giro, w, h), pena = e.pena + Math.hypot(x - cam.x, z - cam.z) * 0.3;
-      if (!mejor || pena < mejor.pena) mejor = { x, z, giro, mar: e.mar, pena };
+      if (!mejor || pena < mejor.pena) mejor = { x, z, giro, mar: e.mar, pena, w, h };
     }
     return mejor;
   }
@@ -63,13 +64,17 @@ export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosM
   // Cuánto sube o baja el suelo del mapa bajo un punto del recinto (en unidades del recinto): los dados siguen el relieve y el mar.
   const v3 = new THREE.Vector3();
   const apoyo = (p) => { aMundo(p.x, R.y, p.z, v3); return tablero.altura(v3.x, v3.z) / ESCALA; };
+  // Lo mismo para un dado entero: se apoya en lo más bajo que tenga debajo (centro y esquinas), para que en una cuesta no quede
+  // con un lado en el aire; por el otro lado queda algo más enterrado, como en la arena de verdad.
+  const ESQ = [[0, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]], pe = { x: 0, z: 0 };
+  const apoyoDado = (p) => { let m = 9; for (const [a, b] of ESQ) { pe.x = p.x + a * R.lado * 0.4; pe.z = p.z + b * R.lado * 0.4; m = Math.min(m, apoyo(pe)); } return Math.max(m, apoyo(p) - 0.1); };      // sin pasarse: en una ladera brusca no se lo traga
 
   // Vista de cámara para la tirada: si la actual ya enseña el claro entero, desde un ángulo que deja leer las caras y a una
   // distancia razonable, no se mueve; si no (muy lejos, muy cerca o a pie de calle), se abre lo justo para encuadrarlo.
   function vista() {
     const cam = camara(), ahora = cam.leer(); if (!zona) return ahora;
     const pts = [];
-    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) for (const y of [0, 1.1]) pts.push(aMundo(R.x + sx * (R.w / 2 + 0.3), R.y + y, R.z + sz * (R.h / 2 + 0.3), new THREE.Vector3()));
+    for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) for (const y of [0, 1.1]) pts.push(aMundo(R.x + sx * (R.w / 2 + 0.3) - (sx < 0 ? margen : 0), R.y + y, R.z + sz * (R.h / 2 + 0.3), new THREE.Vector3()));
     const ideal = cam.encuadre(pts, { x: zona.x, z: zona.z, pol: 0.6, az: zona.giro }, 0.86); ideal.d = Math.max(8, ideal.d);
     const cabe = pts.every((p) => cam.enPantalla(p, 0.93));
     vistaZona = cabe && ahora.pol >= 0.28 && ahora.pol <= 0.92 && ahora.d <= ideal.d * 1.45 ? ahora : ideal;
@@ -159,51 +164,98 @@ export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosM
   // Hoyos: el reborde de arena que queda alrededor de cada dado asentado (una sola malla con instancias).
   // ------------------------------------------------------------------------------------------------------------------
   let hoyos = null, nHoyos = 0;
+  const ARENA_HOYO = 0xdcc391, ESPUMA_HOYO = 0xeef8f7;      // en el mar el reborde es un cerco de espuma
   function crearHoyos(lado) {
     const K = 44, medio = lado / 2, aros = [[-0.03, -0.09, 0.5, 1], [0.022, 0.0, 0.56, 0.95], [0.08, 0.055, 1.07, 1], [0.15, 0.03, 0.9, 0.9], [0.3, 0.0, 0.82, 0]];      // [hacia fuera, alto, tono, opacidad]
-    const p = [], c = [], idx = [], base = new THREE.Color(0xdcc391);
+    const p = [], c = [], idx = [];      // la geometría lleva solo el claroscuro; el color (arena o espuma) lo pone cada instancia
     for (let a = 0; a < aros.length; a++) for (let k = 0; k <= K; k++) {
       const t = (k % K) / K * Math.PI * 2, cuadro = medio / (Math.abs(Math.cos(t)) ** 6 + Math.abs(Math.sin(t)) ** 6) ** (1 / 6);      // contorno de cuadrado con las esquinas redondeadas
       const ruido = a < 2 ? 0 : 0.5 + 0.5 * Math.sin(t * 5 + a) * Math.sin(t * 3 + 1.7), r = cuadro + aros[a][0] * (1 + 0.45 * ruido);
       p.push(Math.cos(t) * r, aros[a][1] * (a === 2 ? 0.7 + 0.6 * ruido : 1), Math.sin(t) * r);
-      const tono = aros[a][2] * (0.94 + 0.08 * ruido); c.push(base.r * tono, base.g * tono, base.b * tono, aros[a][3]);
+      const tono = aros[a][2] * (0.94 + 0.08 * ruido); c.push(tono, tono, tono, aros[a][3]);
     }
     for (let a = 0; a < aros.length - 1; a++) for (let k = 0; k < K; k++) { const i0 = a * (K + 1) + k, i1 = i0 + K + 1; idx.push(i0, i0 + 1, i1, i0 + 1, i1 + 1, i1); }
     const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setAttribute('color', new THREE.Float32BufferAttribute(c, 4)); g.setIndex(idx); g.computeVertexNormals();
     const m = new THREE.MeshStandardMaterial({ vertexColors: true, transparent: true, roughness: 1, metalness: 0, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2, envMapIntensity: 0.25 });
     hoyos = new THREE.InstancedMesh(g, m, MAX_HOYOS); hoyos.count = 0; hoyos.receiveShadow = true; hoyos.frustumCulled = false; hoyos.renderOrder = 3;
-    hoyos.setColorAt(0, col.set(0xffffff)); raiz.add(hoyos);
+    hoyos.setColorAt(0, col.set(ARENA_HOYO)); raiz.add(hoyos);
   }
-  function ponerHoyo(x, z, enMar) {
-    if (nHoyos >= MAX_HOYOS) return;
-    const e = al(0.96, 1.07); m4.compose(v1.set(x, R.y + 0.004 + apoyo({ x, z }), z), q0.setFromAxisAngle(EJE_Y, Math.floor(al(0, 4)) * Math.PI / 2), v2.set(e, al(0.85, 1.2), e));
-    hoyos.setMatrixAt(nHoyos, m4); hoyos.setColorAt(nHoyos, col.set(enMar ? 0xe9f6f5 : 0xffffff)); hoyos.count = ++nHoyos;
-    hoyos.instanceMatrix.needsUpdate = true; hoyos.instanceColor.needsUpdate = true;
+  const datosHoyo = [];
+  // Pone el reborde de un dado (giro: hacia dónde quedó girado el dado). Devuelve su número, para irlo levantando con crecerHoyo.
+  function ponerHoyo(x, z, enMar, giro = Math.floor(al(0, 4)) * Math.PI / 2, crece = 1) {
+    if (nHoyos >= MAX_HOYOS) return -1;
+    const i = nHoyos; datosHoyo[i] = { x, z, giro, e: al(0.96, 1.07), alto: al(0.85, 1.2) };
+    hoyos.setColorAt(i, col.set(enMar ? ESPUMA_HOYO : ARENA_HOYO)); hoyos.count = ++nHoyos; hoyos.instanceColor.needsUpdate = true;
+    crecerHoyo(i, crece); return i;
+  }
+  // El reborde sale a la vez que el dado se entierra: la arena desplazada sube alrededor (u de 0 a 1).
+  function crecerHoyo(i, u) {
+    const h = datosHoyo[i]; if (!h || i >= nHoyos) return;
+    const k = Math.max(0.001, u), e = h.e * (0.9 + 0.1 * k);
+    m4.compose(v1.set(h.x, R.y + 0.004 + apoyo(h), h.z), q0.setFromAxisAngle(EJE_Y, h.giro), v2.set(e, h.alto * k, e));
+    hoyos.setMatrixAt(i, m4); hoyos.instanceMatrix.needsUpdate = true;
+  }
+  // Hacia dónde está girado un dado (alrededor de la vertical): el rumbo de su arista más tendida.
+  const EJES = [new THREE.Vector3(1, 0, 0), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 1)];
+  function rumbo(q) { let mejor = 2, giro = 0; for (const n of EJES) { v2.copy(n).applyQuaternion(q); if (Math.abs(v2.y) < mejor) { mejor = Math.abs(v2.y); giro = Math.atan2(-v2.z, v2.x); } } return giro; }
+
+  // ------------------------------------------------------------------------------------------------------------------
+  // Agua: si un dado cae en el mar salpica (gotas que saltan alto y caen) y deja ondas que se abren y se apagan.
+  // ------------------------------------------------------------------------------------------------------------------
+  const ondas = [], gOnda = new THREE.RingGeometry(0.88, 1, 48); gOnda.rotateX(-Math.PI / 2);
+  function onda(p, fuerza, espera = 0) {
+    let o = ondas.find((x) => x.u >= 1);
+    if (!o) { if (ondas.length >= 24) return; o = { m: new THREE.Mesh(gOnda, new THREE.MeshBasicMaterial({ color: 0xf2fbfb, transparent: true, depthWrite: false, opacity: 0 })), u: 1 }; o.m.renderOrder = 17; escena.add(o.m); ondas.push(o); }
+    o.u = 0; o.espera = espera; o.dur = al(0.9, 1.3); o.r = 0.35 + 0.9 * fuerza; o.f = fuerza; o.m.position.set(p.x, p.y + 0.012, p.z); o.m.scale.set(0.12, 1, 0.12); o.m.material.opacity = 0; o.m.visible = true;
+  }
+  function moverOndas(dt) {
+    for (const o of ondas) {
+      if (o.u >= 1) continue; if (o.espera > 0) { o.espera -= dt; continue; } o.u = Math.min(1, o.u + dt / o.dur);
+      const s = 0.12 + o.r * (1 - (1 - o.u) ** 2); o.m.scale.set(s, 1, s); o.m.material.opacity = (0.55 + 0.3 * o.f) * (1 - o.u) ** 1.5;
+      if (o.u >= 1) o.m.visible = false;
+    }
+  }
+  function salpicar(p, fuerza) {
+    if (menosMovimiento) fuerza *= 0.5;
+    const gotas = Math.round(10 + 26 * fuerza);
+    for (let k = 0; k < gotas; k++) {
+      particula(p, 1, true, fuerza); const i = (iPart + N - 1) % N, j = i * 3;
+      vel[j] *= 0.55; vel[j + 2] *= 0.55; vel[j + 1] = al(2.2, 5.8) * (0.55 + fuerza); tam[i] = al(0.04, 0.09); vida[i] = al(0.5, 0.9);
+    }
+    for (let k = 0; k < 3; k++) particula(p, 0, true, fuerza * 0.6);
+    onda(p, fuerza); if (fuerza > 0.35) onda(p, fuerza * 0.6, 0.16);      // un golpe fuerte deja una segunda onda, algo después
+    vivas = Math.max(vivas, 1); puntos.visible = true;
   }
 
   // ------------------------------------------------------------------------------------------------------------------
   // Enganches que llama dados.js
   // ------------------------------------------------------------------------------------------------------------------
   const arena = () => (sonido?.tabla?.['dados-arena'] ? 'dados-arena' : 'dados-golpe');      // sin archivo propio, suena el golpe sordo de siempre
+  const enMundo = (p) => { aMundo(p.x, R.y, p.z, v1); v1.y = tablero.altura(v1.x, v1.z); return tablero.relieve.esMar(v1.x, v1.z); };
   return {
-    hunde: HUNDE, apoyo,
+    hunde: HUNDE, apoyo: apoyoDado,
     // el rótulo de una fila va tendido sobre el mapa: se sube lo justo para que el relieve no lo tape
     apoyoRotulo: (p) => Math.max(apoyo({ x: p.x - 1.1, z: p.z }), apoyo(p), apoyo({ x: p.x + 1.1, z: p.z })) + 0.03,
     // La tirada: en vez de lanzarse de lado a lado, los dados se dejan caer desde arriba con poco empuje, para que rueden y se
     // asienten dentro del claro. (Velocidades en unidades de la bandeja, igual que en dados.js.)
     tiro: { dx: 1.5, alto: 3.2, vx: [2.6, 5.2], vy: [0.5, 3.2], vz: 1.7 },
     montar(nodo, recinto) { raiz = nodo; R = recinto; crearHoyos(recinto.lado); },
-    alEmpezar() { zona = elegirZona(); situar(); },
+    // hondo: fondo que necesita esta tirada (crece con el número de filas); margen: franja de los rótulos, a la izquierda (la cámara la encuadra también)
+    alEmpezar({ hondo = R.h, margen: m = 0 } = {}) { R.h = hondo; margen = m; zona = elegirZona(); situar(); },
     vista,
     // Un dado toca el suelo (g: golpe grabado en la simulación, con su punto en unidades de la bandeja).
     alGolpe(g) {
       if (g.variante !== 'fieltro') return false;      // dado contra dado: suena como siempre
-      aMundo(g.x, R.y, g.z, v1); v1.y = tablero.altura(v1.x, v1.z); const enMar = tablero.relieve.esMar(v1.x, v1.z);
-      if (g.fuerza > 0.06) polvareda(v1, clamp(g.fuerza * 1.5, 0.12, 1), enMar);
-      sonido?.tocar(arena(), g.fuerza, 'fieltro');
+      const enMar = enMundo(g);
+      if (enMar) { if (g.fuerza > 0.04) salpicar(v1, clamp(g.fuerza * 1.6, 0.15, 1)); sonido?.tocar('dados-agua', g.fuerza); }
+      else { if (g.fuerza > 0.06) polvareda(v1, clamp(g.fuerza * 1.5, 0.12, 1), enMar); sonido?.tocar(arena(), g.fuerza, 'fieltro'); }
       return true;
     },
-    // Los dados de una fila llegan a su renglón: se hunden, queda su reborde y sale un último soplo de arena.
+    // Un dado empieza a enterrarse en sus últimos instantes de movimiento: sale su reborde (y, en el mar, unas ondas).
+    alHundir(d) { const p = d.malla.position, enMar = enMundo(p); if (enMar) onda(v1, 0.3); return ponerHoyo(p.x, p.z, enMar, rumbo(d.malla.quaternion), 0); },
+    // mientras el dado acaba de asentarse, el reborde lo sigue (posición y giro) y sube con lo que lleva hundido
+    hoyoCrece(i, d) { const h = datosHoyo[i]; if (!h) return; h.x = d.malla.position.x; h.z = d.malla.position.z; h.giro = rumbo(d.malla.quaternion); crecerHoyo(i, d.hundido); },
+    // Los dados que aparecen ya puestos (sin rodar): se hunden, queda su reborde y sale un último soplo de arena.
     alAsentar(dados, suave = false) {
       for (const d of dados) {
         const p = d.malla.position; aMundo(p.x, R.y, p.z, v1); v1.y = tablero.altura(v1.x, v1.z); const enMar = tablero.relieve.esMar(v1.x, v1.z);
@@ -213,9 +265,9 @@ export function crearDadosMapa({ escena, tablero, camara, fichas, sonido, menosM
     },
     alRetirar() { nHoyos = 0; if (hoyos) hoyos.count = 0; },
     limpiar() { limpiarParticulas(); },
-    actualizar(dt) { moverParticulas(dt); },
-    get vivo() { return vivas > 0; },
+    actualizar(dt) { moverParticulas(dt); moverOndas(dt); },
+    get vivo() { return vivas > 0 || ondas.some((o) => o.u < 1); },
     get zona() { return zona; },
-    destruir() { escena.remove(puntos); gPart.dispose(); matPart.dispose(); if (hoyos) { hoyos.geometry.dispose(); hoyos.material.dispose(); hoyos.dispose(); } },
+    destruir() { for (const o of ondas) { escena.remove(o.m); o.m.material.dispose(); } gOnda.dispose(); escena.remove(puntos); gPart.dispose(); matPart.dispose(); if (hoyos) { hoyos.geometry.dispose(); hoyos.material.dispose(); hoyos.dispose(); } },
   };
 }

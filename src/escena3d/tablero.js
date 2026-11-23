@@ -269,7 +269,7 @@ export async function crearTablero(escena, mats, recursos, renderer, { ciudades:
       if (v) { r.vb.material.opacity = 0.62 * r.nivel; r.vl.material.opacity = 0.95 * r.nivel; }
     }
     tVivo.offset.x = -t * 1.6; tVivoInv.offset.x = t * 1.6;
-    for (const c of ciudades.values()) if (c.fuego) { c.ardor += ((c.quemada ? 1 : 0) - c.ardor) * (1 - Math.exp(-dt * 3)); c.fuego.actualizar(t + c.pos.x, c.ardor); c.fuego.grupo.scale.setScalar(c.escBase * s); if (c.ardor > 0.01) sucio = sucio || false; if (!c.quemada && c.ardor < 0.01) { c.nodo.remove(c.fuego.grupo); c.fuego.destruir(); c.fuego = null; } }
+    for (const c of ciudades.values()) if (c.fuego) { c.ardor += ((c.quemada ? 1 : 0) - c.ardor) * (1 - Math.exp(-dt * 3)); c.fuego.grupo.scale.setScalar(c.escBase * s); c.fuego.actualizar(t + c.pos.x, c.ardor); if (c.ardor > 0.01) sucio = sucio || false; if (!c.quemada && c.ardor < 0.01) { c.nodo.remove(c.fuego.grupo); c.fuego.destruir(); c.fuego = null; } }
   }
   // Ciudades quemadas: arden (llamas sobre la ciudad, cúpula tiznada) hasta que se quiten de la lista.
   const tLlama = texResplandor();
@@ -278,9 +278,20 @@ export async function crearTablero(escena, mats, recursos, renderer, { ciudades:
     for (const c of ciudades.values()) {
       const arde = q.has(c.id); if (arde === !!c.quemada) continue;
       c.quemada = arde; c.matCupula.color.setHex(arde ? 0x3a2a22 : c.colorCupula); c.matCupula.envMapIntensity = arde ? 0.3 : c.capital ? 1.3 : 1.1;
-      if (arde && !c.fuego) { c.fuego = crearFuego(tLlama, { alto: 1.25, ancho: 0.55 }); c.ardor = 0; c.fuego.grupo.position.y = 0.3; c.nodo.add(c.fuego.grupo); }
+      if (arde && !c.fuego) { c.fuego = crearFuego(tLlama, { alto: 1.5, ancho: 0.62, suelo: 0.02 + Math.max(0, -c.nodo.position.y) }); c.ardor = 0; c.fuego.grupo.position.y = 0.3; c.nodo.add(c.fuego.grupo); }
     }
     sucio = true;
   }
-  return { ponerQuemadas, grupo, mapa, superficie: sup, relieve: rel, ciudades, rutas, blancos, altura, crearRotulos, enfocar, marcarAlcance, actualizar, get sucio() { return sucio; } };
+  // Cuánto se oye el incendio desde un punto (la cámara): 1 encima de una ciudad en llamas, 0 desde lejos. Lo usa el sonido del fuego.
+  const vq = new THREE.Vector3();
+  function cercaniaFuego(desde) {
+    let mejor = 0;
+    for (const c of ciudades.values()) {
+      if (!c.fuego || c.ardor < 0.02) continue;
+      c.nodo.getWorldPosition(vq); const d = vq.distanceTo(desde), k = Math.max(0, Math.min(1, (26 - d) / 22)) ** 2;
+      mejor = Math.max(mejor, k * c.ardor);
+    }
+    return mejor;
+  }
+  return { ponerQuemadas, cercaniaFuego, grupo, mapa, superficie: sup, relieve: rel, ciudades, rutas, blancos, altura, crearRotulos, enfocar, marcarAlcance, actualizar, get sucio() { return sucio; } };
 }
