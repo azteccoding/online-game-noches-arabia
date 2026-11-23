@@ -6,7 +6,9 @@ import '../styles/cards.css';
 
 // Cartas con pintura propia (public/arte/cartas/<clave>.webp): la pintura llena toda la carta, con el título encima y el texto en un recuadro abajo.
 // La clave es el id de la carta (R26, H21…) o, si no, su clave de arte (pj-6). «titulo: abajo» baja el título cuando arriba hay un rostro. «texto: arriba» sube el recuadro de texto cuando lo importante está abajo; «texto: medio» lo pone bajo los rostros. «letra: chica» achica el texto para que el recuadro ocupe solo la franja de abajo.
-const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : null);
+// Fondos genéricos (Jorge, 23 de noviembre): la carta que todavía no tiene pintura propia usa la de su mazo, con su texto encima.
+const GENERICA = { reto: 'GEN-1', historico: 'GEN-2', evento: 'GEN-2', objeto: 'GEN-3' };
+const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : PINTADAS[GENERICA[d.deck]] ? GENERICA[d.deck] : null);
 // «imagen»: varias cartas pueden compartir una misma pintura (las cartas de un mismo sheij usan la de su tumba).
 const imgDe = (k) => PINTADAS[k].imagen || k;
 
