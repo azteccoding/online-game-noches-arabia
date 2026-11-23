@@ -53,7 +53,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   const tactil = useRef(false);
   const lectura = {
     onPointerDown: (e) => { tactil.current = e.pointerType !== 'mouse'; },
-    onPointerEnter: (e) => { if (e.pointerType === 'mouse') setLeyendo(true); },
+    onPointerOver: (e) => { if (e.pointerType === 'mouse') setLeyendo(!e.target.closest('button, a, .modal-pie')); },   // solo sobre la carta, no sobre sus botones ni el de Cerrar (Jorge, 23 de noviembre)
     onPointerLeave: (e) => { if (e.pointerType === 'mouse') setLeyendo(false); },
     onClick: (e) => { if (tactil.current && !e.target.closest('button, a, input, select, textarea')) setLeyendo((v) => !v); },
   };

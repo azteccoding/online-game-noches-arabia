@@ -43,9 +43,11 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       const nombreDe = (id) => { const j = datos.current.jugadores[id]; return j ? (j.npc ? j.nombre : `${j.nombre} — ${pjDe(j.pj)?.nombre || ''}`) : null; };
       e.alApuntar = (u) => { clearTimeout(relojTip); setTip(u?.tipo === 'ficha' ? nombreDe(u.id) : null); };
       e.alHacerClicFicha = (id) => { clearTimeout(relojTip); setTip(nombreDe(id)); relojTip = setTimeout(() => setTip(null), 2500); };
+      // Jorge (23 de noviembre): MIENTRAS HAYA ANIMACIÓN DE PELEA no se ve ninguna ventana ni aviso; lo que venga sale al terminar (ui.css)
+      e.alPelear = (v) => document.body.classList.toggle('viendo-pelea', !!v);
       setLista(true);
     }).catch((err) => { console.error(err); if (vivo) setFallo(String(err?.message || err)); });
-    return () => { vivo = false; clearTimeout(relojTip); if (esc) { if (escenaActual() === esc) ponerEscena(null); esc.destruir(); } previo.current = null; };
+    return () => { vivo = false; document.body.classList.remove('viendo-pelea'); clearTimeout(relojTip); if (esc) { if (escenaActual() === esc) ponerEscena(null); esc.destruir(); } previo.current = null; };
   }, []);
 
   // --- Fichas: altas, bajas, cambios y viajes
@@ -96,19 +98,23 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     if (ronda > antes) enCola((e) => e.transicionRonda(ronda));
   }, [lista, ronda]);
 
-  // --- Pelea: los dos se encaran y cruzan armas justo antes de los primeros dados de la pelea (solo animación; los dados deciden).
-  // Si el retado rechaza el duelo o huye, no hay dados de pelea y no se anima nada.
+  // --- Pelea (Jorge, 23 de noviembre): con los primeros dados de la pelea (flecha incluida) los dos se plantan uno frente al otro; las
+  // flechas salen desde ahí; el choque de armas va después de la última tirada (Dados.jsx) y luego sale el conteo. Solo animación.
+  // Si el retado rechaza el duelo o huye, no hay dados de pelea y no se anima nada; si la pelea acaba sin choque, vuelven a su sitio.
   const peleaHecha = useRef(0);
   const P = e3d?.pelea || null;
-  const dadoPelea = dados && ['pelea', 'categoria'].includes(dados.motivo) && !dados.boton ? dados.id : 0;   // la flecha y el escudo (con botón propio) van antes del choque
+  const dadoPelea = dados && ['pelea', 'categoria'].includes(dados.motivo) ? dados.id : 0;
   useEffect(() => {
-    if (!lista || !P || P.n <= peleaHecha.current) return;
+    if (!lista) return;
+    if (!dados && (!P || !P.viva)) enCola((e) => e.deshacerPelea?.());          // por si quedaron formados (no hace nada si ya pelearon)
+    if (!P || P.n <= peleaHecha.current) return;
     if (!dadoPelea) { if (!P.viva && !dados) peleaHecha.current = P.n; return; }                  // terminó sin pelear
     if (dados.por !== P.atk && dados.por !== P.def) return;
     peleaHecha.current = P.n;
     const arma = (id) => e3d.jugadores?.[id]?.armaPelea || '';
-    enCola(async (e) => { await quietos(P.atk, P.def); return e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def) }); });
+    enCola(async (e) => { await quietos(P.atk, P.def); return e.formarPelea(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def) }); });
   }, [lista, P?.n, P?.viva, dadoPelea, dados?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (lista) escenaActual()?.ponerFichaPropia?.(miId); }, [lista, miId]);   // solo tu monito gira
 
   // --- Ifrit: el genio sale de la lámpara junto al jugador; su carta se presenta cuando ya está fuera, y al elegir se esconde
   const ifritDe = pend?.tipo === 'ifrit' ? pend.para?.[0] || null : null;

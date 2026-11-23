@@ -395,3 +395,6 @@ fieldset:disabled { opacity: .5; }
 
 /* Fila marcada con Shift + flechas (Jorge, 23 de noviembre) */
 .fila-marcada { outline: 2px solid #e8c25a; outline-offset: 1px; box-shadow: 0 0 10px rgba(232, 194, 90, .45); }
+
+/* Durante la animación de pelea (golpes o flecha) la pantalla queda despejada: solo el tablero (Jorge, 23 de noviembre) */
+body.viendo-pelea .app > *:not(.mesa), body.viendo-pelea .mesa > *:not(.tablero), body.viendo-pelea .tablero > *:not(.tablero3d-lienzo) { visibility: hidden !important; }

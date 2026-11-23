@@ -34,7 +34,9 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
   const flechas = [0, 1].map(() => { const f = crearFlecha(mats); f.grupo.visible = false; escena.add(f.grupo); return { o: f.grupo, estela: efectos.crearEstela(0xfff0d0, 12, 0.14), vuelo: null }; });
 
   // replica: el segundo responde · acierta: la flecha del primero da en el blanco (solo animación) · ritmo: velocidad de la secuencia
-  function iniciar(iA, iB, alTerminar, { replica = true, acierta = false, ritmo = 1 } = {}) {
+  // formar: solo se plantan uno frente al otro, en guardia, y esperan (Jorge, 23 de noviembre: la pelea va después de los dados);
+  // los golpes llegan con golpear() y la formación se deshace con soltar().
+  function iniciar(iA, iB, alTerminar, { replica = true, acierta = false, ritmo = 1, formar = false } = {}) {
     if (P) return false;
     const A = fichas.fichas[iA], B = fichas.fichas[iB];
     if (!A || !B || A === B || A.viaje || B.viaje || A.ciudad !== B.ciudad) return false;
@@ -61,14 +63,52 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
       }
       t = fin + 0.22;
     };
-    agrega(0, SERIE[L[0].tipo].ataque); if (replica) agrega(1, SERIE[L[1].tipo].replica);
+    if (!formar) { agrega(0, SERIE[L[0].tipo].ataque); if (replica) agrega(1, SERIE[L[1].tipo].replica); }
     const x0 = cx - margen[0], x1 = cx + margen[1];
     const puntos = [[x0, 0], [x1, 0], [x0, 1.25], [x1, 1.25]].map(([x, y]) => new THREE.Vector3(x, y, cz));
-    P = { L, golpes, t: 0, tSale: t, tFin: t + T_SALE, pausa: 0, ciudad: c, alTerminar, previa: camara.leer(), fin: false, acierta, ritmo };
+    const vista = camara.encuadre(puntos, { x: (x0 + x1) / 2, z: cz - 0.85, pol: 1.17, az: 0 }, 0.9);
+    P = { L, golpes, t: 0, tSale: formar ? Infinity : t, tFin: formar ? Infinity : t + T_SALE, pausa: 0, ciudad: c, alTerminar, previa: camara.leer(), fin: false, acierta, ritmo, formada: formar, tHecho: null, alHecho: null, vista };
     camara.tocado = false;
-    camara.volar(camara.encuadre(puntos, { x: (x0 + x1) / 2, z: cz - 0.85, pol: 1.17, az: 0 }, 0.9), 0.8);      // apunta algo detrás, para centrar las fichas a media altura
+    camara.volar(vista, 0.8);      // apunta algo detrás, para centrar las fichas a media altura
     sonido?.tocar('pelea-inicio');
     return true;
+  }
+
+  // Con la formación puesta: una tanda de golpes. quien: quién ataca (0 = el primero de iniciar, 1 = el otro) · arco: dispara una flecha
+  // (saca el arco solo para el tiro) · salir: al acabar vuelven a su sitio y termina la pelea; si no, siguen formados.
+  function golpear(alHecho, { quien = 0, arco = false, replica = true, acierta = false, ritmo = 1, salir = true } = {}) {
+    if (!P || !P.formada || P.tHecho != null || P.tSale !== Infinity) return false;
+    const At = P.L[quien], Re = P.L[1 - quien];
+    if (arco && At.tipo !== 'arco') cambiarArma(At, 'arco', true);
+    P.acierta = acierta; P.ritmo = ritmo;
+    let t = Math.max(P.t, T_ENTRA) + 0.2;
+    const agrega = (q, serie) => {
+      let fin = t;
+      for (const [t0, dur, tipo, ld, fuerza] of serie) {
+        P.golpes.push({ quien: q, t0: t + t0, dur, tipo, lado: ld, fuerza, ti: t + t0 + dur * IMPACTO[tipo] + (tipo === 'tiro' ? VUELO : 0), silbo: false, tenso: false, suelta: false, hecho: false });
+        fin = Math.max(fin, t + t0 + dur + (tipo === 'tiro' ? 0.45 : 0));
+      }
+      t = fin + 0.22;
+    };
+    agrega(quien, SERIE[At.tipo].ataque); if (replica) agrega(1 - quien, SERIE[Re.tipo].replica);
+    if (salir) { P.tSale = t; P.tFin = t + T_SALE; P.alTerminar = alHecho; } else { P.tHecho = t; P.alHecho = alHecho; }
+    if (!camara.tocado) camara.volar(P.vista, 0.6);
+    return true;
+  }
+  // Deshace la formación sin (más) golpes: vuelven a su sitio.
+  function soltar(alTerminar) {
+    if (!P || !P.formada || P.tSale !== Infinity) return false;
+    P.tHecho = null; P.alHecho = null; P.tSale = Math.max(P.t, T_ENTRA); P.tFin = P.tSale + T_SALE; P.alTerminar = alTerminar;
+    return true;
+  }
+  // Cambia el arma que un luchador lleva en la mano (el arco para el flechazo, y de vuelta la suya).
+  function cambiarArma(F, tipo, temporal) {
+    if (temporal) F.propia = { tipo: F.tipo, armaFicha: F.f.arma };
+    if (F.arma) { F.arma.grupo.visible = false; F.arma.tensar?.(0, false); F.estela?.cortar(); }
+    F.f.arma = temporal ? tipo : F.propia.armaFicha; F.tipo = temporal ? tipo : F.propia.tipo; if (!temporal) F.propia = null;
+    F.arma = fichas.armaDe(F.f); F.guardia = GUARDIA(F.tipo); F.estela = null;
+    if (F.arma) { F.arma.grupo.visible = true; if (esHoja(F.tipo)) F.estela = (F.arma.estela ||= efectos.crearEstela(F.tipo === 'alfanje' ? 0xffe0b0 : 0xf4fbff, 18, F.tipo === 'jambiya' ? 0.13 : 0.2)); }
+    if (F.f.accesorio) F.f.accesorio.visible = F.tipo !== 'cimitarra';
   }
 
   // Postura de un luchador en el instante t: guardia + sus golpes + sus reacciones a los golpes del otro.
@@ -173,7 +213,7 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
   // Coloca un luchador tal como está en el instante t (y, si su hoja va en pleno golpe, deja una muestra para la estela).
   function colocar(F, t, s, atraso) {
     const c = P.ciudad, f = F.f, o = postura(F, t), r = c.ranuras[f.ranura];
-    const entra = paso(0, T_ENTRA, t), sale = paso(P.tSale, P.tFin, t), enDuelo = entra * (1 - sale), saca = t < P.tSale ? rebote(paso(0.3, 0.7, t)) : 1 - paso(P.tSale, P.tSale + 0.3, t);
+    const entra = paso(0, T_ENTRA, t), sale = P.tSale === Infinity ? 0 : paso(P.tSale, P.tFin, t), enDuelo = entra * (1 - sale), saca = t < P.tSale ? rebote(paso(0.3, 0.7, t)) : 1 - paso(P.tSale, P.tSale + 0.3, t);
     const salto = 0.42 * (Math.sin(Math.PI * entra) + Math.sin(Math.PI * sale));
     F.casa.set(c.pos.x + r.x * s, 0, c.pos.z + r.z * s);
     const x = mix(F.casa.x, F.puesto.x, enDuelo) + (F.fx * o.av) * enDuelo, z = mix(F.casa.z, F.puesto.z, enDuelo) + (-F.fx * o.lat) * enDuelo;
@@ -208,12 +248,14 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
       }
       if (!g.hecho && t >= g.ti) { g.hecho = true; if (g.tipo !== 'tiro') impacto(g); }
     }
+    if (P.tHecho != null && t >= P.tHecho) { const f = P.alHecho; P.tHecho = null; P.alHecho = null; for (const F of P.L) if (F.propia) cambiarArma(F, '', false); f?.(); if (!P) return; }
     if (t >= P.tFin) terminar();
   }
 
   function terminar() {
     const p = P; P = null;
     for (const F of p.L) {
+      if (F.propia) cambiarArma(F, '', false);
       const f = F.f; f.control = null; f.brazo.rotation.set(0, 0, 0); f.mano.rotation.set(0, 0, 0); f.rebote = 0.7;
       if (F.arma) { F.arma.grupo.visible = false; F.arma.tensar?.(0, false); F.estela?.cortar(); }
       if (f.accesorio) f.accesorio.visible = true;
@@ -223,5 +265,5 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
     p.alTerminar?.();
   }
 
-  return { iniciar, actualizar, get activa() { return !!P; }, get tiempo() { return P ? P.t : -1; }, get golpes() { return P ? P.golpes : []; } };
+  return { iniciar, golpear, soltar, actualizar, get activa() { return !!P; }, get formada() { return !!P && P.formada && P.tSale === Infinity; }, get golpeando() { return !!P && !(P.formada && P.tSale === Infinity && P.tHecho == null); }, get quienes() { return P ? P.L.map((F) => F.f.id) : []; }, get tiempo() { return P ? P.t : -1; }, get golpes() { return P ? P.golpes : []; } };
 }

@@ -85,9 +85,12 @@ export default function Dados({ s }) {
       // La flecha del arco (su dado y su botón van antes de la pelea): primero cae el dado y luego vuela la flecha, que da o falla según ese dado.
       const P = s.e3d?.pelea;
       const flecha = d.boton === 'Disparar flecha' && P && (d.por === P.atk || d.por === P.def) ? { de: d.por, a: d.por === P.atk ? P.def : P.atk, acierta: /^¡Le da!/.test(d.resumen?.[0] || '') } : null;
-      const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha ? 14000 : 9000));   // por si la animación no avisara
+      // El choque de armas va después de la última tirada de la pelea (Jorge, 23 de noviembre), y solo entonces sale el conteo.
+      const choque = !flecha && P && !P.viva && !s.enCola && ['pelea', 'categoria'].includes(d.motivo) && (d.por === P.atk || d.por === P.def);
+      const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha || choque ? 16000 : 9000));   // por si la animación no avisara
       enCola(async (e) => { if (!vivo) return; await e.lanzarDados({ grupos: gs });   // si estos dados ya se cerraron mientras esperaban su turno en la cola, no se animan tarde
-        if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {}); })
+        if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {});
+        if (choque) { const arma = (id) => s.e3d.jugadores?.[id]?.armaPelea || ''; await Promise.resolve(e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def) })).catch(() => {}); } })
         .then(() => { if (vivo) { clearTimeout(reloj); setEn3d(false); } });
       return () => { vivo = false; clearTimeout(reloj); };
     }

@@ -145,7 +145,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     if (mov > 7) llamar('alMoverCamara');
     if (e.type !== 'pointerup' || mov > 7 || dt > 650 || e.button === 2) return;
     const u = bajoPuntero(e.clientX, e.clientY);
-    if (!u) llamar('alHacerClicVacio'); else if (u.tipo === 'ficha') llamar('alHacerClicFicha', u.id); else llamar('alHacerClicCiudad', u.id);
+    if (!u) llamar('alHacerClicVacio'); else if (u.tipo === 'ficha') { if (u.id === estado.propia) { const f = fichas.porId(u.id); if (f && !f.girar) f.girar = Math.PI * 2; } llamar('alHacerClicFicha', u.id); } else llamar('alHacerClicCiudad', u.id);
     if (e.pointerType !== 'mouse') apuntar(null);
   };
   oir(el, 'pointerup', alSoltar); oir(el, 'pointercancel', alSoltar);
@@ -204,6 +204,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     const realCuadro = ultimoDibujo ? (ahora - ultimoDibujo) / 1000 : 0.016; ultimoDibujo = ahora; cuadros++;
     const vista0 = camara.leer(), esc = Math.min(1.5, Math.max(1, (vista0.d / 22) ** 0.45));
     conIfrit = false; escPrevia = esc; fichas.mirarDesde(camara.cam.position);
+    if (pelea.golpeando !== !!estado.peleaVista) { estado.peleaVista = pelea.golpeando; llamar("alPelear", estado.peleaVista); }      // golpes o flecha en marcha: la pantalla se despeja
+    { const d = camara.cam.position.distanceTo(camara.ctl.target);      // acercamiento máximo y la cámara sobre tu monito
+      for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !f.viaje && !f.control && !camara.enVuelo && d <= camara.ctl.minDistance * 1.06 && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
     const dt = simular(transcurrido(), esc);
     amb.actualizar(t, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
@@ -248,14 +251,14 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   const aPantalla = (p) => { v.copy(p).project(camara.cam); return { x: (v.x * 0.5 + 0.5) * W, y: (-v.y * 0.5 + 0.5) * H, visible: v.z < 1 }; };
 
   // --- Dados: una tirada tras otra (si llega otra mientras ruedan, espera su turno)
-  let colaDados = Promise.resolve(), previaDados = null, relojVuelta = 0;
+  let colaDados = Promise.resolve(), previaDados = null, relojVuelta = 0, formacion = null;
   function tirar(pedido = {}) {
     const conCamara = pedido.camara !== false; alDia();
     return new Promise((ok, mal) => {
       let lanzado;
       try { lanzado = dados.lanzar(pedido, (res, err) => { if (err) return mal(err); if (conCamara) relojVuelta = setTimeout(() => { const p = previaDados; previaDados = null; if (p && !camara.tocado && !camara.enVuelo && !destruida) camara.volar(p, 1.25); }, 1900); ok(pedido.grupos ? res : res[0]); }); } catch (e) { return mal(e); }
       if (!lanzado) return mal(new Error('Los dados no están listos.'));
-      if (conCamara && !pelea.activa) { clearTimeout(relojVuelta); if (!previaDados) previaDados = camara.leer(); camara.tocado = false; camara.volar(dados.vistaTirada?.() ?? camara.vistaDados(previaDados.az), menosMovimiento ? 0.01 : 0.85); }
+      if (conCamara && !pelea.golpeando) { clearTimeout(relojVuelta); if (!previaDados) previaDados = camara.leer(); camara.tocado = false; camara.volar(dados.vistaTirada?.() ?? camara.vistaDados(previaDados.az), menosMovimiento ? 0.01 : 0.85); }
       pedirCuadro();
     });
   }
@@ -288,6 +291,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     actualizarJugador(id, cambios) { ficha(id); const p = Promise.resolve(fichas.poner({ ...cambios, id })).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     quitarJugador(id) { fichas.quitar(ficha(id)); pedirCuadro(); },
     jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, turno: f.turno })); },
+    // Jorge (23 de noviembre): solo tu monito gira, al tocarlo o con el acercamiento máximo. id: tu jugador (null = nadie).
+    ponerFichaPropia(id) { estado.propia = id ?? null; },
     seleccionarFicha(id) { for (const f of fichas.fichas) f.elegida = f.id === id; },
     marcarRival(id) { for (const f of fichas.fichas) f.rival = f.id === id; },
 
@@ -318,9 +323,37 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     limpiarDados() { const p = colaDados.then(() => { dados.limpiar(); pedirCuadro(); }); colaDados = p.catch(() => {}); return p; },
 
     // ----- Pelea (solo animación; no decide nada). Se resuelve al terminar.
+    // Jorge (23 de noviembre): la pelea va en tres tiempos. formarPelea: se plantan uno frente al otro y esperan (ahí se tiran los dados
+    // y, si hay arcos, dispararFlecha sale desde la formación); pelear: el choque de armas, y vuelven a su sitio; deshacerPelea: vuelven
+    // sin pelear. Sin formación previa, pelear y dispararFlecha hacen todo de corrido, como antes.
+    formarPelea(idAtacante, idDefensor, { armaAtacante, armaDefensor } = {}) {
+      return new Promise((ok, mal) => {
+        const A = ficha(idAtacante), B = ficha(idDefensor);
+        if (pelea.activa) return pelea.formada && pelea.quienes[0] === idAtacante && pelea.quienes[1] === idDefensor ? ok() : mal(new Error('Ya hay una pelea en curso.'));
+        if (A === B || A.viaje || B.viaje || A.ciudad !== B.ciudad) return mal(new Error('Para pelear, las dos fichas deben estar quietas en la misma ciudad.'));
+        Promise.all([A.lista, B.lista]).then(() => {
+          alDia(); const antes = [A.arma, B.arma];
+          if (armaAtacante !== undefined) A.arma = armaAtacante || ''; if (armaDefensor !== undefined) B.arma = armaDefensor || '';
+          formacion = { A, B, antes };
+          if (!pelea.iniciar(A.indice, B.indice, null, { formar: true })) { A.arma = antes[0]; B.arma = antes[1]; formacion = null; return mal(new Error('No se pudo formar la pelea.')); }
+          clearTimeout(relojVuelta); previaDados = null; pedirCuadro(); setTimeout(ok, 950);
+        }, mal);
+      });
+    },
+    deshacerPelea() {
+      return new Promise((ok) => {
+        const F = formacion; if (!F || !pelea.formada) return ok();
+        if (!pelea.soltar(() => { F.A.arma = F.antes[0]; F.B.arma = F.antes[1]; if (formacion === F) formacion = null; ok(); })) return ok();
+        pedirCuadro();
+      });
+    },
     pelear(idAtacante, idDefensor, { armaAtacante, armaDefensor, disparoArco = false } = {}) {
       return new Promise((ok, mal) => {
         const A = ficha(idAtacante), B = ficha(idDefensor);
+        if (pelea.formada && formacion && formacion.A === A && formacion.B === B) {      // ya están formados: solo el choque, y a su sitio
+          const F = formacion;
+          if (pelea.golpear(() => { A.arma = F.antes[0]; B.arma = F.antes[1]; if (formacion === F) formacion = null; ok(); }, { quien: 0, salir: true })) { clearTimeout(relojVuelta); previaDados = null; pedirCuadro(); return; }
+        }
         if (pelea.activa) return mal(new Error('Ya hay una pelea en curso.'));
         if (A === B || A.viaje || B.viaje || A.ciudad !== B.ciudad) return mal(new Error('Para pelear, las dos fichas deben estar quietas en la misma ciudad.'));
         Promise.all([A.lista, B.lista]).then(() => {
@@ -340,6 +373,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     dispararFlecha(idTirador, idBlanco, { acierta = false } = {}) {
       return new Promise((ok, mal) => {
         const A = ficha(idTirador), B = ficha(idBlanco);
+        if (pelea.formada && formacion && [formacion.A, formacion.B].includes(A) && [formacion.A, formacion.B].includes(B) && A !== B) {      // desde la formación
+          if (pelea.golpear(() => ok({ acierta: !!acierta }), { quien: formacion.A === A ? 0 : 1, arco: true, replica: false, acierta: !!acierta, ritmo: 1.7, salir: false })) { clearTimeout(relojVuelta); previaDados = null; pedirCuadro(); return; }
+        }
         if (pelea.activa) return mal(new Error('Ya hay una pelea en curso.'));
         if (A === B || A.viaje || B.viaje || A.ciudad !== B.ciudad) return mal(new Error('Para disparar, las dos fichas deben estar quietas en la misma ciudad.'));
         Promise.all([A.lista, B.lista]).then(() => {
@@ -427,11 +463,11 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     get ocupada() { return { dados: dados.estado !== 'quieto', pelea: pelea.activa, ronda: ronda.enCurso, ifrit: ifrit.activo, viajes: fichas.fichas.filter((f) => f.viaje).map((f) => f.id) }; },
     get ronda() { return ronda.ronda; },
     lienzo: el,
-    alHacerClicCiudad: null, alHacerClicFicha: null, alHacerClicVacio: null, alApuntar: null, alCambiarRonda: null, alCambiarCalidad: null, alMoverCamara: null, alTocar: null, alCuadro: null, alRecuperarContexto: null,
+    alHacerClicCiudad: null, alHacerClicFicha: null, alHacerClicVacio: null, alApuntar: null, alCambiarRonda: null, alCambiarCalidad: null, alMoverCamara: null, alTocar: null, alPelear: null, alCuadro: null, alRecuperarContexto: null,
     // Solo para pruebas automáticas y depuración: piezas internas (pueden cambiar sin aviso).
     _interno: { THREE, renderer, escena, camara, tablero, fichas, dados, amb, ronda, pelea, efectos, sonido, flota, ifrit, estado },
   }));
-  for (const k of ['alHacerClicCiudad', 'alHacerClicFicha', 'alHacerClicVacio', 'alApuntar', 'alCambiarRonda', 'alCambiarCalidad', 'alMoverCamara', 'alTocar', 'alCuadro', 'alRecuperarContexto']) if (typeof opciones[k] === 'function') api[k] = opciones[k];
+  for (const k of ['alHacerClicCiudad', 'alHacerClicFicha', 'alHacerClicVacio', 'alApuntar', 'alCambiarRonda', 'alCambiarCalidad', 'alMoverCamara', 'alTocar', 'alPelear', 'alCuadro', 'alRecuperarContexto']) if (typeof opciones[k] === 'function') api[k] = opciones[k];
 
   // --- Arranque
   medir();

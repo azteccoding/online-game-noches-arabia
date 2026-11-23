@@ -49,7 +49,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     const onda = new THREE.Mesh(gPlano, new THREE.MeshBasicMaterial({ map: tAro, color: 0xfff0c8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); onda.position.y = 0.016; onda.renderOrder = 8; onda.visible = false; nodo.add(onda);
     const blanco = new THREE.Mesh(gBlanco, new THREE.MeshBasicMaterial()); blanco.visible = false; nodo.add(blanco); blancos.push(blanco);
     const f = { id: j.id, indice: fichas.length, jugador: { ...j }, pj: null, pid: null, fig: null, lista: null, nodo, cuerpo, armas: {}, arma: '', control: null, sombra, aro, onda, tOnda: 1, blanco,
-      ciudad: null, ranura: -1, viaje: null, transporte: null, montura: null, mont: 0, faseM: 0, marcha: 0, elegida: false, rival: false, foco: false, turno: false, nivel: 0, giro: 0, rebote: 0, fase: 0, andar: 0, vuelo: 0, empuje: 0, fuera: false,
+      ciudad: null, ranura: -1, viaje: null, transporte: null, montura: null, mont: 0, faseM: 0, marcha: 0, elegida: false, rival: false, foco: false, turno: false, nivel: 0, giro: 0, girar: 0, giraCerca: false, rebote: 0, fase: 0, andar: 0, vuelo: 0, empuje: 0, fuera: false,
       get brazo() { return this.fig?.brazo; }, get mano() { return this.fig?.mano; } };
     blanco.userData = { tipo: 'ficha', id: j.id, ficha: f };
     fichas.push(f); return f;
@@ -358,7 +358,9 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       else {
         const c = tablero.ciudades.get(f.ciudad), r = c.ranuras[f.ranura]; f.nodo.position.set(c.pos.x + r.x * s, 0, c.pos.z + r.z * s); f.nodo.position.y = tablero.altura(f.nodo.position.x, f.nodo.position.z);
         // en reposo mira al sur (hacia la vista general)
-        let dif = -f.giro; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); if (Math.abs(dif) > 0.001) { f.giro += dif * (1 - Math.exp(-dt * 5)); sucio = true; }
+        // Jorge (23 de noviembre): tu monito da vueltas despacio con el acercamiento máximo (giraCerca) y da una vuelta entera si lo tocas (girar)
+        if (f.giraCerca || f.girar > 0) { const w = Math.min(dt, 0.05) * 1.5; f.giro += w; if (!f.giraCerca) f.girar = Math.max(0, f.girar - w); sucio = true; }
+        else { let dif = -f.giro; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); if (Math.abs(dif) > 0.001) { f.giro += dif * (1 - Math.exp(-dt * 5)); sucio = true; } }
         if (f.rebote > 0) { f.rebote = Math.max(0, f.rebote - dt * 2.6); const b = Math.sin(f.rebote * Math.PI * 3) * f.rebote; estY = 1 - 0.05 * b; estX = 1 + 0.03 * b; sucio = true; }
         alto = f.nivel * (0.06 + (f.elegida || f.rival ? 0.03 * Math.sin(t * 3.2 + (f.rival ? 2 : 0)) : 0));
         f.andar *= Math.exp(-dt * 9); f.vuelo *= Math.exp(-dt * 2.2); f.empuje *= Math.exp(-dt * 4);

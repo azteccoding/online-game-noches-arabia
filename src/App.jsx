@@ -116,7 +116,7 @@ function Juego({ lienzo }) {
   }, []);
   const cerrar = useCallback(() => setPanel(null), []);
   // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
-  // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta, Shift + flecha arriba o abajo recorre el menú de acciones o de mercado y Enter elige. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
+  // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta, f pantalla completa, Shift + flecha arriba o abajo recorre el menú de acciones o de mercado y Enter elige. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
   useEffect(() => {
     let xAbajo = false;      // la x sostenida, para x + espacio
     // Shift + flecha arriba o abajo recorre las filas del menú abierto (acciones o mercado) y Enter elige la marcada (Jorge, 23 de noviembre).
@@ -133,6 +133,7 @@ function Juego({ lienzo }) {
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
       const e = leer().estado; if (!e || e.fase === 'lobby') return;
+      if (document.body.classList.contains('viendo-pelea')) return;   // durante la pelea no se abre nada
       if (ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') { xAbajo = true; return; }
       if (ev.repeat) return;
       if (xAbajo && (ev.code === 'Space' || ev.key === ' ')) {   // x + espacio: terminar el turno (como el botón, con sus mismos avisos si todavía no se puede)
@@ -156,6 +157,7 @@ function Juego({ lienzo }) {
       else if (k === 'a') { if (e.turno?.pid === e.yo && e.turno.fase !== 'ingreso') abrir('acciones'); else return; }
       else if (k === 'n') { if (e.fase === 'juego') abrir('chat'); else return; }
       else if (k === 'c') abrir('ultima');
+      else if (k === 'f') { const b = document.querySelector('.btn-pantalla'); if (b) b.click(); else return; }   // pantalla completa, como su botón
       else if (k === 'z') {
         const b = document.querySelector('.modal-cerrar:not([disabled])');
         if (b) b.click(); else setPanel(null);
