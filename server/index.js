@@ -96,6 +96,7 @@ function servir(req, res) {
   if (!fs.existsSync(DIR_CLIENTE)) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<meta charset=utf-8><h1>Falta el cliente</h1><p>Ejecuta <code>npm run build</code> (o copia la carpeta <code>dist/</code>) y reinicia.</p>'); }
   if (!fs.existsSync(file) || fs.statSync(file).isDirectory()) file = path.join(DIR_CLIENTE, 'index.html');      // SPA
   const ext = path.extname(file);
+  if (file === path.join(DIR_CLIENTE, 'index.html')) return servirPagina(req, res, file);
   const st = fs.statSync(file);
   const h = { 'Content-Type': MIME[ext] || 'application/octet-stream', 'Cache-Control': url.startsWith('/assets/') ? 'public, max-age=31536000, immutable' : 'no-cache', ETag: `"${st.size}-${st.mtimeMs}"` };
   if (req.headers['if-none-match'] === h.ETag) { res.writeHead(304, h); return res.end(); }
@@ -106,6 +107,19 @@ function servir(req, res) {
   }
   res.writeHead(200, { ...h, 'Content-Length': st.size });
   fs.createReadStream(file).pipe(res);
+}
+
+// La página lleva la vista previa para WhatsApp (og:image, og:url): esas direcciones tienen que ser completas, así que se
+// escriben con el dominio con que se abrió el link (mil-y-una-noches-3d.onrender.com, milyunanoches.net, la IP de la red local…).
+function servirPagina(req, res, file) {
+  const host = String(req.headers['x-forwarded-host'] || req.headers.host || '').split(',')[0].trim();
+  const proto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https' ? 'https' : 'http';
+  let html = fs.readFileSync(file, 'utf8');
+  if (/^[a-z0-9.-]+(:\d+)?$/i.test(host)) html = html.split('https://milyunanoches.net/').join(`${proto}://${host}/`);
+  const buf = Buffer.from(html);
+  const h = { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-cache' };
+  if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) { const z = zlib.gzipSync(buf, { level: 6 }); res.writeHead(200, { ...h, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding', 'Content-Length': z.length }); return res.end(z); }
+  res.writeHead(200, { ...h, 'Content-Length': buf.length }); res.end(buf);
 }
 
 // ---------------------------------------------------------------- WebSocket
