@@ -106,7 +106,7 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .modal-fondo { position: absolute; inset: 0; z-index: 80; background: rgba(12, 3, 5, .84); display: flex; padding: max(10px, var(--seg-arriba)) max(10px, var(--seg-der)) max(10px, var(--seg-abajo)) max(10px, var(--seg-izq)); overflow-y: auto; overscroll-behavior: contain; animation: aparece .15s ease-out; }
 @keyframes aparece { from { opacity: 0 } to { opacity: 1 } }
 /* La carta conserva su proporción y cabe en pantalla; en horizontal bajo (móvil) mantiene un ancho legible y el fondo se desplaza. */
-.modal-carta { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: auto; width: max(min(100%, 470px, calc((var(--lh) - 150px) * .716)), min(100%, 300px)); }
+.modal-carta { display: flex; flex-direction: column; gap: 8px; align-items: center; margin: auto; width: max(min(100%, 720px, calc((var(--lh) - 118px) * .716)), min(100%, 300px)); }   /* Jorge, 23 nov: la carta abierta ocupa casi todo el alto */
 .modal-fondo > .panel { margin: auto; }
 .carta-dorso { width: min(100%, 360px); animation: dorso-gira 600ms ease-in forwards; }
 .carta-dorso img { display: block; width: 100%; height: auto; border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, .55); }

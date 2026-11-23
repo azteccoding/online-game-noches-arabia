@@ -113,3 +113,21 @@
 .pintada.arte-ancho .arte-img { object-fit: contain; object-position: 50% 0; }
 .pintada.arte-ancho .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .6) 0, rgba(10, 4, 2, 0) 20%, rgba(10, 4, 2, 0) 62%, #1a0e0a 74%, #1a0e0a 100%); }
 .pintada.arte-ancho .c-cuerpo { background: rgba(22, 10, 6, .2); box-shadow: none; }
+
+/* Lectura (Jorge, 23 de noviembre): al pasar el mouse o tocar una carta pintada, el texto crece y el recuadro se oscurece y cubre
+   hasta 2/3 de la carta; al retirar el mouse vuelve despacio (1.6 s) a su tamaño chico. Selectores de 4 clases para ganarle a letra-mini/chica. */
+.carta.pintada { cursor: zoom-in; }
+.carta.pintada .c-cuerpo { transition: max-height 1.6s ease, background-color 1.6s ease, padding 1.6s ease; }
+.carta.pintada .c-texto, .carta.pintada .c-nota, .carta.pintada .chip-c, .carta.pintada .c-cita { transition: font-size 1.6s ease; }
+.carta.pintada.leyendo { cursor: zoom-out; }
+.carta.pintada.leyendo .c-cuerpo { max-height: 66%; padding: 2.6cqw 3.4cqw; background-color: rgba(18, 8, 5, .86); backdrop-filter: blur(.6cqw); transition-duration: .35s; }
+.carta.pintada.leyendo .c-texto { font-size: 4.6cqw; line-height: 1.26; transition-duration: .35s; }
+.carta.pintada.leyendo .c-nota { font-size: 3.9cqw; line-height: 1.22; transition-duration: .35s; }
+.carta.pintada.leyendo .chip-c { font-size: 3.3cqw; background: rgba(18, 8, 5, .86); transition-duration: .35s; }
+.carta.pintada.leyendo .c-cita { font-size: 3.4cqw; transition-duration: .35s; }
+/* Carta terminada (el texto viene pintado en la imagen): al leer aparece encima el mismo texto en letra grande. */
+.carta.terminada { cursor: zoom-in; }
+.t-lectura { position: absolute; left: 4cqw; right: 4cqw; bottom: 4cqw; max-height: 66%; overflow-y: auto; padding: 3cqw 3.6cqw; border-radius: 2.2cqw;
+  background: rgba(18, 8, 5, .88); border: .4cqw solid rgba(227, 184, 115, .85); color: #fbf1d6; opacity: 0; pointer-events: none; transition: opacity 1.6s ease; }
+.carta.terminada.leyendo { cursor: zoom-out; }
+.carta.terminada.leyendo .t-lectura { opacity: 1; pointer-events: auto; transition-duration: .35s; }
