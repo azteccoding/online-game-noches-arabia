@@ -5230,3 +5230,25 @@ console.log('huidas cuentan como viaje OK');
   darItem(e, Y, 'alfanje'); Y.mano = Y.mano.filter((c) => c.ref !== 'jambiya'); assert.equal(perfil(data, e, y, 'Damasco').cat, 'C', 'con otra arma, sin destreza');
 }
 console.log('destreza inicial de Yafar OK');
+
+// Jorge (23 de noviembre): si Zubayda le renta a Adí o a Anís y aceptan, sale la carta con su pintura, solo para los dos, antes de
+// las consecuencias (el dado de apedreo lleva un número posterior al de la carta). Con otro cliente no sale carta.
+{
+  for (const [pjCliente, carta] of [['7', 'zubayda-adi'], ['3', 'zubayda-anis'], ['4', null]]) {
+    const g = partida(['6', pjCliente]); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+    const e = g.e, [z, c] = g.ids, Z = e.jugadores[z], C = e.jugadores[c];
+    turnoDe(e, z, 'Damasco'); Z.ciudad = C.ciudad = 'Damasco'; e.turno.fase = 'acciones'; Z.noches = 80; Z.dinares = 0; C.dinares = 20; C.noches = 0;
+    const antes = e.historial.length;
+    assert.ok(g.act(z, { t: 'pj', sub: 'prost', con: c }).ok); assert.equal(e.historial.length, antes, 'mientras no acepte, no hay carta');
+    assert.ok(g.act(c, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    const nuevas = e.historial.slice(antes).filter((h) => /^zubayda-/.test(h.id));
+    if (!carta) { assert.equal(nuevas.length, 0, 'con otro cliente no sale carta pintada'); }
+    else {
+      assert.equal(nuevas.length, 1); assert.equal(nuevas[0].id, carta); assert.deepEqual(nuevas[0].para, [z, c], 'solo la ven los dos');
+      assert.match(nuevas[0].texto, /paga 7 dinares por una noche de compañía con .* y recibe 50 noches de su haber\./);
+      assert.ok((e.dados || e.colaDados[0]).id > nuevas[0].nro, 'el dado de apedreo va después de la carta');
+    }
+    assert.equal(C.dinares, 13); assert.equal(C.noches, 50);
+  }
+  console.log('cartas pintadas de Zubayda con Adí y con Anís OK');
+}

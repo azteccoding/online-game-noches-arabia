@@ -45,5 +45,7 @@
   "habla:persa": {"letra": "chica", "imagen": "R46"},
   "habla:\u00e1rabe": {"letra": "chica", "imagen": "R47"},
   "E3": {"letra": "mini"},
-  "zubayda-haren": {"titulo": "abajo", "letra": "mini", "imagen": "pj-6"}
+  "zubayda-haren": {"titulo": "abajo", "letra": "mini", "imagen": "pj-6"},
+  "zubayda-adi": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"},
+  "zubayda-anis": {"titulo": "abajo", "letra": "mini", "encaje": "ancho"}
 }

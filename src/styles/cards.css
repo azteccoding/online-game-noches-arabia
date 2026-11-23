@@ -113,6 +113,9 @@
 .pintada.arte-ancho .arte-img { object-fit: contain; object-position: 50% 0; }
 .pintada.arte-ancho .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .6) 0, rgba(10, 4, 2, 0) 20%, rgba(10, 4, 2, 0) 62%, #1a0e0a 74%, #1a0e0a 100%); }
 .pintada.arte-ancho .c-cuerpo { background: rgba(22, 10, 6, .2); box-shadow: none; }
+/* pintura ancha con el título abajo: la pintura se centra en el hueco de arriba, para que no quede un vacío grande debajo */
+.pintada.arte-ancho.tit-abajo .arte-img { object-position: 50% 26%; }
+.pintada.arte-ancho.tit-abajo .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, 0) 0, rgba(10, 4, 2, 0) 62%, #1a0e0a 74%, #1a0e0a 100%); }
 
 /* Lectura (Jorge, 23 de noviembre): al pasar el mouse o tocar una carta pintada, el texto crece y el recuadro se oscurece y cubre
    hasta 2/3 de la carta; al retirar el mouse vuelve despacio (1.6 s) a su tamaño chico. Selectores de 4 clases para ganarle a letra-mini/chica. */
