@@ -19,7 +19,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
   }));
 }
 
-export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemadas, ciudadesAlcance, ciudadActiva, onCiudad, ronda, pend, dados }) {
+export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemadas, ciudadesAlcance, ciudadActiva, onCiudad, ronda, orden, pend, dados }) {
   const cont = useRef(null);
   const [lista, setLista] = useState(false);
   const [progreso, setProgreso] = useState('Desplegando el mapa…');
@@ -82,7 +82,12 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
   useEffect(() => { if (lista) escenaActual()?.resaltarCiudades(ciudadesAlcance ? [...ciudadesAlcance] : [], { desde: miCiudad }); }, [lista, huellaAlcance, miCiudad]);   // eslint-disable-line react-hooks/exhaustive-deps
   void ciudadActiva;
 
-  // --- Cambio de ronda: atardece, cae la noche y amanece la ronda nueva
+  // --- Luz por turnos (Jorge, 23 de noviembre): el día dura la ronda entera y se reparte entre los jugadores según su lugar en el orden.
+  // Va antes del cambio de ronda para que la primera «Ronda 1» ya sepa que la luz es por turnos.
+  const enOrden = (orden || []).filter((id) => jugadores[id] && !jugadores[id].eliminado && !jugadores[id].sacado), lugar = enOrden.indexOf(turnoPid);
+  useEffect(() => { if (lista && lugar >= 0) escenaActual()?.ponerLuzTurno?.(lugar, enOrden.length); }, [lista, lugar, enOrden.length]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  // --- Cambio de ronda: termina de anochecer, sale el rótulo de la ronda nueva y el amanecer llega en el turno del primero
   const rondaPrev = useRef(null);
   useEffect(() => {
     if (!lista || ronda == null) return;

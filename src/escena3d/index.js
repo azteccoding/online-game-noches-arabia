@@ -367,6 +367,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
       if (!duracion || menosMovimiento) { ronda.fijar(h); sonido.ambiente(h < 0.22 || h > 0.8 ? 'ambiente-noche' : 'ambiente-dia'); return Promise.resolve(); }
       return new Promise((ok) => { if (!ronda.ir(h, duracion, ok)) ok(); });
     },
+    // Luz por turnos (Jorge, 23 de noviembre): el día dura la ronda entera. Se llama al empezar cada turno con el lugar del jugador en el
+    // orden (0 = el primero) y cuántos juegan; la luz avanza despacio por el tramo que le toca. null lo apaga (vuelve la luz fija).
+    ponerLuzTurno(indice, total) { alDia(); if (indice == null) ronda.sinTurnos(); else ronda.luzTurno(indice, total); pedirCuadro(); },
     transicionRonda(numero) { alDia(); pedirCuadro(); return new Promise((ok, mal) => { if (!ronda.terminarRonda(() => ok(numero ?? ronda.ronda), numero ?? null)) mal(new Error('Ya hay un cambio de ronda en curso.')); }); },
     amanecer() { alDia(); pedirCuadro(); return new Promise((ok) => { ronda.fijar(0.1); ronda.amanecerInicial(ok); }); },
 
@@ -420,6 +423,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     SONIDOS: sonidos,
 
     // ----- Estado y avisos (se asignan desde fuera: escena.alHacerClicCiudad = (id) => …)
+    get hora() { return ronda.hora; },      // hora de la luz, de 0 a 1 (0 = medianoche, 0,5 = mediodía)
     get ocupada() { return { dados: dados.estado !== 'quieto', pelea: pelea.activa, ronda: ronda.enCurso, ifrit: ifrit.activo, viajes: fichas.fichas.filter((f) => f.viaje).map((f) => f.id) }; },
     get ronda() { return ronda.ronda; },
     lienzo: el,

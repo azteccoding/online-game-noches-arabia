@@ -88,4 +88,22 @@ assert.equal(medioDeViaje('Jorge viaja de Bagdad a Damasco.'), null);
     assert.equal(vista3d(data, e).jugadores[nur].armaPelea, '', 'en Bagdad, sin Firmán, se pelea sin armas');
   } else assert.fail('no se pudo armar el duelo de prueba: ' + (r.error || ''));
 }
+// Luz por turnos (Jorge, 23 de noviembre): el día dura la ronda entera y se reparte entre los jugadores.
+{
+  const { tramoDeTurno, ALBA, OCASO, NOCHE } = await import('../src/escena3d/ronda.js');
+  const cerca = (a, b) => Math.abs(a - b) < 1e-9, deDia = (h) => h > 0.285 && h < 0.715;
+  // con 3: el primero ve aclarar, el segundo juega a pleno día y con el tercero atardece y anochece
+  const [a, b, c] = [0, 1, 2].map((i) => tramoDeTurno(i, 3));
+  assert.ok(cerca(a[0], ALBA) && deDia(a[1]), 'el primero empieza de noche y termina con luz');
+  assert.ok(deDia(b[0]) && deDia(b[1]) && b[0] < 0.5 && b[1] > 0.5, 'el segundo tiene el mediodía');
+  assert.ok(deDia(c[0]) && cerca(c[1], OCASO), 'el tercero empieza con sol y termina de noche');
+  // con 4 o más: los tramos con sol son de todos menos el último, que juega de noche
+  for (const n of [4, 5, 6]) {
+    assert.ok(cerca(tramoDeTurno(n - 2, n)[1], OCASO), 'el penúltimo ve caer la noche');
+    assert.deepEqual(tramoDeTurno(n - 1, n), [OCASO, NOCHE], 'el último juega sin sol');
+  }
+  // los tramos se encadenan sin huecos, con cualquier número de jugadores
+  for (let n = 1; n <= 8; n++) for (let i = 1; i < n; i++) assert.ok(cerca(tramoDeTurno(i - 1, n)[1], tramoDeTurno(i, n)[0]), `tramos seguidos (${n} jugadores)`);
+  assert.deepEqual(tramoDeTurno(0, 1), [ALBA, OCASO], 'uno solo: el día entero');
+}
 console.log('vista3d OK');
