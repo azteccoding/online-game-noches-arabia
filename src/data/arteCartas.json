@@ -1,6 +1,6 @@
 {
   "pj-6": { "titulo": "abajo" },
-  "R1": {},
+  "R1": { "texto": "arriba" },
   "R2": { "titulo": "abajo" },
   "R26": {},
   "S4": { "terminada": true }

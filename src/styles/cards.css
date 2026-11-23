@@ -86,3 +86,10 @@
 /* Carta terminada: una sola imagen que ya trae todo. */
 .carta.terminada { border: 0; box-shadow: var(--sombra); background: #1a0e0a; border-radius: 4.5cqw; }
 .terminada-img { display: block; width: 100%; height: auto; }
+/* Texto arriba: título y recuadro juntos en la parte de arriba; la mitad de abajo queda libre para la pintura. */
+.pintada.txt-arriba .c-pill { margin-top: .6cqw; }
+.pintada.txt-arriba .c-cita { margin-top: auto; }
+.pintada.txt-arriba .c-cita:empty, .pintada.txt-arriba .chips { margin-top: auto; }
+.pintada.txt-arriba .c-cita + .chips { margin-top: 0; }
+.pintada.txt-arriba .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .6) 0, rgba(10, 4, 2, .3) 45%, rgba(10, 4, 2, 0) 58%, rgba(10, 4, 2, 0) 85%, rgba(10, 4, 2, .45) 100%); }
+.pintada.txt-arriba .arte-img { object-position: 50% 100%; }
