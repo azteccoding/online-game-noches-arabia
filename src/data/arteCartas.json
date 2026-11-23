@@ -28,5 +28,6 @@
   "R45": {"letra": "mini"},
   "R40": {"letra": "mini"},
   "R41": {"letra": "mini"},
-  "R42": {"letra": "mini"}
+  "R42": {"letra": "mini"},
+  "R44": {"letra": "mini", "encaje": "ancho"}
 }

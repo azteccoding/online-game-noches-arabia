@@ -108,3 +108,8 @@
 .pintada.letra-mini .c-cuerpo { padding: 1.4cqw 2.4cqw; background: rgba(22, 10, 6, .3); border-width: .3cqw; backdrop-filter: none; }
 .pintada.letra-mini .chip-c { font-size: 2.2cqw; }
 .pintada.letra-mini .c-pill { font-size: 2.3cqw; }
+/* «encaje: ancho»: pintura más ancha que la carta; se muestra entera arriba (sin recortar los lados) y el texto va debajo, sobre fondo oscuro. */
+.pintada.arte-ancho { background: #1a0e0a; }
+.pintada.arte-ancho .arte-img { object-fit: contain; object-position: 50% 0; }
+.pintada.arte-ancho .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .6) 0, rgba(10, 4, 2, 0) 20%, rgba(10, 4, 2, 0) 62%, #1a0e0a 74%, #1a0e0a 100%); }
+.pintada.arte-ancho .c-cuerpo { background: rgba(22, 10, 6, .2); box-shadow: none; }
