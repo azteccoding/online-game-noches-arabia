@@ -23,9 +23,10 @@ RAIZ = os.path.normpath(os.path.join(AQUI, '..', '..', '..'))
 A = os.path.join(RAIZ, 'public', 'arte3d'); D = os.path.join(AQUI, '..', 'datos')
 VISTA = os.environ.get('VISTA')          # carpeta opcional para guardar vistas de control
 
-HOJAS = {'1': 'hoja-personaje-1-nur-al-din.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
-         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
+HOJAS = {'1': 'hoja-personaje-1-nur-al-din-pose-a.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
+         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda-pose-a.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
          'G': 'genio.png'}      # el genio de la lámpara (Jorge, 23 nov): lo usa ifrit.js
+# Las hojas «-pose-a» salen de la hoja técnica de cinco vistas con hoja-tecnica-a-cuatro-vistas.py (quita las líneas guía y deja frente, tres cuartos, perfil y espalda).
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
 HOJA_LAMINA = (2480, 1754); LIBRE = False
 VISTAS_M = []          # hoja libre: la máscara propia de cada una de las cuatro vistas
@@ -37,13 +38,41 @@ PASO = 8                                 # paso de la rejilla del relieve, en p�
 # Ajustes por personaje. «quitar»: rectángulos (x0, y0, x1, y1 en fracción del recorte de frente) que no forman parte del
 # cuerpo (un bastón que se modela aparte). «mano»: dónde empuña el arma (fracción del recorte de frente; x desde la izquierda
 # de la imagen, y desde arriba). «tela»: tramo de altura (desde arriba) donde la capa, el velo o el chal tienen vuelo.
+# «solido»: para figuras con velos o gasas que cuelgan sueltos. Dice qué parte de la silueta de frente es cuerpo de verdad:
+#   'cuerpo' son polígonos y 'brazos' líneas de puntos (x, y, radio), todo en fracción de la tesela de frente. El cuerpo se
+#   abulta como siempre, cada brazo es un tubo redondo de su propio grosor y el resto de la silueta (la gasa) queda como una
+#   lámina delgada. 'perfil' (con 'eje') es el cuerpo en la vista de perfil, en fracción de su recorte: da cuánto sale el cuerpo
+#   por delante y por detrás del eje en cada altura (pecho, vientre, cadera), sin contar la tela que cuelga a la espalda.
+# «orla»: píxeles del contorno que se repintan con el color de más adentro (quita el filo claro de papel).
+# «paso»: paso de la rejilla del relieve si hace falta más fino que el normal (8).
+# «bultos»: relieve extra solo por detrás, elipsoides (cx, cy, a, b, alto) en fracción de la tesela (alto, en fracción de su altura).
+ZUBAYDA_SOLIDO = dict(
+    cuerpo=[[(0.40, 0), (0.60, 0), (0.66, 0.05), (0.68, 0.13), (0.725, 0.17), (0.735, 0.215), (0.70, 0.255), (0.665, 0.29), (0.65, 0.335), (0.69, 0.39), (0.705, 0.47),
+             (0.70, 0.62), (0.69, 0.80), (0.70, 0.955), (0.67, 1), (0.27, 1), (0.25, 0.955), (0.31, 0.80), (0.31, 0.62), (0.305, 0.47), (0.325, 0.39), (0.385, 0.335),
+             (0.33, 0.29), (0.295, 0.255), (0.275, 0.215), (0.285, 0.17), (0.32, 0.13), (0.34, 0.05)]],
+    brazos=[[(0.295, 0.195, 0.045), (0.263, 0.262, 0.042), (0.196, 0.346, 0.036), (0.123, 0.430, 0.036), (0.085, 0.480, 0.030), (0.067, 0.536, 0.026)],
+            [(0.699, 0.195, 0.045), (0.732, 0.262, 0.042), (0.799, 0.346, 0.036), (0.882, 0.430, 0.036), (0.920, 0.480, 0.030), (0.938, 0.516, 0.026)]],
+    perfil=[(0.30, 0), (0.17, 0.035), (0.15, 0.09), (0.20, 0.13), (0.30, 0.165), (0.22, 0.19), (0.04, 0.225), (0.02, 0.25), (0.08, 0.285), (0.14, 0.31), (0.10, 0.36), (0.07, 0.40),
+            (0.07, 0.46), (0.10, 0.55), (0.13, 0.65), (0.14, 0.75), (0.12, 0.90), (0.06, 0.97), (0.08, 1), (0.55, 1), (0.52, 0.95), (0.47, 0.85), (0.50, 0.75), (0.55, 0.65),
+            (0.66, 0.56), (0.76, 0.50), (0.77, 0.46), (0.70, 0.41), (0.60, 0.37), (0.70, 0.32), (0.78, 0.25), (0.80, 0.15), (0.76, 0.06), (0.62, 0)], eje=0.38)
+NUR_SOLIDO = dict(
+    cuerpo=[[(0.50, 0), (0.53, 0), (0.60, 0.05), (0.635, 0.10), (0.62, 0.17), (0.66, 0.20), (0.76, 0.235), (0.79, 0.28), (0.74, 0.33), (0.69, 0.38), (0.69, 0.45), (0.71, 0.52),
+             (0.72, 0.68), (0.73, 0.83), (0.77, 0.88), (0.78, 1), (0.26, 1), (0.27, 0.88), (0.29, 0.83), (0.30, 0.68), (0.30, 0.52), (0.35, 0.45), (0.36, 0.38), (0.30, 0.33),
+             (0.24, 0.28), (0.265, 0.235), (0.37, 0.20), (0.40, 0.17), (0.395, 0.10), (0.43, 0.05)]],
+    brazos=[[(0.27, 0.27, 0.055), (0.20, 0.355, 0.052), (0.105, 0.44, 0.042), (0.06, 0.50, 0.032), (0.045, 0.55, 0.026)],
+            [(0.76, 0.27, 0.055), (0.83, 0.355, 0.052), (0.905, 0.44, 0.042), (0.945, 0.49, 0.032), (0.96, 0.53, 0.026)]],
+    perfil=[(0.56, 0), (0.50, 0.04), (0.30, 0.06), (0.27, 0.10), (0.31, 0.13), (0.31, 0.17), (0.27, 0.20), (0.22, 0.23), (0.20, 0.30), (0.17, 0.40), (0.13, 0.50), (0.10, 0.60),
+            (0.10, 0.70), (0.09, 0.80), (0.11, 0.855), (0.20, 0.88), (0.20, 0.95), (0.17, 0.985), (0.18, 1), (0.66, 1), (0.64, 0.93), (0.66, 0.87), (0.72, 0.84), (0.70, 0.70),
+            (0.68, 0.50), (0.68, 0.36), (0.74, 0.26), (0.74, 0.20), (0.68, 0.16), (0.74, 0.10), (0.70, 0.05), (0.62, 0)], eje=0.44)
 AJUSTES = {
-    '1': dict(mano=(0.19, 0.55), tela=(0.2, 0.9), piernas=0.86),
+    # Nur al Din (Jorge, 23 nov): hoja técnica en pose A; brazos simétricos y la capa como tela delgada
+    '1': dict(mano=(0.03, 0.52), tela=(0.2, 0.9), piernas=0.86, orla=2, paso=4, solido=NUR_SOLIDO),
     '2': dict(mano=(0.53, 0.44), tela=(0.12, 0.9), piernas=0, umbral=18),      # manos juntas al frente: ahí va el arma
     '3': dict(mano=(0.16, 0.50), tela=(0.15, 0.9), piernas=0, textura=7.5),
     '4': dict(mano=(0.14, 0.505), tela=(0.2, 0.9), piernas=0, umbral=18),
     '5': dict(mano=(0.17, 0.52), tela=(0.15, 0.9), piernas=0, textura=7.5),
-    '6': dict(mano=(0.13, 0.52), tela=(0.15, 0.8), piernas=0),
+    # Zubayda (Jorge, 23 nov: «brazo izquierdo muy grande y más ancha»; las gasas son láminas delgadas, no cuerpo; de espaldas se le marcan las pompas)
+    '6': dict(mano=(0.05, 0.50), tela=(0.15, 0.8), piernas=0, orla=3, paso=4, solido=ZUBAYDA_SOLIDO, bultos=[(0.415, 0.475, 0.105, 0.062, 0.016), (0.585, 0.475, 0.105, 0.062, 0.016)]),
     '7': dict(mano=(0.23, 0.51), tela=(0.15, 0.9), piernas=0, umbral=18),
     'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
     'G': dict(mano=(0.5, 0.4), tela=(0.55, 1.0), piernas=0),      # genio: la cola de humo ondula como una tela
@@ -217,6 +246,8 @@ def procesar(pid, archivo):
     colF, alfF = a_tesela(mf, cf); colB, alfB = a_tesela(mb, cb)
     mF = np.asarray(alfF) > 127; mB = np.asarray(alfB) > 127
     cF = rellenar(np.asarray(colF), mF); cB = rellenar(np.asarray(colB), mB)
+    if aj.get('orla'):      # la espalda también trae su orla de papel: se pinta desde más adentro y su silueta se da por más estrecha
+        mBe = ndi.binary_erosion(mB, iterations=aj['orla'] + 1); cB = rellenar(np.asarray(colB), mBe)
     # la espalda se pinta sobre la silueta de frente: fila a fila se estira un poco para que sus bordes coincidan
     def bordes(mm):
         iz = np.full(TH, np.nan); de = np.full(TH, np.nan)
@@ -237,14 +268,17 @@ def procesar(pid, archivo):
     cols = np.arange(TW, dtype=np.float32); cBw = np.empty_like(cB); mBw = np.zeros((TH, TW), dtype=np.float32)
     for y in range(TH):
         a0, a1 = bi2[y] + di[y], bd2[y] + dd[y]
-        if a1 - a0 < 4: cBw[y] = cB[y]; mBw[y] = mB[y]; continue
+        if a1 - a0 < 4: cBw[y] = cB[y]; mBw[y] = (mBe if aj.get('orla') else mB)[y]; continue
         t = (cols - a0) / (a1 - a0); src = np.clip(bi2[y] + t * (bd2[y] - bi2[y]), 0, TW - 1)
         for c in range(3): cBw[y, :, c] = np.interp(src, cols, cB[y, :, c])
-        mBw[y] = np.interp(src, cols, mB[y].astype(np.float32))
+        mBw[y] = np.interp(src, cols, (mBe if aj.get('orla') else mB)[y].astype(np.float32))
     # lo que solo existe en la vista de frente (un bastón, una lámpara) lleva por detrás su mismo color de frente
     lejos = np.clip((ndi.distance_transform_edt(mBw < 0.5) - 4) / 6, 0, 1)[..., None]
     cB = (cBw * (1 - lejos) + cF * lejos).astype(np.uint8)
     alfa_suave = np.asarray(alfF.filter(ImageFilter.GaussianBlur(0.7)))
+    if aj.get('orla'):      # el contorno pintado se funde con el papel (más aún en una gasa): esa orla clara se repinta con el color de más adentro
+        mE = ndi.binary_erosion(mF, iterations=aj['orla']); _, (iy, ix) = ndi.distance_transform_edt(~mE, return_indices=True)
+        cF = cF[iy, ix]; cB = cB[iy, ix]
     # Tercera tesela: el costado, sacado de la vista de perfil (que mira a la izquierda). Cada fila se estira de borde a borde:
     # u = 0 es el frente del cuerpo y u = 1 la espalda; la escena la proyecta de lado según el fondo (z) de cada punto.
     hp0, wp0 = mp.shape; ep0 = TH / hp0; wP = max(1, round(wp0 * ep0))
@@ -259,6 +293,15 @@ def procesar(pid, archivo):
             pi_[y], pd_[y] = xs[ini[k]], xs[fin[k]]
     ys = np.arange(TH); hay = ~np.isnan(pi_)
     pi_ = ndi.gaussian_filter1d(ndi.median_filter(np.interp(ys, ys[hay], pi_[hay]), 7), 3); pd_ = ndi.gaussian_filter1d(ndi.median_filter(np.interp(ys, ys[hay], pd_[hay]), 7), 3)
+    fondoF = fondoB = None
+    if aj.get('solido', {}).get('perfil'):      # el cuerpo en la vista de perfil (sin la gasa ni la capa que cuelgan detrás): da el fondo por delante y por detrás del eje
+        from PIL import ImageDraw
+        lp_ = Image.new('L', (wP, TH), 0); ImageDraw.Draw(lp_).polygon([(px * wP, py * TH) for px, py in aj['solido']['perfil']], fill=255)
+        mPB = (np.asarray(lp_) > 127) & mP; hayB = mPB.any(axis=1); eje = aj['solido']['eje'] * wP
+        pf = np.where(hayB, mPB.argmax(axis=1), np.nan); pb = np.where(hayB, wP - 1 - mPB[:, ::-1].argmax(axis=1), np.nan)
+        lisa = lambda v: ndi.gaussian_filter1d(ndi.median_filter(np.interp(ys, ys[hayB], v[hayB]), 7), 4)
+        pi_, pd_ = lisa(pf), lisa(pb)
+        fondoF = np.maximum(eje - pi_, 6) * 0.96; fondoB = np.maximum(pd_ - eje, 6) * 0.96
     cL = np.empty((TH, TW, 3), dtype=np.uint8); us = np.linspace(0, 1, TW); colsP = np.arange(wP, dtype=np.float32)
     for y in range(TH):
         src = np.clip(pi_[y] + us * (pd_[y] - pi_[y]), 0, wP - 1)
@@ -280,21 +323,57 @@ def procesar(pid, archivo):
     sd = np.where(mF, ndi.distance_transform_edt(mF) - 0.5, -(ndi.distance_transform_edt(~mF) - 0.5))
     Rf = R[:, None]; Dm = 0.7 * Rf
     z = np.where(sd >= 0, Rf * np.sin(np.pi / 2 * np.minimum(sd, Dm) / Dm), np.pi / 2 * (Rf / Dm) * sd)
+    if aj.get('solido'):      # cuerpo y brazos con volumen; la gasa que cuelga, una lámina delgada
+        from PIL import ImageDraw
+        sol = aj['solido']; lz = Image.new('L', (TW, TH), 0); dib = ImageDraw.Draw(lz)
+        for pol in sol.get('cuerpo', []): dib.polygon([(px * TW, py * TH) for px, py in pol], fill=255)
+        mS = (np.asarray(lz) > 127) & mF
+        sdS = ndi.distance_transform_edt(mS) - 0.5
+        if fondoF is not None: Rf = ((fondoF + fondoB) / 2)[:, None]; Dm = 0.7 * Rf
+        forma = np.where(mS, np.sin(np.pi / 2 * np.minimum(sdS, Dm) / Dm), 0)
+        zc = Rf * forma if fondoF is None else fondoF[:, None] * forma; zcB = None if fondoF is None else fondoB[:, None] * forma
+        yy, xx = np.mgrid[0:TH, 0:TW].astype(np.float32); zt = np.zeros((TH, TW), dtype=np.float32)
+        for linea in sol.get('brazos', []):
+            for (ax, ay, ar), (bx, by, br) in zip(linea, linea[1:]):
+                ax, bx, ar, br = ax * TW, bx * TW, ar * TW, br * TW; ay, by = ay * TH, by * TH
+                t = np.clip(((xx - ax) * (bx - ax) + (yy - ay) * (by - ay)) / ((bx - ax) ** 2 + (by - ay) ** 2), 0, 1)
+                d2 = (xx - ax - t * (bx - ax)) ** 2 + (yy - ay - t * (by - ay)) ** 2; r = ar + t * (br - ar)
+                zt = np.maximum(zt, np.sqrt(np.clip(r * r - d2, 0, None)) * 0.9)
+        zt = np.where(mF, ndi.gaussian_filter(zt, 3.0) * 1.12, 0) * np.clip(sd / 5, 0, 1)      # suavizado al paso de la rejilla (que el tubo no salga a dientes) y cerrado en cero justo en el contorno
+        LAMINA = 5.0      # medio grosor de la gasa, en píxeles de textura
+        dentro = np.maximum(np.maximum(zc, zt), np.minimum(sd, LAMINA))
+        # fuera de la silueta el relieve baja con la pendiente de lo que tiene al lado: fuerte junto al cuerpo, suave junto a la gasa
+        _, (iy, ix) = ndi.distance_transform_edt(~mF, return_indices=True)
+        cerca = np.where(mS[iy, ix], np.pi / 2 * (Rf / Dm), np.where(zt[iy, ix] > LAMINA, 1.2, 0.5))
+        z = np.where(sd >= 0, dentro, cerca * sd)
+        zEsp = None if zcB is None else np.where(sd >= 0, np.maximum(np.maximum(zcB, zt), np.minimum(sd, LAMINA)), cerca * sd)
+    zEsp = None if not aj.get('solido') or zEsp is None else np.clip(ndi.gaussian_filter(zEsp, 1.5), -40, None)
     z = np.clip(ndi.gaussian_filter(z, 1.5), -40, None)
-    zmax = float(z.max()); zmin = float(z.min())
-    gy, gx = TH // PASO + 1, TW // PASO + 1
+    zb = zEsp if aj.get('solido') else None
+    if aj.get('bultos'):      # la cáscara de detrás lleva su propio relieve: el de delante más los bultos
+        yy, xx = np.mgrid[0:TH, 0:TW].astype(np.float32); extra = np.zeros((TH, TW), dtype=np.float32)
+        for (bcx, bcy, ba, bb, bh) in aj['bultos']:
+            q = 1 - ((xx / TW - bcx) / ba) ** 2 - ((yy / TH - bcy) / bb) ** 2
+            extra = np.maximum(extra, bh * TH * np.sqrt(np.clip(q, 0, None)))
+        zb = (z if zb is None else zb) + ndi.gaussian_filter(np.where(mF, extra, 0), 2.0)
+    zmax = float(max(z.max(), zb.max() if zb is not None else z.max())); zmin = float(z.min())
+    PF = aj.get('paso', PASO)      # rejilla más fina para figuras con brazos sueltos y telas delgadas
+    gy, gx = TH // PF + 1, TW // PF + 1
     zg = np.zeros((gy, gx), dtype=np.float32)
     for j in range(gy):
         for i in range(gx):
-            y, x = min(TH - 1, j * PASO), min(TW - 1, i * PASO); zg[j, i] = z[y, x]
+            y, x = min(TH - 1, j * PF), min(TW - 1, i * PF); zg[j, i] = z[y, x]
+    cod = lambda g: base64.b64encode(np.round((g - zmin) / (zmax - zmin) * 255).astype(np.uint8).tobytes()).decode()
     cub = np.zeros((gy - 1, gx - 1), dtype=np.uint8)
     for j in range(gy - 1):
         for i in range(gx - 1):
-            cub[j, i] = 1 if mF[j * PASO:(j + 1) * PASO + 1, i * PASO:(i + 1) * PASO + 1].any() else 0
+            cub[j, i] = 1 if mF[j * PF:(j + 1) * PF + 1, i * PF:(i + 1) * PF + 1].any() else 0
     xs = np.where(mF.any(axis=0))[0]
-    datos = dict(tw=TW, th=TH, teselas=3, paso=PASO, zmax=round(zmax, 2), zmin=round(zmin, 2), z=base64.b64encode(np.round((zg - zmin) / (zmax - zmin) * 255).astype(np.uint8).tobytes()).decode(),
+    datos = dict(tw=TW, th=TH, teselas=3, paso=PF, zmax=round(zmax, 2), zmin=round(zmin, 2), z=cod(zg),
                  cubre=base64.b64encode(np.packbits(cub.reshape(-1)).tobytes()).decode(), x0=int(xs[0]), x1=int(xs[-1]),
                  mano=[round((TW / 2 + (aj['mano'][0] * wf - cfx) * esc) / TW, 4), round(aj['mano'][1], 4)], tela=aj['tela'], piernas=aj['piernas'])
+
+    if zb is not None: datos['zb'] = cod(zb[np.minimum(TH - 1, np.arange(gy) * PF)][:, np.minimum(TW - 1, np.arange(gx) * PF)])
 
     # --- Busto para el retrato del panel (con su papel de fondo)
     x0, y0, x1, y1 = cajas[0]; lado = int((y1 - y0) * 0.36); cx = (x0 + x1) // 2
@@ -304,6 +383,8 @@ def procesar(pid, archivo):
         v = Image.new('RGB', (TW * 3, TH), (255, 0, 255)); v.paste(Image.fromarray(atlas, 'RGBA'), (0, 0), Image.fromarray(atlas[:, :, 3]))
         v.save(os.path.join(VISTA, f'fig-{pid}.png'))
         Image.fromarray(((z - zmin) / (zmax - zmin) * 255).astype(np.uint8)).save(os.path.join(VISTA, f'z-{pid}.png'))
+        if zb is not None: Image.fromarray(((zb - zmin) / (zmax - zmin) * 255).astype(np.uint8)).save(os.path.join(VISTA, f'zb-{pid}.png'))
+        vp = np.full((TH, wP, 3), (255, 0, 255), dtype=np.uint8); vp[mP] = colP[mP]; Image.fromarray(vp).save(os.path.join(VISTA, f'perfil-{pid}.png'))
     print(pid, 'teselas', TW, 'x', TH, 'zmax', round(zmax, 1), 'peso', os.path.getsize(os.path.join(A, f'fig-{pid}.webp')) // 1024, 'KB')
     return datos
 

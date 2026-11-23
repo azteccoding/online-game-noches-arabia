@@ -8,29 +8,31 @@ export const ALTO_FIGURA = 1.16;
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
-// datos: { tw, th, teselas, paso, zmax, z, cubre, mano, tela, piernas } · textura: THREE.Texture del atlas (frente | espalda | costado)
+// datos: { tw, th, teselas, paso, zmax, z, zb, cubre, mano, tela, piernas } (zb, opcional: relieve propio de la cáscara de detrás) · textura: THREE.Texture del atlas (frente | espalda | costado)
 export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   const { tw, th, paso: P } = datos, gx = tw / P + 1, gy = th / P + 1, k = alto / th, NT = datos.teselas || 2;
   const zg = b64(datos.z), bits = b64(datos.cubre), cubre = (i, j) => { const n = j * (gx - 1) + i; return (bits[n >> 3] >> (7 - (n & 7))) & 1; };
   // el relieve viene con signo: vale cero en el contorno y es negativo fuera, así las dos cáscaras se cruzan justo en el borde
   const zMin = datos.zmin || 0, SOLAPE = 3 * k, zEn = (i, j) => (zMin + (zg[j * gx + i] / 255) * (datos.zmax - zMin)) * k - SOLAPE;
+  const zgB = datos.zb ? b64(datos.zb) : zg, zDetras = (i, j) => (zMin + (zgB[j * gx + i] / 255) * (datos.zmax - zMin)) * k - SOLAPE;
 
   // bordes de la silueta en cada fila (para saber qué tan cerca del contorno está un punto)
   const izq = new Float32Array(gy).fill(1e9), der = new Float32Array(gy).fill(-1e9);
   for (let j = 0; j < gy - 1; j++) for (let i = 0; i < gx - 1; i++) if (cubre(i, j)) { for (const jj of [j, j + 1]) { izq[jj] = Math.min(izq[jj], i); der[jj] = Math.max(der[jj], i + 1); } }
 
-  // fondo máximo de cada fila: el costado se pinta con la vista de perfil, repartida de delante (u = 0) a atrás (u = 1)
-  const zFila = new Float32Array(gy); for (let j = 0; j < gy; j++) { let m = 0; for (let i = 0; i < gx; i++) m = Math.max(m, zEn(i, j)); zFila[j] = m; }
-  for (let j = 0; j < gy; j++) zFila[j] = Math.max(zFila[j], 0.25 * Math.max(zFila[Math.max(0, j - 1)], zFila[Math.min(gy - 1, j + 1)]), 1e-4);
+  // fondo máximo de cada fila, por delante y por detrás: el costado se pinta con la vista de perfil, repartida de delante (u = 0) a atrás (u = 1)
+  const zFila = new Float32Array(gy), zFilaB = new Float32Array(gy);
+  for (let j = 0; j < gy; j++) { let m = 0, mB = 0; for (let i = 0; i < gx; i++) { m = Math.max(m, zEn(i, j)); mB = Math.max(mB, zDetras(i, j)); } zFila[j] = m; zFilaB[j] = mB; }
+  for (const zf of [zFila, zFilaB]) for (let j = 0; j < gy; j++) zf[j] = Math.max(zf[j], 0.25 * Math.max(zf[Math.max(0, j - 1)], zf[Math.min(gy - 1, j + 1)]), 1e-4);
   const pos = [], uv = [], uvL = [], cara = [], idx = [], peso = [];      // peso: [piernas (con signo), tela, altura normalizada]
   const mapa = [new Int32Array(gx * gy).fill(-1), new Int32Array(gx * gy).fill(-1)];
   const [t0, t1] = datos.tela, piernas = datos.piernas || 0;
   function vertice(c, i, j) {
     const n = j * gx + i; let v = mapa[c][n]; if (v >= 0) return v;
     v = pos.length / 3; mapa[c][n] = v;
-    const x = (i * P - tw / 2) * k, y = (th - j * P) * k, z = zEn(i, j) * (c ? -1 : 1), yn = (j * P) / th;
+    const x = (i * P - tw / 2) * k, y = (th - j * P) * k, z = c ? -zDetras(i, j) : zEn(i, j), yn = (j * P) / th;
     pos.push(x, y, z); uv.push((c + (i * P) / tw) / NT, 1 - yn);
-    uvL.push((NT - 1 + Math.min(0.995, Math.max(0.005, 0.5 - (0.5 * z) / zFila[j]))) / NT, 1 - yn);
+    uvL.push((NT - 1 + Math.min(0.995, Math.max(0.005, (zFila[j] - z) / (zFila[j] + zFilaB[j])))) / NT, 1 - yn);
     cara.push(c ? 0 : 1 - paso(0.2, 0.26, yn));      // cabeza de la cáscara de delante
     const ancho = Math.max(1, der[j] - izq[j]), rel = Math.abs(((i - izq[j]) / ancho) * 2 - 1), xn = x / (alto * 0.2);
     // piernas: bajo el borde de la túnica, cada lado se mueve por su cuenta; con túnica larga solo se mece el bajo
