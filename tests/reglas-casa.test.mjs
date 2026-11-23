@@ -5225,3 +5225,26 @@ console.log('huidas cuentan como viaje OK');
   darItem(e, Y, 'alfanje'); Y.mano = Y.mano.filter((c) => c.ref !== 'jambiya'); assert.equal(perfil(data, e, y, 'Damasco').cat, 'C', 'con otra arma, sin destreza');
 }
 console.log('destreza inicial de Yafar OK');
+
+// Jorge (22 de noviembre de 2026): R6, Álgebra en la Madrasa. Los 3 dados dan el promedio (hacia abajo); el dado de respuesta debe caer
+// igual a ese promedio. Quien no lo logra gana solo 1 dinar y 20 noches (sin segunda tirada, sin pagar ni libro).
+{
+  const prueba = (valores) => {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.ciudad = 'Bagdad'; A.mano = []; A.dinares = 10; A.noches = 100; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; forzar(e, ...valores);
+    assert.ok(g.act(a, { t: 'reto', id: 'R6' }).ok);
+    const d = [e.dados, ...(e.colaDados || [])].find((x) => x && x.motivo === 'reto:R6');
+    assert.equal(d.grupos.length, 2, 'solo los 3 dados y el de respuesta (ya no hay segunda tirada)');
+    return { A, d };
+  };
+  { const { A, d } = prueba([3, 5, 4, 4]);   // 12 / 3 = 4; responde 4
+    assert.equal(A.dinares, 60); assert.equal(A.mano.length, 1, 'gana un libro'); assert.ok(BASE.esLibro(A.mano[0]), 'es un libro');
+    assert.ok(d.resumen.some((r) => /igual al promedio/.test(r))); }
+  { const { A, d } = prueba([3, 5, 4, 5]);   // 1 más que el promedio: ya no gana
+    assert.equal(A.dinares, 11, 'gana solo 1 dinar'); assert.equal(A.noches, 120, 'y 20 noches'); assert.equal(A.mano.length, 0, 'sin libro');
+    assert.ok(d.resumen.some((r) => /ganas solo 1 dinar y 20 noches/.test(r))); }
+  { const { A } = prueba([1, 2, 2, 1]);   // 5 / 3 = 1.67, hacia abajo 1
+    assert.equal(A.dinares, 60, 'redondea hacia abajo'); }
+}
+console.log('R6 álgebra en la madrasa OK');

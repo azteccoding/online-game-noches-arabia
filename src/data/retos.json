@@ -71,9 +71,9 @@
    "ciudad": "Bagdad",
    "tipo": "A",
    "requisito": "",
-   "resolucion": "Tira 3 dados, promedia hacia abajo; un dado más debe ser ±1.",
+   "resolucion": "El maestro te pone un problema: tira 3 dados, súmalos y divide entre 3 (si sale fracción, redondea hacia abajo). Ese promedio es el número que debes acertar. Luego tira un dado más, que es tu respuesta: si cae igual al promedio, ganas. Si no, ganas solo 1 dinar y 20 noches.",
    "premio": "50 dinares y 1 libro.",
-   "riesgo": "Si no: segunda tirada (par 20 dinares) o pagas 1 dinar y tomas 1 libro.",
+   "riesgo": "Si tu dado no cae igual al promedio: ganas solo 1 dinar y 20 noches.",
    "objetos": "",
    "refReglamento": "14.3",
    "arte": "re"

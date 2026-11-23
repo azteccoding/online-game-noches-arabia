@@ -483,11 +483,14 @@ T.R5 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   if (v[v.length - 1] === 6) { const pr = [50, 40, 30][v.length - 1]; darTransporte(data, e, pid, 'camello'); premio(data, e, pid, { dinares: pr }, 'Alquimia lograda:'); ctx.say(`¡Un 6 en el intento ${v.length}! +${pr} dinares y un camello.`); }
   else { ctx.resultado = 'fallo'; darItem(e, j, 'brujula'); premio(data, e, pid, { dinares: 10 }, 'Alquimia fallida:'); ctx.say('No sale el 6: 10 dinares y una brújula.'); }
 } };
+// R6 (Jorge, 22 de noviembre de 2026): los 3 dados dan el número que el maestro te pide (su promedio, redondeado hacia abajo); el dado
+// que tiras después es tu respuesta y debe caer igual a ese promedio. Si no, ganas solo 1 dinar y 20 noches (ya no hay segunda tirada).
 T.R6 = { ciudad: 'Bagdad', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R6');
-  const v = ctx.t(`${j.nombre}: álgebra`, 3); const prom = Math.floor(suma(v) / 3); const [x] = ctx.t('Un dado más', 1);
-  if (Math.abs(x - prom) === 1) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}: ganas 50 dinares y un libro.`); }
-  else { ctx.resultado = 'fallo'; const [y] = ctx.t('Segunda tirada', 1); if (par(y)) { premio(data, e, pid, { dinares: 20 }); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y} (par): 20 dinares.`); } else { pagar(data, e, pid, 1); darLibro(e, pid); ctx.say(`Promedio ${prom}, dado ${x}; segunda tirada ${y}: pagas 1 dinar y tomas un libro.`); } }
+  const v = ctx.t(`${j.nombre}: álgebra, 3 dados para el promedio`, 3); const prom = Math.floor(suma(v) / 3); const [x] = ctx.t(`Tu respuesta: debe caer ${prom}`, 1);
+  const cuenta = `${v.join(' + ')} = ${suma(v)}; entre 3 da ${prom}${suma(v) % 3 ? ' (redondeado hacia abajo)' : ''}.`;
+  if (x === prom) { premio(data, e, pid, { dinares: 50 }, 'Álgebra resuelta:'); darLibro(e, pid); ctx.say(`Promedio: ${cuenta} Tu dado cayó ${x}, igual al promedio: ganas 50 dinares y un libro.`); }
+  else { ctx.resultado = 'fallo'; premio(data, e, pid, { dinares: 1, noches: 20 }, 'Álgebra fallida:'); ctx.say(`Promedio: ${cuenta} Tu dado cayó ${x} y no ${prom}: ganas solo 1 dinar y 20 noches.`); }
 } };
 // ---------------------------------------------------------------- R17 (R7, entregar las alfombras al Califa, ya no existe: Jorge, 18 de noviembre)
 const AR = ALFOMBRAS.reto;
