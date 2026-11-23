@@ -4,6 +4,7 @@
 # Necesita Pillow, numpy y scipy. Variables opcionales: SOLO=1,2 (rehace solo esos personajes) y VISTA=<carpeta> (guarda
 # vistas de control).
 #
+# Las hojas pueden ser la lámina original de 2480 × 1754 o una imagen de formato libre con las cuatro vistas en fila sobre fondo liso.
 # De cada hoja (cuatro vistas: frente, tres cuartos, perfil, espalda) se recortan la figura de frente, la de espalda y la de
 # perfil, se les quita el papel de fondo y se calcula un relieve: cuánto «sale» cada punto de la figura (más en el centro del
 # cuerpo, cero en el contorno; el grosor de cada altura se toma de la vista de perfil). Con eso la escena levanta una miniatura
@@ -25,6 +26,7 @@ VISTA = os.environ.get('VISTA')          # carpeta opcional para guardar vistas 
 HOJAS = {'1': 'hoja-personaje-1-nur-al-din.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
          '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png'}
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
+HOJA_LAMINA = (2480, 1754); LIBRE = False
 TH = 896                                 # alto de la figura en la textura
 PERFIL_A_LA_DERECHA = set()              # personajes cuya vista de perfil mira a la derecha (se voltea para que todos miren a la izquierda)
 PASO = 8                                 # paso de la rejilla del relieve, en píxeles de textura
@@ -32,7 +34,7 @@ PASO = 8                                 # paso de la rejilla del relieve, en p�
 # cuerpo (un bastón que se modela aparte). «mano»: dónde empuña el arma (fracción del recorte de frente; x desde la izquierda
 # de la imagen, y desde arriba). «tela»: tramo de altura (desde arriba) donde la capa, el velo o el chal tienen vuelo.
 AJUSTES = {
-    '1': dict(mano=(0.16, 0.455), tela=(0.2, 0.68), piernas=0.74),
+    '1': dict(mano=(0.19, 0.55), tela=(0.2, 0.9), piernas=0.86),
     '2': dict(mano=(0.86, 0.50), tela=(0.12, 0.62), piernas=0),
     '3': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0.6),
     '4': dict(mano=(0.14, 0.50), tela=(0.2, 0.6), piernas=0),
@@ -62,6 +64,7 @@ def mascara(rgb):
     croma = np.sqrt((((a / np.maximum(lum[..., None], 1)) - modelo / lp[..., None]) ** 2).sum(axis=2))
     como_papel = dist < 26
     como_sombra = (croma < 0.105) & (lum > lp * 0.42) & (lum < lp * 1.04)      # sombra en el suelo: papel más oscuro, sin color propio
+    if LIBRE: como_sombra = (croma < 0.24) & (lum > lp * 0.56) & (lum < lp * 1.04)      # hoja libre: el suelo va pintado, con manchas de arena clara
     return a, como_papel, como_sombra
 
 def fondo_desde_borde(libre):
@@ -72,10 +75,25 @@ def fondo_desde_borde(libre):
 def vistas(m):
     """Las cuatro figuras, de izquierda a derecha: la lámina se corta por las columnas más vacías cerca de cada cuarto."""
     H, W = m.shape; col = ndi.uniform_filter1d(m.sum(axis=0).astype(np.float32), 9)
-    cortes = [0]
-    for f in (0.25, 0.5, 0.75):
-        a, b = int(W * (f - 0.09)), int(W * (f + 0.09)); cortes.append(a + int(np.argmin(col[a:b])))
-    cortes.append(W)
+    # Hoja de formato libre (no la lámina de 2480 × 1754): las figuras se separan por los valles entre ellas (las columnas con
+    # menos figura entre cada dos, sin contar la franja de los pies y su sombra) y se toman las cuatro primeras de izquierda a derecha; si hay
+    # una quinta, por ejemplo una pose de ataque, se ignora.
+    cortes = None
+    if LIBRE:
+        ys = np.where(m.any(axis=1))[0]; arriba = m[:int(ys[0] + (ys[-1] - ys[0]) * 0.86)]
+        masa = ndi.uniform_filter1d(arriba.sum(axis=0).astype(np.float32), max(5, W // 120))
+        gorda = ndi.gaussian_filter1d(masa, W / 50)      # un pico por figura
+        picos = [x for x in range(1, W - 1) if gorda[x] >= gorda[x - 1] and gorda[x] > gorda[x + 1] and gorda[x] > gorda.max() * 0.45]
+        picos = [x for k, x in enumerate(picos) if k == 0 or x - picos[k - 1] > W / 14]
+        if len(picos) >= 4:
+            entre = [picos[k] + int(np.argmin(masa[picos[k]:picos[k + 1]])) for k in range(len(picos) - 1)]
+            cortes = [0, entre[0], entre[1], entre[2], entre[3] if len(entre) > 3 else W]
+    if cortes is not None: pass
+    else:
+        cortes = [0]
+        for f in (0.25, 0.5, 0.75):
+            a, b = int(W * (f - 0.09)), int(W * (f + 0.09)); cortes.append(a + int(np.argmin(col[a:b])))
+        cortes.append(W)
     cajas = []
     for k in range(4):
         sub = m[:, cortes[k]:cortes[k + 1]]
@@ -92,7 +110,10 @@ def rellenar(rgb, m):
     return rgb[idx[0], idx[1]]
 
 def procesar(pid, archivo):
-    hoja = Image.open(os.path.join(ORIGEN, archivo)).convert('RGB').crop(PANEL)
+    global LIBRE
+    hoja = Image.open(os.path.join(ORIGEN, archivo)).convert('RGB')
+    LIBRE = hoja.size != HOJA_LAMINA      # una hoja de otro tamaño es de formato libre: toda la imagen es la lámina
+    if not LIBRE: hoja = hoja.crop(PANEL)
     a, papel, sombra = mascara(hoja)
     H, W = papel.shape
     m0 = ~fondo_desde_borde(papel | sombra)      # primera pasada, solo para situar las cuatro figuras
@@ -110,6 +131,14 @@ def procesar(pid, archivo):
         tam = ndi.sum(m, et, range(1, n + 1)); m = np.isin(et, 1 + np.where(tam > 900)[0])
     cajas = vistas(m)
     aj = AJUSTES[pid]
+    if LIBRE and aj.get('piernas'):      # hoja libre: el papel que queda encerrado entre las piernas (lo cierra la sombra del suelo) no es figura
+        for (x0, y0, x1, y1) in cajas:
+            ya = int(y0 + (y1 - y0) * aj['piernas'])
+            hueco = (papel | sombra)[ya:y1, x0:x1] & m[ya:y1, x0:x1]
+            et, n = ndi.label(hueco)
+            if n:
+                tam = ndi.sum(hueco, et, range(1, n + 1)); m[ya:y1, x0:x1] &= ~np.isin(et, 1 + np.where(tam > 120)[0])
+        m = ndi.binary_opening(m, iterations=1)
     rgb = np.asarray(hoja, dtype=np.uint8)
 
     def recorte(c, espejo=False):

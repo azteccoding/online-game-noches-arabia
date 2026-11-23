@@ -1,6 +1,7 @@
 node_modules/
 dist/
 datos/
+!src/escena3d/datos/
 paquete-servidor/
 .DS_Store
 *.log
