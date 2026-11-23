@@ -2,6 +2,7 @@
   "pj-6": { "titulo": "abajo" },
   "H1": { "letra": "mini" },
   "H4": { "letra": "mini", "titulo": "abajo" },
+  "H21": { "letra": "mini" },
   "H22": { "letra": "mini" },
   "E13": {},
   "E14": { "texto": "arriba" },
