@@ -49,7 +49,8 @@ export function crearCamara(el) {
   function zoomTecla(f) { interrumpir(); const d = dMeta ?? cam.position.distanceTo(ctl.target); dMeta = clamp(d * f, ctl.minDistance, ctl.maxDistance); ancla = null; }
   const alTecla = (ev) => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey || escribiendo(ev)) return;
-    if (FLECHAS[ev.key]) { ev.preventDefault(); if (!flechas.has(ev.key)) interrumpir(); flechas.add(ev.key); return; }
+    // Con Shift, las flechas recorren el menú abierto (App.jsx), no mueven la cámara.
+    if (FLECHAS[ev.key] && !ev.shiftKey) { ev.preventDefault(); if (!flechas.has(ev.key)) interrumpir(); flechas.add(ev.key); return; }
     if (ev.key === '+' || ev.code === 'NumpadAdd') { ev.preventDefault(); zoomTecla(0.8); }
     else if (ev.key === '-' || ev.code === 'NumpadSubtract') { ev.preventDefault(); zoomTecla(1.25); }
   };

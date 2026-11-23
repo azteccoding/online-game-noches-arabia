@@ -116,9 +116,18 @@ function Juego({ lienzo }) {
   }, []);
   const cerrar = useCallback(() => setPanel(null), []);
   // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
-  // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
+  // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta, Shift + flecha arriba o abajo recorre el menú de acciones o de mercado y Enter elige. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
   useEffect(() => {
     let xAbajo = false;      // la x sostenida, para x + espacio
+    // Shift + flecha arriba o abajo recorre las filas del menú abierto (acciones o mercado) y Enter elige la marcada (Jorge, 23 de noviembre).
+    const marcarFila = (paso) => {
+      const filas = [...document.querySelectorAll('[role="dialog"] .accion-fila, [role="dialog"] .lista-merc > li, [role="dialog"] .trato.entrante')].filter((f) => f.offsetParent);
+      if (!filas.length) return;
+      const ant = document.querySelector('.fila-marcada'), i = filas.indexOf(ant);
+      const sig = filas[i < 0 ? (paso > 0 ? 0 : filas.length - 1) : (i + paso + filas.length) % filas.length];
+      if (ant) ant.classList.remove('fila-marcada');
+      sig.classList.add('fila-marcada'); sig.scrollIntoView({ block: 'nearest' });
+    };
     const soltar = (ev) => { if (!ev || ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') xAbajo = false; };
     const tecla = (ev) => {
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
@@ -130,6 +139,15 @@ function Juego({ lienzo }) {
         ev.preventDefault();
         const b = [...document.querySelectorAll('.acc-botones button')].find((x) => x.textContent.trim() === 'Terminar turno');
         if (b) b.click();
+        return;
+      }
+      if (ev.shiftKey && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')) { ev.preventDefault(); marcarFila(ev.key === 'ArrowDown' ? 1 : -1); return; }
+      if (ev.key === 'Enter') {   // Enter elige la fila marcada con Shift + flechas
+        const f = document.querySelector('.fila-marcada');
+        if (!f || !f.isConnected || !f.offsetParent) return;
+        const bs = [...f.querySelectorAll('button')].filter((x) => !x.disabled && !x.getAttribute('aria-label') && !/^(Detalles|Menos)$/.test(x.textContent.trim()));
+        const b = bs.find((x) => !x.classList.contains('sec')) || bs[0];
+        ev.preventDefault(); if (b) b.click();
         return;
       }
       const k = String(ev.key || '').toLowerCase();

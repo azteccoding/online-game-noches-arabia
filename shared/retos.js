@@ -97,13 +97,13 @@ export function disponibles(data, e, pid) {
     if (!d || !(T[id].ciudades || [d.ciudad]).includes(j.ciudad)) continue;
     if (yaNoSePuede(j, id)) {
       // los entrenamientos ya hechos se siguen viendo, apagados y con el motivo (Jorge, 11 de noviembre)
-      if (id === 'R25' || ENTRENAMIENTOS[id]) r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: id === 'R25' ? 'Ya tienes destreza con armas.' : `Ya entrenaste con ${ENTRENAMIENTOS[id].arma}.` });
+      if (id === 'R25' || ENTRENAMIENTOS[id]) r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion && d.resolucion.split(d.ciudad).join(j.ciudad), requisito: d.requisito, premio: d.premio, bloqueado: id === 'R25' ? 'Ya tienes destreza con armas.' : `Ya entrenaste con ${ENTRENAMIENTOS[id].arma}.` });
       continue;
     }
     if (esperaVolver(j, id)) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = (RETOS_MAR.includes(id) && j.herido ? HERIDO_BARCO : null) || (T[id].req ? T[id].req(data, e, pid) : null);   // herido no te embarcas (Jorge, 19 de noviembre)
-    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion, requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined, aviso: RETOS_MAR.includes(id) ? avisoEscorbuto(j) || undefined : undefined });
+    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion && d.resolucion.split(d.ciudad).join(j.ciudad), requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined, aviso: RETOS_MAR.includes(id) ? avisoEscorbuto(j) || undefined : undefined });
   }
   return r;
 }
@@ -143,7 +143,7 @@ export function iniciarReto(data, e, pid, a) {
   t.principal = true;
   // Jorge (19 de noviembre): primero sale la carta del reto y la cierras; solo entonces sus objetos, dados, botones y resultado
   // (todo lo que sigue tiene un número mayor y el cliente lo pone detrás de la carta).
-  if (!j.npc) publicarCarta(e, { ...cartaDatos(data, 'reto', a.id), causa: true }, pid, [pid]);   // causa: no es consecuencia de los dados
+  if (!j.npc) publicarCarta(e, { ...cartaEnCiudad(cartaDatos(data, 'reto', a.id), d.ciudad, def.ciudades && j.ciudad), causa: true }, pid, [pid]);   // causa: no es consecuencia de los dados
   log(e, `${j.nombre} intenta el reto ${a.id}: ${d.nombre}.`, { pid });
   const ids = OBJS[a.id];
   if (ids) ofrecerObjetos(data, e, pid, { ids, max: 2, titulo: `Reto ${a.id}: objetos`, texto: 'Puedes usar hasta 2 objetos (R 15.2). Elige los que quieras usar.', cont: { fn: 'reto.obj', args: { id: a.id } } });
@@ -659,7 +659,14 @@ export function entrenamientosEn(ciudad) {
   for (const [id, x] of Object.entries(ENTRENAMIENTOS)) if ((T[id].ciudades || [T[id].ciudad]).includes(ciudad)) r.push({ id, que: x.arma, costo: x.costo });
   return r;
 }
+// Jorge (23 de noviembre): un reto que también se hace en otras ciudades (R18, R42, R43) nombra en su carta la ciudad donde lo intentas.
+function cartaEnCiudad(c, base, aqui) {
+  if (!aqui || aqui === base) return c;
+  const cambia = (x) => (typeof x === 'string' ? x.split(base).join(aqui) : x);
+  return { ...c, sub: cambia(c.sub), texto: cambia(c.texto) };
+}
 export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
+const ARTE_ARMA = Object.fromEntries(Object.entries(ENTRENAMIENTOS).map(([id, x]) => [x.arma, id]));   // por si la destreza pendiente no trae su carta (partidas guardadas antes)
 const entrenado = (j, arma) => !!j.extra.entrenado?.[arma] || (j.extra.destrezaPend || []).some((q) => q.arma === arma);
 // Jorge (19 de noviembre, más tarde): la destreza y los entrenamientos (R25, R18, R19, R42, R43, R51 y el de R54) gastan la acción
 // principal y terminan el turno. Jorge (21 de noviembre): se reciben al TERMINAR ese turno, no durante él (antes, al iniciar el
@@ -683,13 +690,13 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
     log(e, `${j.nombre}: ${texto}`, { pid, aviso: true });
-    if (!j.npc) publicarCarta(e, { id: `entreno:${q.t}:${q.arma || ''}`, deck: 'reto', titulo: 'Tu entrenamiento', sub: 'Habilidad', texto, arte: 're' }, pid, [pid]);   // como las clases de idiomas: carta al terminar el turno
+    if (!j.npc) publicarCarta(e, { id: `entreno:${q.t}:${q.arma || ''}`, deck: 'reto', titulo: 'Tu entrenamiento', sub: 'Habilidad', texto, arte: q.de || ARTE_ARMA[q.arma] || 're' }, pid, [pid]);   // como las clases de idiomas: carta al terminar el turno; con la pintura de la carta del entrenamiento (Jorge, 23 de noviembre)
   }
 }
 HOOK.recibirDestreza = recibirDestreza;
 function entrenarArma(e, pid, id) {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
-  j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, { t: 'arma', arma });
+  j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, { t: 'arma', arma, de: id });
   log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina y al terminar queda entrenado${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : `, con destreza en ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
@@ -951,7 +958,7 @@ T.R51 = { ciudad: 'Andalucía', req: (d, e, pid) => (soloJambiya(e.jugadores[pid
   } };
 function torneoEntrar(e, j) { j.dinares -= TORNEO.costo; quitarPrimero(j, 'item', 'flechas'); j.extra.murciaTurno = j.turnos; }
 function torneoGana(e, pid, como) {
-  const j = e.jugadores[pid]; hacer(e, pid, 'R51'); aplazarDestreza(e, pid, { t: 'arcoMaximo' });
+  const j = e.jugadores[pid]; hacer(e, pid, 'R51'); aplazarDestreza(e, pid, { t: 'arcoMaximo', de: 'R51' });
   log(e, `${j.nombre} gana el Torneo de Murcia${como}: al iniciar su siguiente turno tendrá la destreza máxima en arco (sus flechas siempre aciertan).`, { pid, aviso: true });
 }
 function torneoSoborno(e, pid) {
@@ -1102,7 +1109,7 @@ function combateR54(e, pid, ctx) {
   ctx.resultado = x % 2 ? 'fallo' : 'logro';   // impar: herido (las noches y dinares son por el servicio); par: destreza
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
-    if (!ya) aplazarDestreza(e, pid, { t: 'general' });   // llega al terminar el turno (Jorge, 21 de noviembre)
+    if (!ya) aplazarDestreza(e, pid, { t: 'general', de: 'R54' });   // llega al terminar el turno (Jorge, 21 de noviembre)
     j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${ya ? ' (ya tenías la destreza con armas)' : soloJambiya(j) ? '; al terminar tu turno tendrás destreza, solo con la jambiya' : '; al terminar tu turno tendrás destreza con armas (+1 en todas las peleas)'}.`);
   }
   if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }
