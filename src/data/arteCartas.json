@@ -14,5 +14,13 @@
   "R48": { "letra": "chica" },
   "R57": { "letra": "chica" },
   "R52": { "letra": "chica", "texto": "medio" },
+  "M5": { "imagen": "tumba-ibn-hazm", "letra": "chica" },
+  "M6": { "imagen": "tumba-ibn-hazm", "letra": "chica" },
+  "M7": { "imagen": "tumba-ibn-hazm", "letra": "chica" },
+  "M8": { "imagen": "tumba-ibn-hazm", "letra": "chica" },
+  "M9": { "imagen": "tumba-abu-madyan", "letra": "chica" },
+  "M10": { "imagen": "tumba-abu-madyan", "letra": "chica" },
+  "M11": { "imagen": "tumba-abu-madyan", "letra": "chica" },
+  "M12": { "imagen": "tumba-abu-madyan", "letra": "chica" },
   "S4": { "terminada": true }
 }

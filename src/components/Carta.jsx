@@ -7,6 +7,8 @@ import '../styles/cards.css';
 // Cartas con pintura propia (public/arte/cartas/<clave>.webp): la pintura llena toda la carta, con el título encima y el texto en un recuadro abajo.
 // La clave es el id de la carta (R26, H21…) o, si no, su clave de arte (pj-6). «titulo: abajo» baja el título cuando arriba hay un rostro. «texto: arriba» sube el recuadro de texto cuando lo importante está abajo; «texto: medio» lo pone bajo los rostros. «letra: chica» achica el texto para que el recuadro ocupe solo la franja de abajo.
 const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : null);
+// «imagen»: varias cartas pueden compartir una misma pintura (las cartas de un mismo sheij usan la de su tumba).
+const imgDe = (k) => PINTADAS[k].imagen || k;
 
 // Carta construida en el cliente (HTML/SVG/CSS) a partir de DATOS. No hay una imagen por carta.
 // tam: 'completa' (modal; ventana de arte perezosa) | 'mini' (miniatura ligera de la mano) | 'dorso' (WebP de 360 px del mazo).
@@ -64,7 +66,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
     return (
       <div className="carta-caja">
         <article className={`carta terminada ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}. ${datos.texto || ''}`}>
-          <img className="terminada-img" src={`/arte/cartas/${pintada}.webp`} alt="" draggable="false" />
+          <img className="terminada-img" src={`/arte/cartas/${imgDe(pintada)}.webp`} alt="" draggable="false" />
           {children}
         </article>
       </div>
@@ -78,7 +80,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
         <h3 className="c-tit">{datos.titulo}</h3>
       </header>
       {datos.sub && <p className="c-sub">{datos.sub}</p>}
-      <figure className="c-arte">{pintada ? <Arte clave={'cartas/' + pintada} /> : datos.arte ? <Arte clave={datos.arte} /> : <Adorno />}</figure>
+      <figure className="c-arte">{pintada ? <Arte clave={'cartas/' + imgDe(pintada)} /> : datos.arte ? <Arte clave={datos.arte} /> : <Adorno />}</figure>
       <div className="c-pill"><span>{et}</span><span className="ar">{ar}</span></div>
       <div className="c-cuerpo">
         <p className="c-texto">{datos.texto}</p>
