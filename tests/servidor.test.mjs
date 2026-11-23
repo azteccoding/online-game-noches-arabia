@@ -175,12 +175,12 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {             
   assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
   const raiz = await (await fetch(`http://127.0.0.1:${PUERTO}/`)).text();                // vista previa de la página principal al compartir
   // la vista previa lleva la dirección completa con que se abrió el link (WhatsApp no acepta direcciones relativas)
-  assert.match(raiz, new RegExp(`og:image" content="http://127\\.0\\.0\\.1:${PUERTO}/vista-previa-3d\\.jpg"`)); assert.match(raiz, /og:title" content="[^"]*amigos/);
+  assert.match(raiz, new RegExp(`og:image" content="http://127\\.0\\.0\\.1:${PUERTO}/miniatura-3d\\.jpg"`)); assert.match(raiz, /og:title" content="[^"]*amigos/);
   const render = await (await fetch(`http://127.0.0.1:${PUERTO}/`, { headers: { 'X-Forwarded-Host': 'mil-y-una-noches-3d.onrender.com', 'X-Forwarded-Proto': 'https' } })).text();
-  assert.match(render, /og:image" content="https:\/\/mil-y-una-noches-3d\.onrender\.com\/vista-previa-3d\.jpg"/); assert.match(render, /og:url" content="https:\/\/mil-y-una-noches-3d\.onrender\.com\/"/);
+  assert.match(render, /og:image" content="https:\/\/mil-y-una-noches-3d\.onrender\.com\/miniatura-3d\.jpg"/); assert.match(render, /og:url" content="https:\/\/mil-y-una-noches-3d\.onrender\.com\/"/);
   const raro = await (await fetch(`http://127.0.0.1:${PUERTO}/`, { headers: { 'X-Forwarded-Host': 'x"><script>' } })).text();
   assert.ok(!raro.includes('<script>"'), 'un Host raro no se copia a la página');
-  assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/vista-previa-3d.jpg`)).headers.get('content-type'), 'image/jpeg');
+  assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/miniatura-3d.jpg`)).headers.get('content-type'), 'image/jpeg');
 }
 await new Promise((r) => { srv.p.on('exit', r); srv.p.kill('SIGTERM'); });
 fs.rmSync(DIR, { recursive: true, force: true, maxRetries: 5 });
