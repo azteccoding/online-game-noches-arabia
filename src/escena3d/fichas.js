@@ -1,4 +1,4 @@
-// Fichas de los jugadores: cada una es la figura de su personaje (ver figuras.js) sobre una peana del color del jugador.
+// Fichas de los jugadores: cada una es la figura de su personaje (ver figuras.js), de pie sobre el mapa, sin peana (Jorge, 23 de noviembre).
 // Viajan por la ruta real caminando, o sobre su montura si tienen una (ver monturas.js); en las rutas de mar suben a un dhow
 // (ver dhow.js) y cruzan navegando, con animal y todo. La alfombra mágica vuela en línea directa, sin tocar el suelo ni el agua.
 import * as THREE from 'three';
@@ -9,6 +9,7 @@ import { crearArma } from './armas.js';
 import { crearFigura, cargarTexturaFigura, ALTO_FIGURA } from './figuras.js';
 
 export const ALTO_FICHA = ALTO_FIGURA;
+const Y_PIE = 0.004;      // los pies de la figura, apenas sobre el mapa
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const paso = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const ZANCADA = 0.62;      // lo que avanza la figura en medio ciclo de paso
@@ -20,7 +21,6 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   const tAro = texAro();
   const gPlano = new THREE.PlaneGeometry(1, 1); gPlano.rotateX(-Math.PI / 2);
   const gBlanco = new THREE.CylinderGeometry(0.27, 0.27, ALTO_FICHA, 10); gBlanco.translate(0, ALTO_FICHA / 2, 0);
-  const gPeana = new THREE.CylinderGeometry(0.27, 0.3, 0.045, 28); gPeana.translate(0, 0.0225, 0);
   const fichas = [], blancos = [], texturas = new Map();
   const texturaDe = (pid) => { if (!texturas.has(pid)) texturas.set(pid, cargarTexturaFigura(recursos.figuras[pid].atlas, aniso)); return texturas.get(pid); };
 
@@ -37,20 +37,18 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     const promesa = texturaDe(pid).then((t) => {
       if (f.pid !== pid || f.fuera) return;
       if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; }
-      f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = 0.04; cambios = true;
+      f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true;
     });
     f.lista = promesa; return promesa;
   }
   function crear(j) {
     const nodo = new THREE.Group(); escena.add(nodo);
     const cuerpo = new THREE.Group(); nodo.add(cuerpo);
-    const matPeana = new THREE.MeshStandardMaterial({ color: j.color || '#b9803a', roughness: 0.45, metalness: 0.15, envMapIntensity: 0.8 });
-    const peana = new THREE.Mesh(gPeana, matPeana); peana.castShadow = true; peana.receiveShadow = true; cuerpo.add(peana);
     const sombra = new THREE.Mesh(gPlano, new THREE.MeshBasicMaterial({ map: tex.sombra, transparent: true, opacity: 0.85, depthWrite: false })); sombra.position.y = 0.011; sombra.scale.setScalar(0.8); sombra.renderOrder = 7; nodo.add(sombra);
     const aro = new THREE.Mesh(gPlano, new THREE.MeshBasicMaterial({ map: tAro, color: 0xffe2a0, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); aro.position.y = 0.014; aro.scale.setScalar(1.05); aro.renderOrder = 8; aro.visible = false; nodo.add(aro);
     const onda = new THREE.Mesh(gPlano, new THREE.MeshBasicMaterial({ map: tAro, color: 0xfff0c8, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })); onda.position.y = 0.016; onda.renderOrder = 8; onda.visible = false; nodo.add(onda);
     const blanco = new THREE.Mesh(gBlanco, new THREE.MeshBasicMaterial()); blanco.visible = false; nodo.add(blanco); blancos.push(blanco);
-    const f = { id: j.id, indice: fichas.length, jugador: { ...j }, pj: null, pid: null, fig: null, lista: null, nodo, cuerpo, peana, matPeana, armas: {}, arma: '', control: null, sombra, aro, onda, tOnda: 1, blanco,
+    const f = { id: j.id, indice: fichas.length, jugador: { ...j }, pj: null, pid: null, fig: null, lista: null, nodo, cuerpo, armas: {}, arma: '', control: null, sombra, aro, onda, tOnda: 1, blanco,
       ciudad: null, ranura: -1, viaje: null, transporte: null, montura: null, mont: 0, faseM: 0, marcha: 0, elegida: false, rival: false, foco: false, turno: false, nivel: 0, giro: 0, rebote: 0, fase: 0, andar: 0, vuelo: 0, empuje: 0, fuera: false,
       get brazo() { return this.fig?.brazo; }, get mano() { return this.fig?.mano; } };
     blanco.userData = { tipo: 'ficha', id: j.id, ficha: f };
@@ -59,7 +57,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   function quitar(f) {
     f.fuera = true; if (f.viaje) terminarViaje(f, false); ponerTransporte(f, null);
     const o = f.ciudad ? tablero.ciudades.get(f.ciudad).ocupantes : null; if (o) { const q = o.indexOf(f.ranura); if (q >= 0) o.splice(q, 1); }
-    escena.remove(f.nodo); f.fig?.destruir(); f.matPeana.dispose(); for (const m of [f.sombra, f.aro, f.onda, f.blanco]) m.material.dispose();
+    escena.remove(f.nodo); f.fig?.destruir(); for (const m of [f.sombra, f.aro, f.onda, f.blanco]) m.material.dispose();
     blancos.splice(blancos.indexOf(f.blanco), 1); fichas.splice(fichas.indexOf(f), 1); fichas.forEach((x, i) => { x.indice = i; });
   }
   const porId = (id) => fichas.find((f) => f.id === id) || null;
@@ -81,7 +79,6 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   function poner(j) {
     let f = porId(j.id); const nuevo = !f;
     if (nuevo) f = crear(j); else Object.assign(f.jugador, j);
-    if (j.color && !nuevo) f.matPeana.color.set(j.color);
     const pid = j.personaje ?? f.pid;
     let p = f.lista; if (pid !== f.pid) p = vestir(f, pid);
     if (j.arma !== undefined) f.arma = j.arma || ''; else if (nuevo) f.arma = f.pj.arma || '';
@@ -359,7 +356,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       }
       const m = f.mont, encoger = esAlf ? 0.3 : 0.55;
       if (f.fig) {
-        f.fig.grupo.position.y = 0.04 * (1 - m) + m * (esAlf ? 0.02 - f.fig.yAsiento * (1 - encoger) : M ? M.asiento.y * (ESC_ESPERA + (ESC_MONTADO - ESC_ESPERA) * m) - f.fig.yAsiento : 0);
+        f.fig.grupo.position.y = Y_PIE * (1 - m) + m * (esAlf ? 0.02 - f.fig.yAsiento * (1 - encoger) : M ? M.asiento.y * (ESC_ESPERA + (ESC_MONTADO - ESC_ESPERA) * m) - f.fig.yAsiento : 0);
         f.fig.grupo.position.z = M && !esAlf ? m * M.asiento.z * ESC_MONTADO : 0;
         f.fig.animar(t, { fase: f.fase, andar: f.andar, vuelo: f.vuelo, empuje: f.empuje, montar: m, encoger, abrir: esAlf ? 0.9 : 0.5 });
       }
@@ -367,7 +364,6 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       if (M && !esAlf) situarAnimal(f, t, s, dt);
       f.cuerpo.rotation.set(cabeceo, f.giro, ladeo, 'YXZ');
       f.cuerpo.scale.set(estX * s, estY * s, estX * s);
-      f.peana.visible = !f.viaje?.enBarco && m < 0.97; f.peana.scale.setScalar(1 - m);
       f.sombra.visible = !f.viaje?.enBarco; f.sombra.scale.setScalar(0.8 * s * (1 - Math.min(0.45, alto * 0.7)));
       f.sombra.material.opacity = 0.85 * (1 - Math.min(0.5, alto * 0.9));
       f.aro.visible = f.nivel > 0.01 && !f.viaje?.enBarco; f.aro.material.opacity = f.nivel * (0.85 + 0.15 * Math.sin(t * 3.2)); f.aro.rotation.y = -t * 0.8; f.aro.scale.setScalar((1.0 + 0.12 * f.nivel) * s);
@@ -380,6 +376,6 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     if (!f.arma || !f.fig) return null;
     return (f.armas[f.arma] ||= (() => { const a = crearArma(f.arma, mats), porta = new THREE.Group(); porta.scale.setScalar(1.22); a.grupo.visible = false; porta.add(a.grupo); f.fig.mano.add(porta); return a; })());
   }
-  function destruir() { for (const f of fichas.slice()) quitar(f); tAro.dispose(); gPlano.dispose(); gBlanco.dispose(); gPeana.dispose(); for (const p of texturas.values()) p.then((t) => t.dispose()).catch(() => {}); }
+  function destruir() { for (const f of fichas.slice()) quitar(f); tAro.dispose(); gPlano.dispose(); gBlanco.dispose(); for (const p of texturas.values()) p.then((t) => t.dispose()).catch(() => {}); }
   return { fichas, blancos, porId, poner, ponerTodos, quitar, viajar, actualizar, mirarDesde, armaDe, destruir, get sucio() { return sucio; } };
 }
