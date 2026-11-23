@@ -102,3 +102,9 @@
 .pintada.txt-medio .c-pill { margin-top: 21cqw; }
 .pintada.txt-medio .chips { margin-top: auto; }
 .pintada.txt-medio .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, .62) 0, rgba(10, 4, 2, 0) 22%, rgba(10, 4, 2, 0) 85%, rgba(10, 4, 2, .5) 100%); }
+/* «letra: mini»: para pinturas que deben apreciarse casi enteras; el texto queda en una franja baja, pequeña y muy transparente. */
+.pintada.letra-mini .c-texto { font-size: 2.9cqw; line-height: 1.2; }
+.pintada.letra-mini .c-nota { font-size: 2.9cqw; line-height: 1.2; margin-top: .6cqw; }
+.pintada.letra-mini .c-cuerpo { padding: 1.4cqw 2.4cqw; background: rgba(22, 10, 6, .3); border-width: .3cqw; backdrop-filter: none; }
+.pintada.letra-mini .chip-c { font-size: 2.2cqw; }
+.pintada.letra-mini .c-pill { font-size: 2.3cqw; }

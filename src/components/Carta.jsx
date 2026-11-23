@@ -74,7 +74,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   }
   return (
     <div className="carta-caja">
-    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : PINTADAS[pintada].texto === 'medio' ? ' txt-medio' : '') + (PINTADAS[pintada].letra === 'chica' ? ' letra-chica' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
+    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : PINTADAS[pintada].texto === 'medio' ? ' txt-medio' : '') + (PINTADAS[pintada].letra === 'chica' ? ' letra-chica' : PINTADAS[pintada].letra === 'mini' ? ' letra-mini' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
       <header className="c-cab">
         <span className="c-ico"><Icono deck={datos.deck} size={22} /></span>
         <h3 className="c-tit">{datos.titulo}</h3>
