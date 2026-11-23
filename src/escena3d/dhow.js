@@ -10,8 +10,9 @@ import { U, ANCHO, ALTO } from './medidas.js';
 
 const LARGO = 1.7;      // eslora de referencia (estela y espuma)
 const ESPERA_MAX = 2;   // hasta dónde puede alejarse de la orilla el lugar donde el barco espera quieto, para no tapar un nombre
-// Jorge (23 de noviembre): el barco del Mar Rojo, en la orilla de Yemen, espera afuera, cerca del Cuerno de África (en unidades del mapa).
-const ESPERA_FIJA = { 'Yemen|El Cairo': [[2020, 1660], null] };
+// Jorge (23 de noviembre): el barco del Mar Rojo, en la orilla de Yemen, espera afuera, en el golfo frente al Cuerno de África,
+// justo debajo del nombre de Yemen (en unidades del mapa). Todos esperan paralelos a la costa más cercana.
+const ESPERA_FIJA = { 'Yemen|El Cairo': [[1850, 1705], null] };
 
 // Dhow pintado (Jorge, 23 de noviembre): se levanta de su hoja de vistas como los animales (ver animalPintado.js). La hoja lo
 // trae «sacado del agua»; aquí se hunde hasta la línea de flotación. Mide de punta a punta lo mismo que el de antes, con la proa a +Z.
@@ -122,7 +123,7 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
     // sFondeo: donde atraca para que la figura suba o baje (cerca de la orilla). sEspera: donde se queda quieto sin pasajero.
     // desvio: cuánto se aparta del trazo hacia b.aparte (0 navegando o atracado, 1 esperando)
     const fija = ESPERA_FIJA[b.clave] || [], espera = [0, 1].map((e) => (fija[e] ? esperaFija(b, e, e ? largo - fondeo : fondeo, fija[e]) : esperaLibre(b, e, e ? largo - fondeo : fondeo)));
-    b.sEspera = espera.map((e) => e.s); b.aparteDe = espera.map((e) => new THREE.Vector3(e.x, 0, e.z));
+    b.sEspera = espera.map((e) => e.s); b.aparteDe = espera.map((e) => new THREE.Vector3(e.x, 0, e.z)); b.rumboEspera = espera.map((e) => e.rumbo);
     b.s = b.sEspera[0]; b.meta = b.s; b.atracado = false; b.aparte = b.aparteDe[0].clone(); b.desvio = 1;
     barcos.set(b.clave, b); barcos.set(r.b + '|' + r.a, b);
     situar(b, 0, 0); b.rumbo = b.rumboMeta; situar(b, 0, 0);
@@ -135,11 +136,23 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
     const p = puntoEn(b, s0, v1).clone(), cx = mx * U - ANCHO / 2, cz = my * U - ALTO / 2;
     let mejor = null, menos = Infinity;
     for (let r = 0; r <= 1.2 && menos > 0; r += 0.1) for (let k = 0; k < (r ? 16 : 1); k++) {
-      const x = cx + r * Math.cos((k * Math.PI) / 8), z = cz + r * Math.sin((k * Math.PI) / 8);
-      const c = tapa(b, x, z, Math.sin(-0.6), Math.cos(-0.6)) + r;
-      if (c < menos) { menos = c; mejor = { s: s0, x: x - p.x, z: z - p.z }; }
+      const x = cx + r * Math.cos((k * Math.PI) / 8), z = cz + r * Math.sin((k * Math.PI) / 8), ru = rumboCosta(x, z, 1.2);
+      const c = tapa(b, x, z, Math.sin(ru), Math.cos(ru)) + r;
+      if (c < menos) { menos = c; mejor = { s: s0, x: x - p.x, z: z - p.z, rumbo: ru }; }
     }
     return mejor;
+  }
+  // Rumbo paralelo a la costa más cercana a (x, z) (de los dos sentidos, el más cercano a ref). Sin costa cerca, ref.
+  function rumboCosta(x, z, ref) {
+    for (let r = 0.05; r <= 2; r += 0.05) {
+      let sx = 0, sz = 0;
+      for (let k = 0; k < 32; k++) { const dx = Math.cos((k * Math.PI) / 16), dz = Math.sin((k * Math.PI) / 16); if (!esMar(x + dx * r, z + dz * r)) { sx += dx; sz += dz; } }
+      if (sx || sz) {
+        const a = Math.atan2(-sz, sx), d = (u) => Math.abs(Math.atan2(Math.sin(u - ref), Math.cos(u - ref)));      // (−sz, sx): paralelo a la costa
+        return d(a) <= d(a + Math.PI) ? a : a + Math.PI;
+      }
+    }
+    return ref;
   }
   function esperaLibre(b, extremo, s0) {
     const lado = extremo ? -1 : 1, tope = Math.min(ESPERA_MAX, b.largo * 0.45), d0 = extremo ? b.largo - s0 : s0;
@@ -151,10 +164,10 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
         const ox = -tz * a, oz = tx * a;
         let paso = true; for (let k = 1; k <= 6 && a; k++) if (!esMar(p.x + (ox * k) / 6, p.z + (oz * k) / 6)) { paso = false; break; }
         if (!paso) continue;
-        const c = tapa(b, p.x + ox, p.z + oz, tx, tz);
-        if (c === 0) { mejor = { s, x: ox, z: oz }; break busca; }
+        const ru = rumboCosta(p.x + ox, p.z + oz, Math.atan2(tx * lado, tz * lado)), c = tapa(b, p.x + ox, p.z + oz, Math.sin(ru), Math.cos(ru));
+        if (c === 0) { mejor = { s, x: ox, z: oz, rumbo: ru }; break busca; }
         const v = c + 0.1 * Math.abs(a) + 0.05 * (d - d0);      // si nada queda libre: lo que menos tape, sin irse lejos
-        if (v < menos) { menos = v; mejor = { s, x: ox, z: oz }; }
+        if (v < menos) { menos = v; mejor = { s, x: ox, z: oz, rumbo: ru }; }
       }
     }
     return mejor;
@@ -170,7 +183,7 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
     }
     for (let u = -0.5; u <= 0.501; u += 0.25) for (const w of [-0.17, 0.17]) { const [x, z] = en(u, w); if (!esMar(x, z)) c += 0.3; }      // y un poco de agua alrededor
     // la vela, vista desde la cámara (que mira hacia el norte), sube un poco por encima del casco en la pantalla
-    for (const u of [-0.25, 0, 0.25]) for (const dz of [0.1, 0.2]) { const [x, z] = en(u, 0, dz); if (zonas.some((k) => dentro(k, x, z))) c += 1; }
+    for (const u of [-0.25, 0, 0.25]) for (const dz of [0.1, 0.2, 0.3, 0.4]) { const [x, z] = en(u, 0, dz); if (zonas.some((k) => dentro(k, x, z))) c += 1; }
     return c;
   }
   function puntoEn(b, s, out) {
@@ -180,6 +193,7 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
   function situar(b, t, dt) {
     const p = puntoEn(b, b.s, v1), q = puntoEn(b, b.s + 0.25 * b.sentido, v2);
     if (q.distanceToSquared(p) > 1e-6) b.rumboMeta = Math.atan2(q.x - p.x, q.z - p.z);
+    if (b.estado === 'fondeado' && !b.atracado && b.rumboEspera?.[b.extremo] != null) b.rumboMeta = b.rumboEspera[b.extremo];      // esperando: paralelo a la costa
     let dif = (b.rumboMeta ?? 0) - b.rumbo; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); b.rumbo += dif * (dt ? 1 - Math.exp(-dt * 3.2) : 0);
     const g = b.modelo.grupo, marcha = Math.min(1, Math.abs(b.vel) / 2.2);
     const meta = b.estado === 'fondeado' && !b.atracado ? 1 : 0;
