@@ -15,10 +15,10 @@ import '../styles/ui.css';
 // para revisar desbordes de texto. window.__galeria devuelve cuántas cartas desbordan su cuerpo. No forma parte del juego.
 const IDS = {
   evento: () => DATA.eventos.eventos.map((x) => x.id), historico: () => DATA.eventos.historicos.map((x) => x.id), mensaje: () => DATA.mensajes.mensajes.map((x) => x.id),
-  objeto: () => DATA.objetos.mazo.map((x) => x.id), trivia: () => DATA.trivias.trivias.map((x) => x.id), mesa: () => DATA.trivias.deMesa.map((x) => x.id), cuento: () => DATA.cuentos.cuentos.map((x) => x.id), personaje: () => DATA.personajes.personajes.map((x) => x.id), reto: () => DATA.retos.retos.map((x) => x.id),
+  objeto: () => DATA.objetos.mazo.map((x) => x.id), trivia: () => DATA.trivias.trivias.map((x) => x.id), mesa: () => DATA.trivias.deMesa.map((x) => x.id), cuento: () => DATA.cuentos.cuentos.map((x) => x.id), personaje: () => DATA.personajes.personajes.map((x) => x.id), reto: () => DATA.retos.retos.map((x) => x.id), especial: () => ['S4'],
 };
 export default function Galeria({ mazo, ancho = 360 }) {
-  const lista = (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
+  const lista = mazo === 'especial' ? DATA.objetos.especiales.filter((x) => IDS.especial().includes(x.id)).map((x) => ({ id: x.id, deck: 'especial', titulo: x.nombre, sub: 'Carta especial', texto: (x.texto || '') + ' ' + (x.efecto || ''), arte: x.arte })) : (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
   React.useEffect(() => {
     const t = setTimeout(() => {
       const malas = [...document.querySelectorAll('.c-cuerpo')].filter((e) => e.scrollHeight > e.clientHeight + 1).map((e) => e.closest('[data-id]')?.getAttribute('data-id'));

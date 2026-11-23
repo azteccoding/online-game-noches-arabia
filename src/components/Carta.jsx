@@ -59,6 +59,17 @@ export default function Carta({ datos, tam = 'completa', children, className = '
       </div>
     );
   }
+  // Carta terminada: la imagen ya trae título, texto y marco; se muestra tal cual, sin nada encima.
+  if (pintada && PINTADAS[pintada].terminada) {
+    return (
+      <div className="carta-caja">
+        <article className={`carta terminada ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}. ${datos.texto || ''}`}>
+          <img className="terminada-img" src={`/arte/cartas/${pintada}.webp`} alt="" draggable="false" />
+          {children}
+        </article>
+      </div>
+    );
+  }
   return (
     <div className="carta-caja">
     <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') : ''} ${className}`} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>

@@ -82,3 +82,7 @@
 .pintada.tit-abajo .c-pill { margin-top: 1cqw; }
 .pintada.tit-abajo .c-arte::after { background: linear-gradient(180deg, rgba(10, 4, 2, 0) 0, rgba(10, 4, 2, 0) 40%, rgba(10, 4, 2, .7) 62%, rgba(10, 4, 2, .6) 100%); }
 .pintada .chip-c { background: rgba(22, 10, 6, .5); color: #fbf1d6; border-color: rgba(227, 184, 115, .85); text-shadow: 0 .15cqw .5cqw #000; }
+
+/* Carta terminada: una sola imagen que ya trae todo. */
+.carta.terminada { border: 0; box-shadow: var(--sombra); background: #1a0e0a; border-radius: 4.5cqw; }
+.terminada-img { display: block; width: 100%; height: auto; }
