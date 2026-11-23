@@ -3,28 +3,27 @@
 // Queda flotando hasta que se le manda esconderse: entonces se arremolina, la lámpara lo absorbe, destella y desaparece.
 // Los colores salen del arte del juego (lámpara dorada con gema turquesa y humo turquesa sobre noche índigo).
 import * as THREE from 'three';
+import { crearFigura, cargarTexturaFigura } from './figuras.js';
+import { crearModeloPintado, texturaPintada } from './animalPintado.js';
+import hojaLampara from './datos/animal-lampara.json';
 
 const suave = (t) => t * t * (3 - 2 * t);
 const lim = (x) => Math.min(1, Math.max(0, x));
 const ALTO = 2.55;       // altura del genio (una figura mide 1,16)
 
-function crearLampara(mats) {
-  const g = new THREE.Group(), laton = mats.laton, m = (geo, mat = laton) => { const x = new THREE.Mesh(geo, mat); x.castShadow = true; x.receiveShadow = true; g.add(x); return x; };
-  const perfil = [[0, 0.06], [0.1, 0.065], [0.19, 0.1], [0.215, 0.15], [0.19, 0.205], [0.12, 0.24], [0.06, 0.255], [0, 0.26]].map(([r, y]) => new THREE.Vector2(r, y));
-  const cuerpo = m(new THREE.LatheGeometry(perfil, 24)); cuerpo.scale.set(1, 1, 1.45);
-  m(new THREE.CylinderGeometry(0.075, 0.12, 0.06, 20)).position.y = 0.03;
-  const tapa = m(new THREE.SphereGeometry(0.075, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2)); tapa.position.y = 0.25; tapa.scale.y = 0.7;
-  m(new THREE.SphereGeometry(0.024, 8, 6)).position.y = 0.315;
-  const pico = m(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(0, 0.15, 0.24), new THREE.Vector3(0, 0.17, 0.4), new THREE.Vector3(0, 0.25, 0.52), new THREE.Vector3(0, 0.33, 0.58)]), 14, 0.045, 10)); pico.scale.x = 0.9;
-  const asa = m(new THREE.TorusGeometry(0.1, 0.018, 8, 18, Math.PI * 1.5)); asa.position.set(0, 0.17, -0.33); asa.rotation.set(0, Math.PI / 2, -Math.PI * 0.25);
-  const gema = m(new THREE.SphereGeometry(0.035, 12, 8), new THREE.MeshStandardMaterial({ color: 0x2fd0c6, emissive: 0x2fd0c6, emissiveIntensity: 0.6, roughness: 0.2 })); gema.position.set(0.2, 0.15, 0); gema.scale.x = 0.5;
-  const gema2 = gema.clone(); gema2.position.x = -0.2; g.add(gema2);
-  return { grupo: g, boca: new THREE.Vector3(0, 0.36, 0.6), gema: gema.material };
+// Lámpara pintada (Jorge, 23 de noviembre): se levanta de su hoja de vistas (ver animalPintado.js), con el pico hacia +Z.
+const LARGO_LAMPARA = 1.05;
+function crearLamparaPintada() {
+  const alto = (LARGO_LAMPARA * hojaLampara.th) / hojaLampara.tw;
+  const M = crearModeloPintado(hojaLampara, texturaPintada('lampara'), { alto, centroX: hojaLampara.tw * 0.55, material: { roughness: 0.38, metalness: 0.55, envMapIntensity: 1 } });
+  // de perfil a la cámara, como en la hoja: el pico apunta a −X (a la izquierda de quien mira)
+  const g = new THREE.Group(); M.malla.rotation.y = -Math.PI / 2; g.add(M.malla);
+  const b = M.punto([hojaLampara.cabestro[0] + 4, hojaLampara.cabestro[1] - 10]);
+  return { grupo: g, boca: new THREE.Vector3(-b.z, b.y, 0), gema: { emissiveIntensity: 0 } };
 }
-
-export function crearIfrit({ escena, mats, efectos, sonido, camara, tablero }) {
+export function crearIfrit({ escena, mats, efectos, sonido, camara, tablero, figuraGenio = null }) {
   const raiz = new THREE.Group(); raiz.visible = false; escena.add(raiz);
-  const lamp = crearLampara(mats); raiz.add(lamp.grupo);
+  const lamp = crearLamparaPintada(); raiz.add(lamp.grupo);
   // --- Materia del genio: humo turquesa con luz propia
   const matHumo = new THREE.MeshStandardMaterial({ color: 0x1c8f93, emissive: 0x2fd0c6, emissiveIntensity: 0.2, roughness: 0.5, transparent: true, opacity: 0.95, envMapIntensity: 0.3 });
   matHumo.onBeforeCompile = (sh) => {      // el borde brilla y el cuerpo se deshace hacia abajo, como humo
@@ -68,26 +67,37 @@ export function crearIfrit({ escena, mats, efectos, sonido, camara, tablero }) {
   for (let i = 0; i < NR; i++) for (let j = 0; j < NS; j++) { const a = i * (NS + 1) + j, b = a + NS + 1; iCola.push(a, b, a + 1, a + 1, b, b + 1); }
   gCola.setAttribute('position', new THREE.BufferAttribute(pCola, 3)); gCola.setIndex(iCola);
   const cola = new THREE.Mesh(gCola, matHumo); cola.frustumCulled = false; cola.castShadow = true; raiz.add(cola);
+  // Genio pintado (Jorge, 23 de noviembre: hoja de vistas de ChatGPT, con el rostro visible): sustituye al torso tallado. Trae su
+  // propia cola de humo; el chorro de la lámpara sube solo hasta la punta de esa cola.
+  const ALTO_PINTADO = 2.3;
+  let figura = null;
+  if (figuraGenio) cargarTexturaFigura(figuraGenio.atlas).then((tx) => {
+    figura = crearFigura(figuraGenio.datos, tx, { alto: ALTO_PINTADO });
+    figura.material.emissive.set(0x2fd0c6); figura.material.emissiveIntensity = 0.12; figura.ponerLado(0.6);
+    for (const c of torso.children) c.visible = false;
+    torso.add(figura.grupo);
+  }, () => {});
   const luz = new THREE.PointLight(0x4fe6dc, 0, 9, 1.6); raiz.add(luz);
   const tinte = new THREE.HemisphereLight(0x39c9c9, 0x101a48, 0); escena.add(tinte);
 
   const E = { fase: 'oculto', t: 0, g: 0, giro: 0, previa: null, resolver: null, pos: new THREE.Vector3(), tHumo: 0, tocada: false };
   const v1 = new THREE.Vector3(), v2 = new THREE.Vector3(), c0 = new THREE.Vector3();
   function centro(u, t, g, out) {      // eje de la cola: u = 0 en la boquilla, 1 en la cintura
-    const alto = (ALTO - 1.15) * g, bamb = 0.16 * Math.sin(u * 5.5 - t * 1.7) * u * (1 - u * 0.55) + 0.05 * Math.sin(u * 11 + t * 2.3) * u;
-    return out.set(lamp.boca.x + bamb, lamp.boca.y + alto * (u ** 0.85), lamp.boca.z - 0.6 * suave(u) * g + 0.1 * Math.cos(u * 4.7 - t * 1.3) * u * (1 - u));
+    const alto = (ALTO - 1.15) * g * (figura ? 0.42 : 1), bamb = 0.16 * Math.sin(u * 5.5 - t * 1.7) * u * (1 - u * 0.55) + 0.05 * Math.sin(u * 11 + t * 2.3) * u;
+    return out.set(lamp.boca.x * (1 - suave(u) * g) + bamb, lamp.boca.y + alto * (u ** 0.85), lamp.boca.z + 0.1 * Math.cos(u * 4.7 - t * 1.3) * u * (1 - u));      // del pico (a un lado) sube hasta quedar sobre la lámpara
   }
   function modelar(t) {
     const g = E.g;
     for (let i = 0; i <= NR; i++) {
       const u = i / NR; centro(u, t, g, c0);
-      const r = (0.035 + 0.3 * u ** 1.6 * g) * (1 + 0.1 * Math.sin(u * 16 - t * 4.2)), giro = E.giro * (1 - u) * 2 + u * 2.2 + t * 0.5;
+      const r = (figura ? 0.03 + 0.05 * u * g : 0.035 + 0.3 * u ** 1.6 * g) * (1 + 0.1 * Math.sin(u * 16 - t * 4.2)), giro = E.giro * (1 - u) * 2 + u * 2.2 + t * 0.5;
       for (let j = 0; j <= NS; j++) { const a = (j / NS) * Math.PI * 2 + giro, k = (i * (NS + 1) + j) * 3; pCola[k] = c0.x + Math.cos(a) * r; pCola[k + 1] = c0.y; pCola[k + 2] = c0.z + Math.sin(a) * r * 0.75; }
     }
     gCola.attributes.position.needsUpdate = true; gCola.computeVertexNormals();
     centro(1, t, g, c0);
     const resp = 1 + 0.025 * Math.sin(t * 1.6), esc = Math.max(0.001, g * (0.6 + 0.4 * g)) * (1 + 0.1 * Math.sin(Math.min(1, g) * Math.PI) * (E.fase === 'saliendo' ? 1 : 0));
-    torso.position.set(c0.x, c0.y + 0.5 * esc, c0.z); torso.scale.set(esc * resp, esc, esc * resp); torso.rotation.set(0.06 * Math.sin(t * 0.9), E.giro + 0.12 * Math.sin(t * 0.6), 0.04 * Math.sin(t * 1.1));
+    torso.position.set(c0.x, c0.y + (figura ? -0.04 : 0.5) * esc, c0.z);
+    if (figura) figura.animar(t, { vuelo: 0.6 + 0.4 * g }); torso.scale.set(esc * resp, esc, esc * resp); torso.rotation.set(0.06 * Math.sin(t * 0.9), E.giro + 0.12 * Math.sin(t * 0.6), 0.04 * Math.sin(t * 1.1));
     cabeza.rotation.y = 0.18 * Math.sin(t * 0.5 + 1); llama.rotation.z = 0.25 * Math.sin(t * 2.1); llama.scale.y = 1 + 0.2 * Math.sin(t * 3.3);
     matBrasa.color.setHSL(0.09, 1, 0.55 + 0.12 * Math.sin(t * 6.1));
     luz.position.set(c0.x * 0.4 + 0.35, 0.75 + 0.5 * g, lamp.boca.z + 0.75); luz.intensity = 12 * g; tinte.intensity = 0.55 * g; lamp.gema.emissiveIntensity = 0.6 + 2 * g;
@@ -145,6 +155,6 @@ export function crearIfrit({ escena, mats, efectos, sonido, camara, tablero }) {
     modelar(t);
     return true;
   }
-  function destruir() { raiz.traverse((o) => { o.geometry?.dispose(); }); matHumo.dispose(); matOscuro.dispose(); matTela.dispose(); matBrasa.dispose(); escena.remove(raiz, tinte); }
+  function destruir() { figura?.destruir(); raiz.traverse((o) => { o.geometry?.dispose(); }); matHumo.dispose(); matOscuro.dispose(); matTela.dispose(); matBrasa.dispose(); escena.remove(raiz, tinte); }
   return { aparecer, esconder, actualizar, destruir, get fase() { return E.fase; }, get nivel() { return E.g; }, get activo() { return E.fase !== 'oculto'; } };
 }

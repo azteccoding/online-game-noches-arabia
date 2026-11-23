@@ -1,9 +1,20 @@
-// Monturas: caballo árabe, caballo mongol, camello, burro (blanco) y alfombra mágica. Modelos estilizados, cada uno con su
+// Monturas: caballo árabe, caballo mongol, camello, burro (gris) y alfombra mágica. Modelos estilizados, cada uno con su
 // andar: galope (caballo), trote corto y rápido (mongol), ambladura (camello: las dos patas del mismo lado a la vez),
 // trotecito (burro). La alfombra no tiene patas: levita, ondula, y se enrolla para guardarse.
 // Todos miran hacia +Z y apoyan en y = 0. La escena no decide quién tiene qué: solo dibuja lo que se le pide.
 import * as THREE from 'three';
 import { lienzo, aTextura } from './texturas.js';
+import { crearModeloPintado, texturaPintada } from './animalPintado.js';
+import hojaCaballo from './datos/animal-caballo.json';
+import hojaCamello from './datos/animal-camello.json';
+import hojaMongol from './datos/animal-caballoMongol.json';
+import hojaBurro from './datos/animal-burro.json';
+
+// Animales pintados (Jorge, 23 de noviembre): con hoja de vistas, el animal se levanta de su pintura (ver animalPintado.js);
+// sin hoja se usa la talla de abajo. alto: altura total del animal en la hoja (orejas o silla).
+// asiento: altura a la que va sentado el jinete, en fracción de «alto» (el hueco de la silla, no el borrén ni los palos).
+const PINTADO = { caballo: { hoja: hojaCaballo, alto: 1.14, asiento: 0.67 }, camello: { hoja: hojaCamello, alto: 1.2, asiento: 0.85 }, caballoMongol: { hoja: hojaMongol, alto: 0.92, asiento: 0.73 }, burro: { hoja: hojaBurro, alto: 0.86, asiento: 0.7 } };
+if (typeof document !== 'undefined') for (const t in PINTADO) texturaPintada(t);
 
 export const TRANSPORTES = ['burro', 'caballo', 'camello', 'caballoMongol', 'alfombra'];
 export const NOMBRE_TRANSPORTE = { '': 'A pie', burro: 'Burro', caballo: 'Caballo', camello: 'Camello', caballoMongol: 'Caballo mongol', alfombra: 'Alfombra mágica' };
@@ -83,7 +94,7 @@ const ANIMAL = {
     manta: { anillos: [[-0.25, 0.69, 0.125, 0.14], [-0.16, 0.76, 0.128, 0.165], [-0.08, 0.8, 0.13, 0.2], [-0.01, 0.81, 0.13, 0.215], [0.06, 0.79, 0.13, 0.19], [0.13, 0.74, 0.128, 0.16], [0.2, 0.69, 0.125, 0.14]], arco: 1.95, colores: ['#9a2330', '#22407f', '#e6b866'] },
     manta2: { anillos: [[-0.15, 0.78, 0.132, 0.17], [-0.08, 0.81, 0.134, 0.205], [-0.01, 0.82, 0.134, 0.22], [0.06, 0.8, 0.134, 0.195], [0.12, 0.76, 0.132, 0.17]], arco: 1.15, colores: ['#2a8a8a', '#f1e3b8', '#7b1e24'] },
     asiento: [1.03, -0.02], andar: 'ambladura', zancada: 1.05, vel: 1.05, sonido: 'camello-paso' },
-  // Burro: BLANCO, pequeño, cabezón, orejas largas.
+  // Burro: GRIS (Jorge, 23 nov; antes blanco), pequeño, cabezón, orejas largas.
   burro: {
     tronco: [[-0.29, 0.42, 0.012, 0.012], [-0.27, 0.415, 0.075, 0.08], [-0.21, 0.405, 0.105, 0.115], [-0.1, 0.395, 0.11, 0.125], [0.01, 0.39, 0.112, 0.13], [0.11, 0.395, 0.108, 0.13], [0.185, 0.41, 0.095, 0.12], [0.24, 0.43, 0.07, 0.095], [0.265, 0.445, 0.015, 0.025]],
     pivote: [0.19, 0.46],
@@ -91,7 +102,7 @@ const ANIMAL = {
     crin: { de: 1, a: 4, alto: 0.03, grueso: 0.014 }, tupe: 0, oreja: [0.335, 0.735, 0.036, 0.17, 0.12], ojo: [0.41, 0.716, 0.048, 0.009],
     cola: { base: [-0.28, 0.45], anillos: [[0, 0, 0.014, 0.014], [-0.03, -0.04, 0.016, 0.018], [-0.05, -0.16, 0.013, 0.015], [-0.056, -0.24, 0.022, 0.03], [-0.056, -0.29, 0.005, 0.008]] },
     patas: { zd: 0.17, zt: -0.2, x: 0.063, yd: 0.33, yt: 0.35, l1: 0.17, l2: 0.135, r: [0.04, 0.026, 0.02, 0.018], casco: 0.024 },
-    capa: 0xf6f4ee, crinC: 0xc9c3b6, cascoC: 0x4a4038, calza: 0xeeeae0, hocico: 0xd6cbc0, rug: 0.8,
+    capa: 0x8a8580, crinC: 0x3a3632, cascoC: 0x3a3028, calza: 0x6e6964, hocico: 0xd8d2c8, rug: 0.8,
     manta: { z0: -0.15, z1: 0.1, arco: 1.7, colores: ['#2a8a8a', '#7b1e24', '#e6b866'] },
     asiento: [0.53, -0.02], andar: 'trote', zancada: 0.46, vel: 0.95, sonido: 'burro-trote' },
 };
@@ -193,12 +204,24 @@ function texAlfombra() {
   for (let i = 0; i < 11; i++) { rombo(22 + 0, 60 + i * 26.5, 4, '#efd08f'); rombo(W - 22, 60 + i * 26.5, 4, '#efd08f'); }
   return aTextura(c, { aniso: 8 });
 }
+// Tela pintada (Jorge, 23 de noviembre: alfombra.png de ChatGPT, girada a lo largo, flecos con transparencia). Se carga una sola
+// vez y la comparten todas las alfombras; mientras llega se ve la tela dibujada de arriba.
+let telaPintada = null;
+function cargarTela() {
+  if (!telaPintada) {
+    telaPintada = new Promise((ok) => new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + 'arte3d/alfombra.webp',
+      (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; ok(t); }, undefined, () => ok(null)));
+  }
+  return telaPintada;
+}
 function crearAlfombra() {
   const ANCHO = 0.74, LARGO = 1.12, NX = 6, NZ = 34, tex = texAlfombra();
   const geo = new THREE.PlaneGeometry(ANCHO, LARGO, NX, NZ); geo.rotateX(-Math.PI / 2);
   const base = geo.attributes.position.array.slice(), P = geo.attributes.position;
   const mat = new THREE.MeshStandardMaterial({ map: tex, side: THREE.DoubleSide, roughness: 0.92, alphaTest: 0.5, envMapIntensity: 0.4, emissive: 0xffd98a, emissiveMap: tex, emissiveIntensity: 0.1 });
   const malla = new THREE.Mesh(geo, mat); malla.castShadow = true; malla.receiveShadow = true;
+  let vivo = true;
+  cargarTela().then((t) => { if (!t || !vivo) return; mat.map = t; mat.emissiveMap = t; mat.needsUpdate = true; });
   const grupo = new THREE.Group(); grupo.add(malla);
   // rollo: 0 = extendida, 1 = enrollada del todo (empieza por la punta de delante y acaba en un cilindro atrás)
   function animar(t, { rollo = 0, onda = 1 } = {}) {
@@ -212,11 +235,37 @@ function crearAlfombra() {
     P.needsUpdate = true; geo.computeVertexNormals();
   }
   animar(0, { rollo: 1 });
-  return { tipo: 'alfombra', grupo, asiento: new THREE.Vector3(0, 0.02, -0.05), animar, destruir() { geo.dispose(); mat.dispose(); tex.dispose(); }, largo: LARGO, vel: 1.5, sonido: 'alfombra-vuelo' };
+  return { tipo: 'alfombra', grupo, asiento: new THREE.Vector3(0, 0.02, -0.05), animar, destruir() { vivo = false; geo.dispose(); mat.dispose(); tex.dispose(); }, largo: LARGO, vel: 1.5, sonido: 'alfombra-vuelo' };
+}
+
+function crearAnimalPintado(tipo) {
+  const A = ANIMAL[tipo], Pn = PINTADO[tipo], grupo = new THREE.Group(), cuerpo = new THREE.Group(); grupo.add(cuerpo);
+  const M = crearModeloPintado(Pn.hoja, texturaPintada(tipo), { alto: Pn.alto }); cuerpo.add(M.malla);
+  const asiento = M.asiento.clone(), cabestro = M.cabestro.clone(); asiento.y = Pn.asiento * Pn.alto;
+  const g = A.andar === 'galope', amb = A.andar === 'ambladura', DF = DESFASE[A.andar];
+  // patas: [izq.][delantera, trasera] = [cadera, rodilla]
+  const ang = [[[0, 0], [0, 0]], [[0, 0], [0, 0]]];
+  let bote = 0;
+  function animar(t, fase, marcha) {
+    const amp = (g ? 0.55 : amb ? 0.38 : 0.45) * marcha;
+    for (let l = 0; l < 2; l++) for (let d = 0; d < 2; d++) {
+      const a = fase + DF[d * 2 + l] * Math.PI * 2, s = Math.sin(a), c = Math.cos(a);
+      ang[l][d][0] = -amp * s + (g ? (d ? 0.1 : -0.1) * marcha : 0);      // mismo sentido que rotation.x: positivo lleva el casco hacia atrás
+      ang[l][d][1] = (d ? -0.7 : 1.3) * amp * Math.max(0, c);      // la delantera dobla la rodilla hacia atrás; la trasera, el corvejón hacia delante
+    }
+    M.moverPatas(ang);
+    bote = marcha * (g ? 0.05 * Math.max(0, Math.sin(fase + 1.2)) : amb ? 0.018 * Math.sin(fase * 2) : 0.022 * Math.abs(Math.sin(fase)));
+    cuerpo.position.y = bote;
+    cuerpo.rotation.x = marcha * (g ? 0.06 * Math.sin(fase + 2.4) : 0.015 * Math.sin(fase * 2));
+    cuerpo.rotation.z = marcha * (amb ? 0.06 * Math.sin(fase) : 0.012 * Math.sin(fase));
+  }
+  animar(0, 0, 0);
+  return { tipo, grupo, asiento, cabestro, animar, destruir: () => M.destruir(), get bote() { return bote; }, zancada: A.zancada, vel: A.vel, sonido: A.sonido, cabalga: cuerpo, alto: asiento.y, largo: 0.8, pintado: true };
 }
 
 export function crearMontura(tipo) {
   if (tipo === 'alfombra') return crearAlfombra();
+  if (PINTADO[tipo]) return crearAnimalPintado(tipo);
   if (!ANIMAL[tipo]) throw new Error(`Transporte desconocido: «${tipo}».`);
   return crearAnimal(tipo);
 }

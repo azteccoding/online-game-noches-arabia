@@ -24,7 +24,8 @@ A = os.path.join(RAIZ, 'public', 'arte3d'); D = os.path.join(AQUI, '..', 'datos'
 VISTA = os.environ.get('VISTA')          # carpeta opcional para guardar vistas de control
 
 HOJAS = {'1': 'hoja-personaje-1-nur-al-din.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
-         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png'}
+         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
+         'G': 'genio.png'}      # el genio de la lámpara (Jorge, 23 nov): lo usa ifrit.js
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
 HOJA_LAMINA = (2480, 1754); LIBRE = False
 VISTAS_M = []          # hoja libre: la máscara propia de cada una de las cuatro vistas
@@ -45,6 +46,7 @@ AJUSTES = {
     '6': dict(mano=(0.13, 0.52), tela=(0.15, 0.8), piernas=0),
     '7': dict(mano=(0.23, 0.51), tela=(0.15, 0.9), piernas=0, umbral=18),
     'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
+    'G': dict(mano=(0.5, 0.4), tela=(0.55, 1.0), piernas=0),      # genio: la cola de humo ondula como una tela
 }
 
 def mascara(rgb):

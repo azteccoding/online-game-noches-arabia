@@ -96,7 +96,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   const dados = crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento, enMapa: dadosMapa });
   const camara = crearCamara(el);
   const pelea = crearPelea({ escena, tablero, fichas, camara, efectos, sonido, mats });
-  const ifrit = crearIfrit({ escena, mats, efectos, sonido, camara, tablero });
+  const ifrit = crearIfrit({ escena, mats, efectos, sonido, camara, tablero, figuraGenio: recursos.figuras.G });
   const ritmo = menosMovimiento ? 2.4 : 1;      // con «menos movimiento» las secuencias largas van abreviadas
   const api = {};
   const ronda = crearRonda(amb, { alRotulo: (n) => { try { api.alCambiarRonda?.(n); } catch (e) { console.error(e); } }, sonido });
