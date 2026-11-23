@@ -267,8 +267,9 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
         flota.cubierta(b, tmp); girarHacia(f, Math.atan2(tmp.x - f.nodo.position.x, tmp.z - f.nodo.position.z), dt, 6);
         if (flota.pedir(b, tr.extremo, f)) { tr.fase = 'subir'; tr.t = 0; tr.de.copy(f.nodo.position); }
       } else if (tr.fase === 'subir' || tr.fase === 'bajar') {
-        tr.t = Math.min(1, tr.t + dt / 0.5); const u = tr.t * tr.t * (3 - 2 * tr.t);
         flota.cubierta(b, tmp);
+        if (tr.t === 0) tr.dur = Math.min(0.85, Math.max(0.5, tmp.distanceTo(tr.fase === 'subir' ? tr.de : tr.a) / 2.6));      // salto más largo si el barco fondea más lejos
+        tr.t = Math.min(1, tr.t + dt / tr.dur); const u = tr.t * tr.t * (3 - 2 * tr.t);
         if (tr.fase === 'subir') { f.nodo.position.lerpVectors(tr.de, tmp, u); girarHacia(f, Math.atan2(tmp.x - tr.de.x, tmp.z - tr.de.z), dt, 6); }
         else { f.nodo.position.lerpVectors(tmp, tr.a, u); girarHacia(f, Math.atan2(tr.a.x - tmp.x, tr.a.z - tmp.z), dt, 8); }
         alto = Math.sin(Math.PI * tr.t) * 0.36;

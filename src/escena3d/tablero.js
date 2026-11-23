@@ -293,5 +293,5 @@ export async function crearTablero(escena, mats, recursos, renderer, { ciudades:
     }
     return mejor;
   }
-  return { ponerQuemadas, cercaniaFuego, grupo, mapa, superficie: sup, relieve: rel, ciudades, rutas, blancos, altura, crearRotulos, enfocar, marcarAlcance, actualizar, get sucio() { return sucio; } };
+  return { obstaculos: { cajas, ciudades: CIUDADES }, ponerQuemadas, cercaniaFuego, grupo, mapa, superficie: sup, relieve: rel, ciudades, rutas, blancos, altura, crearRotulos, enfocar, marcarAlcance, actualizar, get sucio() { return sucio; } };
 }
