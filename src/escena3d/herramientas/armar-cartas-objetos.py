@@ -43,7 +43,7 @@ def fondo_zoco():
 def fondo_noche():
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
     d = np.exp(-(((xx - W / 2) / (W * 0.62)) ** 2 + ((yy - H * 0.40) / (H * 0.46)) ** 2))
-    brasa = np.exp(-(((xx - W * 0.56) / (W * 0.5)) ** 2 + ((yy - H * 0.80) / (H * 0.16)) ** 2))      # resplandor cálido de la lámpara
+    brasa = np.exp(-(((xx - W * 0.6) / (W * 0.5)) ** 2 + ((yy - H * 0.66) / (H * 0.16)) ** 2))      # resplandor cálido de la lámpara
     a = np.array([10, 14, 34])[None, None] * (1 - d[..., None]) + np.array([28, 86, 104])[None, None] * d[..., None] + np.array([120, 70, 18])[None, None] * brasa[..., None] * 0.7
     rng = np.random.default_rng(7); a += rng.normal(0, 2.2, (H, W, 1))
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
@@ -68,9 +68,9 @@ f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'armas/arco-mongol.png'), r
 f = fondo_zoco(); fl = vistas(os.path.join(ARTE, 'armas/flecha.png'), umbral=30)      # tres flechas en abanico
 for v, giro, dx in [(fl[1], 12, -150), (fl[2], -12, 150), (fl[0], 0, 0)]: poner(f, v, (CAJA[0] + dx, CAJA[1], CAJA[2] + dx, CAJA[3]), giro)
 guardar(f, 'it-flechas')
-f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'transportes/escudo.png'), cierre=7)[0], (110, 190, W - 110, 840)); guardar(f, 'OB04')
-# Genio: la lámpara abajo (de perfil, con el pico a la izquierda) y el genio saliendo de su boquilla
+f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'transportes/escudo.png'), cierre=7)[0], (130, 150, W - 130, 740)); guardar(f, 'OB04')
+# Genio: la lámpara (de perfil, con el pico a la izquierda) y el genio saliendo de su boquilla; todo en los dos tercios de arriba, porque abajo va el texto de los deseos
 f = fondo_noche(); lam = vistas(os.path.join(ARTE, 'transportes/lampara.png'), cierre=3, rellenar=False)[0]; gen = vistas(os.path.join(ARTE, 'transportes/genio.png'))[0]
-cl = poner(f, lam, (300, 900, 760, 1150)); pico = (cl[0] + 8, cl[1] + round((cl[3] - cl[1]) * 0.33))
-alto = pico[1] - 70; e = alto / gen.height; ancho = round(gen.width * e); cola = round(ancho * 0.52)      # la punta de la cola cae sobre la boquilla
-poner(f, gen, (pico[0] - cola, 70, pico[0] - cola + ancho, pico[1]), sombra=False); guardar(f, 'if')
+cl = poner(f, lam, (340, 690, 730, 885)); pico = (cl[0] + 8, cl[1] + round((cl[3] - cl[1]) * 0.33))
+alto = pico[1] - 185; e = alto / gen.height; ancho = round(gen.width * e); cola = round(ancho * 0.52)      # la punta de la cola cae sobre la boquilla
+poner(f, gen, (pico[0] - cola, 185, pico[0] - cola + ancho, pico[1]), sombra=False); guardar(f, 'if')
