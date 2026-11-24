@@ -3,6 +3,7 @@
 // aquí se arman dos cáscaras —la de delante y la de detrás— que se cierran en el contorno y se pintan con la ilustración.
 // La figura mira hacia +Z y tiene los pies en el origen. En la cabeza, por delante, manda la vista de frente: así el rostro no se mezcla con el de perfil al mirar la figura en diagonal.
 import * as THREE from 'three';
+import { crearFiguraVistas } from './figuras8.js';
 
 export const ALTO_FIGURA = 1.16;
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
@@ -10,6 +11,7 @@ const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 
 // datos: { tw, th, teselas, paso, zmax, z, zb, cubre, mano, tela, piernas } (zb, opcional: relieve propio de la cáscara de detrás) · textura: THREE.Texture del atlas (frente | espalda | costado)
 export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
+  if (datos.vistas) return crearFiguraVistas(datos, textura, { alto });      // monito de ocho vistas: una cáscara por pintura de la hoja de 360°
   const { tw, th, paso: P } = datos, gx = tw / P + 1, gy = th / P + 1, k = alto / th, NT = datos.teselas || 2;
   const zg = b64(datos.z), bits = b64(datos.cubre), cubre = (i, j) => { const n = j * (gx - 1) + i; return (bits[n >> 3] >> (7 - (n & 7))) & 1; };
   // el relieve viene con signo: vale cero en el contorno y es negativo fuera, así las dos cáscaras se cruzan justo en el borde
