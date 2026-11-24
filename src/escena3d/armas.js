@@ -1,6 +1,10 @@
-// Armas estilizadas, a escala de las fichas. Todas se empuñan en el origen; la hoja apunta a +Y y el filo mira a +Z.
+// Armas a escala de las fichas (las cuatro van pintadas; debajo queda la versión estilizada de reserva). Todas se empuñan en el origen; la hoja apunta a +Y y el filo mira a +Z.
 // Solo son figuras para la animación: no llevan ninguna regla del juego.
 import * as THREE from 'three';
+import dCimitarra from './datos/arma-cimitarra.json';
+import dAlfanje from './datos/arma-alfanje.json';
+import dJambiya from './datos/arma-jambiya.json';
+import dArco from './datos/arma-arco.json';
 
 const K = 0.92 / 170;
 export const ARMAS = ['cimitarra', 'jambiya', 'alfanje', 'arco'];
@@ -14,7 +18,49 @@ function hoja(puntos, grosor) {
   return g;
 }
 
+// Armas pintadas (Jorge, 24 de noviembre: hojas de vistas de ChatGPT, preparadas con herramientas/preparar-armas.py). Dos
+// cáscaras, una por costado, con el relieve de la vista de canto; se empuñan en el origen, la hoja a +Y y el filo a +Z.
+const PINTADAS = { cimitarra: dCimitarra, alfanje: dAlfanje, jambiya: dJambiya, arco: dArco }, texArmas = {};
+const b64 = (t) => Uint8Array.from(atob(t), (c) => c.charCodeAt(0));
+function crearArmaPintada(tipo, mats) {
+  const d = PINTADAS[tipo], { tw, th, paso: P, sz } = d, gx = tw / P + 1, gy = th / P + 1, k = (d.alto * K) / th, grupo = new THREE.Group();
+  const tex = (texArmas[tipo] ||= (() => { const t = new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + `arte3d/arma-${tipo}.webp`); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; })());
+  const zg = b64(d.z), bits = b64(d.cubre), cubre = (i, j) => { const n = j * (gx - 1) + i; return (bits[n >> 3] >> (7 - (n & 7))) & 1; };
+  const punto = ([px, py]) => new THREE.Vector3(0, (d.puno[1] - py) * k, sz * (px - d.puno[0]) * k);
+  const pos = [], uv = [], idx = [], mapa = [new Int32Array(gx * gy).fill(-1), new Int32Array(gx * gy).fill(-1)];
+  const vertice = (c, i, j) => {      // c = 0: el primer costado de la hoja de vistas; c = 1: el otro
+    const n = j * gx + i; let v = mapa[c][n]; if (v >= 0) return v;
+    v = mapa[c][n] = pos.length / 3;
+    const rel = (d.zmin + (zg[n] / 255) * (d.zmax - d.zmin)) * k - 1.2 * k;      // con signo: las dos cáscaras se cruzan justo en el contorno
+    pos.push((c ? 1 : -1) * sz * rel, (d.puno[1] - j * P) * k, sz * (i * P - d.puno[0]) * k); uv.push((c + (i * P) / tw) / 2, 1 - (j * P) / th);
+    return v;
+  };
+  for (let j = 0; j < gy - 1; j++) for (let i = 0; i < gx - 1; i++) {
+    if (!cubre(i, j)) continue;
+    for (const c of [0, 1]) { const a = vertice(c, i, j), b = vertice(c, i + 1, j), e = vertice(c, i, j + 1), f = vertice(c, i + 1, j + 1); if (c) idx.push(a, b, e, b, f, e); else idx.push(a, e, b, b, e, f); }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+  const metal = tipo === 'arco' ? 0.05 : 0.45;
+  grupo.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: tex, alphaTest: 0.5, roughness: tipo === 'arco' ? 0.6 : 0.42, metalness: metal, envMapIntensity: 1.2, emissive: 0xffffff, emissiveMap: tex, emissiveIntensity: 0.12 })));
+  const res = { tipo, grupo, base: punto(d.base), punta: punto(d.punta), tensar: null, flecha: null };
+  if (d.cuerda) {      // arco: la cuerda y la flecha las pone el código, entre los dos nudos de la pintura
+    const [cx, cy0, cy1] = d.cuerda, n0 = punto([cx, cy0]), n1 = punto([cx, cy1]);
+    const gC = new THREE.BufferGeometry(); gC.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+    const cuerda = new THREE.Line(gC, new THREE.LineBasicMaterial({ color: 0xf1e3b8 })); cuerda.frustumCulled = false; grupo.add(cuerda);
+    const flecha = crearFlecha(mats); flecha.grupo.rotation.x = Math.PI / 2; grupo.add(flecha.grupo); res.flecha = flecha.grupo;
+    res.tensar = (u, conFlecha) => {      // u = 0 cuerda en reposo, 1 = tensada del todo
+      const z = n0.z - 30 * K * u, p = gC.attributes.position.array;
+      p.set([0, n1.y, n1.z, 0, 0, z, 0, n0.y, n0.z]); gC.attributes.position.needsUpdate = true;
+      flecha.grupo.visible = !!conFlecha; flecha.grupo.position.set(0, 0, z + LARGO_FLECHA / 2);
+    };
+    res.tensar(0, false); res.base.copy(n1); res.punta.copy(n0);
+  }
+  grupo.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return res;
+}
+
 export function crearArma(tipo, mats) {
+  if (PINTADAS[tipo]) return crearArmaPintada(tipo, mats);
   const grupo = new THREE.Group(), base = new THREE.Vector3(), punta = new THREE.Vector3();
   const acero = new THREE.MeshStandardMaterial({ color: 0xe4e9ee, metalness: 1, roughness: 0.24, envMapIntensity: 2.2, emissive: 0x9aa6b4, emissiveIntensity: 0.42 });
   const cuero = new THREE.MeshStandardMaterial({ color: 0x4d0e17, roughness: 0.5 });
@@ -63,15 +109,18 @@ export function crearArma(tipo, mats) {
 }
 
 export const LARGO_FLECHA = 66 * K;
-// Flecha: apunta a +Y (el astil va de -L/2 a +L/2).
-export function crearFlecha(mats) {
+// Flecha pintada (Jorge, 24 de noviembre: hoja de ChatGPT, preparada con herramientas/preparar-flecha.py): dos planos cruzados
+// a lo largo del astil, uno con la flecha de frente y otro girada un cuarto de vuelta. Apunta a +Y (va de -L/2 a +L/2).
+let texFlecha = null;
+export function crearFlecha() {
+  if (!texFlecha) { texFlecha = new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + 'arte3d/flecha.webp'); texFlecha.colorSpace = THREE.SRGBColorSpace; texFlecha.anisotropy = 8; }
   const grupo = new THREE.Group(), L = LARGO_FLECHA;
-  const astil = new THREE.CylinderGeometry(0.9 * K, 0.9 * K, L, 6);
-  grupo.add(new THREE.Mesh(astil, new THREE.MeshStandardMaterial({ color: 0x8a5a2c, roughness: 0.6 })));
-  const punta = new THREE.ConeGeometry(2.4 * K, 8 * K, 8); punta.translate(0, L / 2 + 3 * K, 0); grupo.add(new THREE.Mesh(punta, mats.laton));
-  const pluma = new THREE.MeshStandardMaterial({ color: 0x9a2630, roughness: 0.8, side: THREE.DoubleSide });
-  for (let i = 0; i < 3; i++) { const p = new THREE.PlaneGeometry(4.5 * K, 12 * K); p.translate(2.6 * K, -L / 2 + 7 * K, 0); p.rotateY((i / 3) * Math.PI * 2); grupo.add(new THREE.Mesh(p, pluma)); }
-  grupo.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  const mat = new THREE.MeshStandardMaterial({ map: texFlecha, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.7, emissive: 0xffffff, emissiveMap: texFlecha, emissiveIntensity: 0.15 });
+  [[0.11, 0, 0], [0.0794, 0.5, Math.PI / 2]].forEach(([ancho, u0, giro]) => {
+    const p = new THREE.PlaneGeometry(L * ancho, L), uv = p.attributes.uv;
+    for (let i = 0; i < uv.count; i++) uv.setX(i, u0 + uv.getX(i) * 0.5);
+    p.rotateY(giro); const m = new THREE.Mesh(p, mat); m.castShadow = true; grupo.add(m);
+  });
   return { grupo };
 }
 

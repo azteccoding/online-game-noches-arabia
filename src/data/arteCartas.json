@@ -61,5 +61,12 @@
   "E9": {"titulo": "abajo", "letra": "mini"},
   "E1": {"letra": "mini"},
   "R15": {"letra": "mini"},
-  "R16": {"letra": "mini"}
+  "R16": {"letra": "mini"},
+  "it:cimitarra": {"letra": "mini", "imagen": "it-cimitarra"},
+  "it:alfanje": {"letra": "mini", "imagen": "it-alfanje"},
+  "it:jambiya": {"letra": "mini", "imagen": "it-jambiya"},
+  "it:arco": {"letra": "mini", "imagen": "it-arco"},
+  "it:flechas": {"letra": "mini", "imagen": "it-flechas"},
+  "OB04": {"letra": "mini"},
+  "if": {"letra": "mini"}
 }
