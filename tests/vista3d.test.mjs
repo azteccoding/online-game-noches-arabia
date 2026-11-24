@@ -42,7 +42,7 @@ assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 n
   const L = vista(data, e, adi).e3d.jugadores[jamil].laud;
   assert.ok(L && typeof L.n === 'number' && /toca el laúd/.test(L.texto), 'todos ven que Jamil tocó');
   assert.equal(vista3d(data, e).jugadores[adi].laud, null);
-  assert.equal(L.voto, 12, 'con otro jugador en la mesa hay votación: toca lo que dure'); e.votoLaud = null;
+  assert.equal(L.callado, false, 'nadie lo ha callado'); assert.ok(e.votoLaud, 'con otro jugador en la mesa hay votación'); e.votoLaud = null;
   e.turno.principal = false; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
   assert.ok(vista3d(data, e).jugadores[jamil].laud.n > L.n, 'cada vez que toca sube el número');
 }

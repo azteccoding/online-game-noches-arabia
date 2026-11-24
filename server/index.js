@@ -105,7 +105,16 @@ function servir(req, res) {
     if (!z || z.etag !== h.ETag) { z = { etag: h.ETag, buf: zlib.gzipSync(fs.readFileSync(file), { level: 6 }) }; cacheGz.set(file, z); }
     res.writeHead(200, { ...h, 'Content-Encoding': 'gzip', Vary: 'Accept-Encoding', 'Content-Length': z.buf.length }); return res.end(z.buf);
   }
-  res.writeHead(200, { ...h, 'Content-Length': st.size });
+  // Por partes (Range): la música va en un <audio>, y hay navegadores (Safari en iPhone) que no la tocan si el servidor no sabe
+  // entregar un trozo del archivo.
+  const rango = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (rango && (rango[1] || rango[2]) && st.size) {
+    const ini = rango[1] ? +rango[1] : Math.max(0, st.size - +rango[2]), fin = rango[1] && rango[2] ? Math.min(+rango[2], st.size - 1) : st.size - 1;
+    if (ini > fin) { res.writeHead(416, { 'Content-Range': `bytes */${st.size}` }); return res.end(); }
+    res.writeHead(206, { ...h, 'Accept-Ranges': 'bytes', 'Content-Range': `bytes ${ini}-${fin}/${st.size}`, 'Content-Length': fin - ini + 1 });
+    return fs.createReadStream(file, { start: ini, end: fin }).pipe(res);
+  }
+  res.writeHead(200, { ...h, 'Accept-Ranges': 'bytes', 'Content-Length': st.size });
   fs.createReadStream(file).pipe(res);
 }
 

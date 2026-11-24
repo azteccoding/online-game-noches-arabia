@@ -183,7 +183,8 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
   // Música de una acción que dura (Jamil toca el laúd): una pieza larga, en su propio <audio> (el navegador la va bajando y no hay
   // que decodificarla entera), que pasa por el volumen general como todo lo demás. musica(clave, true) la hace sonar desde donde
   // se quedó la vez anterior, con una entrada breve; musica(clave, false) la apaga con un fundido y la deja en pausa ahí. Cuando
-  // ya no queda pieza para otro tramo, vuelve a empezar.
+  // ya no queda pieza para otro tramo, vuelve a empezar. Con «entera» suena siempre desde el principio (la canción de Jamil, que es
+  // un tramo ya cortado de 20 s). No se adelanta a un punto de la pieza: eso pide que el servidor entregue el audio por partes.
   const musicas = {}, porPreparar = new Set();
   const urlMusica = (clave) => { const r = TABLA[clave]; return r && typeof r === 'object' && !Array.isArray(r) && r.musica ? { url: r.musica, volumen: r.volumen ?? 1 } : null; };
   function prepararMusica(clave) {
@@ -196,7 +197,7 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
       return (musicas[clave] = { el, g, volumen: r.volumen, sonando: false, reloj: 0 });
     } catch { return null; }
   }
-  function musica(clave, encendido, { entrada = 0.35, salida = 1.3, tramo = 8 } = {}) {
+  function musica(clave, encendido, { entrada = 0.35, salida = 1.3, tramo = 8, entera = false } = {}) {
     let m = musicas[clave];
     if (!encendido) {
       if (!m || !m.sonando) return; m.sonando = false;
@@ -207,7 +208,7 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
     if (!gesto || enFondo || !ctx) return;
     m ||= prepararMusica(clave); if (!m) return;
     clearTimeout(m.reloj); m.sonando = true;
-    const dur = m.el.duration; if (m.el.ended || (Number.isFinite(dur) && dur - m.el.currentTime < tramo + 2)) m.el.currentTime = 0;
+    const dur = m.el.duration; if (m.el.ended || (entera && m.el.currentTime > 0) || (Number.isFinite(dur) && dur - m.el.currentTime < tramo + 2)) m.el.currentTime = 0;
     const t = ctx.currentTime; m.g.gain.cancelScheduledValues(t); m.g.gain.setValueAtTime(0.0001, t); m.g.gain.linearRampToValueAtTime(Math.max(0.0001, m.volumen), t + entrada);
     if (ctx.state === 'suspended') ctx.resume();
     m.el.play().catch(() => { m.sonando = false; });

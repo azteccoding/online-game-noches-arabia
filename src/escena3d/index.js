@@ -395,7 +395,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     },
 
     // ----- Laúd (solo animación): el jugador se sienta con el laúd al frente, hace como que toca y se levanta; mientras toca suena
-    // la música de la ranura 'laud-jamil'. duracion: segundos tocando (sin contar sentarse y levantarse). Se resuelve al terminar.
+    // la música de la ranura 'laud-jamil', siempre desde el principio (el archivo es su canción de 20 segundos). duracion: segundos
+    // tocando (sin contar sentarse y levantarse; los 20 de la canción si no se dice). Se resuelve al terminar.
     // Solo puede quien tiene figura sentada (fig-<personaje>t: Jamil).
     tocarLaud(id, { duracion, seguir = false } = {}) {
       return new Promise((ok, mal) => {
@@ -406,7 +407,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
         Promise.resolve(f.lista).then(() => f.listaToca).then(() => {
           alDia();
           let previa = null;      // con «seguir», la cámara se acerca a verlo tocar y al terminar vuelve a donde estaba (si nadie la movió)
-          const va = fichas.tocarLaud(f, { tocar: duracion, alSonar: (v) => sonido.musica('laud-jamil', v, { tramo: (duracion || 6.5) + 1 }),
+          const va = fichas.tocarLaud(f, { tocar: duracion, alSonar: (v) => sonido.musica('laud-jamil', v, { entera: true }),
             alTerminar: (completo) => { if (previa && !camara.tocado && !camara.enVuelo && !destruida) camara.volar(previa, 1.1); ok({ id, completo }); } });
           if (!va) return mal(new Error(`«${id}» no puede tocar ahora.`));
           if (seguir && !menosMovimiento) {

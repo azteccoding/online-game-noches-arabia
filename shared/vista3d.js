@@ -26,16 +26,18 @@ export function peleaDeLinea(e, l) {
 // sabe que tocó otra vez: lo anima y pone la música.
 const RE_LAUD = /^.+ toca el laúd en .+: gana /;
 export const laudDeLinea = (l) => (l?.pid && RE_LAUD.test(l.texto || '') ? { n: l.n, texto: l.texto } : null);
+// «Callaron a X (…)» lo escribe la votación «Que se calle Jamil» (revisarVotoLaud) cuando la mayoría lo pide: ahí deja de tocar.
+const RE_CALLARON = /^Callaron a .+: deja de tocar/;
 
 export function vista3d(data, e) {
   const jugadores = {};
-  const viajes = {}, lauds = {};
+  const viajes = {}, lauds = {}, callados = {};
   let pelea = null;
   for (const l of e.log || []) {
     if (!l.pid) continue;
     const medio = medioDeViaje(l.texto); if (medio) viajes[l.pid] = { n: l.n, medio };
     pelea = peleaDeLinea(e, l) || pelea;
-    const laud = laudDeLinea(l); if (laud) lauds[l.pid] = laud;
+    const laud = laudDeLinea(l); if (laud) lauds[l.pid] = laud; else if (RE_CALLARON.test(l.texto || '')) callados[l.pid] = l.n;
   }
   for (const id of Object.keys(e.jugadores || {})) {
     const j = e.jugadores[id]; if (!j?.mano) continue;
@@ -43,8 +45,8 @@ export function vista3d(data, e) {
     jugadores[id] = { arma: armaVisible(j), armaPelea: ORDEN_ARMAS.find((r) => u.includes(r) && ARMAS_ATAQUE.includes(r)) || '', arco: u.includes('arco'),
       escudo: !!tieneObj(j, 'OB04'),      // el escudo de cuero va a la vista (Jorge, 12 de noviembre: lo ven su dueño y los demás)
       transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null,
-      // la última vez que tocó el laúd (solo Jamil); voto: segundos que dura la votación «Que se calle Jamil» mientras sigue abierta (0 si no hay)
-      laud: lauds[id] ? { ...lauds[id], voto: e.votoLaud?.pid === id ? Math.round(e.votoLaud.limiteMs / 1000) : 0 } : null };
+      // la última vez que tocó el laúd (solo Jamil); callado: esa vez lo callaron en la votación «Que se calle Jamil» (deja de tocar ya)
+      laud: lauds[id] ? { ...lauds[id], callado: (callados[id] || 0) > lauds[id].n } : null };
   }
   // viva: la pelea sigue abierta (falta que el retado decida, o faltan dados). La animación empieza con los primeros dados de la pelea.
   if (pelea) pelea.viva = !!e.pelea && e.pelea.atk === pelea.atk && e.pelea.def === pelea.def;

@@ -5,7 +5,9 @@ import * as THREE from 'three';
 import { lienzo, aTextura } from './texturas.js';
 
 // Tiempos, en segundos: sentarse con el laúd, tocar (lo que pida quien llama) y levantarse.
-export const T_SACAR = 0.9, T_GUARDAR = 0.8, T_TOCAR = 6.5;
+// Jorge, 24 de noviembre: «la canción de Jamil debe empezar en el segundo 15 y durar 20 segundos». El archivo de la música ya es
+// ese tramo (del segundo 15 al 35 de la pieza, con el final fundido: herramientas/preparar-musica-laud.py); T_TOCAR es lo que dura.
+export const T_SACAR = 0.9, T_GUARDAR = 0.8, T_TOCAR = 20;
 const suave = (u) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
 
 // --- Notas: una corchea y un par de corcheas dibujadas a mano (no dependen de que el equipo tenga una fuente con ♪)

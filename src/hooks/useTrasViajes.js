@@ -6,12 +6,13 @@ import { escenaActual, quietos } from '../game/escena3d.js';
 // el resto de la pantalla (cartas, decisiones, dados, avisos, saldos, turno) sigue mostrando el estado anterior hasta que la ficha
 // llega. Devuelve [estado que se muestra, si hay un viaje en curso que lo retiene].
 const TOPE_MS = 20000;   // ningún viaje retiene la pantalla más que esto (pestaña en segundo plano, escena que no avisa…)
+const TOPE_LAUD_MS = 30000;   // la canción de Jamil dura 20 s, más sentarse, levantarse y lo que espere en la cola
 
+const tocoLaud = (antes, ahora, id) => (ahora.e3d?.jugadores?.[id]?.laud?.n || 0) > (antes.e3d?.jugadores?.[id]?.laud?.n || 0) && !!antes.e3d;
 function viajan(antes, ahora) {
   if (!antes || !ahora || !escenaActual() || antes.fase !== 'juego' || ahora.fase !== 'juego' || antes.yo !== ahora.yo || antes.codigo !== ahora.codigo) return [];
   // también retiene la pantalla quien acaba de tocar el laúd (Jamil): su premio sale cuando termina de tocar
-  const tocoLaud = (id) => (ahora.e3d?.jugadores?.[id]?.laud?.n || 0) > (antes.e3d?.jugadores?.[id]?.laud?.n || 0) && !!antes.e3d;
-  return Object.keys(ahora.jugadores || {}).filter((id) => { const a = antes.jugadores?.[id], b = ahora.jugadores[id]; return a && b.pj && !b.eliminado && (a.ciudad !== b.ciudad || tocoLaud(id)); });
+  return Object.keys(ahora.jugadores || {}).filter((id) => { const a = antes.jugadores?.[id], b = ahora.jugadores[id]; return a && b.pj && !b.eliminado && (a.ciudad !== b.ciudad || tocoLaud(antes, ahora, id)); });
 }
 
 export function useTrasViajes(s) {
@@ -20,14 +21,14 @@ export function useTrasViajes(s) {
   ultimo.current = s;
   if (!espera.current) {
     const ids = viajan(mostrado.current, s);
-    if (ids.length) espera.current = { ids, lanzada: false }; else mostrado.current = s;
+    if (ids.length) espera.current = { ids, lanzada: false, tope: ids.some((id) => tocoLaud(mostrado.current, s, id)) ? TOPE_LAUD_MS : TOPE_MS }; else mostrado.current = s;
   }
   useEffect(() => {
     const w = espera.current; if (!w || w.lanzada) return;
     w.lanzada = true;                                     // el tablero (hijo) ya pidió el viaje a la escena: aquí se espera a que termine
     let reloj = 0;
     const soltar = () => { if (espera.current !== w) return; clearTimeout(reloj); espera.current = null; mostrado.current = ultimo.current; pintar((n) => n + 1); };
-    reloj = setTimeout(soltar, TOPE_MS);
+    reloj = setTimeout(soltar, w.tope);
     quietos(...w.ids).then(soltar, soltar);
   });
   useEffect(() => () => { espera.current = null; }, []);

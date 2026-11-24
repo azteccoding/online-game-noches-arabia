@@ -173,6 +173,13 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {             
   assert.match(await d2.text(), /milyunanoches\.net\/demo\//);
   const img = await fetch(`http://127.0.0.1:${PUERTO}/demo/vista-previa.jpg`); assert.equal(img.status, 200); assert.equal(img.headers.get('content-type'), 'image/jpeg', 'vista previa para compartir con su tipo correcto');
   assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
+  // la música (un <audio>) se pide por partes: el servidor entrega el trozo pedido; sin eso Safari no la toca
+  const mus = `http://127.0.0.1:${PUERTO}/sonidos/laud-jamil.mp3`, entera = await fetch(mus), total = +entera.headers.get('content-length'); await entera.arrayBuffer();
+  assert.equal(entera.status, 200); assert.equal(entera.headers.get('accept-ranges'), 'bytes'); assert.ok(total > 100000 && total < 800000, 'la canción de Jamil es el tramo de 20 segundos, no la pieza completa');
+  const trozo = await fetch(mus, { headers: { Range: 'bytes=100-299' } }); assert.equal(trozo.status, 206); assert.equal(trozo.headers.get('content-range'), `bytes 100-299/${total}`); assert.equal((await trozo.arrayBuffer()).byteLength, 200);
+  const cola = await fetch(mus, { headers: { Range: 'bytes=-50' } }); assert.equal(cola.status, 206); assert.equal(cola.headers.get('content-range'), `bytes ${total - 50}-${total - 1}/${total}`); await cola.arrayBuffer();
+  const resto = await fetch(mus, { headers: { Range: 'bytes=0-' } }); assert.equal(resto.status, 206); assert.equal((await resto.arrayBuffer()).byteLength, total);
+  assert.equal((await fetch(mus, { headers: { Range: `bytes=${total + 5}-` } })).status, 416, 'un trozo que no existe');
   const raiz = await (await fetch(`http://127.0.0.1:${PUERTO}/`)).text();                // vista previa de la página principal al compartir
   // la vista previa lleva la dirección completa con que se abrió el link (WhatsApp no acepta direcciones relativas)
   assert.match(raiz, new RegExp(`og:image" content="http://127\\.0\\.0\\.1:${PUERTO}/miniatura-3d\\.jpg"`)); assert.match(raiz, /og:title" content="[^"]*amigos/);

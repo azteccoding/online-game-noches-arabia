@@ -19,7 +19,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
-    laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudVoto: e3d?.jugadores?.[j.id]?.laud?.voto || 0,
+    laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado,
   }));
 }
 
@@ -67,7 +67,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     const ahora = fichasDe(jugadores, e3d, turnoPid);
     const antes = previo.current;
     previo.current = Object.fromEntries(ahora.map((f) => [f.id, f]));
-    const limpio = ({ viajeN, medio, laudN, laudTexto, laudVoto, ...f }) => f;
+    const limpio = ({ viajeN, medio, laudN, laudTexto, laudCallado, ...f }) => f;
     if (!antes) { esc.ponerJugadores(ahora.map(limpio)).then(() => { if (previo.current?.[miId]) return esc.enfocar(miId, { duracion: 1.6, distancia: DISTANCIA_INICIO }); }).catch((err) => console.warn('[3D]', err)); return; }
     for (const id of Object.keys(antes)) {
       if (previo.current[id]) continue;
@@ -90,13 +90,13 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       }
       // Jamil toca el laúd (Jorge, 24 de noviembre): se lo pone al frente y toca, con música; el premio y su aviso salen al terminar
       // (el resto de la pantalla espera, igual que con un viaje: useTrasViajes).
-      // Con la votación «Que se calle Jamil» abierta toca lo que dure la votación; cuando se cierra (lo callaron o se acabó el tiempo) deja de tocar.
+      // Toca sus 20 segundos de canción (Jorge, 24 de noviembre), que es también lo que dura la votación «Que se calle Jamil»; solo si
+      // la mayoría lo calla deja de tocar antes.
       if (f.laudN > a.laudN) viajeDe(f.id, (e) => {
-        const abierta = previo.current?.[f.id]?.laudN === f.laudN && previo.current[f.id].laudVoto > 0;      // por si ya se cerró mientras esperaba su turno en la cola
-        const duracion = f.laudVoto ? (abierta ? Math.max(2, f.laudVoto - 0.9) : 1.5) : undefined;
-        return Promise.resolve(e.tocarLaud(f.id, { seguir: f.id === miId, duracion })).catch((err) => console.warn('[3D]', err?.message || err)).then(() => { if (f.laudTexto) avisar(f.laudTexto); });
+        const p = previo.current?.[f.id], callado = f.laudCallado || (p?.laudN === f.laudN && p.laudCallado);      // por si lo callaron mientras esperaba su turno en la cola
+        return Promise.resolve(e.tocarLaud(f.id, { seguir: f.id === miId, duracion: callado ? 1.5 : undefined })).catch((err) => console.warn('[3D]', err?.message || err)).then(() => { if (f.laudTexto) avisar(f.laudTexto); });
       });
-      else if (a.laudVoto > 0 && !f.laudVoto && f.laudN === a.laudN) esc.callarLaud(f.id);
+      else if (f.laudCallado && !a.laudCallado && f.laudN === a.laudN) esc.callarLaud(f.id);
     }
   }, [lista, jugadores, e3d, turnoPid, miId]);
 
