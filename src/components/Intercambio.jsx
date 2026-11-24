@@ -65,6 +65,13 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   }, [s.tratos]);   // eslint-disable-line react-hooks/exhaustive-deps
   const responder = (t, okv, seguro = false) => { if (okv && !seguro && esCostoso(t)) { setConfirma(t.id); return; } setConfirma(null); enviar(ACCIONES.responderTrato(t.id, okv)); limpiar(); onCerrar(); };
   React.useEffect(() => { if (contraDe && !contraHecha.current) { const t = entrantes.find((x) => x.id === contraDe); if (t) { contraHecha.current = true; contraofertar(t); } } });   // desde la alerta de trato
+  // Jorge (23 de noviembre): en el Jorasán no hay mercado; solo se avisa, sin desplegar nada.
+  if (yo.perdido) return (
+    <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
+      <div className="desp-cab"><h2>Mercado</h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
+      <div className="desp-cuerpo"><p>Estás en el Jorasán: no hay nada que comprar ni vender.</p></div>
+    </div>
+  );
   return (
     <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
       <div className="desp-cab">
@@ -119,7 +126,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
               <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs }, esContra)); limpiar(); } }}>
                 <label>Con <select value={con} onChange={(e) => { setCon(e.target.value); setPideObjs([]); }}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
                 <fieldset className="lado-trato"><legend>Yo doy</legend>
-                  <label>Dinares <input type="number" min="0" max={yo.dinares} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>
+                  <label>Dinares <input type="number" min="0" max={Math.max(0, yo.dinares)} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>
                   <label>Noches <input type="number" min="0" max={yo.noches} value={nchOfrece} onChange={(e) => setNchOfrece(e.target.value)} /></label>
                   {vendibles.map((c) => <label key={c.uid} className="chk"><input type="checkbox" checked={objs.includes(c.uid)} onChange={(e) => setObjs((o) => (e.target.checked ? [...o, c.uid] : o.filter((x) => x !== c.uid)))} /> {c.datos?.titulo}</label>)}
                 </fieldset>
@@ -131,7 +138,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
                   {suyas.map((c) => <label key={c.i} className="chk"><input type="checkbox" checked={pideObjs.includes(c.i)} onChange={(e) => setPideObjs((o) => (e.target.checked ? [...o, c.i] : o.filter((x) => x !== c.i)))} /> {c.titulo}</label>)}
                 </fieldset>
                 <AvisoTrato ofrece={{ dinares: dinOfrece, noches: nchOfrece }} pide={{ dinares: dinPide, noches: nchPide }} />
-                <button className="btn" type="submit" disabled={!con || Number(dinOfrece) > yo.dinares || Number(nchOfrece) > yo.noches}>Enviar propuesta</button>
+                <button className="btn" type="submit" disabled={!con || (Number(dinOfrece) > 0 && Number(dinOfrece) > yo.dinares) || (Number(nchOfrece) > 0 && Number(nchOfrece) > yo.noches)}>Enviar propuesta</button>
               </form>
             )}
           </>

@@ -43,6 +43,7 @@ function opcionesToledo(data, e, j) {
   return op;
 }
 const HUIDA_ZANJ = 30;
+const LEVA_NOCHES = 30;   // Leva del sultán: 30 noches o 10 dinares (Jorge, 23 de noviembre; antes 15)
 const huidaZanj = (data) => (data.rutas.rutas || []).filter((r) => r.modo === 'tierra' && (r.a === 'Bagdad' || r.b === 'Bagdad')).map((r) => (r.a === 'Bagdad' ? r.b : r.a)).filter((id) => id !== 'Basra');
 const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]) => k.startsWith(ciudad + '>')).map(([k, v]) => ({ id: k.split('>')[1], tarifa: v }));
 const vecinaBarata = (data, ciudad, excl = []) => vecinas(data, ciudad).filter((x) => !excl.includes(x.id)).sort((a, b) => a.tarifa - b.tarifa)[0]?.id || 'Bagdad';
@@ -172,7 +173,7 @@ function aplicarHistorico0(data, e, id) {
       ids.forEach((pid, i) => {
         const j = jug(e, pid), puede = j.destreza && ['alfanje', 'cimitarra', 'jambiya'].some((r) => tieneItem(j, r));   // el arco no cuenta como arma (Jorge, 19 de noviembre)
         const op = []; if (puede) op.push({ id: 'alistar', texto: 'Alistarme (+30 dinares; pierdo mi acción principal del siguiente turno)' });
-        op.push({ id: 'pagar', texto: 'Pagar 10 dinares' }); op.push({ id: 'noches', texto: 'Perder 15 noches' });
+        op.push({ id: 'pagar', texto: 'Pagar 10 dinares' }); op.push({ id: 'noches', texto: `Perder ${LEVA_NOCHES} noches` });
         pedir(e, { tipo: 'historico', para: [pid], titulo: 'Leva del sultán', texto: 'El sultán recluta soldados.', opciones: op, porDefecto: 'noches', cont: { fn: 'ev.h7', args: { ultimo: i === ids.length - 1 } } });
       });
       break;
@@ -270,7 +271,7 @@ registrar('ev.h4', (data, e, args, resp) => {
 registrar('ev.h7', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
   if (resp.opcion === 'alistar') { j.dinares += 30; j.extra.sinPrincipal = true; (e.mods.alistados ||= []).push(pid); log(e, `${j.nombre} se alista en la leva del sultán.`, { pid }); }
-  else if (resp.opcion === 'pagar' && j.dinares >= 10) { j.dinares -= 10; } else { j.noches -= 15; }
+  else if (resp.opcion === 'pagar' && j.dinares >= 10) { j.dinares -= 10; } else { j.noches -= LEVA_NOCHES; }
   if (args.ultimo) {
     const por = {}; for (const x of e.mods.alistados || []) (por[jug(e, x).ciudad] ||= []).push(x);
     for (const [c, ids] of Object.entries(por)) for (let i = 0; i + 1 < ids.length; i += 2) { const g = luchaLibre(data, e, ids[i], ids[i + 1], 'Duelo de entrenamiento (sin heridas ni muertes)'); jug(e, g).dinares += 20; log(e, `${jug(e, g).nombre} gana el duelo de entrenamiento y 20 dinares.`, { pid: g }); }

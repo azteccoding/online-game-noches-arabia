@@ -225,6 +225,7 @@ function Juego({ lienzo }) {
         {s.fase === 'juego' && panel !== 'chat' && <AvisoChat s={s} abrir={abrir} />}
         {s.fase !== 'fin' && <Decision s={s} />}
         {s.fase === 'juego' && <VotoReinicio s={s} />}
+        {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}   {/* dentro del mapa, arriba de su barra: no tapa los botones de abajo (Jorge, 23 de noviembre) */}
       </main>
       <PanelAcciones s={s} abrir={abrir} panel={panel} />
       <ModalCarta s={s} consulta={consulta} onCerrarConsulta={() => setConsulta(null)} huellaCiudades={huellaCiudades} />
@@ -235,7 +236,6 @@ function Juego({ lienzo }) {
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
       {s.fase === 'juego' && <AvisoEspera s={s} />}
       {s.fase === 'juego' && <AvisoBuscado s={s} />}
-      {s.fase === 'juego' && s.noSalir && !panel && <div className="alerta-roja" role="alert">⛔ No puedes salir de {s.jugadores[s.yo]?.ciudad}: {s.noSalir}</div>}
       <BurbujasReacciones yo={s.yo} />
       <BotonReacciones s={s} />
       {anuncios.length > 0 && <div className="anuncios-reto">{anuncios.map((a) => <Alerta key={a.id} className={`toast-reto ${a.tono}${a.propio ? ' propio' : ''}`} onCerrar={() => setAnunciosVistos((v) => new Set([...v, a.id]))}>{a.tono === 'ok' ? '✓ ' : ''}{a.texto}</Alerta>)}</div>}

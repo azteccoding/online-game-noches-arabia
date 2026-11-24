@@ -67,7 +67,8 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>{`Viajar a ${id} (${tarifa} dinares)`}</button>}
         {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && yo.herido && esRutaMar(yo.ciudad, id) && <p className="it">{HERIDO_BARCO}</p>}
-        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
+        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && s.noSalir && <p className="error">⛔ No puedes viajar a {id}: {s.noSalir}</p>}
+        {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && !s.noSalir && <p className="it">Ahora no puedes viajar a {id} desde aquí (sin ruta, sin caravana, ya hiciste tus tramos o hay una carta por resolver).</p>}
       </div>
     </div>
   );
