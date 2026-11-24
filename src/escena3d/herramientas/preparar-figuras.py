@@ -100,7 +100,7 @@ AJUSTES = {
     # Zubayda (Jorge, 23 nov: «brazo izquierdo muy grande y más ancha»; las gasas son láminas delgadas, no cuerpo; de espaldas se le marcan las pompas)
     # (zubayda_v1 se hizo con hoja-personaje-6-zubayda-pose-a.png, mano=(0.05, 0.50), tela=(0.15, 0.8), solido=ZUBAYDA_SOLIDO y bultos en x 0.415 y 0.585, y 0.475)
     # (zubayda_v2: hoja-personaje-6-zubayda-v3-pose-a.png, mano=(0.06, 0.50), tela=(0.10, 0.66), solido=ZUBAYDA_V2_SOLIDO, bultos en x 0.435 y 0.60, y 0.485)
-    '6': dict(mano=(0.07, 0.51), tela=(0.10, 0.66), piernas=0, orla=3, paso=4, izquierda='hoja-personaje-6-zubayda-360-izquierda.png', solido=ZUBAYDA_V3_SOLIDO, bultos=[(0.455, 0.47, 0.10, 0.062, 0.016), (0.625, 0.47, 0.10, 0.062, 0.016)]),
+    '6': dict(mano=(0.07, 0.51), tela=(0.10, 0.66), piernas=0, orla=3, paso=4, izquierda='hoja-personaje-6-zubayda-360-izquierda.png', solido=ZUBAYDA_V3_SOLIDO, torso=(0.17, 0.47, 1.25), bultos=[(0.455, 0.47, 0.10, 0.062, 0.016), (0.625, 0.47, 0.10, 0.062, 0.016)]),
     '7': dict(mano=(0.23, 0.51), tela=(0.15, 0.9), piernas=0, umbral=18),
     'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
     'G': dict(mano=(0.5, 0.4), tela=(0.55, 1.0), piernas=0),      # genio: la cola de humo ondula como una tela
@@ -365,6 +365,9 @@ def procesar(pid, archivo, solo_perfil=False):
         lisa = lambda v: ndi.gaussian_filter1d(ndi.median_filter(np.interp(ys, ys[hayB], v[hayB]), 7), 4)
         pi_, pd_ = lisa(pf), lisa(pb)
         fondoF = np.maximum(eje - pi_, 6) * 0.96; fondoB = np.maximum(pd_ - eje, 6) * 0.96
+        if aj.get('torso'):      # (y0, y1, factor): el torso salía más delgado que en la vista de perfil (el redondeo le come fondo); se engruesa en esas alturas
+            ty0, ty1, tf = aj['torso']; yn_ = ys / TH; gan = 1 + (tf - 1) * np.clip((yn_ - ty0) / 0.03, 0, 1) * np.clip((ty1 - yn_) / 0.04, 0, 1)
+            fondoF = fondoF * gan; fondoB = fondoB * gan
     cL = np.empty((TH, TW, 3), dtype=np.uint8); us = np.linspace(0, 1, TW); colsP = np.arange(wP, dtype=np.float32)
     for y in range(TH):
         src = np.clip(pi_[y] + us * (pd_[y] - pi_[y]), 0, wP - 1)
@@ -427,6 +430,7 @@ def procesar(pid, archivo, solo_perfil=False):
         _, (iy, ix) = ndi.distance_transform_edt(~mF, return_indices=True)
         cerca = np.where(mS[iy, ix], np.pi / 2 * (Rf / Dm), np.where(zt[iy, ix] > LAMINA, 1.2, 0.5))
         z = np.where(sd >= 0, dentro, cerca * sd)
+        fina_m = mF & ~ndi.binary_dilation(mS, iterations=3) & (zt <= LAMINA)      # la gasa suelta: de perfil puro la escena la pinta con la vista de perfil (de canto era una raya sobre el cuerpo)
         zEsp = None if zcB is None else np.where(sd >= 0, np.maximum(np.maximum(zcB, zt), np.minimum(sd, LAMINA)), cerca * sd)
     zEsp = None if not aj.get('solido') or zEsp is None else np.clip(ndi.gaussian_filter(zEsp, 1.5), -40, None)
     z = np.clip(ndi.gaussian_filter(z, 1.5), -40, None)
@@ -454,6 +458,11 @@ def procesar(pid, archivo, solo_perfil=False):
                  cubre=base64.b64encode(np.packbits(cub.reshape(-1)).tobytes()).decode(), x0=int(xs[0]), x1=int(xs[-1]),
                  mano=[round((TW / 2 + (aj['mano'][0] * wf - cfx) * esc) / TW, 4), round(aj['mano'][1], 4)], tela=aj['tela'], piernas=aj['piernas'])
 
+    if aj.get('solido') and aj.get('izquierda'):
+        fg = np.zeros((gy, gx), dtype=np.uint8)
+        for j in range(gy):
+            for i in range(gx): fg[j, i] = 1 if fina_m[min(TH - 1, j * PF), min(TW - 1, i * PF)] else 0
+        datos['fina'] = base64.b64encode(np.packbits(fg.reshape(-1)).tobytes()).decode()
     if zb is not None: datos['zb'] = cod(zb[np.minimum(TH - 1, np.arange(gy) * PF)][:, np.minimum(TW - 1, np.arange(gx) * PF)])
 
     # --- Busto para el retrato del panel (con su papel de fondo)

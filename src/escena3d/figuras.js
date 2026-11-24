@@ -24,6 +24,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   const zFila = new Float32Array(gy), zFilaB = new Float32Array(gy);
   for (let j = 0; j < gy; j++) { let m = 0, mB = 0; for (let i = 0; i < gx; i++) { m = Math.max(m, zEn(i, j)); mB = Math.max(mB, zDetras(i, j)); } zFila[j] = m; zFilaB[j] = mB; }
   for (const zf of [zFila, zFilaB]) for (let j = 0; j < gy; j++) zf[j] = Math.max(zf[j], 0.25 * Math.max(zf[Math.max(0, j - 1)], zf[Math.min(gy - 1, j + 1)]), 1e-4);
+  const finaB = datos.fina ? b64(datos.fina) : null, esFina = (n) => (finaB ? (finaB[n >> 3] >> (7 - (n & 7))) & 1 : 0), fina = [];      // gasa suelta: de perfil puro se pinta entera con la vista de perfil (de canto era una raya sobre el cuerpo)
   const pos = [], uv = [], uvL = [], cara = [], idx = [], peso = [];      // peso: [piernas (con signo), tela, altura normalizada]
   const mapa = [new Int32Array(gx * gy).fill(-1), new Int32Array(gx * gy).fill(-1)];
   const [t0, t1] = datos.tela, piernas = datos.piernas || 0;
@@ -33,6 +34,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     const x = (i * P - tw / 2) * k, y = (th - j * P) * k, z = c ? -zDetras(i, j) : zEn(i, j), yn = (j * P) / th;
     pos.push(x, y, z); uv.push((c + (i * P) / tw) / NT, 1 - yn);
     uvL.push((2 + Math.min(0.995, Math.max(0.005, (zFila[j] - z) / (zFila[j] + zFilaB[j])))) / NT, 1 - yn);
+    fina.push(esFina(n));
     cara.push(c ? 0 : 1 - paso(0.2, 0.26, yn));      // cabeza de la cáscara de delante
     const ancho = Math.max(1, der[j] - izq[j]), rel = Math.abs(((i - izq[j]) / ancho) * 2 - 1), xn = x / (alto * 0.2);
     // piernas: bajo el borde de la túnica, cada lado se mueve por su cuenta; con túnica larga solo se mece el bajo
@@ -50,7 +52,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     idx.push(a2, b2, c2, b2, d2, c2);
   }
   const geo = new THREE.BufferGeometry(), base = new Float32Array(pos);
-  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2)); geo.setAttribute('uvLado', new THREE.BufferAttribute(new Float32Array(uvL), 2)); geo.setAttribute('cara', new THREE.BufferAttribute(new Float32Array(cara), 1));
+  geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2)); geo.setAttribute('uvLado', new THREE.BufferAttribute(new Float32Array(uvL), 2)); geo.setAttribute('fina', new THREE.BufferAttribute(new Float32Array(fina), 1)); geo.setAttribute('cara', new THREE.BufferAttribute(new Float32Array(cara), 1));
   geo.setIndex(idx); geo.computeVertexNormals(); geo.computeBoundingSphere(); geo.boundingSphere.radius *= 1.25;
   const mat = new THREE.MeshStandardMaterial({ map: textura, alphaTest: 0.5, roughness: 0.86, metalness: 0, envMapIntensity: 0.55, emissive: 0xfff0d0, emissiveMap: textura, emissiveIntensity: 0 });
   // Vista de costado: donde la superficie mira hacia los lados se pinta con la vista de perfil de la hoja, tanto más cuanto
@@ -59,13 +61,14 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   if (NT >= 3) {
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uLado = uLado;
+      sh.uniforms.uCaraLado = { value: NT >= 4 ? 1 : 0 };      // con costado propio por lado, de perfil puro también la cabeza se pinta con la vista de perfil (si no, la cara salía cortada)
       sh.uniforms.uOtroLado = { value: NT >= 4 ? 1 / NT : 0 };      // cuarta tesela: el costado izquierdo de la figura (x > 0), distinto del derecho
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nattribute float cara;\nuniform float uOtroLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
-        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado + vec2(objectNormal.x > 0.0 ? uOtroLado : 0.0, 0.0); vPesoLado = abs(objectNormal.x); vCara = cara;');
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
-        .replace('#include <map_fragment>', '#include <map_fragment>\n{ float wL = uLado * smoothstep(mix(0.3, 0.86, vCara), mix(0.72, 0.99, vCara), vPesoLado); if (wL > 0.003) diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(map, vUvLado).rgb, wL); }');
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nattribute float cara;\nattribute float fina;\nvarying float vFina;\nuniform float uOtroLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado + vec2(objectNormal.x > 0.0 ? uOtroLado : 0.0, 0.0); vPesoLado = abs(objectNormal.x); vCara = cara; vFina = fina;');
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLado;\nuniform float uCaraLado;\nvarying float vFina;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
+        .replace('#include <map_fragment>', '#include <map_fragment>\n{ float ca = vCara * (1.0 - uCaraLado * uLado); float wL = uLado * smoothstep(mix(0.3, 0.86, ca), mix(0.72, 0.99, ca), vPesoLado); wL = max(wL, uCaraLado * uLado * vFina); if (wL > 0.003) diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(map, vUvLado).rgb, wL); }');
     };
-    mat.customProgramCacheKey = () => 'figura-lado-3';
+    mat.customProgramCacheKey = () => 'figura-lado-6';
   }
   const malla = new THREE.Mesh(geo, mat); malla.castShadow = true; malla.receiveShadow = true;
   const grupo = new THREE.Group(); grupo.add(malla);
@@ -111,7 +114,8 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     P3.needsUpdate = true;
   }
   function destruir() { geo.dispose(); mat.dispose(); }
-  return { grupo, malla, material: mat, brazo, mano, alzar, animar, destruir, ponerLado(u) { uLado.value = u; }, yAsiento, alto, ancho: (datos.x1 - datos.x0) * k, fondo: datos.zmax * k };
+  // con un costado por lado (4 teselas) la pintura de perfil solo entra casi de perfil: en tres cuartos duplicaba el brazo (Jorge, 24 de noviembre)
+  return { grupo, malla, material: mat, brazo, mano, alzar, animar, destruir, ponerLado(u) { uLado.value = NT >= 4 ? Math.min(1, Math.max(0, (u - 0.86) / 0.12)) ** 2 : u; }, yAsiento, alto, ancho: (datos.x1 - datos.x0) * k, fondo: datos.zmax * k };
 }
 
 // Carga la textura de una figura (URL incrustada o normal). Devuelve una promesa.
