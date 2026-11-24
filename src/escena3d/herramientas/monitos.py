@@ -72,7 +72,8 @@ def usar(nombre):
     activos = leer(ACTIVOS, {}); activos[pid] = nombre; escribir(ACTIVOS, dict(sorted(activos.items())))
     print(f'Puesto {nombre} como monito del personaje {pid}.')
     # los monitos de ocho vistas guardados antes del 24 de noviembre no traen el giro continuo entre vistas: se calcula ahora
-    if figuras[pid].get('vistas') and not figuras[pid].get('giro8'):
+    # (y los guardados ese día con la primera versión solo traen el corrimiento de lado, sin alturas ni relieve: también)
+    if figuras[pid].get('vistas') and not (figuras[pid].get('giro8') and figuras[pid].get('giroEscZ')):
         try:
             import importlib.util
             esp = importlib.util.spec_from_file_location('preparar_giro8', os.path.join(AQUI, 'preparar-giro8.py')); giro = importlib.util.module_from_spec(esp); esp.loader.exec_module(giro)
