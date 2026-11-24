@@ -37,11 +37,13 @@ function planoCenital(nombre, y) {      // horizontal, con la proa (izquierda de
 }
 // Visto desde atrás (Jorge, 24 de noviembre: hoja de la popa a ras de piso, preparada con herramientas/preparar-dhow-popa.py). Las dos
 // cáscaras del perfil se juntan en el contorno, así que la popa acababa en punta, con una rendija, y la vela se veía de canto. Ahora:
-//  · de la galería hacia atrás las cáscaras se abren hasta la media manga que pinta la hoja a cada altura (toldo, baranda y casco), y
+//  · de la galería hacia atrás las cáscaras se abren hasta la media manga que pinta la hoja a cada altura (baranda y casco), y
 //  · el hueco lo cierra el espejo de popa: la pintura de la popa de frente, colgada del borde trasero del perfil (solo se ve desde atrás);
+//  · el toldo se queda como estaba, uno solo y al centro (Jorge, 24 de noviembre: abierto en dos cortinas «sale doble, la anterior
+//    estaba mejor»); su pintura vista desde atrás va aparte y solo se abre cuando la cámara está justo detrás, igual que la vela;
 //  · el palo y la vela vistos desde atrás van en un plano atravesado en el palo, que se abre cuando la cámara mira a lo largo del
 //    barco (por la popa o por la proa) y se cierra hasta desaparecer cuando lo ve de lado, donde manda la vela del perfil.
-const POPA = { toldo: 425, quilla: 660, desde: 455, hasta: 500, baranda: 555, borde: 618, palo: 318 };      // filas y columnas de la vista de perfil (píxeles de animal-dhow)
+const POPA = { toldo: 425, galeria: 522, quilla: 660, desde: 455, hasta: 500, baranda: 555, borde: 618, palo: 318 };      // filas y columnas de la vista de perfil (píxeles de animal-dhow)
 const escalon = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 function texturaPopa(nombre) { return texturaCenital(nombre); }
 function abrirPopa(M, alto) {
@@ -52,8 +54,8 @@ function abrirPopa(M, alto) {
   const A = M.geo.attributes.position;
   for (let v = 0; v < A.count; v++) {
     const x = A.getX(v), fila = th - A.getY(v) / k, col = cx - A.getZ(v) / k;
-    if (fila < POPA.toldo - 2 || col < POPA.desde) continue;
-    const t = escalon(POPA.desde, fila < POPA.baranda - 55 ? POPA.desde + 18 : POPA.hasta, col), m = Math.max(Math.abs(x), semi(fila));
+    if (fila < POPA.galeria || col < POPA.desde) continue;      // de la cubierta para arriba no se toca
+    const t = escalon(POPA.desde, POPA.hasta, col) * escalon(POPA.galeria, POPA.galeria + 14, fila), m = Math.max(Math.abs(x), semi(fila));
     A.setX(v, Math.sign(x || 1) * (Math.abs(x) + (m - Math.abs(x)) * t));
   }
   A.needsUpdate = true; M.geo.computeVertexNormals(); M.geo.computeBoundingSphere(); M.geo.boundingSphere.radius *= 1.2;
@@ -66,29 +68,35 @@ function abrirPopa(M, alto) {
   };
   const filas = []; for (let f = POPA.toldo; f < POPA.quilla; f += 5) filas.push(f); filas.push(POPA.quilla);
   const cols = filas.map(borde); for (let i = 1; i < cols.length; i++) cols[i] = Math.min(cols[i], cols[i - 1]);      // hacia abajo nunca vuelve a salir
-  const pos = [], uv = [], idx = [], xIzq = d.eje * esc * k * ajuste, xDer = (d.eje - d.ancho) * esc * k * ajuste;      // la izquierda de la pintura, a babor visto desde atrás (+X)
-  filas.forEach((f, i) => {
-    const y = (th - f) * k, z = (cx - cols[i] + 1.5) * k, vv = 1 - (f - POPA.toldo) / (POPA.quilla - POPA.toldo);
-    pos.push(xIzq, y, z, xDer, y, z); uv.push(0, vv, 1, vv);
-    if (i) { const a = (i - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); }
-  });
-  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
-  const espejo = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: texturaPopa('popa'), alphaTest: 0.5, side: THREE.FrontSide, roughness: 0.72, metalness: 0, envMapIntensity: 0.5 }));
+  const xIzq = d.eje * esc * k * ajuste, xDer = (d.eje - d.ancho) * esc * k * ajuste;      // la izquierda de la pintura, a babor visto desde atrás (+X)
+  const tramo = (desde, hasta) => {      // un tramo del espejo, entre dos filas del perfil
+    const pos = [], uv = [], idx = []; let n = 0;
+    filas.forEach((f, i) => {
+      if (f < desde || f > hasta) return;
+      const y = (th - f) * k, z = (cx - cols[i] + 1.5) * k, vv = 1 - (f - POPA.toldo) / (POPA.quilla - POPA.toldo);
+      pos.push(xIzq, y, z, xDer, y, z); uv.push(0, vv, 1, vv);
+      if (n) { const a = (n - 1) * 2; idx.push(a, a + 2, a + 1, a + 1, a + 2, a + 3); } n++;
+    });
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); g.computeVertexNormals();
+    return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: texturaPopa('popa'), alphaTest: 0.5, side: THREE.FrontSide, roughness: 0.72, metalness: 0, envMapIntensity: 0.5 }));
+  };
+  const espejo = tramo(POPA.galeria, POPA.quilla), toldo = tramo(POPA.toldo, POPA.galeria);
   // la vela vista desde atrás: de la punta del toldo hacia arriba, atravesada en el palo
   const w = popaDhow.vela, yv = (th - POPA.toldo) * k, hv = w.alto * esc * k, x0 = w.eje * esc * k * ajuste, x1 = (w.eje - w.ancho) * esc * k * ajuste;
   const gv = new THREE.BufferGeometry(); gv.setAttribute('position', new THREE.Float32BufferAttribute([x0, yv + hv, 0, x1, yv + hv, 0, x0, yv, 0, x1, yv, 0], 3));
   gv.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 1, 1, 0, 0, 1, 0], 2)); gv.setIndex([0, 2, 1, 1, 2, 3]); gv.computeVertexNormals();
   const vela = new THREE.Mesh(gv, new THREE.MeshStandardMaterial({ map: texturaPopa('popa-vela'), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8, metalness: 0, envMapIntensity: 0.5 }));
   vela.position.z = (cx - POPA.palo) * k;
-  return { espejo, vela };
+  return { espejo, toldo, vela };
 }
+const A_TOLDO = [0.9, 0.99];      // lo mismo para la pintura del toldo visto desde atrás (de unos 26° a unos 8°), y solo por la popa
 const A_LO_LARGO = [0.95, 0.992];      // |cámara · quilla| (en planta): de aquí a aquí se abre la vela vista desde atrás (de unos 18° a unos 7° de la quilla; más abierto, la vela del perfil ya se ve tan ancha como ella y se verían dos palos)
 
 export function crearDhowPintado() {
   const alto = (ESLORA_PINTADO * hojaDhow.th) / hojaDhow.tw;
   const M = crearModeloPintado(hojaDhow, texturaPintada('dhow'), { alto, centroX: hojaDhow.tw / 2, material: { roughness: 0.72 } });
   const grupo = new THREE.Group(), casco = new THREE.Group(); casco.position.y = -CALADO * alto; grupo.add(casco);
-  const popa = abrirPopa(M, alto); casco.add(M.malla, popa.espejo, popa.vela);
+  const popa = abrirPopa(M, alto); casco.add(M.malla, popa.espejo, popa.toldo, popa.vela);
   const yCubierta = (CUBIERTA - CALADO) * alto, cubierta = planoCenital('cubierta', yCubierta - 0.004), cenital = planoCenital('cenital', yCubierta + 0.012);
   cubierta.receiveShadow = true; grupo.add(cubierta, cenital);
   const dir = new THREE.Vector3(), giro = new THREE.Quaternion();
@@ -96,10 +104,10 @@ export function crearDhowPintado() {
     const plomo = Math.abs(camara.getWorldDirection(dir).y) > A_PLOMO;
     M.material.opacity = popa.espejo.material.opacity = plomo ? 0.3 : 1; cenital.material.opacity = plomo ? 1 : 0.3;
     dir.applyQuaternion(grupo.getWorldQuaternion(giro).invert());      // la mirada de la cámara, en los ejes del barco
-    const abre = plomo ? 0 : escalon(A_LO_LARGO[0], A_LO_LARGO[1], Math.abs(dir.z) / (Math.hypot(dir.x, dir.z) || 1));
-    popa.vela.visible = abre > 0.02; popa.vela.scale.x = Math.max(0.02, abre);
+    const lar = dir.z / (Math.hypot(dir.x, dir.z) || 1), abre = plomo ? 0 : escalon(A_LO_LARGO[0], A_LO_LARGO[1], Math.abs(lar)), abreT = plomo ? 0 : escalon(A_TOLDO[0], A_TOLDO[1], lar);      // lar > 0: la cámara mira hacia la proa, o sea, está detrás
+    popa.vela.visible = abre > 0.02; popa.vela.scale.x = Math.max(0.02, abre); popa.toldo.visible = abreT > 0.02; popa.toldo.scale.x = Math.max(0.02, abreT);
   };
-  cenital.material.opacity = 0.3; popa.vela.visible = false;
+  cenital.material.opacity = 0.3; popa.vela.visible = popa.toldo.visible = false;
   return { grupo, vela: new THREE.Object3D(), yCubierta, zPasajero: -0.12 * ESLORA_PINTADO };
 }
 
