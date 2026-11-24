@@ -67,6 +67,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Mientras el genio sale de la lámpara, flota y vuelve a meterse, todo lo demás se queda quieto (monitos, barcos, ronda); sigue al esconderse el genio. | El 2D no tiene animación del genio. | `b1dc128` |
 | 24 nov | Nur al Din de ocho vistas (v2). Pintura nueva de Zein en la Giralda (R26, vestida como en su hoja) y de Sherezada leyendo (R16); las anteriores se conservan. Botones de la esquina del mapa (girar, vista general, centrar, sonido) a la vista: estaban tapados por el lienzo 3D. Partida de muestra con los ocho personajes (`tools/partida-personajes.mjs`). | El 2D sigue con sus ilustraciones y su tablero de siempre. | `d5b851a`, `1248128` |
 | 24 nov | Yafar de ocho vistas (v2), con pintura cenital cuando la cámara lo mira desde arriba. | El 2D sigue con su monito de siempre. | `658cf8a` |
+| 24 nov | Cartas de sheij con pintura: la genérica (Averroes, Abu Madyan e Ibn Arabi) y la propia de Ibn Hazm (M5 a M8, M17 y su carta de objeto). | El 2D sigue con su ilustración de siempre. | siguiente a `40da4fa` |
 
 ## Despliegue
 
