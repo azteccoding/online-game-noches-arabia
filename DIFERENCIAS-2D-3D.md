@@ -77,6 +77,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Jamil de ocho vistas (jamil_v2) con pintura cenital, y un segundo juego de ocho vistas de Jamil sentado tocando el laúd; la carta del laúd lleva la pintura de su hoja. | El 2D sigue con su monito de siempre. | `9d33e27` |
 | 24 nov | Pintura nueva: Ladrones de Alí Babá (E2). | El 2D sigue con su ilustración de siempre. | `21354e1` |
 | 24 nov | Cartas con las pinturas de Jorge para burro, caballo, camello, caballo mongol, alfombra mágica y lámpara de aceite (armadas con sus hojas de vistas, como las de las armas). El camello animado ya camina con cuatro patas (salía con ocho). | El 2D sigue con sus cartas e ilustraciones de siempre. | `7337827` |
+| 24 nov | Pinturas nuevas de Jorge para las cartas de la Yegua de la estepa y la Alfombra de Isfahán. | El 2D sigue con sus cartas de siempre. | commit «3D: pinturas de la yegua de la estepa y la alfombra de Isfahán» |
 
 ## Despliegue
 

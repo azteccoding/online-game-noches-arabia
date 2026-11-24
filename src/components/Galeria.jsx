@@ -20,7 +20,7 @@ const IDS = {
 };
 export default function Galeria({ mazo, ancho = 360 }) {
   // ?galeria=armas: las cartas de objetos armadas con las hojas de vistas (armas, flechas, escudo) y la del genio
-  const lista = mazo === 'armas' ? [...['cimitarra', 'alfanje', 'jambiya', 'arco', 'flechas', 'burro', 'caballo', 'camello', 'caballoMongol', 'alfombra', 'lampara'].map((r) => itemDatos(DATA, r)), cartaDatos(DATA, 'objeto', 'OB04'), cartaDatos(DATA, 'ifrit', 'I1')] : mazo === 'especial' ? DATA.objetos.especiales.filter((x) => IDS.especial().includes(x.id)).map((x) => ({ id: x.id, deck: 'especial', titulo: x.nombre, sub: 'Carta especial', texto: (x.texto || '') + ' ' + (x.efecto || ''), arte: x.arte })) : (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
+  const lista = mazo === 'armas' ? [...['cimitarra', 'alfanje', 'jambiya', 'arco', 'flechas', 'burro', 'caballo', 'camello', 'caballoMongol', 'alfombra', 'lampara', 'yegua', 'alfombraIsfahan'].map((r) => itemDatos(DATA, r)), cartaDatos(DATA, 'objeto', 'OB04'), cartaDatos(DATA, 'ifrit', 'I1')] : mazo === 'especial' ? DATA.objetos.especiales.filter((x) => IDS.especial().includes(x.id)).map((x) => ({ id: x.id, deck: 'especial', titulo: x.nombre, sub: 'Carta especial', texto: (x.texto || '') + ' ' + (x.efecto || ''), arte: x.arte })) : (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
   React.useEffect(() => {
     const t = setTimeout(() => {
       const malas = [...document.querySelectorAll('.c-cuerpo')].filter((e) => e.scrollHeight > e.clientHeight + 1).map((e) => e.closest('[data-id]')?.getAttribute('data-id'));
