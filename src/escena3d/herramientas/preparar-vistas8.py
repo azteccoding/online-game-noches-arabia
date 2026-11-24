@@ -10,6 +10,7 @@
 # 3/4 de espalda izquierdo, perfil izquierdo, 3/4 de frente izquierdo. Necesita Pillow, numpy y scipy.
 # Salida: public/arte3d/fig-<id>.webp (las ocho vistas en fila, o en dos filas si son muy anchas) y la entrada del personaje en src/escena3d/datos/figuras.json
 # (con «vistas»; mano, tela y demás se conservan de la entrada anterior).
+# Al final llama a preparar-giro8.py, que añade a esa entrada el giro continuo entre vistas (giro8).
 import sys, os, json, base64
 import numpy as np
 from PIL import Image, ImageFilter
@@ -148,6 +149,11 @@ def main():
     if antes.get('toca'): figuras[pid]['toca'] = antes['toca']      # dónde rasguea y se mece la figura que toca: se pone a mano en figuras.json
     json.dump(figuras, open(FIGURAS, 'w', encoding='utf8'), ensure_ascii=False)
     print(f'fig-{pid}.webp: 8 vistas de {tw} × {TH} en {filas} fila(s), {atlas.shape[1]} × {atlas.shape[0]}; rejilla {gx} × {gy}')
+    # giro continuo (24 nov): a dónde va cada punto de cada pintura al llegar a la vista vecina; figuras8.js lo usa para que
+    # el paso de una pintura a otra no sea un salto. Lee el atlas recién guardado y completa la entrada del personaje.
+    import importlib.util
+    esp = importlib.util.spec_from_file_location('preparar_giro8', os.path.join(AQUI, 'preparar-giro8.py')); giro = importlib.util.module_from_spec(esp); esp.loader.exec_module(giro)
+    giro.preparar(pid)
 
 
 if __name__ == '__main__': main()

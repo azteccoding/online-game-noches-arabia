@@ -71,6 +71,14 @@ def usar(nombre):
     json.dump(figuras, open(FIGURAS, 'w', encoding='utf8'), ensure_ascii=False)      # el mismo formato que deja preparar-figuras.py
     activos = leer(ACTIVOS, {}); activos[pid] = nombre; escribir(ACTIVOS, dict(sorted(activos.items())))
     print(f'Puesto {nombre} como monito del personaje {pid}.')
+    # los monitos de ocho vistas guardados antes del 24 de noviembre no traen el giro continuo entre vistas: se calcula ahora
+    if figuras[pid].get('vistas') and not figuras[pid].get('giro8'):
+        try:
+            import importlib.util
+            esp = importlib.util.spec_from_file_location('preparar_giro8', os.path.join(AQUI, 'preparar-giro8.py')); giro = importlib.util.module_from_spec(esp); esp.loader.exec_module(giro)
+            giro.preparar(pid)
+        except ImportError as e:
+            print(f'OJO: falta calcular el giro continuo de {pid} ({e}). Corre: python3 src/escena3d/herramientas/preparar-giro8.py {pid}')
 
 
 if __name__ == '__main__':
