@@ -24,7 +24,7 @@ A = os.path.join(RAIZ, 'public', 'arte3d'); D = os.path.join(AQUI, '..', 'datos'
 VISTA = os.environ.get('VISTA')          # carpeta opcional para guardar vistas de control
 
 HOJAS = {'1': 'hoja-personaje-1-nur-al-din-pose-a.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
-         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda-pose-a.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
+         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda-v3-pose-a.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
          'G': 'genio.png'}      # el genio de la lámpara (Jorge, 23 nov): lo usa ifrit.js
 # Las hojas «-pose-a» salen de la hoja técnica de cinco vistas con hoja-tecnica-a-cuatro-vistas.py (quita las líneas guía y deja frente, tres cuartos, perfil y espalda).
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
@@ -33,7 +33,7 @@ VISTAS_M = []          # hoja libre: la máscara propia de cada una de las cuatr
 TEXTURA = 0            # hoja libre: umbral de textura («textura» en AJUSTES) para personajes vestidos del color del papel; 0 = por color
 UMBRAL_LIBRE = 26      # hoja libre: cuánto puede apartarse un color del papel y seguir siendo papel («umbral» en AJUSTES; se baja si se come ropa clara)
 TH = 896                                 # alto de la figura en la textura
-PERFIL_A_LA_DERECHA = set()              # personajes cuya vista de perfil mira a la derecha (se voltea para que todos miren a la izquierda)
+PERFIL_A_LA_DERECHA = {'6'}              # personajes cuya vista de perfil mira a la derecha (se voltea para que todos miren a la izquierda)
 PASO = 8                                 # paso de la rejilla del relieve, en píxeles de textura
 # Ajustes por personaje. «quitar»: rectángulos (x0, y0, x1, y1 en fracción del recorte de frente) que no forman parte del
 # cuerpo (un bastón que se modela aparte). «mano»: dónde empuña el arma (fracción del recorte de frente; x desde la izquierda
@@ -55,6 +55,17 @@ ZUBAYDA_SOLIDO = dict(
     perfil=[(0.30, 0), (0.17, 0.035), (0.15, 0.09), (0.20, 0.13), (0.30, 0.165), (0.22, 0.19), (0.04, 0.225), (0.02, 0.25), (0.08, 0.285), (0.14, 0.31), (0.10, 0.36), (0.07, 0.40),
             (0.07, 0.46), (0.10, 0.55), (0.13, 0.65), (0.14, 0.75), (0.12, 0.90), (0.06, 0.97), (0.08, 1), (0.55, 1), (0.52, 0.95), (0.47, 0.85), (0.50, 0.75), (0.55, 0.65),
             (0.66, 0.56), (0.76, 0.50), (0.77, 0.46), (0.70, 0.41), (0.60, 0.37), (0.70, 0.32), (0.78, 0.25), (0.80, 0.15), (0.76, 0.06), (0.62, 0)], eje=0.38)
+# Zubayda v2 (Jorge, 23 nov, hoja técnica v3): el velo largo cae de la diadema por la espalda y cubre solo su brazo derecho (a la
+# izquierda de la imagen de frente); funciona como capa. La falda cuenta como cuerpo; el velo es lámina delgada.
+ZUBAYDA_V2_SOLIDO = dict(
+    cuerpo=[[(0.44, 0), (0.57, 0), (0.60, 0.05), (0.60, 0.10), (0.57, 0.145), (0.62, 0.17), (0.71, 0.20), (0.71, 0.245), (0.675, 0.27), (0.645, 0.30), (0.63, 0.34), (0.67, 0.39),
+             (0.70, 0.45), (0.71, 0.52), (0.72, 0.62), (0.74, 0.72), (0.76, 0.85), (0.78, 0.96), (0.74, 1), (0.27, 1), (0.25, 0.96), (0.27, 0.85), (0.29, 0.72), (0.31, 0.62),
+             (0.32, 0.52), (0.33, 0.45), (0.36, 0.39), (0.40, 0.34), (0.385, 0.30), (0.36, 0.27), (0.33, 0.245), (0.33, 0.20), (0.42, 0.17), (0.46, 0.145), (0.42, 0.10), (0.42, 0.05)]],
+    brazos=[[(0.34, 0.225, 0.042), (0.28, 0.29, 0.040), (0.21, 0.355, 0.034), (0.14, 0.42, 0.032), (0.095, 0.46, 0.028), (0.07, 0.51, 0.024)],
+            [(0.70, 0.225, 0.042), (0.75, 0.29, 0.040), (0.81, 0.345, 0.034), (0.88, 0.415, 0.032), (0.92, 0.46, 0.028), (0.945, 0.51, 0.024)]],
+    perfil=[(0.36, 0), (0.24, 0.035), (0.21, 0.09), (0.26, 0.13), (0.32, 0.165), (0.24, 0.19), (0.05, 0.225), (0.03, 0.25), (0.10, 0.285), (0.15, 0.31), (0.13, 0.36), (0.12, 0.40),
+            (0.12, 0.46), (0.12, 0.55), (0.13, 0.65), (0.13, 0.75), (0.11, 0.90), (0.07, 0.97), (0.08, 1), (0.58, 1), (0.56, 0.95), (0.55, 0.85), (0.57, 0.75), (0.60, 0.65),
+            (0.66, 0.56), (0.71, 0.50), (0.71, 0.46), (0.64, 0.41), (0.56, 0.37), (0.60, 0.32), (0.64, 0.25), (0.64, 0.15), (0.66, 0.06), (0.58, 0)], eje=0.38)
 NUR_SOLIDO = dict(
     cuerpo=[[(0.50, 0), (0.53, 0), (0.60, 0.05), (0.635, 0.10), (0.62, 0.17), (0.66, 0.20), (0.76, 0.235), (0.79, 0.28), (0.74, 0.33), (0.69, 0.38), (0.69, 0.45), (0.71, 0.52),
              (0.72, 0.68), (0.73, 0.83), (0.77, 0.88), (0.78, 1), (0.26, 1), (0.27, 0.88), (0.29, 0.83), (0.30, 0.68), (0.30, 0.52), (0.35, 0.45), (0.36, 0.38), (0.30, 0.33),
@@ -72,7 +83,8 @@ AJUSTES = {
     '4': dict(mano=(0.14, 0.505), tela=(0.2, 0.9), piernas=0, umbral=18),
     '5': dict(mano=(0.17, 0.52), tela=(0.15, 0.9), piernas=0, textura=7.5),
     # Zubayda (Jorge, 23 nov: «brazo izquierdo muy grande y más ancha»; las gasas son láminas delgadas, no cuerpo; de espaldas se le marcan las pompas)
-    '6': dict(mano=(0.05, 0.50), tela=(0.15, 0.8), piernas=0, orla=3, paso=4, solido=ZUBAYDA_SOLIDO, bultos=[(0.415, 0.475, 0.105, 0.062, 0.016), (0.585, 0.475, 0.105, 0.062, 0.016)]),
+    # (zubayda_v1 se hizo con hoja-personaje-6-zubayda-pose-a.png, mano=(0.05, 0.50), tela=(0.15, 0.8), solido=ZUBAYDA_SOLIDO y bultos en x 0.415 y 0.585, y 0.475)
+    '6': dict(mano=(0.06, 0.50), tela=(0.10, 0.66), piernas=0, orla=3, paso=4, solido=ZUBAYDA_V2_SOLIDO, bultos=[(0.435, 0.485, 0.10, 0.062, 0.016), (0.60, 0.485, 0.10, 0.062, 0.016)]),
     '7': dict(mano=(0.23, 0.51), tela=(0.15, 0.9), piernas=0, umbral=18),
     'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
     'G': dict(mano=(0.5, 0.4), tela=(0.55, 1.0), piernas=0),      # genio: la cola de humo ondula como una tela
