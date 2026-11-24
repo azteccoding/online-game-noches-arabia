@@ -78,7 +78,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Pintura nueva: Ladrones de Alí Babá (E2). | El 2D sigue con su ilustración de siempre. | `21354e1` |
 | 24 nov | Cartas con las pinturas de Jorge para burro, caballo, camello, caballo mongol, alfombra mágica y lámpara de aceite (armadas con sus hojas de vistas, como las de las armas). El camello animado ya camina con cuatro patas (salía con ocho). | El 2D sigue con sus cartas e ilustraciones de siempre. | `7337827` |
 | 24 nov | Pinturas nuevas de Jorge para las cartas de la Yegua de la estepa y la Alfombra de Isfahán. | El 2D sigue con sus cartas de siempre. | `9e49bd3` |
-| 24 nov | Dhow visto desde atrás: con la hoja de la popa que mandó Jorge, el barco ya no acaba en punta con una rendija; lleva su espejo de popa pintado (galería y casco) y, solo cuando la cámara queda justo detrás, se ven también el toldo, los faroles y la vela abiertos como en la hoja. De lado y de tres cuartos el toldo sigue como estaba, uno solo (Jorge: abierto en dos «sale doble, la anterior estaba mejor»). | El 2D no tiene barco en 3D. | `f422425` |
+| 24 nov | Dhow visto desde atrás: con la hoja de la popa que mandó Jorge, el barco ya no acaba en punta con una rendija; lleva su espejo de popa pintado (galería y casco) y el toldo es una caja con techo (el tapete de la pintura cenital) que se ve entero, con sus sacos, desde cualquier lado y sin salir doble; la vela de la hoja de popa se abre solo cuando la cámara queda justo detrás o delante. | El 2D no tiene barco en 3D. | `f422425` |
 
 ## Despliegue
 
