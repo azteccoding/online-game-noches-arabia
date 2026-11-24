@@ -19,9 +19,13 @@ TH = 896; ALTO = 880; PASO = 8; ZMAX = 44.0
 # hacia dónde mira cada cáscara (grados; 0 = de frente, negativo = costado derecho de la figura)
 AZIMUT = [0, -45, -90, -135, 180, 135, 90, 45]
 # eje vertical del cuerpo en cada recorte, en píxeles desde su borde izquierdo con la figura a 880 de alto (medido a ojo sobre la rejilla de control)
-EJES = {'6': [195, 165, 152, 168, 177, 158, 140, 153]}
+EJES = {'6': [195, 165, 152, 168, 177, 158, 140, 153],
+        '1': [235, 195, 130, 183, 218, 205, 120, 205]}      # Nur al Din: entre la punta del yelmo y el centro de los pies
+# Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': None}
+MANO = {'6': None, '1': None}
+# fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
+RELLENO_ARRIBA = {'1': 0.14}
 
 
 def papel_y_distancia(im):
@@ -75,6 +79,11 @@ def main():
         M = M & ~(pie & (sat < 0.2)); M = ndi.binary_opening(M, iterations=1) | (M & ~pie)
         huecos = ndi.binary_fill_holes(M) & ~M; lab, n = ndi.label(huecos)      # cierra los poros sueltos; los huecos de verdad (entre brazo y cuerpo) se quedan
         if n: tam = ndi.sum(huecos, lab, range(1, n + 1)); M = M | np.isin(lab, [q + 1 for q, t in enumerate(tam) if t < 60])
+        if pid in RELLENO_ARRIBA:
+            tope = oy + int(ALTO * RELLENO_ARRIBA[pid]); arriba = np.zeros_like(M); arriba[:tope] = True
+            M = M | (ndi.binary_fill_holes(M | ~arriba) & arriba)
+            # y los brillos grises de las botas, que el quitado de la sombra del suelo dejó huecos
+            M = M | (ndi.binary_fill_holes(ndi.binary_closing(M & pie, iterations=3) | ~pie) & pie)
         # el color se corre hacia fuera del contorno para que el filtrado de la textura no traiga papel
         _, (iy, ix) = ndi.distance_transform_edt(~M, return_indices=True); C = C[iy, ix]
         atlas[:, i * tw:(i + 1) * tw, :3] = C; atlas[:, i * tw:(i + 1) * tw, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
