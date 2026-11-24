@@ -24,7 +24,7 @@ A = os.path.join(RAIZ, 'public', 'arte3d'); D = os.path.join(AQUI, '..', 'datos'
 VISTA = os.environ.get('VISTA')          # carpeta opcional para guardar vistas de control
 
 HOJAS = {'1': 'hoja-personaje-1-nur-al-din-pose-a.png', '2': 'hoja-personaje-2-zein-al-mawasif.png', '3': 'hoja-personaje-3-anis.png', '4': 'hoja-personaje-4-jamil-al-udhri.png',
-         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda-v3-pose-a.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
+         '5': 'hoja-personaje-5-sabio-ruyan.png', '6': 'hoja-personaje-6-zubayda-360-pose-a.png', '7': 'hoja-personaje-7-adi.png', 'B': 'hoja-personaje-B-yafar-el-bermeki.png',
          'G': 'genio.png'}      # el genio de la lámpara (Jorge, 23 nov): lo usa ifrit.js
 # Las hojas «-pose-a» salen de la hoja técnica de cinco vistas con hoja-tecnica-a-cuatro-vistas.py (quita las líneas guía y deja frente, tres cuartos, perfil y espalda).
 PANEL = (214, 264, 2266, 1402)           # la lámina con las cuatro vistas, dentro de la hoja de 2480 × 1754
@@ -66,6 +66,21 @@ ZUBAYDA_V2_SOLIDO = dict(
     perfil=[(0.36, 0), (0.24, 0.035), (0.21, 0.09), (0.26, 0.13), (0.32, 0.165), (0.24, 0.19), (0.05, 0.225), (0.03, 0.25), (0.10, 0.285), (0.15, 0.31), (0.13, 0.36), (0.12, 0.40),
             (0.12, 0.46), (0.12, 0.55), (0.13, 0.65), (0.13, 0.75), (0.11, 0.90), (0.07, 0.97), (0.08, 1), (0.58, 1), (0.56, 0.95), (0.55, 0.85), (0.57, 0.75), (0.60, 0.65),
             (0.66, 0.56), (0.71, 0.50), (0.71, 0.46), (0.64, 0.41), (0.56, 0.37), (0.60, 0.32), (0.64, 0.25), (0.64, 0.15), (0.66, 0.06), (0.58, 0)], eje=0.38)
+# Zubayda v3 (Jorge, 24 nov, hojas de 360°): velo continuo de la diadema al hombro derecho y sobre ese brazo; brazo izquierdo
+# descubierto y pierna izquierda fuera de la falda. «perfil» es su costado derecho (volteado para mirar a la izquierda) y
+# «perfil2» el costado izquierdo, de la hoja «izquierda».
+ZUBAYDA_V3_SOLIDO = dict(
+    cuerpo=[[(0.43, 0), (0.58, 0), (0.62, 0.05), (0.62, 0.10), (0.57, 0.155), (0.63, 0.18), (0.73, 0.205), (0.74, 0.25), (0.70, 0.28), (0.675, 0.31), (0.67, 0.34), (0.70, 0.39),
+             (0.73, 0.44), (0.76, 0.52), (0.75, 0.60), (0.73, 0.68), (0.72, 0.80), (0.73, 0.96), (0.70, 1), (0.30, 1), (0.27, 0.96), (0.29, 0.80), (0.32, 0.68), (0.33, 0.58),
+             (0.34, 0.50), (0.35, 0.44), (0.37, 0.39), (0.40, 0.34), (0.385, 0.31), (0.37, 0.28), (0.34, 0.25), (0.34, 0.205), (0.42, 0.18), (0.46, 0.155), (0.40, 0.10), (0.40, 0.05)]],
+    brazos=[[(0.335, 0.225, 0.042), (0.27, 0.29, 0.040), (0.20, 0.355, 0.034), (0.13, 0.425, 0.032), (0.095, 0.47, 0.028), (0.07, 0.52, 0.024)],
+            [(0.745, 0.235, 0.042), (0.80, 0.30, 0.040), (0.85, 0.365, 0.034), (0.895, 0.43, 0.032), (0.92, 0.47, 0.028), (0.945, 0.52, 0.024)]],
+    perfil=[(0.42, 0), (0.31, 0.04), (0.29, 0.09), (0.33, 0.13), (0.38, 0.165), (0.30, 0.19), (0.14, 0.225), (0.12, 0.25), (0.19, 0.285), (0.22, 0.31), (0.21, 0.36), (0.19, 0.42),
+            (0.17, 0.50), (0.11, 0.60), (0.06, 0.70), (0.10, 0.80), (0.08, 0.90), (0.03, 0.96), (0.05, 1), (0.50, 1), (0.48, 0.95), (0.50, 0.85), (0.55, 0.75), (0.62, 0.62),
+            (0.68, 0.52), (0.69, 0.47), (0.62, 0.41), (0.55, 0.36), (0.58, 0.30), (0.63, 0.24), (0.62, 0.16), (0.64, 0.07), (0.58, 0)], eje=0.40,
+    perfil2=[(0.42, 0), (0.33, 0.04), (0.30, 0.09), (0.34, 0.13), (0.39, 0.165), (0.33, 0.19), (0.23, 0.225), (0.21, 0.25), (0.28, 0.285), (0.30, 0.31), (0.28, 0.36), (0.26, 0.42),
+             (0.20, 0.50), (0.13, 0.60), (0.11, 0.68), (0.15, 0.80), (0.13, 0.90), (0.08, 0.96), (0.10, 1), (0.52, 1), (0.50, 0.95), (0.52, 0.85), (0.56, 0.75), (0.62, 0.62),
+             (0.66, 0.52), (0.67, 0.47), (0.61, 0.41), (0.55, 0.36), (0.57, 0.30), (0.61, 0.24), (0.60, 0.16), (0.62, 0.07), (0.58, 0)])
 NUR_SOLIDO = dict(
     cuerpo=[[(0.50, 0), (0.53, 0), (0.60, 0.05), (0.635, 0.10), (0.62, 0.17), (0.66, 0.20), (0.76, 0.235), (0.79, 0.28), (0.74, 0.33), (0.69, 0.38), (0.69, 0.45), (0.71, 0.52),
              (0.72, 0.68), (0.73, 0.83), (0.77, 0.88), (0.78, 1), (0.26, 1), (0.27, 0.88), (0.29, 0.83), (0.30, 0.68), (0.30, 0.52), (0.35, 0.45), (0.36, 0.38), (0.30, 0.33),
@@ -84,7 +99,8 @@ AJUSTES = {
     '5': dict(mano=(0.17, 0.52), tela=(0.15, 0.9), piernas=0, textura=7.5),
     # Zubayda (Jorge, 23 nov: «brazo izquierdo muy grande y más ancha»; las gasas son láminas delgadas, no cuerpo; de espaldas se le marcan las pompas)
     # (zubayda_v1 se hizo con hoja-personaje-6-zubayda-pose-a.png, mano=(0.05, 0.50), tela=(0.15, 0.8), solido=ZUBAYDA_SOLIDO y bultos en x 0.415 y 0.585, y 0.475)
-    '6': dict(mano=(0.06, 0.50), tela=(0.10, 0.66), piernas=0, orla=3, paso=4, solido=ZUBAYDA_V2_SOLIDO, bultos=[(0.435, 0.485, 0.10, 0.062, 0.016), (0.60, 0.485, 0.10, 0.062, 0.016)]),
+    # (zubayda_v2: hoja-personaje-6-zubayda-v3-pose-a.png, mano=(0.06, 0.50), tela=(0.10, 0.66), solido=ZUBAYDA_V2_SOLIDO, bultos en x 0.435 y 0.60, y 0.485)
+    '6': dict(mano=(0.07, 0.51), tela=(0.10, 0.66), piernas=0, orla=3, paso=4, izquierda='hoja-personaje-6-zubayda-360-izquierda.png', solido=ZUBAYDA_V3_SOLIDO, bultos=[(0.455, 0.47, 0.10, 0.062, 0.016), (0.625, 0.47, 0.10, 0.062, 0.016)]),
     '7': dict(mano=(0.23, 0.51), tela=(0.15, 0.9), piernas=0, umbral=18),
     'B': dict(mano=(0.72, 0.40), tela=(0.2, 0.9), piernas=0, umbral=18),      # la bolsa va en la derecha: el arma, en la izquierda
     'G': dict(mano=(0.5, 0.4), tela=(0.55, 1.0), piernas=0),      # genio: la cola de humo ondula como una tela
@@ -209,9 +225,12 @@ def rellenar(rgb, m):
     idx = ndi.distance_transform_edt(~m, return_distances=False, return_indices=True)
     return rgb[idx[0], idx[1]]
 
-def procesar(pid, archivo):
+def procesar(pid, archivo, solo_perfil=False):
     global LIBRE, UMBRAL_LIBRE, TEXTURA
     UMBRAL_LIBRE = AJUSTES[pid].get('umbral', 26); TEXTURA = AJUSTES[pid].get('textura', 0)
+    # «izquierda»: segunda hoja de cuatro vistas cuya tercera figura es el perfil IZQUIERDO (mirando a la izquierda). Con ella la
+    # figura lleva un costado distinto para cada lado (Zubayda: velo solo en su brazo derecho; Jorge, 24 de noviembre).
+    izq = procesar(pid, AJUSTES[pid]['izquierda'], solo_perfil=True) if AJUSTES[pid].get('izquierda') and not solo_perfil else None
     hoja = Image.open(os.path.join(ORIGEN, archivo)).convert('RGB')
     LIBRE = hoja.size != HOJA_LAMINA      # una hoja de otro tamaño es de formato libre: toda la imagen es la lámina
     if not LIBRE: hoja = hoja.crop(PANEL)
@@ -269,7 +288,9 @@ def procesar(pid, archivo):
         if espejo: mm = mm[:, ::-1]; cc = cc[:, ::-1]
         return mm, cc
 
+    if solo_perfil: return recorte(2)      # hoja «izquierda»: solo interesa su vista de perfil
     mf, cf = recorte(0); mb, cb = recorte(3, espejo=True); mp, cp = recorte(2, espejo=pid in PERFIL_A_LA_DERECHA)
+    if izq is not None: VISTAS_M[:] = []      # las máscaras por vista eran de la otra hoja
     for (qx0, qy0, qx1, qy1) in aj.get('quitar', []):
         hh, ww = mf.shape; mf[int(qy0 * hh):int(qy1 * hh), int(qx0 * ww):int(qx1 * ww)] = False
     hf, wf = mf.shape; esc = TH / hf
@@ -348,10 +369,28 @@ def procesar(pid, archivo):
     for y in range(TH):
         src = np.clip(pi_[y] + us * (pd_[y] - pi_[y]), 0, wP - 1)
         for c in range(3): cL[y, :, c] = np.interp(src, colsP, cP[y, :, c])
-    atlas = np.zeros((TH, TW * 3, 4), dtype=np.uint8)
+    NT = 3; cL2 = None
+    if izq is not None:      # cuarta tesela: el costado izquierdo, de su propia vista de perfil
+        mp2, cp2 = izq; h2, w2 = mp2.shape; wP2 = max(1, round(w2 * TH / h2))
+        colP2 = np.asarray(Image.fromarray(rellenar(cp2, mp2)).resize((wP2, TH), Image.LANCZOS))
+        mP2 = np.asarray(Image.fromarray((mp2 * 255).astype(np.uint8)).resize((wP2, TH), Image.LANCZOS)) > 127
+        cP2 = rellenar(colP2, mP2)
+        from PIL import ImageDraw
+        l2 = Image.new('L', (wP2, TH), 0); ImageDraw.Draw(l2).polygon([(px * wP2, py * TH) for px, py in aj['solido']['perfil2']], fill=255)
+        m2 = (np.asarray(l2) > 127) & mP2; hay2 = m2.any(axis=1)
+        f2 = np.where(hay2, m2.argmax(axis=1), np.nan); b2 = np.where(hay2, wP2 - 1 - m2[:, ::-1].argmax(axis=1), np.nan)
+        lisa2 = lambda v: ndi.gaussian_filter1d(ndi.median_filter(np.interp(ys, ys[hay2], v[hay2]), 7), 4)
+        f2, b2 = lisa2(f2), lisa2(b2); cL2 = np.empty((TH, TW, 3), dtype=np.uint8); cols2 = np.arange(wP2, dtype=np.float32)
+        for y in range(TH):
+            src = np.clip(f2[y] + us * (b2[y] - f2[y]), 0, wP2 - 1)
+            for c in range(3): cL2[y, :, c] = np.interp(src, cols2, cP2[y, :, c])
+        NT = 4
+        if VISTA: vp2 = np.full((TH, wP2, 3), (255, 0, 255), dtype=np.uint8); vp2[mP2] = colP2[mP2]; Image.fromarray(vp2).save(os.path.join(VISTA, f'perfil2-{pid}.png'))
+    atlas = np.zeros((TH, TW * NT, 4), dtype=np.uint8)
     atlas[:, :TW, :3] = cF; atlas[:, :TW, 3] = alfa_suave
     atlas[:, TW:TW * 2, :3] = cB; atlas[:, TW:TW * 2, 3] = alfa_suave
-    atlas[:, TW * 2:, :3] = cL; atlas[:, TW * 2:, 3] = 255
+    atlas[:, TW * 2:TW * 3, :3] = cL; atlas[:, TW * 2:, 3] = 255
+    if cL2 is not None: atlas[:, TW * 3:, :3] = cL2
     Image.fromarray(atlas, 'RGBA').save(os.path.join(A, f'fig-{pid}.webp'), quality=90, method=6, exact=True)
 
     # --- Relieve: grosor por altura (de la vista de perfil) y redondeo desde el borde (transformada de distancia)
@@ -411,7 +450,7 @@ def procesar(pid, archivo):
         for i in range(gx - 1):
             cub[j, i] = 1 if mF[j * PF:(j + 1) * PF + 1, i * PF:(i + 1) * PF + 1].any() else 0
     xs = np.where(mF.any(axis=0))[0]
-    datos = dict(tw=TW, th=TH, teselas=3, paso=PF, zmax=round(zmax, 2), zmin=round(zmin, 2), z=cod(zg),
+    datos = dict(tw=TW, th=TH, teselas=NT, paso=PF, zmax=round(zmax, 2), zmin=round(zmin, 2), z=cod(zg),
                  cubre=base64.b64encode(np.packbits(cub.reshape(-1)).tobytes()).decode(), x0=int(xs[0]), x1=int(xs[-1]),
                  mano=[round((TW / 2 + (aj['mano'][0] * wf - cfx) * esc) / TW, 4), round(aj['mano'][1], 4)], tela=aj['tela'], piernas=aj['piernas'])
 
@@ -422,7 +461,7 @@ def procesar(pid, archivo):
     bx0 = max(0, cx - lado // 2); by0 = max(0, y0 - int(lado * 0.1))
     hoja.crop((bx0, by0, bx0 + lado, by0 + lado)).resize((176, 176), Image.LANCZOS).save(os.path.join(A, f'busto-{pid}.webp'), quality=88, method=6)
     if VISTA:
-        v = Image.new('RGB', (TW * 3, TH), (255, 0, 255)); v.paste(Image.fromarray(atlas, 'RGBA'), (0, 0), Image.fromarray(atlas[:, :, 3]))
+        v = Image.new('RGB', (TW * NT, TH), (255, 0, 255)); v.paste(Image.fromarray(atlas, 'RGBA'), (0, 0), Image.fromarray(atlas[:, :, 3]))
         v.save(os.path.join(VISTA, f'fig-{pid}.png'))
         Image.fromarray(((z - zmin) / (zmax - zmin) * 255).astype(np.uint8)).save(os.path.join(VISTA, f'z-{pid}.png'))
         if zb is not None: Image.fromarray(((zb - zmin) / (zmax - zmin) * 255).astype(np.uint8)).save(os.path.join(VISTA, f'zb-{pid}.png'))

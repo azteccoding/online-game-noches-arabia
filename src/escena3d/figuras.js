@@ -32,7 +32,7 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
     v = pos.length / 3; mapa[c][n] = v;
     const x = (i * P - tw / 2) * k, y = (th - j * P) * k, z = c ? -zDetras(i, j) : zEn(i, j), yn = (j * P) / th;
     pos.push(x, y, z); uv.push((c + (i * P) / tw) / NT, 1 - yn);
-    uvL.push((NT - 1 + Math.min(0.995, Math.max(0.005, (zFila[j] - z) / (zFila[j] + zFilaB[j])))) / NT, 1 - yn);
+    uvL.push((2 + Math.min(0.995, Math.max(0.005, (zFila[j] - z) / (zFila[j] + zFilaB[j])))) / NT, 1 - yn);
     cara.push(c ? 0 : 1 - paso(0.2, 0.26, yn));      // cabeza de la cáscara de delante
     const ancho = Math.max(1, der[j] - izq[j]), rel = Math.abs(((i - izq[j]) / ancho) * 2 - 1), xn = x / (alto * 0.2);
     // piernas: bajo el borde de la túnica, cada lado se mueve por su cuenta; con túnica larga solo se mece el bajo
@@ -59,12 +59,13 @@ export function crearFigura(datos, textura, { alto = ALTO_FIGURA } = {}) {
   if (NT >= 3) {
     mat.onBeforeCompile = (sh) => {
       sh.uniforms.uLado = uLado;
-      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nattribute float cara;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
-        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado; vPesoLado = abs(objectNormal.x); vCara = cara;');
+      sh.uniforms.uOtroLado = { value: NT >= 4 ? 1 / NT : 0 };      // cuarta tesela: el costado izquierdo de la figura (x > 0), distinto del derecho
+      sh.vertexShader = sh.vertexShader.replace('#include <common>', '#include <common>\nattribute vec2 uvLado;\nattribute float cara;\nuniform float uOtroLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
+        .replace('#include <beginnormal_vertex>', '#include <beginnormal_vertex>\nvUvLado = uvLado + vec2(objectNormal.x > 0.0 ? uOtroLado : 0.0, 0.0); vPesoLado = abs(objectNormal.x); vCara = cara;');
       sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uLado;\nvarying vec2 vUvLado;\nvarying float vPesoLado;\nvarying float vCara;')
         .replace('#include <map_fragment>', '#include <map_fragment>\n{ float wL = uLado * smoothstep(mix(0.3, 0.86, vCara), mix(0.72, 0.99, vCara), vPesoLado); if (wL > 0.003) diffuseColor.rgb = mix(diffuseColor.rgb, texture2D(map, vUvLado).rgb, wL); }');
     };
-    mat.customProgramCacheKey = () => 'figura-lado-2';
+    mat.customProgramCacheKey = () => 'figura-lado-3';
   }
   const malla = new THREE.Mesh(geo, mat); malla.castShadow = true; malla.receiveShadow = true;
   const grupo = new THREE.Group(); grupo.add(malla);
