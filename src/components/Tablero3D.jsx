@@ -19,7 +19,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
-    laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado,
+    laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado, laudPieza: e3d?.jugadores?.[j.id]?.laud?.pieza || 1,
   }));
 }
 
@@ -90,11 +90,11 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       }
       // Jamil toca el laúd (Jorge, 24 de noviembre): se lo pone al frente y toca, con música; el premio y su aviso salen al terminar
       // (el resto de la pantalla espera, igual que con un viaje: useTrasViajes).
-      // Toca sus 40 segundos de canción (Jorge, 24 de noviembre), que es también lo que dura la votación «Que se calle Jamil»; solo si
+      // Toca una de sus dos piezas (40 o 22 segundos; la elige el juego al azar: laudPieza), que es también lo que dura la votación «Que se calle Jamil»; solo si
       // la mayoría lo calla deja de tocar antes.
       if (f.laudN > a.laudN) viajeDe(f.id, (e) => {
         const p = previo.current?.[f.id], callado = f.laudCallado || (p?.laudN === f.laudN && p.laudCallado);      // por si lo callaron mientras esperaba su turno en la cola
-        return Promise.resolve(e.tocarLaud(f.id, { seguir: f.id === miId, duracion: callado ? 1.5 : undefined })).catch((err) => console.warn('[3D]', err?.message || err)).then(() => { if (f.laudTexto) avisar(f.laudTexto); });
+        return Promise.resolve(e.tocarLaud(f.id, { seguir: f.id === miId, pieza: f.laudPieza, duracion: callado ? 1.5 : undefined })).catch((err) => console.warn('[3D]', err?.message || err)).then(() => { if (f.laudTexto) avisar(f.laudTexto); });
       });
       else if (f.laudCallado && !a.laudCallado && f.laudN === a.laudN) esc.callarLaud(f.id);
     }

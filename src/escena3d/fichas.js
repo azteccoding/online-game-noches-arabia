@@ -36,7 +36,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   }
   function vestir(f, pid) {
     const pj = personajes[pid]; if (!pj || !recursos.figuras[pid]) throw new Error(`No hay figura para el personaje «${pid}».`);
-    f.pj = pj; f.pid = pid; if (pid === '4') sonido?.prepararMusica?.('laud-jamil');      // Jamil en la mesa: su música se va bajando
+    f.pj = pj; f.pid = pid; if (pid === '4') { sonido?.prepararMusica?.('laud-jamil'); sonido?.prepararMusica?.('laud-jamil-2'); }      // Jamil en la mesa: su música se va bajando
     const promesa = texturaDe(pid).then((t) => {
       if (f.pid !== pid || f.fuera) return;
       if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; soltarLaud(f); }

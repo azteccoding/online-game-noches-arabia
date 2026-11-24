@@ -17,6 +17,7 @@ import { crearFlota } from './dhow.js';
 import { ARMAS, NOMBRE_ARMA } from './armas.js';
 import { TRANSPORTES, NOMBRE_TRANSPORTE } from './monturas.js';
 import { crearIfrit } from './ifrit.js';
+import { T_TOCAR_2 } from './laud.js';
 import FIGURAS from './datos/figuras.json';
 import MONTES from './datos/montes.json';
 
@@ -398,7 +399,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // la música de la ranura 'laud-jamil', siempre desde el principio (el archivo es su canción de 40 segundos). duracion: segundos
     // tocando (sin contar sentarse y levantarse; los 20 de la canción si no se dice). Se resuelve al terminar.
     // Solo puede quien tiene figura sentada (fig-<personaje>t: Jamil).
-    tocarLaud(id, { duracion, seguir = false } = {}) {
+    // pieza: 1 (la de 40 segundos) o 2 (la de 22, del 1:39 al 2:01 de la misma canción); la elige el juego al azar.
+    tocarLaud(id, { duracion, seguir = false, pieza = 1 } = {}) {
       return new Promise((ok, mal) => {
         const f = ficha(id);
         if (f.viaje) return mal(new Error(`«${id}» está de viaje.`));
@@ -407,7 +409,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
         Promise.resolve(f.lista).then(() => f.listaToca).then(() => {
           alDia();
           let previa = null;      // con «seguir», la cámara se acerca a verlo tocar y al terminar vuelve a donde estaba (si nadie la movió)
-          const va = fichas.tocarLaud(f, { tocar: duracion, alSonar: (v) => sonido.musica('laud-jamil', v, { entera: true }),
+          const va = fichas.tocarLaud(f, { tocar: duracion ?? (pieza === 2 ? T_TOCAR_2 : undefined), alSonar: (v) => sonido.musica(pieza === 2 ? 'laud-jamil-2' : 'laud-jamil', v, { entera: true }),
             alTerminar: (completo) => { if (previa && !camara.tocado && !camara.enVuelo && !destruida) camara.volar(previa, 1.1); ok({ id, completo }); } });
           if (!va) return mal(new Error(`«${id}» no puede tocar ahora.`));
           if (seguir && !menosMovimiento) {

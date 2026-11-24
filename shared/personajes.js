@@ -1,7 +1,7 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
   ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
-enPartida, marcarBuscado, publicarCarta, tieneItem, darItem, } from './base.js';
+enPartida, marcarBuscado, publicarCarta, tieneItem, darItem, rnd, } from './base.js';
 import { peleaNPC } from './pelea.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -144,9 +144,12 @@ export function accion(data, e, pid, a) {
       t.principal = true;
       j.noches += LAUD.noches; j.dinares += LAUD.dinares;
       // la capa 3D reconoce esta línea para animarlo y poner la música (shared/vista3d.js, RE_LAUD): si cambia la frase, cambiar allá
-      log(e, `${j.nombre} toca el laúd en ${j.ciudad}: gana ${LAUD.noches} noche y ${LAUD.dinares} dinar.`, { pid });
+      // Jorge (24 de noviembre): toca una de dos piezas de la misma canción, al azar: dos de cada tres veces la segunda (del 1:39 al 2:01
+      // de la canción, 22 segundos) y si no la de siempre (40 segundos). La línea lleva cuál tocó, para que todos oigan la misma.
+      const pieza = rnd(e) < 2 / 3 ? 2 : 1;
+      log(e, `${j.nombre} toca el laúd en ${j.ciudad}: gana ${LAUD.noches} noche y ${LAUD.dinares} dinar.`, { pid, pieza });
       // «Que se calle Jamil»: mientras toca, los demás votan (engine.js lo cierra con el reloj o cuando ya hay mayoría)
-      if (votantesLaud(e, pid).length) e.votoLaud = { pid, t0: e.ahora, limiteMs: LAUD.votoMs, callan: {} };
+      if (votantesLaud(e, pid).length) e.votoLaud = { pid, t0: e.ahora, limiteMs: LAUD.piezas[pieza], callan: {} };
       return ok();
     }
     case 'honra': {
@@ -207,7 +210,7 @@ export function vistaVotoLaud(e, pid) {
   const vs = votantesLaud(e, v.pid);
   return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid), yaVote: !!v.callan[pid], premio: LAUD.sigue };
 }
-export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 40000 };   // votoMs: lo que dura su canción, 40 segundos (Jorge, 24 de noviembre)  ·   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
+export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 40000, piezas: { 1: 40000, 2: 22000 } };   // votoMs: lo que dura su canción, 40 segundos (Jorge, 24 de noviembre); piezas: lo que dura cada una de las dos que puede tocar, que es también lo que dura la votación  ·   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
 const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';
 // Partidas que empezaron antes de que el laúd fuera una carta: Jamil lo recibe al empezar su siguiente turno (una sola vez por partida).
 export function asegurarLaud(e) {

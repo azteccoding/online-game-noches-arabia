@@ -75,6 +75,7 @@ El archivo es el mp3 de escucha de Freesound tal cual, sin recortar ni cambiar. 
 | Archivo | Título original | Autor | Página de origen | Licencia |
 |---|---|---|---|---|
 | laud-jamil.mp3 | Fragmento de 40 segundos (del segundo 15 al 55, con el final fundido) de «Orchestra-Tetouan-Asmir-07.wav» (Freesound #182730, vista previa HQ mp3): solo de laúd en un concierto de música arábigo-andalusí de la Orquesta Tetuán-Asmir, grabado en Tetuán, Marruecos, el 25 de febrero de 2013 | xserra (Xavier Serra, proyecto CompMusic) | https://freesound.org/people/xserra/sounds/182730/ | CC BY 4.0 (Creative Commons Atribución) |
+| laud-jamil-2.mp3 | Fragmento de 22 segundos (del 1:39 al 2:01, con el final fundido) de «Orchestra-Tetouan-Asmir-07.wav» (Freesound #182730, vista previa HQ mp3): solo de laúd en un concierto de música arábigo-andalusí de la Orquesta Tetuán-Asmir, grabado en Tetuán, Marruecos, el 25 de febrero de 2013 | xserra (Xavier Serra, proyecto CompMusic) | https://freesound.org/people/xserra/sounds/182730/ | CC BY 4.0 (Creative Commons Atribución) |
 
 Aviso de la licencia MIT de los sonidos de dados:
 

@@ -8,7 +8,7 @@ import { lienzo, aTextura } from './texturas.js';
 // Jorge, 24 de noviembre: «la canción de Jamil debe empezar en el segundo 15 y durar 20 segundos». El archivo de la música ya es
 // ese tramo (herramientas/preparar-musica-laud.py, con el final fundido); T_TOCAR es lo que dura. Después, el mismo día: «quiero que
 // Jamil toque por 40 segundos»: ahora es del segundo 15 al 55 de la pieza.
-export const T_SACAR = 0.9, T_GUARDAR = 0.8, T_TOCAR = 40;
+export const T_SACAR = 0.9, T_GUARDAR = 0.8, T_TOCAR = 40, T_TOCAR_2 = 22;      // T_TOCAR_2: la segunda pieza (del 1:39 al 2:01 de la misma canción; Jorge, 24 de noviembre)
 const suave = (u) => { u = Math.min(1, Math.max(0, u)); return u * u * (3 - 2 * u); };
 
 // --- Notas: una corchea y un par de corcheas dibujadas a mano (no dependen de que el equipo tenga una fuente con ♪)

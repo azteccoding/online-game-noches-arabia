@@ -25,7 +25,7 @@ export function peleaDeLinea(e, l) {
 // «X toca el laúd en C: gana…» lo escribe la acción de Jamil (shared/personajes.js, case 'laud'). Con su número de línea, la capa 3D
 // sabe que tocó otra vez: lo anima y pone la música.
 const RE_LAUD = /^.+ toca el laúd en .+: gana /;
-export const laudDeLinea = (l) => (l?.pid && RE_LAUD.test(l.texto || '') ? { n: l.n, texto: l.texto } : null);
+export const laudDeLinea = (l) => (l?.pid && RE_LAUD.test(l.texto || '') ? { n: l.n, texto: l.texto, pieza: l.pieza === 2 ? 2 : 1 } : null);
 // «Callaron a X (…)» lo escribe la votación «Que se calle Jamil» (revisarVotoLaud) cuando la mayoría lo pide: ahí deja de tocar.
 const RE_CALLARON = /^Callaron a .+: deja de tocar/;
 

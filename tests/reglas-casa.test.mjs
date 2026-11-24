@@ -3966,12 +3966,26 @@ console.log('reglas de la casa OK');
   turnoDe(e, jamil, 'Jorasán'); e.turno.fase = 'acciones'; J.perdido = true;
   assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
 }
+// Jorge (24 de noviembre, solo en el 3D): Jamil toca una de dos piezas de la misma canción, al azar: dos de cada tres veces la segunda
+// (22 segundos) y si no la de siempre (40). La votación dura lo que la pieza y la capa 3D sabe cuál fue.
+{
+  const { vista3d } = await import('../shared/vista3d.js'); const { LAUD } = await import('../shared/personajes.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil] = g.ids, J = e.jugadores[jamil], veces = { 1: 0, 2: 0 };
+  assert.deepEqual(LAUD.piezas, { 1: 40000, 2: 22000 });
+  for (let i = 0; i < 300; i++) {
+    turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; e.votoLaud = null; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+    const p = vista3d(data, e).jugadores[jamil].laud.pieza; assert.ok(p === 1 || p === 2); veces[p]++;
+    assert.equal(e.votoLaud.limiteMs, LAUD.piezas[p], 'la votación dura lo que la pieza que tocó');
+  }
+  assert.ok(veces[2] > 170 && veces[2] < 230, `la segunda pieza sale unas dos de cada tres veces (salió ${veces[2]} de 300)`);
+}
 // Jorge (24 de noviembre, solo en el 3D): «Que se calle Jamil». Mientras toca, los demás votan con un botón; si más de la mitad lo
 // oprime, deja de tocar y termina su turno; si no, al acabarse el tiempo gana 5 noches y 5 dinares. No oprimir cuenta como que siga.
 {
   const g = partida(['4', '7', '6', 'B']); assert.ok(g.iniciar().ok);
   const e = g.e, [jamil, adi, zub, nur] = g.ids, J = e.jugadores[jamil];
-  const tocar = () => { turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; e.votoLaud = null; J.noches = 40; J.dinares = 3; const n0 = e.logN || 0; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); return n0; };
+  const tocar = () => { turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; e.votoLaud = null; J.noches = 40; J.dinares = 3; const n0 = e.logN || 0; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); if (e.votoLaud) e.votoLaud.limiteMs = 40000; return n0; };   // aquí siempre con la pieza larga (la pieza sale al azar: se prueba abajo)
   const aviso = (n0, re) => e.log.some((l) => l.n > n0 && l.aviso && re.test(l.texto));
   // 1) nadie lo calla: al acabarse el tiempo gana 5 y 5 más
   let n0 = tocar();
