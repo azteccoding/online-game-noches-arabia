@@ -49,6 +49,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   // Lectura (Jorge, 23 de noviembre): en las cartas pintadas el texto va chico para lucir la pintura; al pasar el mouse
   // (o al tocar la carta en el celular) crece a letra grande en un recuadro que cubre hasta 2/3 de la carta, y al retirarlo
   // vuelve despacio a su lugar (la transición de regreso es lenta, ver cards.css).
+  // Jorge (23 de noviembre, repetido): NINGUNA carta pintada lleva el recuadro borroso; todas van en letra mini y crecen sobre fondo opaco al pasar el mouse.
   const [leyendo, setLeyendo] = useState(false);
   const tactil = useRef(false);
   const lectura = {
@@ -88,7 +89,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   }
   return (
     <div className="carta-caja">
-    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : PINTADAS[pintada].texto === 'medio' ? ' txt-medio' : '') + (PINTADAS[pintada].letra === 'chica' ? ' letra-chica' : PINTADAS[pintada].letra === 'mini' ? ' letra-mini' : '') + (PINTADAS[pintada].encaje === 'ancho' ? ' arte-ancho' : '') + (leyendo ? ' leyendo' : '') : ''} ${className}`} {...(pintada ? lectura : {})} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
+    <article className={`carta tam-completa deck-${datos.deck}${pintada ? ' pintada' + (PINTADAS[pintada].titulo === 'abajo' ? ' tit-abajo' : '') + (PINTADAS[pintada].texto === 'arriba' ? ' txt-arriba' : PINTADAS[pintada].texto === 'medio' ? ' txt-medio' : '') + ' letra-mini' + (PINTADAS[pintada].encaje === 'ancho' ? ' arte-ancho' : '') + (leyendo ? ' leyendo' : '') : ''} ${className}`} {...(pintada ? lectura : {})} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}`}>
       <header className="c-cab">
         <span className="c-ico"><Icono deck={datos.deck} size={22} /></span>
         <h3 className="c-tit">{datos.titulo}</h3>
