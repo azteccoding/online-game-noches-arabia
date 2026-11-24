@@ -609,6 +609,9 @@ export function avanzar(data, e) {
     if (e.pelea) return;
     if (!t) { if (e.paso === 'eventos') { e.paso = null; siguienteTurno(data, e, -1); continue; } return; }
     const j = e.jugadores[t.pid];
+    // Jorge (23 de noviembre, reto de Sherezada): si quien tiene el turno murió por una tirada suya, primero lanza y ve sus dados;
+    // el turno no pasa ni la partida termina hasta que esos dados se cierren. Nunca las consecuencias antes de los dados.
+    if (j.eliminado && !t.fin && [e.dados, ...(e.colaDados || [])].some((d) => d && d.por === t.pid && !d.npc)) return;
     if (j.eliminado || t.fin) { siguienteTurno(data, e, t.idx); continue; }
     if (t.npc && !t.npcIniciado) { if (NPC.esperaLectura(e)) return; t.npcIniciado = true; NPC.turnoNPC(data, e, t.pid); continue; }
     return;

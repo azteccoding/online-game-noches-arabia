@@ -3735,7 +3735,7 @@ console.log('reglas de la casa OK');
     assert.equal(A.noches, 1001, 'sus noches no pasan de 1,001'); assert.ok(!(e.pend && e.pend.tipo === 'meta'), 'ya no pregunta'); assert.ok(!vistaDe(e, a).puedoGanarYa, 'ni hay botón');
     const r0 = e.ronda; cerrarRonda(e, () => { A.noches = 1001; });
     assert.equal(e.fase, 'juego', 'la ronda ya no termina la partida'); assert.ok(e.ronda > r0);
-    A.eliminado = true; avanzarE(data, e);
+    A.eliminado = true; e.dados = null; e.colaDados = []; avanzarE(data, e);   // sus dados ya se cerraron: el final espera a que los vea
     assert.equal(e.fase, 'fin', 'si muere, termina'); assert.deepEqual(e.ganadores, [a], 'con el mismo ganador'); assert.ok(!e.derrota);
     assert.ok(!puedeVolver(e), 'muerto ya no vuelve');
   }
@@ -5304,3 +5304,23 @@ console.log('destreza inicial de Yafar OK');
   assert.equal(vistaDe(e, a).votoReinicio.total, 2, 'el sacado no cuenta en la votación');
   assert.ok(g.act(b, { t: 'votarReinicio', si: true }).ok); assert.equal(e.fase, 'lobby');
 }
+
+// Jorge (23 de noviembre): en el reto de Sherezada (R16) la muerte súbita no se aplica a la vista antes de tirar los dados; son 3 trivias.
+for (const pjs of [['4'], ['4', '7']]) {
+  const g = partida(pjs); assert.ok(g.iniciar().ok);
+  const e = g.e, a = g.ids[0], A = e.jugadores[a];
+  turnoDe(e, a, 'Isfahán'); e.turno.fase = 'acciones'; A.ciudad = 'Isfahán'; A.extra.clienteWeb = true; A.dinares = 60; A.retosHechos = ['R1', 'R2'];
+  assert.ok(g.act(a, { t: 'reto', id: 'R16' }).ok);
+  for (let n = 0; n < 3; n++) {
+    assert.equal(e.pend?.tipo, 'trivia', 'tres pruebas de trivia');
+    const t = data.trivias.trivias.find((x) => x.id === e.pend.cont.args.tid);
+    if (n === 2) forzar(e, 1, 1);
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: String(t.correcta) }).ok);
+  }
+  assert.ok(e.dados && !e.dados.lanzado && e.dados.por === a, 'los dados esperan a que él los lance');
+  assert.equal(e.fase, 'juego', 'la partida no termina antes de los dados'); assert.equal(e.turno?.pid, a, 'ni pasa el turno');
+  assert.ok(g.act(a, { t: 'lanzarDados' }).ok, 'puede lanzar sus dados');
+  g.tickear(5000); assert.ok(g.act(a, { t: 'cerrarDados' }).ok);
+  assert.ok(A.eliminado && !e.dados); assert.ok(pjs.length === 1 ? e.fase === 'fin' : e.turno?.pid !== a, 'después sí sigue la partida');
+}
+console.log('Sherezada: los dados antes que la muerte OK');
