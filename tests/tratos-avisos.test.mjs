@@ -3,11 +3,11 @@
 import assert from 'node:assert/strict';
 import { avisosTrato } from '../src/game/tratos.js';
 
-assert.deepEqual(avisosTrato({}, { dinares: 30, noches: 400 }), ['Trato costoso'], 'el caso de Jorge: 30 dinares y 400 noches');
+assert.deepEqual(avisosTrato({}, { dinares: 30, noches: 400 }), ['Trato costoso', 'Más de 200 noches'], 'el caso de Jorge: 30 dinares y 400 noches (desde el 23 de noviembre, además el aviso de más de 200 noches)');
 assert.deepEqual(avisosTrato({}, { dinares: 51 }), ['Trato costoso']);
 assert.deepEqual(avisosTrato({}, { dinares: 50, noches: 100 }), [], 'justo en el límite no sale');
 assert.deepEqual(avisosTrato({}, { noches: 101 }), ['Trato costoso']);
-assert.deepEqual(avisosTrato({ dinares: 500 }, {}), [], 'ofrecer mucho no es costoso para quien recibe');
+assert.deepEqual(avisosTrato({ dinares: 500 }, {}), ['Más de 100 dinares'], 'ofrecer mucho no es costoso para quien recibe, pero sí avisa que pasa de 100 dinares (23 de noviembre)');
 assert.deepEqual(avisosTrato({ dinares: 3 }, {}), ['Trato demasiado barato']);
 assert.deepEqual(avisosTrato({}, { dinares: 4 }), ['Trato demasiado barato']);
 assert.deepEqual(avisosTrato({ dinares: 5 }, { dinares: 5 }), []);

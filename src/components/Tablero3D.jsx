@@ -137,7 +137,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     const listo = () => { if (vivo) marcarIfrit(true); };
     const reloj = setTimeout(listo, IFRIT_MAX_MS);
     enCola(async (e) => { await quietos(ifritDe); await e.aparecerIfrit(ifritDe); }).then(listo);
-    return () => { vivo = false; clearTimeout(reloj); marcarIfrit(false); enCola((e) => e.esconderIfrit()); };
+    return () => { vivo = false; clearTimeout(reloj); marcarIfrit(false); escenaActual()?.soltarIfrit?.(); enCola((e) => e.esconderIfrit()); };
   }, [lista, ifritDe]);
 
   // --- Sonido: volumen y silencio (se recuerdan en este navegador)

@@ -174,13 +174,20 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     if (corriendo()) { if (relojFondo) { clearInterval(relojFondo); relojFondo = 0; sonido.fondo(false); } if (!raf) raf = requestAnimationFrame(cuadro); }
     else if (!relojFondo) { sonido.fondo(true); relojFondo = setInterval(deFondo, 200); }
   }
+  // Pausa del genio: el mundo (fichas, barcos, tablero, ronda, pelea) no avanza mientras el ifrit está en escena. «desfase» es el
+  // tiempo que el mundo lleva parado. Si la interfaz ya soltó al genio (soltarIfrit) y este aún no empieza a meterse porque hay
+  // otra animación antes en la cola, el mundo corre para no dejarla atorada, y vuelve a pararse mientras el genio se mete.
+  let desfase = 0, ifritSuelto = false;
+  const quietoPorGenio = () => ifrit.activo && (!ifritSuelto || ifrit.fase === 'entrando' || ifrit.fase === 'cierre');
   // Avanza la simulación «dtTotal» segundos en subpasos (sin dibujar).
   function simular(dtTotal, esc) {
     const pasos = Math.min(2400, Math.max(1, Math.ceil(dtTotal / (dtTotal > 2 ? 0.1 : SUBPASO)))), dt = dtTotal / pasos;
     for (let k = 0; k < pasos; k++) {
       t += dt;
-      camara.actualizar(dt); ronda.actualizar(dt * ritmo);
-      tablero.actualizar(t, dt, esc); flota.actualizar(t, dt); fichas.actualizar(t, dt * (menosMovimiento ? 1.8 : 1), esc); pelea.actualizar(dt * ritmo, esc);
+      // Jorge (24 de noviembre): mientras el genio sale, flota y vuelve a su lámpara, todo lo demás se queda como está
+      const dm = quietoPorGenio() ? 1e-7 : dt; desfase += dt - dm; const tm = t - desfase;
+      camara.actualizar(dt); ronda.actualizar(dm * ritmo);
+      tablero.actualizar(tm, dm, esc); flota.actualizar(tm, dm); fichas.actualizar(tm, dm * (menosMovimiento ? 1.8 : 1), esc); pelea.actualizar(dm * ritmo, esc);
       if (ifrit.actualizar(t, dt * ritmo)) conIfrit = true; efectos.actualizar(dt); dados.actualizar(dt);
       if (tablero.sucio || fichas.sucio || dados.sucio || flota.sucio) sombraSucia = true;
     }
@@ -208,7 +215,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     { const d = camara.cam.position.distanceTo(camara.ctl.target);      // acercamiento máximo y la cámara sobre tu monito
       for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !f.viaje && !f.control && !camara.enVuelo && d <= camara.ctl.minDistance * 1.06 && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
     const dt = simular(transcurrido(), esc);
-    amb.actualizar(t, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
+    amb.actualizar(t - desfase, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
     const agitado = ronda.enCurso || pelea.activa || ifrit.activo || fichas.fichas.some((f) => f.viaje);
     tamSombra(agitado ? Math.min(sombraBase(), 2048) : sombraBase());
@@ -390,10 +397,12 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // ----- Ifrit: la lámpara aparece junto a una ficha (id de jugador) o una ciudad; se resuelve cuando el genio ya está fuera, en reposo.
     aparecerIfrit(objetivo) {
       const f = fichas.porId(objetivo), c = f ? null : tablero.ciudades.get(objetivo); if (!f && !c) return Promise.reject(new Error(`aparecerIfrit: no conozco «${objetivo}».`));
-      const p = f ? f.nodo.position : c.pos, lado = p.x > ANCHO / 2 - 3 ? -1 : 1; alDia(); pedirCuadro();
+      const p = f ? f.nodo.position : c.pos, lado = p.x > ANCHO / 2 - 3 ? -1 : 1; alDia(); pedirCuadro(); ifritSuelto = false;
       return ifrit.aparecer({ x: p.x + lado * (f ? 1.0 : 1.3), z: p.z + (f ? 0.25 : 0.9) });
     },
-    esconderIfrit() { alDia(); pedirCuadro(); return ifrit.esconder(); },
+    esconderIfrit() { ifritSuelto = false; alDia(); pedirCuadro(); return ifrit.esconder(); },      // (sin soltar: el mundo sigue parado mientras se pone al día y el genio se mete)
+    // La interfaz avisa que ya se eligió el deseo y se cerró su ventana: el genio se va a meter en cuanto le toque en la cola.
+    soltarIfrit() { ifritSuelto = true; },
 
     // ----- Luz: hora fija o transición, y cambio de ronda (atardecer → noche → amanecer)
     ponerHora(fase, { duracion = 0 } = {}) {

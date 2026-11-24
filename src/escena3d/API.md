@@ -92,6 +92,7 @@ son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la direcc
 | `dispararFlecha(idTirador, idBlanco, { acierta })` | Solo el disparo. `acierta: true`: la flecha da y el blanco acusa el golpe; `false`: la esquiva o la desvía. Se cumple con `{ acierta }`, en unos 3 s. |
 | `aparecerIfrit(idJugador | ciudad)` | Aparece la lámpara, tiembla y sale el genio. Se cumple con el genio fuera (unos 2,8 s) y ahí se queda. |
 | `esconderIfrit()` | La lámpara absorbe al genio y desaparece (unos 1,8 s). |
+| `soltarIfrit()` | Avisa que ya se eligió el deseo. Mientras el genio está en escena el mundo no avanza (fichas, barcos, ronda, pelea); tras este aviso solo sigue parado mientras el genio se mete. |
 
 Las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el estado del juego.
 
