@@ -12,6 +12,7 @@ const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 160;      // cuán
 // datos: { tw, th, paso, vistas, azimut[], zmax, z8[], cubre8[], x0, x1, mano, tela, piernas }
 export function crearFiguraVistas(datos, textura, { alto }) {
   const { tw, th, paso: P, vistas: NV } = datos, gx = tw / P + 1, gy = th / P + 1, k = alto / th;
+  const NT = datos.cenital ? NV + 1 : NV;      // con vista cenital (Yafar, 24 nov) el atlas lleva una novena tesela
   const [t0, t1] = datos.tela, grupo = new THREE.Group(), capas = [];
   let zMano = 0;
   for (let n = 0; n < NV; n++) {
@@ -28,7 +29,7 @@ export function crearFiguraVistas(datos, textura, { alto }) {
       // en la cáscara: xs a lo ancho de la pintura, zs hacia quien mira; se pasa al espacio de la figura girando en el eje
       const xs = (i * P - tw / 2) * k, y = (th - j * P) * k, zs = zEn(i, j), yn = (j * P) / th;
       const x = xs * cs + zs * sn, z = -xs * sn + zs * cs;
-      pos.push(x, y, z); uv.push((n + (i * P) / tw) / NV, 1 - yn);
+      pos.push(x, y, z); uv.push((n + (i * P) / tw) / NT, 1 - yn);
       const ancho = Math.max(1, der[j] - izq[j]), rel = Math.abs(((i - izq[j]) / ancho) * 2 - 1), xn = x / (alto * 0.2);
       // bajo de la falda: cada lado se mece por su cuenta al andar
       const wp = 0.4 * paso(0.5, 1.0, yn) ** 1.5 * Math.tanh(xn * 3);
@@ -59,6 +60,28 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     capas.push({ malla, geo, mat, uVer, uAlReves, az, base: new Float32Array(pos), peso, P3: geo.attributes.position, quieto: true, sucio: false });
   }
 
+  // Vista cenital (Yafar, 24 nov): la pintura desde arriba, acostada a la altura del turbante. Aparece cuando la cámara está
+  // casi a plomo (ponerElevacion) y se reparte los puntos con la cáscara de turno, igual que en el relevo entre vistas.
+  let cenital = null, uArriba = 0;
+  if (datos.cenital) {
+    const { x: cx, y: cy, w: cw, h: ch, ancho } = datos.cenital, an = ancho * alto, fo = an * ch / cw;
+    const geo = new THREE.PlaneGeometry(an, fo); geo.rotateX(-Math.PI / 2);      // la orilla de arriba de la pintura (la espalda) queda hacia −Z
+    const uvA = geo.attributes.uv;
+    for (let q = 0; q < uvA.count; q++) uvA.setXY(q, (NV + (cx + uvA.getX(q) * cw) / tw) / NT, 1 - (cy + (1 - uvA.getY(q)) * ch) / th);
+    const mat = new THREE.MeshStandardMaterial({ map: textura, alphaTest: 0.5, roughness: 0.86, metalness: 0, emissive: 0xfff0d0, emissiveMap: textura, emissiveIntensity: 0 });
+    const uVer = { value: 0 }, uAlReves = { value: 1 };
+    mat.onBeforeCompile = (sh) => {
+      sh.uniforms.uVer = uVer; sh.uniforms.uAlReves = uAlReves;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uVer;\nuniform float uAlReves;')
+        .replace('#include <map_fragment>', '#include <map_fragment>\nif (uVer < 0.999) { float r = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))); if (uAlReves > 0.5 ? r < 1.0 - uVer : r >= uVer) discard; }');
+    };
+    mat.customProgramCacheKey = () => 'figura-vistas-1';
+    const malla = new THREE.Mesh(geo, mat); malla.position.y = alto * (datos.cenital.y0 ?? 0.97); malla.visible = false; malla.castShadow = false; grupo.add(malla);
+    cenital = { malla, geo, mat, uVer, uAlReves };
+  }
+  // ángulo de la cámara sobre el horizonte, visto desde la figura: de 58° a 70° se pasa a la vista cenital (el dhow cambia hacia los 60°)
+  function ponerElevacion(e) { if (cenital) uArriba = paso(58 * GRADOS, 70 * GRADOS, e); }
+
   // Desde dónde se mira la figura (ángulo de la cámara alrededor de ella, en su propio espacio; 0 = de frente): elige la vista.
   // La vista no cambia hasta pasar un poco de la mitad del camino a la vecina (así no titila en el límite) y el relevo es un
   // fundido breve: nunca se quedan dos pinturas a la vez.
@@ -70,9 +93,11 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     else if (mejor !== actual && lejos(a, capas[actual]) > Math.PI / NV + HOLGURA) { previa = actual; actual = mejor; tCambio = ahora; }
     const u = previa < 0 ? 1 : Math.min(1, (ahora - tCambio) / FUNDIDO); if (u >= 1) previa = -1;
     capas.forEach((c, n) => {
-      const ver = n === actual ? u : n === previa ? 1 - u : 0;
+      const ver = (n === actual ? u : n === previa ? 1 - u : 0) * (1 - uArriba);
       c.uVer.value = ver; c.uAlReves.value = n === previa ? 1 : 0; c.malla.visible = ver > 0.001;
     });
+    // la pintura cenital se gira con la cámara para que su frente (los pies) quede siempre hacia quien mira: desde atrás no sale de cabeza
+    if (cenital) { cenital.uVer.value = uArriba; cenital.malla.visible = uArriba > 0.001; cenital.malla.rotation.y = a; }
   }
 
   // La mano que empuña (la derecha de la figura): ahí se monta el arma.
@@ -111,8 +136,8 @@ export function crearFiguraVistas(datos, textura, { alto }) {
       c.P3.needsUpdate = true;
     }
   }
-  function destruir() { for (const c of capas) { c.geo.dispose(); c.mat.dispose(); } }
+  function destruir() { for (const c of capas) { c.geo.dispose(); c.mat.dispose(); } if (cenital) { cenital.geo.dispose(); cenital.mat.dispose(); } }
   // quien usa la figura solo le toca el brillo al material: se reparte a las ocho cáscaras
-  const material = { get emissiveIntensity() { return capas[0].mat.emissiveIntensity; }, set emissiveIntensity(v) { for (const c of capas) c.mat.emissiveIntensity = v; }, emissive: { set(col) { for (const c of capas) c.mat.emissive.set(col); } } };
-  return { grupo, malla: capas[0].malla, material, brazo, mano, alzar, animar, destruir, ponerLado() {}, ponerAzimut, yAsiento, alto, ancho: (datos.x1 - datos.x0) * k, fondo: datos.zmax * k * 1.6 };
+  const material = { get emissiveIntensity() { return capas[0].mat.emissiveIntensity; }, set emissiveIntensity(v) { for (const c of capas) c.mat.emissiveIntensity = v; if (cenital) cenital.mat.emissiveIntensity = v; }, emissive: { set(col) { for (const c of capas) c.mat.emissive.set(col); if (cenital) cenital.mat.emissive.set(col); } } };
+  return { grupo, malla: capas[0].malla, material, brazo, mano, alzar, animar, destruir, ponerLado() {}, ponerAzimut, ponerElevacion, yAsiento, alto, ancho: (datos.x1 - datos.x0) * k, fondo: datos.zmax * k * 1.6 };
 }

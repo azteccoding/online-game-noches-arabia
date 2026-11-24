@@ -346,7 +346,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       f.nivel += (meta - f.nivel) * k; if (Math.abs(f.nivel - meta) < 0.002) f.nivel = meta;
       if (antes !== f.nivel || f.elegida || f.rival) sucio = true;
       const mat = f.fig?.material, M = f.montura, esAlf = f.transporte === 'alfombra';
-      if (f.fig) { const desde = Math.atan2(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z) - f.giro; if (f.fig.ponerAzimut) f.fig.ponerAzimut(desde); else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
+      if (f.fig) { const desde = Math.atan2(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z) - f.giro; if (f.fig.ponerElevacion) f.fig.ponerElevacion(Math.atan2(ojo.y - f.nodo.position.y, Math.hypot(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z))); if (f.fig.ponerAzimut) f.fig.ponerAzimut(desde); else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
       if (f.control) {      // la pelea lleva la ficha: aquí solo se apagan los adornos de reposo y se da vuelo a las telas
         sucio = true; f.control(f, t, dt, s);
         f.aro.visible = false; f.blanco.scale.setScalar(s); f.sombra.scale.setScalar(0.8 * s); if (mat) mat.emissiveIntensity = 0;

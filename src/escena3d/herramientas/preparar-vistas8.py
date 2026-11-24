@@ -3,7 +3,9 @@
 # a la cámara (figuras8.js), así que desde cada ángulo el monito es la pintura de ese ángulo: sin brazo doble, sin cara
 # cortada y sin torso aplanado. Las hojas solo se leen.
 # Uso, desde la raíz del repositorio:
-#     python3 src/escena3d/herramientas/preparar-vistas8.py <id> <hoja fila 1> <hoja fila 2> [VISTA=<carpeta de control>]
+#     python3 src/escena3d/herramientas/preparar-vistas8.py <id> <hoja fila 1> <hoja fila 2> [<vista cenital>] [VISTA=<carpeta de control>]
+# La vista cenital (opcional, Yafar 24 nov) es una pintura de la figura desde arriba con su frente hacia abajo de la imagen:
+# va como novena tesela y figuras8.js la muestra cuando la cámara está casi a plomo.
 # Orden de las figuras en las hojas: frente, 3/4 de frente derecho, perfil derecho, 3/4 de espalda derecho | espalda,
 # 3/4 de espalda izquierdo, perfil izquierdo, 3/4 de frente izquierdo. Necesita Pillow, numpy y scipy.
 # Salida: public/arte3d/fig-<id>.webp (las ocho vistas en fila) y la entrada del personaje en src/escena3d/datos/figuras.json
@@ -20,10 +22,11 @@ TH = 896; ALTO = 880; PASO = 8; ZMAX = 44.0
 AZIMUT = [0, -45, -90, -135, 180, 135, 90, 45]
 # eje vertical del cuerpo en cada recorte, en píxeles desde su borde izquierdo con la figura a 880 de alto (medido a ojo sobre la rejilla de control)
 EJES = {'6': [195, 165, 152, 168, 177, 158, 140, 153],
-        '1': [235, 195, 130, 183, 218, 205, 120, 205]}      # Nur al Din: entre la punta del yelmo y el centro de los pies
+        '1': [235, 195, 130, 183, 218, 205, 120, 205],      # Nur al Din: entre la punta del yelmo y el centro de los pies
+        'B': [185, 155, 140, 170, 171, 160, 120, 190]}      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
 # Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': None, '1': None}
+MANO = {'6': None, '1': None, 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
 # fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
 RELLENO_ARRIBA = {'1': 0.14}
 
@@ -56,6 +59,16 @@ def recortes(ruta):
     return fuera
 
 
+def recorte_cenital(ruta):
+    im = Image.open(ruta).convert('RGB'); d = papel_y_distancia(im)
+    m = ndi.binary_opening(d > 20, iterations=1); lab, n = ndi.label(m)
+    if not n: sys.exit(f'{ruta}: no encontré la figura.')
+    tam = ndi.sum(m, lab, range(1, n + 1)); m = lab == (int(np.argmax(tam)) + 1)
+    m = ndi.binary_fill_holes(ndi.binary_closing(m, iterations=2))
+    ys, xs = np.where(m); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+    return np.asarray(im)[y0:y1, x0:x1], m[y0:y1, x0:x1]
+
+
 def b64(a): return base64.b64encode(a.tobytes()).decode()
 
 
@@ -68,7 +81,8 @@ def main():
         r = np.asarray(Image.fromarray(rgb).resize((w, ALTO), Image.LANCZOS)); mm = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).resize((w, ALTO), Image.LANCZOS)) > 127
         esc.append((r, mm, eje))
     medio = max(max(e, r.shape[1] - e) for r, _, e in esc); tw = int(np.ceil((2 * medio + 12) / PASO) * PASO); gx = tw // PASO + 1; gy = TH // PASO + 1
-    atlas = np.zeros((TH, tw * 8, 4), np.uint8); zs = []; cubres = []
+    cen = recorte_cenital(sys.argv[4]) if len(sys.argv) > 4 else None
+    atlas = np.zeros((TH, tw * (9 if cen else 8), 4), np.uint8); zs = []; cubres = []
     for i, (r, mm, eje) in enumerate(esc):
         ox = tw // 2 - eje; oy = TH - 8 - ALTO
         M = np.zeros((TH, tw), bool); M[oy:oy + ALTO, ox:ox + r.shape[1]] = mm
@@ -99,12 +113,24 @@ def main():
             for q in range(gx - 1): bits[j * (gx - 1) + q] = Md[j * PASO:(j + 1) * PASO, q * PASO:(q + 1) * PASO].any()
         cubres.append(b64(np.packbits(bits)))
         if vista: Image.fromarray(np.dstack([C, (M * 255).astype(np.uint8)])).save(os.path.join(vista, f'vista-{pid}-{i}.png'))
+    datos_cen = None
+    if cen:
+        rgb, m = cen; k = min((tw - 8) / rgb.shape[1], (TH - 8) / rgb.shape[0]); w, h = round(rgb.shape[1] * k), round(rgb.shape[0] * k)
+        r = np.asarray(Image.fromarray(rgb).resize((w, h), Image.LANCZOS)); mm = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS)) > 127
+        M = np.zeros((TH, tw), bool); M[4:4 + h, 4:4 + w] = ndi.binary_erosion(mm, iterations=1)
+        C = np.zeros((TH, tw, 3), np.uint8); C[4:4 + h, 4:4 + w] = r
+        _, (iy, ix) = ndi.distance_transform_edt(~M, return_indices=True); C = C[iy, ix]
+        atlas[:, 8 * tw:, :3] = C; atlas[:, 8 * tw:, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
+        f0w = esc[0][0].shape[1]
+        datos_cen = {'x': 4, 'y': 4, 'w': w, 'h': h, 'ancho': round(f0w / TH, 4)}      # tan ancha como la vista de frente
+        if vista: Image.fromarray(np.dstack([C, (M * 255).astype(np.uint8)])).save(os.path.join(vista, f'vista-{pid}-cenital.png'))
     Image.fromarray(atlas).save(os.path.join(A, f'fig-{pid}.webp'), quality=92, method=6)
     figuras = json.load(open(FIGURAS, encoding='utf8')); antes = figuras.get(pid, {})
     f0, m0, e0 = esc[0]; x0 = tw // 2 - e0; x1 = x0 + f0.shape[1]
     mano = MANO.get(pid) or [((antes['mano'][0] * antes['tw'] - antes['tw'] / 2) + tw / 2) / tw, antes['mano'][1]]
     figuras[pid] = {'tw': tw, 'th': TH, 'paso': PASO, 'vistas': 8, 'azimut': AZIMUT, 'zmax': ZMAX, 'z8': zs, 'cubre8': cubres, 'x0': int(x0), 'x1': int(x1),
                     'mano': [round(mano[0], 4), mano[1]], 'tela': antes.get('tela', [0.1, 0.66]), 'piernas': antes.get('piernas', 0)}
+    if datos_cen: figuras[pid]['cenital'] = datos_cen
     json.dump(figuras, open(FIGURAS, 'w', encoding='utf8'), ensure_ascii=False)
     print(f'fig-{pid}.webp: 8 vistas de {tw} × {TH}; rejilla {gx} × {gy}')
 
