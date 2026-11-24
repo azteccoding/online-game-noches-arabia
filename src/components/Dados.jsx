@@ -55,6 +55,21 @@ function Cubo({ valor, rodando, idx, color }) {
   );
 }
 
+// Deja el foco en un botón y lo vuelve a intentar un rato. Tras una pelea, la ventana de resultados nace mientras la pantalla sigue
+// despejada (body.viendo-pelea la tiene oculta) y un botón oculto no acepta el foco: sin esto no se podía cerrar con Enter (Jorge, 24 de noviembre).
+function useFoco(activo, clave) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!activo) return undefined;
+    let n = 0;
+    const poner = () => { const el = ref.current; if (!el || !el.isConnected) return false; if (document.activeElement !== el) el.focus({ preventScroll: true }); return document.activeElement === el; };
+    if (poner()) return undefined;
+    const reloj = setInterval(() => { if (poner() || ++n > 80) clearInterval(reloj); }, 120);
+    return () => clearInterval(reloj);
+  }, [activo, clave]);
+  return ref;
+}
+
 export default function Dados({ s }) {
   const d = s.dados;
   const cartaPrevia = useJuego((x) => x.cartaEnPantalla);
@@ -62,6 +77,7 @@ export default function Dados({ s }) {
   const [fila, setFila] = useState(-1);          // fila que está rodando; -1 = ninguna (todas fijas)
   const [en3d, setEn3d] = useState(false);       // juego 3D: la tirada está rodando en la bandeja de la mesa
   const idVisto = useRef(null);
+  const [visto, setVisto] = useState(null);      // la tirada que ya pasó por el efecto de abajo: hasta entonces no se enseña su resultado (ni un cuadro antes de rodar)
   const nFilas = Math.max(1, d?.grupos?.length || 1);
   // Jorge (19 de noviembre): ningún dado sale ya resuelto. Si la tirada espera detrás de la carta que la explica, no rueda a escondidas:
   // empieza a rodar, desde el principio, cuando la carta se cierra (antes se veía solo el resultado, p. ej. el dado de ingreso).
@@ -71,7 +87,7 @@ export default function Dados({ s }) {
   useEffect(() => {
     if (!d || !d.lanzado || esperaCarta) { setFila(-1); setEn3d(false); idVisto.current = null; if (!d) enCola((e) => e.limpiarDados()); return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
     if (idVisto.current === d.id) return undefined;
-    idVisto.current = d.id;
+    idVisto.current = d.id; setVisto(d.id);
     const transcurrido = espero.current === d.id ? 0 : Math.max(0, s.ahora - d.t0);   // reloj del servidor: quien se une tarde ve el final
     // Los dados que este jugador no ve (reto o ingreso ajeno) tampoco ruedan en su mesa.
     const ajeno = d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba');
@@ -101,16 +117,20 @@ export default function Dados({ s }) {
     return () => ts.forEach(clearTimeout);
   }, [d?.id, d?.lanzado, esperaCarta]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rodando = fila >= 0;
-  // Jorge (23 de noviembre): la ventana de qué salió en tu dado de ingreso solo se cierra a mano si hay carta de sheij (el 6). Si no,
-  // se queda 1.5 s y se cierra sola; con el mouse encima espera, y en cuanto lo quitas se cierra.
-  const solo = !!d && d.lanzado && !en3d && !rodando && !esperaCarta && !!d.sheij && !d.sheij.ok && d.por === s.yo && !d.cerrados?.includes(s.yo);
-  const encima = useRef(false), vencido = useRef(false);
+  // Jorge (23 de noviembre): la ventana de qué salió en tu dado de ingreso solo se cierra a mano si hay carta de sheij (el 6).
+  // Jorge (24 de noviembre): «el dado de sheij se cierra automáticamente (sin necesidad de dar clic en cerrar) si es que no salió 6 a
+  // los 1.2 segundos. Si salió 6 es necesario dar enter (si hay foco en el botón) o clic en el botón de cerrar». Ya no espera a que
+  // quites el mouse de encima; con 6 se queda aunque no llegue carta (ya salió una esta ronda o se acabaron).
+  const solo = !!d && d.lanzado && visto === d.id && !en3d && !rodando && !esperaCarta && !!d.sheij && !d.valores?.includes(6) && d.por === s.yo && !d.cerrados?.includes(s.yo);
   useEffect(() => {
     if (!solo) return undefined;
-    vencido.current = false; encima.current = false;
-    const reloj = setTimeout(() => { vencido.current = true; if (!encima.current) enviar(ACCIONES.cerrarDados()); }, 1500);
+    const reloj = setTimeout(() => enviar(ACCIONES.cerrarDados()), 1200);
     return () => clearTimeout(reloj);
   }, [solo, d?.id]);
+  // el foco queda en el botón de la ventana (lanzar o cerrar), para Enter o espacio
+  const ajeno = !!d && d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba');
+  const refLanzar = useFoco(!!d && !d.lanzado && !en3d && !esperaCarta && d.por === s.yo, d?.id);
+  const refCerrar = useFoco(!!d && d.lanzado && visto === d.id && !en3d && !rodando && !esperaCarta && !ajeno && !d.cerrados?.includes(s.yo), d?.id);
   if (en3d) return null;                                                // rodando en la bandeja 3D: nada encima
   if (!d) return null;
   const por = s.jugadores[d.por];
@@ -130,12 +150,13 @@ export default function Dados({ s }) {
             if (d.titulo) return <p className="dados-contexto">{d.titulo}</p>;      // peleas: no las explica ninguna carta
             return c ? <p className="dados-contexto">Por la carta «{c.titulo}»: {c.texto}</p> : d.contexto ? <p className="dados-contexto">Por «{d.contexto}».</p> : null;
           })()}
-          {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => el?.focus({ preventScroll: true })}>{d.boton || `Lanzar ${d.n > 1 ? 'los dados' : 'el dado'}`}</button>
+          {mio ? <button className="btn grande" onClick={() => enviar(ACCIONES.lanzarDados())} ref={(el) => { refLanzar.current = el; el?.focus({ preventScroll: true }); }}>{d.boton || `Lanzar ${d.n > 1 ? 'los dados' : 'el dado'}`}</button>
             : <><p className="it">Esperando a {por?.nombre || 'alguien'} para lanzar {d.n > 1 ? 'los dados' : 'el dado'}…</p>{por && !por.conectado && <small className="it"> {por.nombre} está desconectado: nadie lanza por él; a los 60 segundos el banco puede sacarlo.</small>}</>}
         </div>
       </div>
     );
   }
+  if (visto !== d.id) return null;                                      // todavía no empieza a rodar: su resultado no se adelanta
   const total = d.valores.reduce((a2, b) => a2 + b, 0);
   const MOTIVOS = { ingreso: 'dado de ingreso', tumba: 'dado extra de la tumba', asesinos: 'Los Asesinos', ventana: 'por la ventana', lazo: 'lazo', buza: 'venta de buza', apedreo: 'apedreo', piratas: 'piratas', defensa: 'arco y escudo' };
   const motivo = d.npc || d.motivo.startsWith('npc:') ? `NPC ${d.motivo.startsWith('npc:') ? d.motivo.slice(4) : ''}`.trim() : MOTIVOS[d.motivo] || d.motivo;
@@ -154,7 +175,7 @@ export default function Dados({ s }) {
       )}
       {!rodando && !d.cerrados?.includes(s.yo) && (d.motivo !== 'npc:Yafar' || d.alerta) && (   /* Jorge: las tiradas propias de Yafar NPC no tienen ventana (las peleas sí) */
         <div className="modal-fondo dados-modal" role="dialog" aria-modal="true" aria-label="Resultado de los dados">
-          <div className="dados-resultado panel" onPointerEnter={() => { encima.current = true; }} onPointerLeave={() => { encima.current = false; if (solo && vencido.current) enviar(ACCIONES.cerrarDados()); }}>
+          <div className="dados-resultado panel">
             {(grupos.length > 1 || !grupos[0].etq || s.enCola > 0) && <p className="quien">{por?.nombre || 'Banco'} · {motivo}{s.enCola ? ` · ${s.enCola} tirada(s) más en cola` : ''}</p>}
             {grupos.map((g, gi) => (
               <div key={gi} className="dados-grupo">
@@ -168,7 +189,7 @@ export default function Dados({ s }) {
               <ul className={`dados-resumen${d.motivo === 'pelea' ? ' paso-a-paso' : ''}`} role="status">{d.resumen.map((r, i) => <li key={d.id + '-' + i} style={{ '--i': i }} className={/^Gana |vence a|muere|roba|se salva|no se lleva|pierde el duelo|gana por|ambos heridos/.test(r) ? 'final' : undefined}>{r}</li>)}</ul>
             )}
             {!d.resumen?.length && grupos.length === 1 && <p className="total" role="status">{d.valores.length > 1 ? `Suma: ${total}` : `Salió ${total}`}</p>}
-            <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => el?.focus({ preventScroll: true })}>Cerrar</button>
+            <button className="btn" onClick={() => enviar(ACCIONES.cerrarDados())} ref={(el) => { refCerrar.current = el; el?.focus({ preventScroll: true }); }}>Cerrar</button>
           </div>
         </div>
       )}

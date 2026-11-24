@@ -143,7 +143,7 @@ function Juego({ lienzo }) {
       if (!sola || ev.ctrlKey || ev.metaKey || ev.altKey || document.body.classList.contains('viendo-pelea')) return;
       const e = leer().estado; if (e && e.fase === 'juego' && e.jugadores?.[e.yo]) abrir('mano');   // x sola: la mano
     };
-    // Jorge (23 de noviembre): el espacio solo tira el dado de ingreso (y x + espacio termina el turno). Nunca aprieta el botón enfocado,
+    // Jorge (23 de noviembre): el espacio solo tira el dado de ingreso (y x + espacio termina el turno) y, desde el 24, los dados de los retos. Nunca aprieta el botón enfocado,
     // ni cierra cartas, ni hace de Enter: se le quita su efecto de siempre fuera de los campos de texto.
     const sinEspacio = (ev) => { if (ev.key !== ' ' && ev.code !== 'Space') return false; const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return false; ev.preventDefault(); return true; };
     const tecla = (ev) => {
@@ -151,6 +151,12 @@ function Juego({ lienzo }) {
       if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
       const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
       const e = leer().estado; if (!e || e.fase === 'lobby') return;
+      // Jorge (24 de noviembre): «en retos de tirar dados la tecla espacio siempre los tira»: si está a la vista el botón de lanzar los
+      // dados (reto, pelea, flecha, dado extra…), espacio lo oprime aunque el foco esté en otra parte.
+      if (espacio) {
+        const b = document.querySelector('.dados-modal .dados-resultado button.btn.grande');
+        if (b && !b.disabled && b.offsetParent && getComputedStyle(b).visibility !== 'hidden') { ev.preventDefault(); ev.stopImmediatePropagation(); if (!ev.repeat) b.click(); return; }
+      }
       if (document.body.classList.contains('viendo-pelea')) return;   // durante la pelea no se abre nada
       if (esBarra(ev)) { barraAbajo = true; ev.preventDefault(); return; }
       if (barraAbajo && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) {   // | + flecha: girar la cámara, como su botón (y que la flecha no la desplace)
