@@ -599,6 +599,11 @@ export function darKanmakan(data, e, pid, motivo) {
   const j = e.jugadores[pid];
   if (e.kanmakan.dueno || e.kanmakan.usada || j.eliminado) return;
   e.kanmakan.dueno = pid; j.mano.push({ uid: uid(e), tipo: 'especial', ref: 'K1' });
+  // Jorge (24 de noviembre): al obtenerla, la carta sale siempre en pantalla, como la de un reto o un objeto
+  const s = data.objetos.especiales.find((x) => x.id === 'K1');
+  const carta = publicarCarta(e, { id: 'K1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: `${j.nombre} recibe el Ejército de Kanmakán por ${motivo}: +2 a sus dados en cualquier pelea y no lo pueden desafiar a duelo (R 15.5). Dura 2 turnos suyos; pasar por Isfahán lo renueva por otros 2.`, arte: s.arte, ref: s.refReglamento }, pid);
+  const enMesa = [e.dados, ...(e.colaDados || [])].filter(Boolean).map((d) => d.id);      // si hay dados por tirar o a la vista, la carta espera a que se cierren (nada sale antes que los dados)
+  if (enMesa.length) carta.trasDados = Math.max(...enMesa);
   log(e, `${j.nombre} recibe la carta del Ejército de Kanmakán (${motivo}).`, { pid });
 }
 export function revisarKanmakan(data, e, pid) {

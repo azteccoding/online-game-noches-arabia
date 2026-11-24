@@ -68,7 +68,9 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Nur al Din de ocho vistas (v2). Pintura nueva de Zein en la Giralda (R26, vestida como en su hoja) y de Sherezada leyendo (R16); las anteriores se conservan. Botones de la esquina del mapa (girar, vista general, centrar, sonido) a la vista: estaban tapados por el lienzo 3D. Partida de muestra con los ocho personajes (`tools/partida-personajes.mjs`). | El 2D sigue con sus ilustraciones y su tablero de siempre. | `d5b851a`, `1248128` |
 | 24 nov | Yafar de ocho vistas (v2), con pintura cenital cuando la cámara lo mira desde arriba. | El 2D sigue con su monito de siempre. | `658cf8a` |
 | 24 nov | Cartas de sheij con pintura: la genérica (Averroes, Abu Madyan e Ibn Arabi) y la propia de Ibn Hazm (M5 a M8, M17 y su carta de objeto). | El 2D sigue con su ilustración de siempre. | `309bedf` |
-| 24 nov | El Primer Viaje con Sindbad (R11) tiene su propia pintura, la isla viviente; R12, R13, R14 y la Flota de Sindbad siguen con la pintura compartida. | El 2D sigue con su ilustración de siempre. | siguiente a `309bedf` |
+| 24 nov | El Primer Viaje con Sindbad (R11) tiene su propia pintura, la isla viviente; R12, R13, R14 y la Flota de Sindbad siguen con la pintura compartida. | El 2D sigue con su ilustración de siempre. | `b37eea4` |
+| 24 nov | Pinturas nuevas: Mercader de armas (E10), La posta urgente (R39), Leva del sultán (H7), Guerra entre hermanos herederos (H12) y Ejército de Kanmakán (K1). | El 2D sigue con sus ilustraciones de siempre. | siguiente a `b37eea4` |
+| 24 nov | Al obtener el Ejército de Kanmakán (500 noches o los cuatro viajes de Sindbad), su carta sale siempre en pantalla para toda la mesa, como la de un reto o un objeto; si hay dados en la mesa, espera a que se cierren. | En el 2D solo queda anotado en el registro y la carta aparece en la mano. | siguiente a `b37eea4` |
 
 ## Despliegue
 
