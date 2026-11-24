@@ -8,7 +8,7 @@
   "E14": {"texto": "arriba", "letra": "mini"},
   "E15": {"letra": "mini"},
   "R1": {"texto": "arriba"},
-  "R11": {"imagen": "E9", "titulo": "abajo", "letra": "mini"},
+  "R11": {"letra": "mini", "imagen": "R11-sindbad-isla-viviente"},
   "R12": {"imagen": "E9", "titulo": "abajo", "letra": "mini"},
   "R13": {"imagen": "E9", "titulo": "abajo", "letra": "mini"},
   "R14": {"imagen": "E9", "titulo": "abajo", "letra": "mini"},
