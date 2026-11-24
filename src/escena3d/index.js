@@ -395,7 +395,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     },
 
     // ----- Laúd (solo animación): el jugador se sienta con el laúd al frente, hace como que toca y se levanta; mientras toca suena
-    // la música de la ranura 'laud-jamil', siempre desde el principio (el archivo es su canción de 20 segundos). duracion: segundos
+    // la música de la ranura 'laud-jamil', siempre desde el principio (el archivo es su canción de 40 segundos). duracion: segundos
     // tocando (sin contar sentarse y levantarse; los 20 de la canción si no se dice). Se resuelve al terminar.
     // Solo puede quien tiene figura sentada (fig-<personaje>t: Jamil).
     tocarLaud(id, { duracion, seguir = false } = {}) {

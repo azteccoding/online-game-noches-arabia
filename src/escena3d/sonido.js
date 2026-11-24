@@ -184,7 +184,7 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
   // que decodificarla entera), que pasa por el volumen general como todo lo demás. musica(clave, true) la hace sonar desde donde
   // se quedó la vez anterior, con una entrada breve; musica(clave, false) la apaga con un fundido y la deja en pausa ahí. Cuando
   // ya no queda pieza para otro tramo, vuelve a empezar. Con «entera» suena siempre desde el principio (la canción de Jamil, que es
-  // un tramo ya cortado de 20 s). No se adelanta a un punto de la pieza: eso pide que el servidor entregue el audio por partes.
+  // un tramo ya cortado de 40 s). No se adelanta a un punto de la pieza: eso pide que el servidor entregue el audio por partes.
   const musicas = {}, porPreparar = new Set();
   const urlMusica = (clave) => { const r = TABLA[clave]; return r && typeof r === 'object' && !Array.isArray(r) && r.musica ? { url: r.musica, volumen: r.volumen ?? 1 } : null; };
   function prepararMusica(clave) {

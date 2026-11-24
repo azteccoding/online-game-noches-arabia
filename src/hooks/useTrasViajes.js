@@ -6,7 +6,7 @@ import { escenaActual, quietos } from '../game/escena3d.js';
 // el resto de la pantalla (cartas, decisiones, dados, avisos, saldos, turno) sigue mostrando el estado anterior hasta que la ficha
 // llega. Devuelve [estado que se muestra, si hay un viaje en curso que lo retiene].
 const TOPE_MS = 20000;   // ningún viaje retiene la pantalla más que esto (pestaña en segundo plano, escena que no avisa…)
-const TOPE_LAUD_MS = 30000;   // la canción de Jamil dura 20 s, más sentarse, levantarse y lo que espere en la cola
+const TOPE_LAUD_MS = 50000;   // la canción de Jamil dura 40 s, más sentarse, levantarse y lo que espere en la cola
 
 const tocoLaud = (antes, ahora, id) => (ahora.e3d?.jugadores?.[id]?.laud?.n || 0) > (antes.e3d?.jugadores?.[id]?.laud?.n || 0) && !!antes.e3d;
 function viajan(antes, ahora) {

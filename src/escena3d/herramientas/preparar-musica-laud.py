@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Canción de Jamil (Jorge, 24 de noviembre): «debe empezar en el segundo 15 y durar 20 segundos».
+"""Canción de Jamil (Jorge, 24 de noviembre): «debe empezar en el segundo 15 y durar 20 segundos»; después, el mismo día:
+«quiero que Jamil toque por 40 segundos» (sigue empezando en el segundo 15).
 
 Corta ese tramo de la pieza completa y lo deja en public/sonidos/laud-jamil.mp3, con el final ya fundido: así dura lo mismo en
 cualquier equipo y no hace falta adelantar el audio en el navegador (el servidor del juego no lo permitía).
@@ -10,7 +11,7 @@ La pieza completa es Freesound #182730 (ver public/sonidos/CREDITOS.md); necesit
 import subprocess, sys
 from pathlib import Path
 
-DESDE, DURA, ENTRADA, FUNDIDO = 15.0, 20.0, 0.04, 1.2      # segundos
+DESDE, DURA, ENTRADA, FUNDIDO = 15.0, 40.0, 0.04, 1.2      # segundos
 
 def main():
     if len(sys.argv) < 2: sys.exit(__doc__)

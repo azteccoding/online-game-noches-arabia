@@ -175,7 +175,7 @@ if (fs.existsSync(path.join(RAIZ, 'dist', 'demo', 'index.html'))) {             
   assert.equal((await fetch(`http://127.0.0.1:${PUERTO}/..%2f..%2fpackage.json`)).status, 403, 'sin salir de dist/');
   // la música (un <audio>) se pide por partes: el servidor entrega el trozo pedido; sin eso Safari no la toca
   const mus = `http://127.0.0.1:${PUERTO}/sonidos/laud-jamil.mp3`, entera = await fetch(mus), total = +entera.headers.get('content-length'); await entera.arrayBuffer();
-  assert.equal(entera.status, 200); assert.equal(entera.headers.get('accept-ranges'), 'bytes'); assert.ok(total > 100000 && total < 800000, 'la canción de Jamil es el tramo de 20 segundos, no la pieza completa');
+  assert.equal(entera.status, 200); assert.equal(entera.headers.get('accept-ranges'), 'bytes'); assert.ok(total > 600000 && total < 1300000, 'la canción de Jamil es el tramo de 40 segundos, no la pieza completa');
   const trozo = await fetch(mus, { headers: { Range: 'bytes=100-299' } }); assert.equal(trozo.status, 206); assert.equal(trozo.headers.get('content-range'), `bytes 100-299/${total}`); assert.equal((await trozo.arrayBuffer()).byteLength, 200);
   const cola = await fetch(mus, { headers: { Range: 'bytes=-50' } }); assert.equal(cola.status, 206); assert.equal(cola.headers.get('content-range'), `bytes ${total - 50}-${total - 1}/${total}`); await cola.arrayBuffer();
   const resto = await fetch(mus, { headers: { Range: 'bytes=0-' } }); assert.equal(resto.status, 206); assert.equal((await resto.arrayBuffer()).byteLength, total);

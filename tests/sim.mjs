@@ -209,7 +209,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       if (e.votoLaud) {
         const vl = e.votoLaud;
         for (const id of e.orden) { const x = e.jugadores[id]; if (e.votoLaud === vl && id !== vl.pid && x && !x.npc && !x.eliminado && R() < 0.34) { const r = act(id, { t: 'callarJamil' }); cuenta(r.ok ? stats.acciones : stats.errores, 'callarJamil' + (r.ok ? '' : ':' + r.error)); } }
-        if (e.votoLaud === vl) { now += 21000; tick(data, e, now); }
+        if (e.votoLaud === vl) { now += 41000; tick(data, e, now); }
         cuenta(stats.acciones, e.votoLaud ? 'votoLaud:sigue abierto' : 'votoLaud:cerrado');
         if (e.votoLaud === vl) e.votoLaud = null;
         continue;

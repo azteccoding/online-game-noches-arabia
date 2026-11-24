@@ -207,7 +207,7 @@ export function vistaVotoLaud(e, pid) {
   const vs = votantesLaud(e, v.pid);
   return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid), yaVote: !!v.callan[pid], premio: LAUD.sigue };
 }
-export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 20000 };   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
+export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 40000 };   // votoMs: lo que dura su canción, 40 segundos (Jorge, 24 de noviembre)  ·   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
 const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';
 // Partidas que empezaron antes de que el laúd fuera una carta: Jamil lo recibe al empezar su siguiente turno (una sola vez por partida).
 export function asegurarLaud(e) {

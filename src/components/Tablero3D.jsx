@@ -90,7 +90,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       }
       // Jamil toca el laúd (Jorge, 24 de noviembre): se lo pone al frente y toca, con música; el premio y su aviso salen al terminar
       // (el resto de la pantalla espera, igual que con un viaje: useTrasViajes).
-      // Toca sus 20 segundos de canción (Jorge, 24 de noviembre), que es también lo que dura la votación «Que se calle Jamil»; solo si
+      // Toca sus 40 segundos de canción (Jorge, 24 de noviembre), que es también lo que dura la votación «Que se calle Jamil»; solo si
       // la mayoría lo calla deja de tocar antes.
       if (f.laudN > a.laudN) viajeDe(f.id, (e) => {
         const p = previo.current?.[f.id], callado = f.laudCallado || (p?.laudN === f.laudN && p.laudCallado);      // por si lo callaron mientras esperaba su turno en la cola

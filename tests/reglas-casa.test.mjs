@@ -3977,12 +3977,12 @@ console.log('reglas de la casa OK');
   assert.equal(J.noches, 41); assert.equal(J.dinares, 4);
   let v = vistaDe(e, adi).votoLaud; assert.ok(v && v.votas && !v.yaVote && v.total === 3 && v.callan === 0 && v.pid === jamil); assert.deepEqual(v.premio, { noches: 5, dinares: 5 });
   assert.ok(!vistaDe(e, jamil).votoLaud.votas, 'Jamil no vota'); assert.ok(!g.act(jamil, { t: 'callarJamil' }).ok);
-  assert.equal(e.votoLaud.limiteMs, 20000, 'la votación dura lo que la canción: 20 segundos'); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false);
+  assert.equal(e.votoLaud.limiteMs, 40000, 'la votación dura lo que la canción: 40 segundos'); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false);
   assert.match(g.act(jamil, { t: 'terminarTurno' }).error || '', /tocando el laúd/, 'mientras votan, Jamil sigue tocando');
   assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!g.act(adi, { t: 'callarJamil' }).ok, 'un voto por jugador');
   assert.ok(e.votoLaud, '1 de 3 no es mayoría'); assert.ok(vistaDe(e, adi).votoLaud.yaVote); assert.equal(vistaDe(e, zub).votoLaud.callan, 1);
   g.tickear(13000); assert.ok(e.votoLaud, 'todavía hay tiempo'); assert.equal(J.noches, 41);
-  g.tickear(8000); assert.ok(!e.votoLaud); assert.equal(J.noches, 46); assert.equal(J.dinares, 9); assert.ok(aviso(n0, /Dejaron tocar a .+ \(1 de 3 quiso callarlo\): gana 5 noches y 5 dinares/));
+  g.tickear(28000); assert.ok(!e.votoLaud); assert.equal(J.noches, 46); assert.equal(J.dinares, 9); assert.ok(aviso(n0, /Dejaron tocar a .+ \(1 de 3 quiso callarlo\): gana 5 noches y 5 dinares/));
   assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false, 'se acabó el tiempo sin callarlo: la capa 3D lo deja terminar su canción'); assert.equal(e.turno.pid, jamil, 'sigue su turno'); assert.ok(!e.turno.fin);
   assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok, 'y ya puede seguir jugando');
   // 2) la mayoría lo calla: deja de tocar, no gana más y su turno termina
@@ -3994,11 +3994,11 @@ console.log('reglas de la casa OK');
   // 3) empate entre dos votantes: no es mayoría, sigue
   e.jugadores[nur].conectado = false; n0 = tocar();
   assert.equal(vistaDe(e, adi).votoLaud.total, 2, 'el desconectado no cuenta'); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(e.votoLaud, '1 de 2 no es más de la mitad');
-  g.tickear(20500); assert.equal(J.noches, 46);
-  e.jugadores[adi].conectado = true; n0 = tocar(); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false, 'al volver a tocar ya no cuenta la callada anterior'); g.tickear(20500); assert.ok(aviso(n0, /Dejaron tocar a .+ \(nadie quiso callarlo\): gana 5 noches y 5 dinares/));
+  g.tickear(40500); assert.equal(J.noches, 46);
+  e.jugadores[adi].conectado = true; n0 = tocar(); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false, 'al volver a tocar ya no cuenta la callada anterior'); g.tickear(40500); assert.ok(aviso(n0, /Dejaron tocar a .+ \(nadie quiso callarlo\): gana 5 noches y 5 dinares/));
   // 4) un solo votante decide; y sin nadie más conectado no hay votación ni premio
   e.jugadores[zub].conectado = false; n0 = tocar(); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!e.votoLaud); assert.equal(J.noches, 41); assert.ok(aviso(n0, /Callaron a .+ \(1 de 1 lo pidió\)/));
-  e.jugadores[adi].conectado = false; n0 = tocar(); assert.ok(!e.votoLaud, 'sin público no se vota'); g.tickear(21000); assert.equal(J.noches, 41);
+  e.jugadores[adi].conectado = false; n0 = tocar(); assert.ok(!e.votoLaud, 'sin público no se vota'); g.tickear(41000); assert.equal(J.noches, 41);
   assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok);
   console.log('«Que se calle Jamil» OK');
 }
