@@ -18,6 +18,13 @@ CÓMO ABRIRLO EN ESTA PC
   Usa el puerto 8081 para no chocar con el juego 2D (8080). La partida se guarda en juego-3d\datos,
   separada de la del 2D. PIN del banco en local: 1234.
 
+PARTIDA DE MUESTRA CON LOS OCHO PERSONAJES
+  Doble clic en PROBAR-3D-PERSONAJES.bat y abre http://localhost:8081. Entra con el nombre Jorge (llevas a Nur al Din y es tu turno).
+  Los ocho personajes están en Bagdad. Los demás jugadores se llaman Carolina (Zubayda), Papá Jorge (Ruyán), Mamá Isabel (Zein),
+  Abuelo Fabi (Adí), Jugador 6 (Anís), Jugador 7 (Jamil) y Jugador 8 (Yafar). Para mover a otro, abre una ventana de incógnito
+  y entra con su nombre. Esta partida se guarda aparte, en juego-3d\datos-personajes, y no toca la tuya.
+  Para empezarla de cero, borra la carpeta datos-personajes.
+
 QUÉ HAY EN 3D
   - Mapa con relieve y sombras; amanece al empezar cada ronda y anochece al terminar.
   - Personajes según las hojas de personaje, con el rostro cubierto.
@@ -28,7 +35,7 @@ QUÉ HAY EN 3D
     después de su dado.
   - Ifrit: sale el genio de la lámpara, se presenta su carta y, al elegir, se esconde y la lámpara desaparece.
   - Ciudades tomadas por los cruzados, en llamas.
-  - Sonidos: están los espacios listos (src/escena3d/sonido.js); faltan los archivos de sonido.
+  - Sonidos de pasos, viajes, dados, peleas y retos; el volumen y el silencio están en el botón de la bocina.
 
 CONTROLES DEL TABLERO
   Arrastrar: mover.   Botón derecho o dos dedos: girar.   Rueda o pellizco: acercar y alejar.

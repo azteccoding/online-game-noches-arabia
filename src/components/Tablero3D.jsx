@@ -5,6 +5,7 @@ import { ponerEscena, escenaActual, enCola, viajeDe, quietos } from '../game/esc
 import { marcarIfrit } from '../game/store.js';
 import { SONIDOS } from '../escena3d/banco/sonidos.js';
 import { leerAjusteSonido, guardarAjusteSonido } from '../game/sonidos3d.js';
+import '../styles/board.css';      // el marco del tablero y los botones de la esquina (girar, vista general, centrar, sonido) viven ahí
 import '../styles/tablero3d.css';
 
 // Tablero 3D: la misma mesa de siempre, dibujada por la capa 3D. Este componente no decide nada: mira el estado que manda el
