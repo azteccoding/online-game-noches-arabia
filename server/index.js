@@ -14,7 +14,7 @@ import crypto from 'node:crypto';
 import { vistaCongelada, dadosPendientes } from '../shared/congelar.js';
 import { nuevaMemoria, reducirVista } from '../shared/delta.js';
 import { fileURLToPath } from 'node:url';
-import { armarReaccion } from '../shared/reacciones.js';
+import { armarReaccion, respuestaYafar, ESPERA_YAFAR_MS } from '../shared/reacciones.js';
 import { WebSocketServer } from 'ws';
 import { nuevoJuego, unir, reducir, vista, conexion, tick, serializar, restaurar, puedeUnirse, unirTarde } from '../shared/engine.js';
 import { cargarDatos } from './datos.js';
@@ -240,6 +240,8 @@ wss.on('connection', (ws, req) => {
       if (x.error) return enviar(ws, { t: 'error', msg: x.error });
       ultimaReaccion.set(pid, ahora);
       for (const c of clientes.keys()) enviar(c, { t: 'reaccion', r: x.r });
+      const y = respuestaYafar(estado, x.r, ahora);                                  // Yafar NPC contesta a «¡Matemos a Yafar!» y, en su turno, a «Como que ya se tardó»
+      if (y) setTimeout(() => { for (const c of clientes.keys()) enviar(c, { t: 'reaccion', r: { ...y, ts: Date.now() } }); }, ESPERA_YAFAR_MS);
       return;
     }
     if (m.t === 'accion' && m.a && typeof m.a.t === 'string') {

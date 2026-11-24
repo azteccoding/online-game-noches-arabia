@@ -11,7 +11,7 @@ import trivias from '../../data/trivias.json';
 import cuentos from '../../data/cuentos.json';
 import retos from '../../data/retos.json';
 import { nuevoJuego, unir, reducir, vista, tick } from '../../../shared/engine.js';
-import { armarReaccion } from '../../../shared/reacciones.js';
+import { armarReaccion, respuestaYafar, ESPERA_YAFAR_MS } from '../../../shared/reacciones.js';
 import { vistaCongelada, dadosPendientes } from '../../../shared/congelar.js';
 
 const DATA = { config, ciudades, rutas, personajes, objetos, eventos, mensajes, trivias, cuentos, retos };
@@ -70,7 +70,7 @@ export function crearLocal() {
     },
     enviar(a) { act(mirando || yo, a); },
     verComo(pid) { mirando = pid === yo ? null : pid; emitir(); },
-    reaccionar(id) { const p = mirando || yo, x = armarReaccion(e, p, id, Date.now(), ultimas[p]); if (x.error) return cb.error(x.error); ultimas[p] = Date.now(); cb.reaccion(x.r); },
+    reaccionar(id) { const p = mirando || yo, x = armarReaccion(e, p, id, Date.now(), ultimas[p]); if (x.error) return cb.error(x.error); ultimas[p] = Date.now(); cb.reaccion(x.r); const y = respuestaYafar(e, x.r, Date.now()); if (y) setTimeout(() => cb.reaccion({ ...y, ts: Date.now() }), ESPERA_YAFAR_MS); },
     cerrar() { clearInterval(timer); },
     onEstado: (f) => { cb.estado = f; }, onConexion: (f) => { cb.conexion = f; }, onError: (f) => { cb.error = f; }, onReaccion: (f) => { cb.reaccion = f; },
   };
