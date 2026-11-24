@@ -14,12 +14,17 @@ ARTE = sys.argv[1]
 R = sys.argv[2] if len(sys.argv) > 2 else os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
 W, H = 800, 1200
 
-def vistas(ruta, umbral=24, rellenar=True, cierre=25):
+def vistas(ruta, umbral=24, rellenar=True, cierre=25, huecos=0):
     """Las vistas de una hoja, de izquierda a derecha, recortadas y con transparencia."""
     im = np.asarray(Image.open(ruta).convert('RGB')).astype(np.float32); h, w, _ = im.shape
     fila = ndi.gaussian_filter1d(np.median(im[:, :8], axis=1), 12, axis=0)
-    m = ndi.binary_closing(np.sqrt(((im - fila[:, None, :]) ** 2).sum(axis=2)) > umbral, iterations=2)
-    if rellenar: m = ndi.binary_fill_holes(m)
+    dist = np.sqrt(((im - fila[:, None, :]) ** 2).sum(axis=2)); m = ndi.binary_closing(dist > umbral, iterations=2)
+    if rellenar:
+        lleno = ndi.binary_fill_holes(m)
+        if huecos:      # los huecos grandes que son fondo de verdad (entre las riendas y el cuello, el asa de la lámpara) se quedan abiertos
+            lh, nh = ndi.label(lleno & ~m); ix = range(1, nh + 1)
+            abrir = 1 + np.nonzero((ndi.sum(lleno, lh, ix) > huecos) & (ndi.mean(dist, lh, ix) < 14))[0]; lleno &= ~np.isin(lh, abrir)
+        m = lleno
     lab, n = ndi.label(m); tam = ndi.sum(m, lab, range(1, n + 1)); m = np.isin(lab, 1 + np.nonzero(tam > 150)[0])
     col = ndi.binary_closing(m.any(axis=0), structure=np.ones(cierre)); grupos, x0 = [], None
     for x in range(w):
@@ -77,3 +82,11 @@ poner(f, gen, (pico[0] - cola, 185, pico[0] - cola + ancho, pico[1]), sombra=Fal
 # Laúd de Jamil (24 de noviembre): la vista de tres cuartos de su hoja, un poco ladeada
 hoja_laud = os.path.join(ARTE, 'personajes/jamil/jamil_tocando/v1/laud_jamil.png')
 if os.path.exists(hoja_laud): f = fondo_zoco(); poner(f, vistas(hoja_laud)[1], (120, 120, W - 120, 900), -14); guardar(f, 'it-laud')
+# Transportes (Jorge, 24 de noviembre: «los transportes (caballo, camello, etc.) y otros objetos que ya te he pasado deben de tener una
+# carta que harás con las imágenes que ya te compartí»): la vista de tres cuartos de cada hoja, que es la que mejor llena una carta vertical
+for nombre, hoja in [('it-burro', 'burro'), ('it-caballo', 'caballo'), ('it-camello', 'camello'), ('it-caballoMongol', 'caballo-mongol')]:
+    f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'transportes', hoja + '.png'), cierre=3, huecos=120)[-1], (90, 185, W - 90, 835)); guardar(f, nombre)
+# Alfombra mágica: su hoja es la alfombra vista desde arriba; va un poco ladeada, con la sombra lejos, como si flotara
+f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'transportes/alfombra.png'), cierre=3)[0], (40, 250, W - 40, 800), 10); guardar(f, 'it-alfombra')
+# Lámpara de aceite: la misma lámpara pintada (la del genio), de perfil
+f = fondo_zoco(); poner(f, vistas(os.path.join(ARTE, 'transportes/lampara.png'), cierre=3, huecos=120)[0], (110, 260, W - 110, 780)); guardar(f, 'it-lampara')

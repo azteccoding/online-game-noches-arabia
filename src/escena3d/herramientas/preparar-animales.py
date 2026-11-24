@@ -16,7 +16,7 @@ R = sys.argv[3] if len(sys.argv) > 3 else os.path.abspath(os.path.join(os.path.d
 # Ajustes por animal. asiento: dónde va sentado el jinete, en fracción del camino de la pata delantera (0) a la trasera (1).
 AJ = {
   'caballo': dict(asiento=0.42, patas=True),
-  'camello': dict(asiento=0.5, patas=True),
+  'camello': dict(asiento=0.5, patas=True, repartir=True),      # repartir: su perfil pinta las cuatro patas bien separadas (ver más abajo)
   'burro': dict(asiento=0.5, patas=True),
   'caballoMongol': dict(asiento=0.45, patas=True),
   'dhow': dict(asiento=0.5, patas=False, fino=(0.66, 0.12)),      # fino: por encima de esa fracción de la altura (la vela y la jarcia) el relieve se queda en esa parte: una vela es plana
@@ -97,6 +97,7 @@ if AJ.get('fino'):
 # --- patas: la panza es la fila más baja en que la vista de frente es un solo tramo ancho
 ancho = mf.sum(axis=1)
 datos = dict(tw=tw, th=th, paso=PASO)
+solo = np.zeros(ms.shape, np.uint8)      # 0: en las dos cáscaras · 1: solo en la izquierda · 2: solo en la derecha
 if AJ['patas']:
     panza = panza0
     # dónde se separan las delanteras de las traseras: el hueco más grande entre columnas con pata, en el tercio de abajo
@@ -111,6 +112,31 @@ if AJ['patas']:
     separa = float(np.median(sep[filas_pata])) if len(filas_pata) else 0
     datos.update(panza=int(panza), medio=float(medio_x), del_=[cdel, panza - 0.1 * th], tra=[ctra, panza - 0.1 * th], separa=separa)
     xa = cdel + AJ['asiento'] * (ctra - cdel)
+    # Jorge (24 de noviembre): «el camello tiene 8 patas, están dobles cada una». El perfil pinta las cuatro patas y las dos cáscaras
+    # llevaban las cuatro. De cada par (delanteras, traseras) que el perfil muestre separado, la pata de más cerca (la que pisa más
+    # abajo) se queda solo en la cáscara izquierda y la otra solo en la derecha. Lo que cuelga sin llegar al suelo (cola, borlas,
+    # estribos) y los pares que el perfil pinta encimados se quedan en las dos. Solo en el camello (AJ repartir): es el que Jorge vio mal;
+    # en el burro y los caballos el perfil las pinta casi encimadas y el reparto salía sucio.
+    y_sep = panza + int(0.12 * (th - panza)); lp, npz = ndi.label(ms[y_sep:])
+    piezas = []      # lo que llega al suelo: patas (una sola, o un par que se toca)
+    for c in range(1, npz + 1):
+        ys, xs_ = np.nonzero(lp == c)
+        if ys.max() + y_sep >= th - 0.05 * (th - panza) and len(ys) > 200: piezas.append((c, float(xs_.mean())))
+    xx = np.arange(tw)[None, :]; pares = []
+    for grupo in ([q for q in piezas if q[1] < medio_x], [q for q in piezas if q[1] >= medio_x]) if AJ.get('repartir') else ():
+        if not grupo: pares.append(0); continue
+        u = np.zeros_like(ms); u[y_sep:] = np.isin(lp, [q[0] for q in grupo])
+        u[panza:y_sep] = ms[panza:y_sep] & ndi.binary_dilation(u[y_sep], iterations=3)[None, :]      # el arranque de las patas, hasta la panza
+        ys2, xs2 = [], []      # filas en que se ven las dos patas del par, y el centro del hueco entre ellas
+        for r in range(panza, th):
+            e = np.nonzero(np.diff(np.concatenate([[0], u[r].astype(int), [0]])))[0]; tr = [(a_, b_) for a_, b_ in zip(e[::2], e[1::2]) if b_ - a_ > 5]
+            if len(tr) == 2: ys2.append(r); xs2.append((tr[0][1] + tr[1][0]) / 2)
+        if len(ys2) < 0.25 * u.any(axis=1).sum(): pares.append(1); continue      # el perfil las pinta encimadas: se quedan en las dos cáscaras
+        corte = np.interp(np.arange(th), ys2, ndi.uniform_filter1d(np.array(xs2), 9, mode='nearest'))      # donde se enciman, se parte siguiendo el hueco
+        A, B = u & (xx < corte[:, None]), u & (xx >= corte[:, None])
+        cerca, lejos = (A, B) if np.nonzero(A.any(axis=1))[0].max() >= np.nonzero(B.any(axis=1))[0].max() else (B, A)
+        solo[cerca] = 1; solo[lejos] = 2; pares.append(2)
+    if pares: datos['patasPerfil'] = pares      # por par (delanteras, traseras): 2 = el perfil muestra las dos y se repartieron · 1 = encimadas
 else:
     xa = tw * AJ['asiento']
 # asiento: lo más alto de la silueta alrededor de xa (la parte de arriba de la silla o de la cubierta)
@@ -133,6 +159,14 @@ cub = np.zeros((gy - 1, gx - 1), np.uint8)
 for j in range(gy - 1):
     for i in range(gx - 1):
         cub[j, i] = ms[j * PASO:(j + 1) * PASO, i * PASO:(i + 1) * PASO].mean() > 0.35
+if solo.any():
+    si = np.zeros((gy - 1, gx - 1), np.uint8); sd = np.zeros((gy - 1, gx - 1), np.uint8)
+    for j in range(gy - 1):
+        for i in range(gx - 1):
+            t = solo[j * PASO:(j + 1) * PASO, i * PASO:(i + 1) * PASO]; n1, n2 = (t == 1).sum(), (t == 2).sum()
+            if n1 > n2 and n1 >= 0.5 * (t > 0).sum(): si[j, i] = 1
+            elif n2 > n1: sd[j, i] = 1
+    datos.update(soloIzq=base64.b64encode(np.packbits(si.flatten())).decode(), soloDer=base64.b64encode(np.packbits(sd.flatten())).decode())
 datos.update(gx=int(gx), gy=int(gy), zmax=zmax, z=base64.b64encode(np.round(zz / zmax * 255).astype(np.uint8).tobytes()).decode(),
              cubre=base64.b64encode(np.packbits(cub.flatten())).decode())
 # --- textura: el perfil con transparencia (el borde se ensancha un poco con el color de dentro, para que no se vea el fondo)
@@ -141,7 +175,7 @@ esc = min(1, MAXW / tw)
 Image.fromarray(rgba).resize((round(tw * esc), round(th * esc)), Image.LANCZOS).save(f'{R}/public/arte3d/animal-{aid}.webp', quality=88, method=6)
 os.makedirs(f'{R}/src/escena3d/datos', exist_ok=True)
 json.dump(datos, open(f'{R}/src/escena3d/datos/animal-{aid}.json', 'w'), separators=(',', ':'))
-print(aid, 'recorte', tw, 'x', th, 'malla', gx, 'x', gy, 'zmax', round(zmax), {k: v for k, v in datos.items() if k not in ('z', 'cubre')})
+print(aid, 'recorte', tw, 'x', th, 'malla', gx, 'x', gy, 'zmax', round(zmax), {k: v for k, v in datos.items() if k not in ('z', 'cubre', 'soloIzq', 'soloDer')})
 VISTA = os.environ.get('VISTA')
 if VISTA:      # control: perfil, relieve y puntos
     v = Image.fromarray(np.dstack([img, (ms * 255).astype(np.uint8)])).convert('RGB')
@@ -151,4 +185,5 @@ if VISTA:      # control: perfil, relieve y puntos
     for k in ('asiento', 'cabestro', 'del_', 'tra'):
         if k in datos: x, y = datos[k]; d.ellipse([x - 7, y - 7, x + 7, y + 7], fill=(255, 0, 0))
     if 'panza' in datos: d.line([0, datos['panza'], tw, datos['panza']], fill=(0, 255, 0), width=2); d.line([datos['medio'], 0, datos['medio'], th], fill=(0, 0, 255), width=2)
-    o = Image.new('RGB', (tw * 2, th)); o.paste(v, (0, 0)); o.paste(zi, (tw, 0)); o.save(f'{VISTA}/control-{aid}.png')
+    lados = np.zeros((th, tw, 3), np.uint8); lados[ms] = (90, 90, 90); lados[solo == 1] = (230, 60, 60); lados[solo == 2] = (60, 110, 230)      # rojo: pata izquierda · azul: derecha
+    o = Image.new('RGB', (tw * 3, th)); o.paste(v, (0, 0)); o.paste(zi, (tw, 0)); o.paste(Image.fromarray(lados), (tw * 2, 0)); o.save(f'{VISTA}/control-{aid}.png')

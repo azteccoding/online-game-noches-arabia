@@ -13,6 +13,9 @@ const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))
 export function crearModeloPintado(datos, textura, { alto = 1, centroX = null, material = {} } = {}) {
   const { tw, th, paso: P, gx, gy } = datos, k = alto / th, cx = centroX ?? (datos.asiento ? datos.asiento[0] : tw / 2);
   const zg = b64(datos.z), bits = b64(datos.cubre), cubre = (i, j) => { const n = j * (gx - 1) + i; return (bits[n >> 3] >> (7 - (n & 7))) & 1; };
+  // Jorge (24 de noviembre: «el camello tiene 8 patas»): si el perfil pinta las cuatro patas, cada una va en una sola cáscara
+  const bIzq = datos.soloIzq ? b64(datos.soloIzq) : null, bDer = datos.soloDer ? b64(datos.soloDer) : null;
+  const solo = (bs, i, j) => { if (!bs) return 0; const n = j * (gx - 1) + i; return (bs[n >> 3] >> (7 - (n & 7))) & 1; };
   const patas = datos.panza != null, panza = datos.panza ?? th, separa = (datos.separa || 0) * k;
   const yRodilla = panza + 0.5 * (th - panza);
   const pos = [], uv = [], idx = [], info = [];      // info por vértice: [lado (+1/−1), grupo (0 delantera, 1 trasera), peso pata, peso rodilla]
@@ -30,10 +33,8 @@ export function crearModeloPintado(datos, textura, { alto = 1, centroX = null, m
   }
   for (let j = 0; j < gy - 1; j++) for (let i = 0; i < gx - 1; i++) {
     if (!cubre(i, j)) continue;
-    const a = vertice(0, i, j), b = vertice(0, i + 1, j), c = vertice(0, i, j + 1), d = vertice(0, i + 1, j + 1);
-    idx.push(a, b, c, b, d, c);
-    const a2 = vertice(1, i, j), b2 = vertice(1, i + 1, j), c2 = vertice(1, i, j + 1), d2 = vertice(1, i + 1, j + 1);
-    idx.push(a2, c2, b2, b2, c2, d2);
+    if (!solo(bDer, i, j)) { const a = vertice(0, i, j), b = vertice(0, i + 1, j), c = vertice(0, i, j + 1), d = vertice(0, i + 1, j + 1); idx.push(a, b, c, b, d, c); }
+    if (!solo(bIzq, i, j)) { const a2 = vertice(1, i, j), b2 = vertice(1, i + 1, j), c2 = vertice(1, i, j + 1), d2 = vertice(1, i + 1, j + 1); idx.push(a2, c2, b2, b2, c2, d2); }
   }
   const geo = new THREE.BufferGeometry(), base = new Float32Array(pos);
   geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3)); geo.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uv), 2));
