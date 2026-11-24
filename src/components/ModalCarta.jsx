@@ -5,6 +5,7 @@ import { escenaActual } from '../game/escena3d.js';
 import { ACCIONES } from '../game/protocol.js';
 import { cartaEspera } from '../game/orden.js';
 import { nombreCorto } from '../game/data.js';
+import { sonidoDeCarta } from '../game/sonidos3d.js';
 import '../styles/ui.css';
 
 import { lecturaMs, MIN_LECTURA_MS as MIN_NORMAL } from '../game/lectura.js';
@@ -93,6 +94,19 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
     const iv = setInterval(() => { const r = Math.max(0, Math.ceil((ms - (Date.now() - t0)) / 1000)); setResta(r); if (r === 0) clearInterval(iv); }, 200);
     return () => clearInterval(iv);
   }, [modoLectura, nroActual, fase]);
+
+  // Juego 3D: la carta suena al girar el dorso y, si su tema lo pide (tormenta, mar, acero…), al mostrarse el anverso; nunca antes.
+  // Mientras la carta está oculta (anima una pelea o el genio aún no sale) no suena: espera a que se vea.
+  const esperaGenio = modoLectura && carta?.deck === 'ifrit' && s.pend?.tipo === 'ifrit' && !!escenaActual() && !ifritFuera;
+  useEffect(() => {
+    if (!modoLectura || !carta || esperaGenio || (fase !== 'dorso' && fase !== 'frente')) return undefined;
+    const clave = fase === 'dorso' ? 'carta-voltear' : sonidoDeCarta(carta);
+    if (!clave) return undefined;
+    let reloj = 0;
+    const sonar = () => { if (document.body.classList.contains('viendo-pelea')) { reloj = setTimeout(sonar, 200); return; } escenaActual()?.tocar(clave); };
+    sonar();
+    return () => clearTimeout(reloj);
+  }, [modoLectura, nroActual, fase, esperaGenio]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (puedeCerrarRef.current) botonCerrar.current?.focus({ preventScroll: true }); });
   // Jorge (23 de noviembre): toda carta trae el foco en Cerrar y Enter la cierra (cuando ya se puede); el espacio ni cierra ni hace de Enter.

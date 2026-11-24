@@ -62,6 +62,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 23 nov | En un trato solo se anotan dinares del 0 al 500 y noches del 0 al 900 (casillas y motor); nunca negativos. Alerta roja «Más de 100 dinares» y «Más de 200 noches» en el trato. | Sin tope: cualquier número de 0 en adelante. | `b6dc600` |
 | 23 nov | Ninguna carta pintada lleva recuadro borroso: todas van en letra pequeña (como la Rebelión Zanj) y el texto crece sobre fondo opaco al pasar el mouse. | Sin pinturas de carta. | `fa70129` |
 | 23 nov | Si mueres por una tirada tuya (reto de Sherezada y similares), primero lanzas y ves tus dados: el turno no pasa ni la partida termina hasta cerrarlos. | El turno pasa (o la partida termina, si juegas solo) antes de lanzar los dados. | `06094ed` |
+| 24 nov | Sonidos reales (CC0) en peleas, retos, cartas, viajes y genio, con botón de volumen y silencio. | Sin sonidos. | (commit de sonidos) |
+| 24 nov | Armas, flecha y escudo pintados en las peleas; cartas de cimitarra, alfanje, jambiya, arco, flechas, escudo y genio con su pintura; el barco se ve bien desde arriba. | Sin pinturas ni modelos 3D. | `34a3a53`, `fd7e650` |
 
 ## Despliegue
 

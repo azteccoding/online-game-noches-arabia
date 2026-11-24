@@ -87,7 +87,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   try { await Promise.race([Promise.all([document.fonts.load('400 40px "Marcellus SC"', 'Bagdad'), document.fonts.load('700 40px "Aref Ruqaa"', 'بغداد')]), new Promise((r) => setTimeout(r, 4000))]); } catch { /* sin esas fuentes, los rótulos salen con la de reserva */ }
   tablero.crearRotulos();
   avisar('Colocando las piezas…');
-  const sonido = crearSonido(sonidos);
+  const sonido = crearSonido(sonidos, { volumen: opciones.volumen ?? 1, silencio: !!opciones.silencio });
   const efectos = crearEfectos(escena);
   const flota = crearFlota({ escena, tablero, mats, efectos, sonido });
   const fichas = crearFichas({ escena, tablero, mats, personajes: PJ, recursos, tex: { sombra: amb.tex.sombra }, sonido, flota, efectos, aniso: renderer.capabilities.getMaxAnisotropy() });
@@ -456,6 +456,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     tocar(clave, fuerza = 1, variante) { sonido.tocar(clave, fuerza, variante); },
     activarSonido() { sonido.activar(); },
     silenciar(v = true) { return !sonido.silenciar(v); },
+    get silenciada() { return !sonido.activo; },
+    volumen(v) { return sonido.volumen(v); },      // volumen general de 0 a 1; sin argumento, lo lee
     SONIDOS: sonidos,
 
     // ----- Estado y avisos (se asignan desde fuera: escena.alHacerClicCiudad = (id) => …)

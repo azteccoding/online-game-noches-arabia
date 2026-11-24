@@ -168,7 +168,7 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
     const choque = v1.set(pr.x + Re.fx * 0.34, pr.y + 0.58, pr.z + 0.02), pies = v2.set(pr.x, pr.y, pr.z);
     if (g.tipo === 'puno') { efectos.polvo(v3.copy(choque).setY(pr.y + 0.3), 4, 0.5, 0xe8dcc0); efectos.destello(choque, 0.5 * fz, 0xfff6e0); camara.temblor(0.035 * fz); sonido?.tocar('pelea-punos', fz); }
     else if (conHoja) {
-      efectos.chispas(choque, Math.round(16 * fz), fz, 0xffd27a); efectos.destello(choque, 0.8 * fz); sonido?.tocar('choque-metal', fz);
+      efectos.chispas(choque, Math.round(16 * fz), fz, 0xffd27a); efectos.destello(choque, 0.8 * fz); sonido?.tocar(g.tipo === 'mazazo' && Re.f.conEscudo ? 'escudo-bloqueo' : 'choque-metal', fz);
       if (g.tipo === 'mazazo') { efectos.polvo(pies, 6, 0.8); camara.temblor(0.13); P.pausa = 0.06; } else camara.temblor(0.05 * fz);
     } else if (g.tipo === 'mazazo') {      // el golpe pesado cae en el suelo
       const s = v3.set(pa.x + At.fx * 0.62, tablero.altura(pa.x + At.fx * 0.62, pa.z), pa.z);

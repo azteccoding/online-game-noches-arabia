@@ -3,6 +3,8 @@ import { DATA, tablero, pjDe } from '../game/data.js';
 import { crearEscena } from '../escena3d/index.js';
 import { ponerEscena, escenaActual, enCola, viajeDe, quietos } from '../game/escena3d.js';
 import { marcarIfrit } from '../game/store.js';
+import { SONIDOS } from '../escena3d/banco/sonidos.js';
+import { leerAjusteSonido, guardarAjusteSonido } from '../game/sonidos3d.js';
 import '../styles/tablero3d.css';
 
 // Tablero 3D: la misma mesa de siempre, dibujada por la capa 3D. Este componente no decide nada: mira el estado que manda el
@@ -19,22 +21,25 @@ function fichasDe(jugadores, e3d, turnoPid) {
   }));
 }
 
-export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemadas, ciudadesAlcance, ciudadActiva, onCiudad, ronda, orden, pend, dados }) {
+export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemadas, ciudadesAlcance, ciudadActiva, onCiudad, ronda, orden, pend, dados, misDinares }) {
   const cont = useRef(null);
   const [lista, setLista] = useState(false);
   const [progreso, setProgreso] = useState('Desplegando el mapa…');
   const [fallo, setFallo] = useState(null);
   const [tip, setTip] = useState(null);
+  const [ajusteSonido, setAjusteSonido] = useState(leerAjusteSonido);   // { volumen: 0..1, silencio: bool }, se recuerda en este navegador
+  const [panelSonido, setPanelSonido] = useState(false);
   const previo = useRef(null);            // fichas tal como las conoce la escena
   const alCiudad = useRef(onCiudad); alCiudad.current = onCiudad;
   const datos = useRef({ jugadores }); datos.current = { jugadores };
 
   // --- Crear y destruir la escena
   useEffect(() => {
-    let vivo = true, esc = null, relojTip = 0;
+    let vivo = true, esc = null, relojTip = 0, quitarGesto = () => {};
     crearEscena(cont.current, {
       tablero, ciudades: DATA.ciudades.ciudades, jorasan: DATA.ciudades.jorasan || tablero.jorasan, rutas: DATA.rutas.rutas, personajes: DATA.personajes.personajes,
-      opciones: { hora: 'dia', alProgreso: (t) => { if (vivo) setProgreso(t); } },
+      sonidos: SONIDOS,
+      opciones: { hora: 'dia', volumen: ajusteSonido.volumen, silencio: ajusteSonido.silencio, alProgreso: (t) => { if (vivo) setProgreso(t); } },
     }).then((e) => {
       if (!e) return;
       if (!vivo) { e.destruir(); return; }
@@ -45,9 +50,13 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       e.alHacerClicFicha = (id) => { clearTimeout(relojTip); setTip(nombreDe(id)); relojTip = setTimeout(() => setTip(null), 2500); };
       // Jorge (23 de noviembre): MIENTRAS HAYA ANIMACIÓN DE PELEA no se ve ninguna ventana ni aviso; lo que venga sale al terminar (ui.css)
       e.alPelear = (v) => document.body.classList.toggle('viendo-pelea', !!v);
+      // El navegador no deja sonar nada antes de un gesto: el primer clic o tecla en cualquier parte de la página (no solo en el mapa) lo habilita.
+      const gesto = () => esc?.activarSonido();
+      for (const ev of ['pointerdown', 'keydown']) document.addEventListener(ev, gesto, { capture: true, passive: true });
+      quitarGesto = () => { for (const ev of ['pointerdown', 'keydown']) document.removeEventListener(ev, gesto, { capture: true }); };
       setLista(true);
     }).catch((err) => { console.error(err); if (vivo) setFallo(String(err?.message || err)); });
-    return () => { vivo = false; document.body.classList.remove('viendo-pelea'); clearTimeout(relojTip); if (esc) { if (escenaActual() === esc) ponerEscena(null); esc.destruir(); } previo.current = null; };
+    return () => { vivo = false; document.body.classList.remove('viendo-pelea'); clearTimeout(relojTip); quitarGesto(); if (esc) { if (escenaActual() === esc) ponerEscena(null); esc.destruir(); } previo.current = null; };
   }, []);
 
   // --- Fichas: altas, bajas, cambios y viajes
@@ -58,7 +67,11 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     previo.current = Object.fromEntries(ahora.map((f) => [f.id, f]));
     const limpio = ({ viajeN, medio, ...f }) => f;
     if (!antes) { esc.ponerJugadores(ahora.map(limpio)).then(() => { if (previo.current?.[miId]) return esc.enfocar(miId, { duracion: 1.6, distancia: DISTANCIA_INICIO }); }).catch((err) => console.warn('[3D]', err)); return; }
-    for (const id of Object.keys(antes)) if (!previo.current[id]) viajeDe(id, (e) => e.quitarJugador(id));
+    for (const id of Object.keys(antes)) {
+      if (previo.current[id]) continue;
+      const murio = !!jugadores[id]?.eliminado;    // muerto (asesinado, ghul, duelo…); a quien saca el banco o se va, solo se le quita la ficha
+      viajeDe(id, (e) => { if (murio) e.tocar('muerte'); return e.quitarJugador(id); });
+    }
     for (const f of ahora) {
       const a = antes[f.id];
       if (!a) { viajeDe(f.id, (e) => e.actualizarJugador(f.id, limpio(f))); continue; }
@@ -127,7 +140,18 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     return () => { vivo = false; clearTimeout(reloj); marcarIfrit(false); enCola((e) => e.esconderIfrit()); };
   }, [lista, ifritDe]);
 
+  // --- Sonido: volumen y silencio (se recuerdan en este navegador)
+  useEffect(() => { const e = lista ? escenaActual() : null; if (!e) return; e.volumen(ajusteSonido.volumen); e.silenciar(ajusteSonido.silencio); guardarAjusteSonido(ajusteSonido); }, [lista, ajusteSonido]);
+  // --- Monedas: suenan cuando tus dinares cambian de verdad (App pasa los dinares ya con el viaje terminado y la carta cerrada)
+  const dinaresPrev = useRef(null);
+  useEffect(() => {
+    const antes = dinaresPrev.current; dinaresPrev.current = misDinares ?? null;
+    if (!lista || antes == null || misDinares == null || misDinares === antes) return;
+    escenaActual()?.tocar(misDinares > antes ? 'monedas' : 'monedas-pagar', Math.min(1, 0.5 + Math.abs(misDinares - antes) / 40));
+  }, [lista, misDinares]);
+
   const esc = lista ? escenaActual() : null;
+  const mudo = ajusteSonido.silencio || ajusteSonido.volumen === 0;
   return (
     <div className="tablero tablero3d" role="application" aria-label="Tablero en 3D. Arrastra para mover, botón derecho o dos dedos para girar, rueda o pellizco para acercar.">
       <div className="tablero3d-lienzo" ref={cont} />
@@ -140,6 +164,14 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
           <button className="ctl" onClick={() => esc.girar(1)} aria-label="Girar a la derecha" title="Girar a la derecha">⟳</button>
           <button className="ctl" onClick={() => esc.vistaGeneral()} aria-label="Vista general" title="Vista general">▣</button>
           <button className="ctl" onClick={() => { if (datos.current.jugadores[miId]?.pj) esc.enfocar(miId).catch(() => {}); }} aria-label="Centrar en mi personaje" title="Centrar en mi personaje">◎</button>
+          <button className="ctl" onClick={() => setPanelSonido((v) => !v)} aria-expanded={panelSonido} aria-label="Sonido" title="Sonido">{mudo ? '🔇' : '🔊'}</button>
+          {panelSonido && (
+            <div className="panel-sonido" role="group" aria-label="Sonido">
+              <label>Volumen <input type="range" min="0" max="100" step="5" value={Math.round(ajusteSonido.volumen * 100)} aria-label="Volumen"
+                onChange={(ev) => setAjusteSonido({ volumen: +ev.target.value / 100, silencio: false })} /></label>
+              <button className="btn mini" onClick={() => setAjusteSonido((a) => ({ ...a, silencio: !a.silencio }))}>{ajusteSonido.silencio ? 'Activar sonido' : 'Silenciar'}</button>
+            </div>
+          )}
         </div>
       )}
     </div>

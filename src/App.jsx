@@ -205,7 +205,7 @@ function Juego({ lienzo }) {
     <div className={enViaje ? 'app en-viaje' : 'app'}>
       <BarraEstado s={s} demo={demo} pids={pids} panel={panel} abrir={abrir} />
       <main className="mesa">
-        <Tablero3D quemadas={s.quemadas} jugadores={(sVivo || s).jugadores} e3d={(sVivo || s).e3d} turnoPid={turnoVisible(s)} miId={s.yo} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} ronda={s.ronda} orden={(sVivo || s).orden} pend={s.pend} dados={s.dados} />
+        <Tablero3D quemadas={s.quemadas} jugadores={(sVivo || s).jugadores} e3d={(sVivo || s).e3d} turnoPid={turnoVisible(s)} miId={s.yo} ciudadesAlcance={alcance} ciudadActiva={ciudadPanel} onCiudad={onCiudad} ronda={s.ronda} orden={(sVivo || s).orden} pend={s.pend} dados={s.dados} misDinares={s.jugadores?.[s.yo]?.dinares} />
         <Dados s={s} />
         {panel === 'personajes' && <MenuPersonajes s={s} onCerrar={cerrar} />}
         {panel === 'mano' && <Mano s={s} onCerrar={cerrar} onAbrir={(d) => setConsulta(d)} />}

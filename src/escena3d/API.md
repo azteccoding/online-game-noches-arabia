@@ -137,9 +137,11 @@ Se asignan como propiedades (o dentro de `opciones`): `alHacerClicCiudad(id)`, `
 
 ## Sonido
 
-`activarSonido()` (llamarla tras el primer gesto del usuario), `silenciar(true | false)`, `tocar(clave)`.
+`activarSonido()` (llamarla tras el primer gesto del usuario), `silenciar(true | false)`, `silenciada`, `volumen(0..1)`, `tocar(clave)`.
+Opciones de `crearEscena`: `volumen` (0 a 1) y `silencio` iniciales.
 
-La escena no trae archivos de sonido. Cada momento tiene una ranura con nombre; la tabla completa, con el momento exacto
+Los archivos están en `public/sonidos/` (créditos y licencias en `public/sonidos/CREDITOS.md`); se bajan una vez al activar el
+sonido y suenan con Web Audio, todos por un volumen general. Cada momento tiene una ranura con nombre; la tabla completa, con el momento exacto
 en que suena cada una, está en `banco/sonidos.js` (`SONIDOS`). Para enchufar un sonido se pone la URL en su ranura y se
 pasa la tabla a `crearEscena`. Una ranura vacía suena con un provisional sintetizado, si lo tiene, o no suena. Familias:
 dados, fichas, ronda y ambiente, pelea y arco, mar y dhow, monturas y alfombra, Ifrit.

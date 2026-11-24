@@ -152,6 +152,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     if (cabestro) { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9 * 3), 3)); f.viaje.cuerda = new THREE.Line(g, matCuerda); f.viaje.cuerda.frustumCulled = false; f.viaje.cuerda.visible = false; escena.add(f.viaje.cuerda); }
     f.ciudad = destino; f.ranura = k;
     if (animal && f.transporte === 'burro') sonido?.tocar('burro-rebuzno');
+    else if (animal && f.transporte === 'camello') sonido?.tocar('camello-montar');
     return { dur, destino: a.pos.clone().add(a.ranuras[k]), porMar: enMar > 0 };
   }
   function terminarViaje(f, avisar = true) {
