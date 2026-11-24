@@ -3966,6 +3966,49 @@ console.log('reglas de la casa OK');
   turnoDe(e, jamil, 'Jorasán'); e.turno.fase = 'acciones'; J.perdido = true;
   assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
 }
+// Jorge (24 de noviembre, solo en el 3D): Yafar NPC contesta a «¡Matemos a Yafar!» («Te estoy esperando», con un cuchillo) y, solo
+// en su turno, a «Como que ya se tardó, ¿No?» (una de cada tres veces «Paciencia, esclavo»; las otras dos «Tardaré lo que tenga que tardar»).
+{
+  const { armarReaccion, respuestaYafar } = await import('../shared/reacciones.js');
+  const e = { fase: 'juego', turno: { pid: 'j1' }, jugadores: { j1: { id: 'j1', pj: '1', nombre: 'Jorge', ciudad: 'Bagdad' }, npc: { id: 'npc', pj: 'B', npc: true, nombre: 'Yafar', ciudad: 'Bagdad' } } };
+  const mata = armarReaccion(e, 'j1', 'matemosYafar', 9e12, 0).r, tarda = armarReaccion(e, 'j1', 'manitas', 9e12, 0).r;
+  const y = respuestaYafar(e, mata, 5); assert.deepEqual([y.texto, y.emoji, y.de, y.nombre, y.a, y.ts], ['Te estoy esperando', '🔪', 'npc', 'Yafar', 'j1', 5]);
+  assert.equal(respuestaYafar(e, tarda, 5), null, 'si no es el turno de Yafar, no contesta a «Como que ya se tardó»');
+  e.turno.pid = 'npc';
+  assert.equal(respuestaYafar(e, tarda, 5, 0.1).texto, 'Paciencia, esclavo'); assert.equal(respuestaYafar(e, tarda, 5, 0.5).texto, 'Tardaré lo que tenga que tardar'); assert.equal(respuestaYafar(e, tarda, 5, 0.99).texto, 'Tardaré lo que tenga que tardar');
+  assert.ok(respuestaYafar(e, tarda, 5, 0.1).emoji && respuestaYafar(e, tarda, 5, 0.9).emoji, 'cada respuesta lleva su emoji');
+  assert.ok(respuestaYafar(e, mata, 5), 'a «¡Matemos a Yafar!» contesta también en su turno');
+  assert.equal(respuestaYafar(e, armarReaccion(e, 'j1', 'bien', 9e12, 0).r, 5), null, 'a las demás no contesta');
+  e.jugadores.npc.npc = false; assert.equal(respuestaYafar(e, mata, 5), null, 'si a Yafar lo juega una persona, no contesta solo');
+  e.jugadores.npc.npc = true; e.jugadores.npc.eliminado = true; assert.equal(respuestaYafar(e, tarda, 5), null, 'eliminado, tampoco');
+}
+// Jorge (24 de noviembre, solo en el 3D): con «La gran caravana de la Seda» (H10) el tramo entre Bagdad e Isfahán cuesta 2 dinares
+// si Isfahán es solo de paso (llegas y sales en el mismo turno); si te quedas en Isfahán, la tarifa normal.
+{
+  const { SEDA_PASO } = await import('../shared/engine.js');
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const turno = (ciudad) => { turnoDe(e, a, ciudad); A.ciudad = ciudad; A.dinares = 100; A.transito = null; e.turno.fase = 'acciones'; e.mods = { seda: true }; e.info = []; };
+  // viaja y devuelve lo que pagó por ese tramo y lo que recuperó del anterior (según el registro: la llegada puede dar o quitar dinares por su cuenta)
+  const viaja = (destino) => { const n0 = e.logN || 0, r = g.act(a, { t: 'viajar', destino }); assert.ok(r.ok, r.error); e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = []; e.turno.ccActual = null; e.turno.fin = false; assert.equal(A.ciudad, destino);
+    const ls = e.log.filter((l) => l.n > n0).map((l) => l.texto), pago = ls.map((x) => x.match(/viaja de .+ a .+ \((\d+) dinares\)/)).find(Boolean), dev = ls.map((x) => x.match(/solo va de paso por Isfahán.+le cuesta 2 dinares \(recupera (\d+)\)/)).find(Boolean);
+    return { pago: pago ? +pago[1] : 0, dev: dev ? +dev[1] : 0 }; };
+  const precioA = (destino) => vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === destino)?.precio;
+  assert.equal(SEDA_PASO, 2);
+  // de Bagdad a Isfahán y se queda: tarifa normal (10)
+  turno('Bagdad'); assert.equal(precioA('Isfahán'), 10); assert.deepEqual(viaja('Isfahán'), { pago: 10, dev: 0 }, 'si te quedas en Isfahán pagas los 10 de siempre');
+  // de Bagdad a Samarcanda pasando por Isfahán: el primer tramo queda en 2 (se devuelven 8) y el segundo a mitad de precio (22)
+  turno('Bagdad'); viaja('Isfahán'); assert.equal(precioA('Samarcanda'), 22); { const d0 = A.dinares; assert.deepEqual(viaja('Samarcanda'), { pago: 22, dev: 8 }, 'de paso por Isfahán: 2 dinares por el tramo de Bagdad a Isfahán'); assert.ok(A.dinares >= d0 + 8 - 22); }
+  // si el segundo tramo solo le alcanza contando la devolución, también puede
+  turno('Bagdad'); A.dinares = 26; viaja('Isfahán'); A.dinares = 16; assert.deepEqual(viaja('Samarcanda'), { pago: 22, dev: 8 });
+  // de vuelta: de Samarcanda a Bagdad pasando por Isfahán, el tramo de Isfahán a Bagdad sale en 2
+  turno('Samarcanda'); assert.equal(viaja('Isfahán').pago, 18); assert.equal(precioA('Bagdad'), 2); assert.deepEqual(viaja('Bagdad'), { pago: 2, dev: 0 });
+  // saliendo de Isfahán en otro turno (se quedó ahí): tarifa normal a Bagdad (12)
+  turno('Isfahán'); assert.equal(precioA('Bagdad'), 12); assert.deepEqual(viaja('Bagdad'), { pago: 12, dev: 0 });
+  // sin la carta: nada cambia
+  turno('Bagdad'); e.mods = {}; viaja('Isfahán'); assert.equal(precioA('Bagdad'), 12); assert.equal(precioA('Samarcanda'), 44); assert.deepEqual(viaja('Samarcanda'), { pago: 44, dev: 0 });
+  assert.match(data.eventos.historicos.find((x) => x.id === 'H10').efecto, /solo si vas de paso por Isfahán/);
+}
 // Jorge (24 de noviembre, solo en el 3D): Jamil toca una de dos piezas de la misma canción, al azar: dos de cada tres veces la segunda
 // (22 segundos) y si no la de siempre (40). La votación dura lo que la pieza y la capa 3D sabe cuál fue.
 {

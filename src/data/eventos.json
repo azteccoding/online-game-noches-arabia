@@ -244,7 +244,7 @@
    "tipo": "historico",
    "nombre": "La gran caravana de la Seda",
    "ciudades": "Samarcanda, Isfahán, India",
-   "efecto": "Esta ronda las caravanas entre Samarcanda, Isfahán e India cuestan la mitad (redondeo hacia arriba)",
+   "efecto": "Esta ronda las caravanas entre Samarcanda, Isfahán e India cuestan la mitad (redondeo hacia arriba). El tramo entre Bagdad e Isfahán cuesta 2 dinares solo si vas de paso por Isfahán: llegas y sales de Isfahán en el mismo turno. Si te quedas en Isfahán, pagas la tarifa normal",
    "costo": "Quien llegue a Samarcanda gana 20 noches extra",
    "fomenta": "M",
    "arte": "hi",

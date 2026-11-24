@@ -968,6 +968,17 @@ function darMensaje(data, e, pid) {
 
 // ---------------------------------------------------------------- viajes
 // Jorge (19 de noviembre, más tarde): Zubayda ya no tiene viaje gratis en su primera salida de Bagdad: paga la caravana como todos.
+// Jorge (24 de noviembre, solo en el 3D): con «La gran caravana de la Seda» (H10) el tramo entre Bagdad e Isfahán cuesta 2 dinares
+// siempre que Isfahán sea solo de paso: llegas y sales de Isfahán en el mismo turno, sin quedarte ahí.
+//  · De Isfahán a Bagdad, recién llegado a Isfahán en este turno: el pasaje ya sale en 2.
+//  · De Bagdad a Isfahán se paga lo normal (no se sabe si te quedarás); si en ese mismo turno sigues de viaje, se te devuelve la diferencia.
+export const SEDA_PASO = 2;
+const recienLlegoAIsfahan = (e, j) => { const t = e.turno, u = t?.pid === j.id ? t.pagos?.[t.pagos.length - 1] : null; return e.mods?.seda && j.ciudad === 'Isfahán' && u?.a === 'Isfahán' ? u : null; };
+export function tarifaTurno(data, e, j, destino) {
+  const p = tarifa(data, e, j, j.ciudad, destino);
+  return p !== null && p > SEDA_PASO && destino === 'Bagdad' && recienLlegoAIsfahan(e, j) ? SEDA_PASO : p;
+}
+const devolucionSeda = (e, j) => { const u = recienLlegoAIsfahan(e, j); return u && u.de === 'Bagdad' && u.precio > SEDA_PASO ? u.precio - SEDA_PASO : 0; };
 export function viajar(data, e, pid, a) {
   const t = e.turno, j = e.jugadores[pid];
   const destino = a.destino;
@@ -985,7 +996,7 @@ export function viajar(data, e, pid, a) {
   if (e.sinCaravanasBagdad && origen === 'Bagdad') return err('Tormenta de arena: esta ronda no salen caravanas desde Bagdad (E3).');
   if (e.mods.varado?.[pid]) return err('Estás varado por los vientos del monzón.');
   if (j.herido && esRutaMar(origen, destino)) return err(HERIDO_BARCO);
-  let precio = tarifa(data, e, j, origen, destino);
+  let precio = tarifaTurno(data, e, j, destino);
   if (ciudadCerrada(e, a.destino)) return err(motivoCerrada(e, a.destino));
   if (precio === null) return err('No hay ruta directa o está cortada: usa un transbordo (R 7.3).');
   let gratis = false;
@@ -1001,7 +1012,7 @@ export function viajar(data, e, pid, a) {
     if (a.hilo) { const c = OBJ.hiloDe(j); if (!c || precio > 15) return err('Necesitas un Hilo de alfombra y un tramo de tarifa 15 o menos.'); args.hilo = true; args.precio = 0; }
     else if (a.califa) { if (!j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.'); if (destino === 'Samarcanda') return err('No a Samarcanda.'); args.precio = 0; args.califa = true; }
     if (!args.hilo && !args.califa && conDadiva) { args.dadiva = true; args.precio = 0; }
-    if (!args.hilo && !args.califa && !args.dadiva && precio > 0 && !puedeDinares(j, precio)) return err(`No te alcanzan los dinares (${precio}).`);
+    if (!args.hilo && !args.califa && !args.dadiva && precio > 0 && !puedeDinares(j, precio - devolucionSeda(e, j))) return err(`No te alcanzan los dinares (${precio}).`);
   }
   if (a.califa && !j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.');
   if (e.mods.huir?.[pid]) { /* la huida se resuelve en eventos: aquí no */ }
@@ -1013,13 +1024,15 @@ const puedeDinares = (j, p) => j.dinares >= p;
 export function partir(data, e, pid, args) {
   const t = e.turno, j = e.jugadores[pid];
   const origen = j.ciudad, destino = args.destino;
+  { const dev = devolucionSeda(e, j);      // sale de Isfahán en el mismo turno en que llegó de Bagdad: iba de paso
+    if (dev > 0) { j.dinares += dev; t.pagos[t.pagos.length - 1].precio = SEDA_PASO; log(e, `${j.nombre} solo va de paso por Isfahán: con la gran caravana de la Seda, el tramo de Bagdad a Isfahán le cuesta ${SEDA_PASO} dinares (recupera ${dev}).`, { pid }); } }
   if (args.precio > 0) { if (j.dinares < args.precio) { log(e, `${j.nombre} ya no puede pagar el viaje.`); return err('No te alcanzan los dinares.'); } j.dinares -= args.precio; }
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
   if (args.califa) { j.extra.viajeCalifa = false; }
   if (args.dadiva) { quitarPrimero(j, 'item', 'dadivaEmir'); log(e, `${j.nombre} paga su pasaje con la Dádiva del Emir.`, { pid }); }
   if (args.palacio) { j.extra.viajePalacio = false; log(e, `${j.nombre} viaja gratis a ${destino}: el Califa la manda como entretenimiento nocturno a los palacios de sus primos.`, { pid }); }
   if (j.extra.usaViajeZein) { j.extra.viajeZein = false; j.extra.usaViajeZein = false; log(e, `${j.nombre} viaja gratis con lo que sacó de sus alhajas.`, { pid }); }
-  t.tramos++; t.movio = true;
+  t.tramos++; t.movio = true; (t.pagos ||= []).push({ de: origen, a: destino, precio: args.precio || 0 });
   const key = origen + '>' + destino;
   if (!e.caravanas.includes(key)) e.caravanas.push(key);                                                    // regla de la casa: primer viaje paga y crea la caravana (R 7.2)
   if (!e.caravanas.includes(destino + '>' + origen) && data.rutas.tarifas[destino + '>' + origen] !== undefined) e.caravanas.push(destino + '>' + origen);
@@ -1457,7 +1470,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifa(data, e, j, j.ciudad, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifaTurno(data, e, j, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
