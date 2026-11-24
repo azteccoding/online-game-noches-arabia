@@ -74,7 +74,7 @@
 .pintada .c-sub { color: #f3e6c4; text-shadow: 0 .2cqw .7cqw #000, 0 0 1.6cqw #000; }
 .pintada .c-pill { margin-top: auto; align-self: flex-start; margin-left: 1.5cqw; margin-bottom: -2.2cqw; background: #8e1f2a; color: #f6ecd0; border-color: #e3b873; }
 .pintada .c-pill .ar { color: #efd08f; }
-.pintada .c-cuerpo { flex: 0 1 auto; max-height: 40%; background: rgba(22, 10, 6, .46); border: .45cqw solid rgba(227, 184, 115, .85); box-shadow: 0 .6cqw 2cqw rgba(0, 0, 0, .35); padding-top: 3cqw; backdrop-filter: blur(.5cqw); text-shadow: 0 .15cqw .5cqw #000, 0 0 1.2cqw rgba(0, 0, 0, .85); }
+.pintada .c-cuerpo { flex: 0 1 auto; max-height: 40%; background: rgba(22, 10, 6, .46); border: .45cqw solid rgba(227, 184, 115, .85); box-shadow: 0 .6cqw 2cqw rgba(0, 0, 0, .35); padding-top: 3cqw; text-shadow: 0 .15cqw .5cqw #000, 0 0 1.2cqw rgba(0, 0, 0, .85); }
 .pintada .c-cita { color: #f3e6c4; text-shadow: 0 .2cqw .7cqw #000; }
 .pintada.tit-abajo .c-cab, .pintada.tit-abajo .c-sub { order: 1; }
 .pintada.tit-abajo .c-cab { margin-top: auto; }
