@@ -18,6 +18,8 @@ const VEL_ALFOMBRA = 4.0, PASO_ALFOMBRA = 0.8;      // velocidad de crucero de l
 const ESC_ESPERA = 0.8, ESC_MONTADO = 1.2, ESC_CABESTRO = 0.95;      // tamaño del animal mientras espera junto a la figura (pequeño, sin estorbar) y al cabalgar
 
 // personajes: { id: { id, nombre, arma, … } } · recursos.figuras: { id: { atlas: URL, datos } } · flota: la de crearFlota (o null)
+// Velocidad de giro del monito propio, en radianes por segundo: la vuelta entera al tocarlo (unos 2 segundos) y las vueltas con el acercamiento máximo (una cada 3 segundos)
+const GIRO_TOQUE = 3.6, GIRO_CERCA = 2.2;
 export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, sonido, flota, efectos = null, aniso = 8 }) {
   const tAro = texAro();
   const gPlano = new THREE.PlaneGeometry(1, 1); gPlano.rotateX(-Math.PI / 2);
@@ -418,7 +420,11 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
         const c = tablero.ciudades.get(f.ciudad), r = c.ranuras[f.ranura]; f.nodo.position.set(c.pos.x + r.x * s, 0, c.pos.z + r.z * s); f.nodo.position.y = tablero.altura(f.nodo.position.x, f.nodo.position.z);
         // en reposo mira al sur (hacia la vista general)
         // Jorge (23 de noviembre): tu monito da vueltas despacio con el acercamiento máximo (giraCerca) y da una vuelta entera si lo tocas (girar)
-        if (f.giraCerca || f.girar > 0) { const w = Math.min(dt, 0.05) * 1.5; f.giro += w; if (!f.giraCerca) f.girar = Math.max(0, f.girar - w); sucio = true; }
+        // Jorge (24 de noviembre): girando despacio se notaba mucho el paso de una pintura a la siguiente; ahora gira más aprisa. La vuelta del toque arranca y llega suave.
+        if (f.giraCerca || f.girar > 0) {
+          let vel = f.girar > 0 ? GIRO_TOQUE * Math.min(1, 0.35 + Math.min(f.girar, 2 * Math.PI - f.girar) / 0.8) : 0; if (f.giraCerca) vel = Math.max(vel, GIRO_CERCA);
+          const w = Math.min(dt, 0.05) * vel; f.giro += w; f.girar = Math.max(0, f.girar - w); sucio = true;
+        }
         else { let dif = -f.giro; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); if (Math.abs(dif) > 0.001) { f.giro += dif * (1 - Math.exp(-dt * 5)); sucio = true; } }
         if (f.rebote > 0) { f.rebote = Math.max(0, f.rebote - dt * 2.6); const b = Math.sin(f.rebote * Math.PI * 3) * f.rebote; estY = 1 - 0.05 * b; estX = 1 + 0.03 * b; sucio = true; }
         alto = f.nivel * (0.06 + (f.elegida || f.rival ? 0.03 * Math.sin(t * 3.2 + (f.rival ? 2 : 0)) : 0));

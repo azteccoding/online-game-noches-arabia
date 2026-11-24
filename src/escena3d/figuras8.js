@@ -17,12 +17,16 @@
 //    al detenerse se asienta en una sola pintura, nítida;
 //  · donde una pintura cubre y la otra no (orillas), esa orilla aparece o se va poco a poco, nunca de golpe;
 //  · la sombra la echa la cáscara tal como se ve (de cara a quien mira y deformada), no la pintura fija a su ángulo: ya no brinca.
+// Tercera vuelta (Jorge, el mismo día: «Nur al Din da saltos fuertes y hasta su brazo derecho se cambia de lugar… quizá aumentando
+// la velocidad se notaría menos la transición o quizá desvaneciendo más rápido»). Las pinturas no tienen los brazos en el mismo
+// sitio y, mezcladas a lo largo de medio giro, se veían dos brazos un buen rato. Ahora la mezcla ocupa solo la quinta parte del
+// camino entre dos pinturas (ORILLA) y puede durar tan poco como 70 ms (FUNDIDO); y el monito gira más aprisa (fichas.js).
 import * as THREE from 'three';
 
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 200;      // cuánto hay que pasarse del límite para cambiar de vista, y milisegundos del relevo (lo menos que dura un fundido completo)
-const ORILLA = 0.2;       // girando, el fundido entre dos pinturas ocupa el camino entre ellas salvo esta fracción junto a cada una
+const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 70;      // cuánto hay que pasarse del límite para cambiar de vista, y milisegundos del relevo (lo menos que dura un fundido completo)
+const ORILLA = 0.4;       // girando, el fundido entre dos pinturas ocupa el camino entre ellas salvo esta fracción junto a cada una
 const LENTO = 2 * GRADOS / 1000, VIVO = 10 * GRADOS / 1000;      // radianes por milisegundo: por debajo de LENTO la figura «está quieta» (una sola pintura); desde VIVO, el fundido va con el ángulo
 const angulo = (d) => { d %= 2 * Math.PI; return d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d; };
 
