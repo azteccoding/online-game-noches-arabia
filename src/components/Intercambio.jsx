@@ -36,6 +36,9 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : s.pend ? 'Espera un momento: hay una decisión pendiente en la partida; al resolverse puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán, sí).' : 'Ahora no puedes comprar.';
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
+  // Jorge (23 de noviembre): en un trato solo se anotan dinares del 0 al 500 y noches del 0 al 900, nunca negativos
+  const tope = (max) => (v) => (v === '' ? '' : Math.max(0, Math.min(max, Math.floor(Number(v)) || 0)));
+  const soloDinares = tope(500), soloNoches = tope(900);
   const [dinOfrece, setDinOfrece] = useState(0);
   const [dinPide, setDinPide] = useState(0);
   const [objs, setObjs] = useState([]);
@@ -126,13 +129,13 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
               <form className="form-trato" onSubmit={(e) => { e.preventDefault(); if (con) { enviar(ACCIONES.proponerTrato(con, { dinares: Number(dinOfrece), noches: Number(nchOfrece), objetos: objs }, { dinares: Number(dinPide), noches: Number(nchPide), idx: pideObjs }, esContra)); limpiar(); } }}>
                 <label>Con <select value={con} onChange={(e) => { setCon(e.target.value); setPideObjs([]); }}><option value="">— elige —</option>{companeros.map((j) => <option key={j.id} value={j.id}>{j.nombre}</option>)}</select></label>
                 <fieldset className="lado-trato"><legend>Yo doy</legend>
-                  <label>Dinares <input type="number" min="0" max={Math.max(0, yo.dinares)} value={dinOfrece} onChange={(e) => setDinOfrece(e.target.value)} /></label>
-                  <label>Noches <input type="number" min="0" max={yo.noches} value={nchOfrece} onChange={(e) => setNchOfrece(e.target.value)} /></label>
+                  <label>Dinares <input type="number" min="0" max="500" step="1" value={dinOfrece} onChange={(e) => setDinOfrece(soloDinares(e.target.value))} /></label>
+                  <label>Noches <input type="number" min="0" max="900" step="1" value={nchOfrece} onChange={(e) => setNchOfrece(soloNoches(e.target.value))} /></label>
                   {vendibles.map((c) => <label key={c.uid} className="chk"><input type="checkbox" checked={objs.includes(c.uid)} onChange={(e) => setObjs((o) => (e.target.checked ? [...o, c.uid] : o.filter((x) => x !== c.uid)))} /> {c.datos?.titulo}</label>)}
                 </fieldset>
                 <fieldset className="lado-trato"><legend>Pido a cambio</legend>
-                  <label>Dinares <input type="number" min="0" value={dinPide} onChange={(e) => setDinPide(e.target.value)} /></label>
-                  <label>Noches <input type="number" min="0" value={nchPide} onChange={(e) => setNchPide(e.target.value)} /></label>
+                  <label>Dinares <input type="number" min="0" max="500" step="1" value={dinPide} onChange={(e) => setDinPide(soloDinares(e.target.value))} /></label>
+                  <label>Noches <input type="number" min="0" max="900" step="1" value={nchPide} onChange={(e) => setNchPide(soloNoches(e.target.value))} /></label>
                   {!con && <p className="it">Elige con quién para ver sus cartas.</p>}
                   {con && !suyas.length && <p className="it">{s.jugadores[con]?.nombre} no tiene cartas que se puedan intercambiar.</p>}
                   {suyas.map((c) => <label key={c.i} className="chk"><input type="checkbox" checked={pideObjs.includes(c.i)} onChange={(e) => setPideObjs((o) => (e.target.checked ? [...o, c.i] : o.filter((x) => x !== c.i)))} /> {c.titulo}</label>)}

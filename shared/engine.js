@@ -1337,7 +1337,7 @@ function proponerTrato(data, e, pid, a) {
     const objetos = [...new Set([...(x?.objetos || []), ...porIdx])].filter((u) => de.mano.some((c) => c.uid === u && c.tipo !== 'especial' || c.uid === u && c.ref === 'F1'));
     const refs = (x?.refs || []).filter((r) => typeof r === 'string' && r !== 'libroIbnHazm').slice(0, 6);
     const nombres = [...objetos.map((u) => datosMano(data, e, de.mano.find((c) => c.uid === u))?.titulo || 'carta'), ...refs.map((r) => nombreRef(data, r))];
-    return { dinares: Math.max(0, Math.floor(x?.dinares || 0)), noches: Math.max(0, Math.floor(x?.noches || 0)), objetos, refs, nombres };
+    return { dinares: Math.min(500, Math.max(0, Math.floor(x?.dinares || 0))), noches: Math.min(900, Math.max(0, Math.floor(x?.noches || 0))), objetos, refs, nombres };
   };
   const ofrece = val(a.ofrece, j), pide = val(a.pide, k);
   if ((ofrece.dinares > 0 && ofrece.dinares > j.dinares) || (ofrece.noches > 0 && ofrece.noches > j.noches)) return err('No tienes todo lo que ofreces.');   // con noches o dinares en negativo se puede tratar sin ofrecerlos
