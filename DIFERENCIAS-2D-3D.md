@@ -64,7 +64,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 23 nov | Si mueres por una tirada tuya (reto de Sherezada y similares), primero lanzas y ves tus dados: el turno no pasa ni la partida termina hasta cerrarlos. | El turno pasa (o la partida termina, si juegas solo) antes de lanzar los dados. | `06094ed` |
 | 24 nov | Sonidos reales (CC0) en peleas, retos, cartas, viajes y genio, con botón de volumen y silencio. | Sin sonidos. | `7a17eb2` |
 | 24 nov | Armas, flecha y escudo pintados en las peleas; cartas de cimitarra, alfanje, jambiya, arco, flechas, escudo y genio con su pintura; el barco se ve bien desde arriba. | Sin pinturas ni modelos 3D. | `34a3a53`, `fd7e650` |
-| 24 nov | Mientras el genio sale de la lámpara, flota y vuelve a meterse, todo lo demás se queda quieto (monitos, barcos, ronda); sigue al esconderse el genio. | El 2D no tiene animación del genio. | (este commit) |
+| 24 nov | Mientras el genio sale de la lámpara, flota y vuelve a meterse, todo lo demás se queda quieto (monitos, barcos, ronda); sigue al esconderse el genio. | El 2D no tiene animación del genio. | `b1dc128` |
 
 ## Despliegue
 
