@@ -3863,7 +3863,7 @@ console.log('reglas de la casa OK');
   const e = g.e, [jamil, zein, ruyan] = g.ids, J = (id) => e.jugadores[id];
   assert.ok(hablaIdioma(J(jamil), 'persa') && !hablaIdioma(J(jamil), 'árabe'), 'Jamil empieza hablando persa');
   assert.ok(hablaIdioma(J(zein), 'árabe'), 'Zein empieza hablando árabe'); assert.ok(hablaIdioma(J(ruyan), 'árabe'), 'Ruyán vuelve a empezar hablando árabe (Jorge, 19 de noviembre)');
-  assert.equal((data.personajes.personajes || data.personajes).find((x) => x.id === '5').inicio.noches, 100, 'Ruyán empieza con 100 noches (antes 200; el evento de la ronda 1 puede cambiarlas después)');
+  assert.equal((data.personajes.personajes || data.personajes).find((x) => x.id === '5').inicio.noches, 200, 'Ruyán empieza con 200 noches en el 3D (Jorge, 24 de noviembre; en el 2D siguen siendo 100; el evento de la ronda 1 puede cambiarlas después)');
   assert.ok(J(zein).extra.destrezaJambiya && !J(zein).destreza && !J(zein).mano.some((c) => c.ref === 'jambiya'), 'Zein empieza con destreza en la jambiya, sin jambiya');
   { const { destrezaCon } = await import('../shared/base.js'); assert.ok(destrezaCon(J(zein), ['jambiya']) && !destrezaCon(J(zein), ['alfanje']), 'solo le vale con la jambiya'); }
   assert.ok(vistaDe(e, jamil).jugadores[jamil].idiomas.includes('persa'), 'se ve en su hoja');

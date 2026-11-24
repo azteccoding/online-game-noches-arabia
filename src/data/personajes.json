@@ -174,7 +174,7 @@
    "inicio": {
     "dinares": 10,
     "ingreso": 5,
-    "noches": 100
+    "noches": 200
    },
    "arma": [],
    "idiomasInicio": ["árabe"],
@@ -182,7 +182,7 @@
    "habilidades": [
     "Habla árabe desde el inicio (como si hubiera hecho el reto R47).",
     "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya.",
-    "Empieza con 100 noches y 5 cartas de respuestas: si falla una trivia, se gasta una y cuenta como correcta (gana el premio).",
+    "Empieza con 200 noches y 5 cartas de respuestas: si falla una trivia, se gasta una y cuenta como correcta (gana el premio).",
     "Quien llega a su ciudad (fuera de Bagdad) le puede comprar 20 noches por 10 dinares, y Ruyán tiene que vender; viaja gratis de Bagdad a El Cairo."
    ],
    "limite": "Débil; nunca el último en tirar.",
