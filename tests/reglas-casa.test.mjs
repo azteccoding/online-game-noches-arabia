@@ -3864,6 +3864,7 @@ console.log('reglas de la casa OK');
   assert.ok(hablaIdioma(J(jamil), 'persa') && !hablaIdioma(J(jamil), 'árabe'), 'Jamil empieza hablando persa');
   assert.ok(hablaIdioma(J(zein), 'árabe'), 'Zein empieza hablando árabe'); assert.ok(hablaIdioma(J(ruyan), 'árabe'), 'Ruyán vuelve a empezar hablando árabe (Jorge, 19 de noviembre)');
   assert.equal((data.personajes.personajes || data.personajes).find((x) => x.id === '5').inicio.noches, 200, 'Ruyán empieza con 200 noches en el 3D (Jorge, 24 de noviembre; en el 2D siguen siendo 100; el evento de la ronda 1 puede cambiarlas después)');
+  { const c = e.historial.find((x) => x.id === 'noches-ruyan'); assert.ok(c && c.para?.includes(ruyan) && /200 noches/.test(c.texto), 'a Ruyán le sale su carta de inicio, solo a él'); assert.ok(!e.historial.some((x) => x.id === 'noches-ruyan' && x.para?.includes(zein)), 'a los demás no'); }
   assert.ok(J(zein).extra.destrezaJambiya && !J(zein).destreza && !J(zein).mano.some((c) => c.ref === 'jambiya'), 'Zein empieza con destreza en la jambiya, sin jambiya');
   { const { destrezaCon } = await import('../shared/base.js'); assert.ok(destrezaCon(J(zein), ['jambiya']) && !destrezaCon(J(zein), ['alfanje']), 'solo le vale con la jambiya'); }
   assert.ok(vistaDe(e, jamil).jugadores[jamil].idiomas.includes('persa'), 'se ve en su hoja');

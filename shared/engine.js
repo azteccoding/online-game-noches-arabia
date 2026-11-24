@@ -103,6 +103,8 @@ function inicioExtra(e, j, p) {
     j.extra.viajePalacio = true;
     publicarCarta(e, { id: 'palacio', deck: 'especial', titulo: 'Los palacios del Califa', sub: 'Zubayda', texto: `El Califa tiene palacios para sus primos en ${PJ.PALACIOS.ciudades.join(', ').replace(/, ([^,]*)$/, ' y $1')} y te manda como entretenimiento nocturno: en tus dos primeros turnos puedes viajar gratis a una de esas ciudades (un solo viaje). Si no lo usas, se pierde.`, arte: 'es' }, j.id, [j.id]);
   }
+  // Jorge (24 de noviembre): Ruyán empieza con 200 noches y, al empezar, le sale su carta («noches del sabio Ruyán», pintada por Jorge). Solo avisa: las noches ya las tiene.
+  if (j.pj === '5' && !j.npc && p.inicio?.noches) publicarCarta(e, { id: 'noches-ruyan', deck: 'especial', titulo: 'Noches del Sabio Ruyán', sub: 'Sabio Ruyán', texto: `Empiezas la partida con ${p.inicio.noches} noches.`, arte: 'es' }, j.id, [j.id]);
   if (p.destrezaJambiyaInicio) j.extra.destrezaJambiya = true;   // Zein empieza con destreza en la jambiya (Jorge, 19 de noviembre)
   if (p.idiomasInicio?.length) j.extra.idiomas = [...new Set([...(j.extra.idiomas || []), ...p.idiomasInicio])];
   for (const ref of p.objetosInicio || []) j.mano.push({ uid: uid(e), tipo: 'objeto', ref, pub: true });
