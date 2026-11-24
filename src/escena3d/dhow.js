@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { NIVEL_MAR } from './relieve.js';
 import { crearModeloPintado, texturaPintada } from './animalPintado.js';
 import hojaDhow from './datos/animal-dhow.json';
+import cenitalDhow from './datos/dhow-cenital.json';
 import rotulosMapa from './datos/rotulos.json';
 import { U, ANCHO, ALTO } from './medidas.js';
 
@@ -17,11 +18,35 @@ const ESPERA_FIJA = { 'Yemen|El Cairo': [[1850, 1705], null] };
 // Dhow pintado (Jorge, 23 de noviembre): se levanta de su hoja de vistas como los animales (ver animalPintado.js). La hoja lo
 // trae «sacado del agua»; aquí se hunde hasta la línea de flotación. Mide de punta a punta lo mismo que el de antes, con la proa a +Z.
 const ESLORA_PINTADO = 1.95, CALADO = 0.09, CUBIERTA = 0.205;      // calado y cubierta: fracción de la altura de la hoja (de la quilla hacia arriba)
-function crearModeloPintado2() {
+// Vista desde arriba (Jorge, 24 de noviembre: hoja cenital de ChatGPT, preparada con herramientas/preparar-dhow-cenital.py). El
+// modelo de dos cáscaras sale de la vista de perfil y desde arriba se veía como una mancha partida en dos. Ahora lleva una
+// cubierta pintada (el casco visto desde arriba) y, cuando la cámara mira casi a plomo (vista de pájaro), las cáscaras se
+// esconden y se ve la pintura cenital completa, con su vela.
+const A_PLOMO = 0.86;      // |dirección de la cámara · vertical| a partir del cual se usa la pintura cenital (unos 60° de picado)
+const texCenital = {};
+function texturaCenital(nombre) {
+  return (texCenital[nombre] ||= (() => { const t = new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + `arte3d/dhow-${nombre}.webp`); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; })());
+}
+function planoCenital(nombre, y) {      // horizontal, con la proa (izquierda de la pintura) hacia +Z y el borde de abajo de la pintura hacia +X
+  const d = cenitalDhow[nombre], L = ESLORA_PINTADO, zProa = L / 2, xAbajo = (cenitalDhow.cubierta.ancho * L) / 2;
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([xAbajo - d.ancho * L, y, zProa, xAbajo, y, zProa, xAbajo - d.ancho * L, y, zProa - d.largo * L, xAbajo, y, zProa - d.largo * L], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 1, 1, 0], 2)); g.setIndex([0, 1, 2, 2, 1, 3]); g.computeVertexNormals();
+  return new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: texturaCenital(nombre), alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.8, metalness: 0 }));
+}
+export function crearDhowPintado() {
   const alto = (ESLORA_PINTADO * hojaDhow.th) / hojaDhow.tw;
   const M = crearModeloPintado(hojaDhow, texturaPintada('dhow'), { alto, centroX: hojaDhow.tw / 2, material: { roughness: 0.72 } });
   const grupo = new THREE.Group(); M.malla.position.y = -CALADO * alto; grupo.add(M.malla);
-  return { grupo, vela: new THREE.Object3D(), yCubierta: (CUBIERTA - CALADO) * alto, zPasajero: -0.12 * ESLORA_PINTADO };
+  const yCubierta = (CUBIERTA - CALADO) * alto, cubierta = planoCenital('cubierta', yCubierta - 0.004), cenital = planoCenital('cenital', yCubierta + 0.012);
+  cubierta.receiveShadow = true; grupo.add(cubierta, cenital);
+  const dir = new THREE.Vector3();
+  cubierta.onBeforeRender = (r, e, camara) => {      // a plomo: fuera las cáscaras (con alphaTest, una opacidad menor que el umbral no pinta nada) y dentro la pintura cenital
+    const plomo = Math.abs(camara.getWorldDirection(dir).y) > A_PLOMO;
+    M.material.opacity = plomo ? 0.3 : 1; cenital.material.opacity = plomo ? 1 : 0.3;
+  };
+  cenital.material.opacity = 0.3;
+  return { grupo, vela: new THREE.Object3D(), yCubierta, zPasajero: -0.12 * ESLORA_PINTADO };
 }
 
 // Jorge (23 de noviembre): que el barco no parezca navegar sobre tierra. El trazo de agua de cada ruta se rehace buscando, en una
@@ -114,7 +139,7 @@ export function crearFlota({ escena, tablero, mats, efectos, sonido }) {
     if (i0 < 0 || i1 - i0 < 6) continue;
     const agua = trazoPorAgua(P.slice(i0, i1 + 1), esMar), lon = [0];
     for (let i = 1; i < agua.length; i++) lon.push(lon[i - 1] + agua[i].distanceTo(agua[i - 1]));
-    const largo = lon[lon.length - 1], fondeo = Math.min(0.85, largo * 0.27), m = crearModeloPintado2();
+    const largo = lon[lon.length - 1], fondeo = Math.min(0.85, largo * 0.27), m = crearDhowPintado();
     // en mares estrechos (el Mar Rojo, el Golfo Pérsico) el barco es algo más chico para que no se monte en las dos orillas
     const esc = Math.min(1, Math.max(0.62, largo / 3.4), Math.max(0.62, (agua.holgura ?? 1) / 0.45)); m.grupo.scale.setScalar(esc);
     escena.add(m.grupo);
