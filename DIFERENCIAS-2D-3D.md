@@ -75,7 +75,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Pinturas nuevas: Mercader de armas (E10), La posta urgente (R39), Leva del sultán (H7), Guerra entre hermanos herederos (H12) y Ejército de Kanmakán (K1). | El 2D sigue con sus ilustraciones de siempre. | `f4b6047` |
 | 24 nov | Al obtener el Ejército de Kanmakán (500 noches o los cuatro viajes de Sindbad), su carta sale siempre en pantalla para toda la mesa, como la de un reto o un objeto; si hay dados en la mesa, espera a que se cierren. | En el 2D solo queda anotado en el registro y la carta aparece en la mano. | `f4b6047` |
 | 24 nov | Jamil de ocho vistas (jamil_v2) con pintura cenital, y un segundo juego de ocho vistas de Jamil sentado tocando el laúd; la carta del laúd lleva la pintura de su hoja. | El 2D sigue con su monito de siempre. | `9d33e27` |
-| 24 nov | Pintura nueva: Ladrones de Alí Babá (E2). | El 2D sigue con su ilustración de siempre. | commit «3D: pintura de Ladrones de Alí Babá (E2)» |
+| 24 nov | Pintura nueva: Ladrones de Alí Babá (E2). | El 2D sigue con su ilustración de siempre. | `21354e1` |
 
 ## Despliegue
 
