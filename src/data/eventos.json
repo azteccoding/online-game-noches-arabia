@@ -212,7 +212,7 @@
    "nombre": "Leva del sultán",
    "ciudades": "Damasco, Aleppo, El Cairo",
    "efecto": "Los jugadores con arma y destreza en esas ciudades pueden alistarse; los demás pagan la cuota de guerra o pierden noches. Los alistados de una misma ciudad hacen un duelo de entrenamiento (11.2, sin heridas ni muertes)",
-   "costo": "Alistarse: +30 dinares y pierde su acción principal en su siguiente turno; el ganador del duelo cobra 20 más. No alistarse: paga 10 dinares o pierde 15 noches",
+   "costo": "Alistarse: +30 dinares y pierde su acción principal en su siguiente turno; el ganador del duelo cobra 20 más. No alistarse: paga 10 dinares o pierde 30 noches",
    "fomenta": "C, P",
    "arte": "hi",
    "refReglamento": "17.2"
