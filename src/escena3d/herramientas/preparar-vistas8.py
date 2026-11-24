@@ -22,14 +22,14 @@ TH = 896; ALTO = 880; PASO = 8; ZMAX = 44.0
 # hacia dónde mira cada cáscara (grados; 0 = de frente, negativo = costado derecho de la figura)
 AZIMUT = [0, -45, -90, -135, 180, 135, 90, 45]
 # eje vertical del cuerpo en cada recorte, en píxeles desde su borde izquierdo con la figura a 880 de alto (medido a ojo sobre la rejilla de control)
-EJES = {'6': [195, 165, 152, 168, 177, 158, 140, 153],
+EJES = {'6': [190, 198, 190, 205, 190, 195, 140, 170],      # Zubayda V5-Z (24 nov, ocho pinturas sueltas de Jorge armadas en dos hojas); la v5 anterior: [195, 165, 152, 168, 177, 158, 140, 153]
         '1': [235, 195, 130, 183, 218, 205, 120, 205],      # Nur al Din: entre la punta del yelmo y el centro de los pies
         '4': [189, 155, 134, 167, 169, 152, 116, 169],      # Jamil (24 nov): entre el centro del turbante y el centro de los pies; el laúd a la espalda queda fuera del eje
         '4t': [198, 147, 102, 167, 214, 252, 268, 252],     # Jamil sentado tocando el laúd: el centro del turbante (el tronco va derecho bajo la cabeza)
         'B': [185, 155, 140, 170, 171, 160, 120, 190]}      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
 # Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': None, '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
+MANO = {'6': [0.116, 0.506], '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
 # fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
 RELLENO_ARRIBA = {'1': 0.14}
 # Figuras que no van de pie (Jamil sentado tocando, 24 nov): (alto de la tesela, alto de la figura) en píxeles, a la misma escala
@@ -40,6 +40,8 @@ FRANJA_SOMBRA = {'4t': 0.975}
 # Filas del atlas: las teselas anchas (el sentado, con el laúd atravesado) no caben en una sola fila de 4096 píxeles, que es
 # la textura más grande que aceptan muchos teléfonos. figuras8.js lee «filas» de los datos.
 FILAS = {'4t': 2}
+# Cenitales pintadas con sombra gris en el suelo: se les quita (la de Yafar no la trae y se queda como está)
+SOMBRA_CENITAL = {'6'}
 
 
 def papel_y_distancia(im):
@@ -70,12 +72,16 @@ def recortes(ruta):
     return fuera
 
 
-def recorte_cenital(ruta):
+def recorte_cenital(ruta, sin_sombra=False):
     im = Image.open(ruta).convert('RGB'); d = papel_y_distancia(im)
     m = ndi.binary_opening(d > 20, iterations=1); lab, n = ndi.label(m)
     if not n: sys.exit(f'{ruta}: no encontré la figura.')
     tam = ndi.sum(m, lab, range(1, n + 1)); m = lab == (int(np.argmax(tam)) + 1)
     m = ndi.binary_fill_holes(ndi.binary_closing(m, iterations=2))
+    if sin_sombra:      # la sombra gris pintada en el suelo, pegada al contorno, no es parte de la figura (Zubayda V5-Z)
+        c = np.asarray(im.filter(ImageFilter.GaussianBlur(1.5)), dtype=np.float32); sat = (c.max(2) - c.min(2)) / np.maximum(c.max(2), 1)
+        q = ndi.binary_opening(m & (sat >= 0.16), iterations=2); lab, n = ndi.label(q); tam = ndi.sum(q, lab, range(1, n + 1))
+        m = ndi.binary_fill_holes(ndi.binary_closing(lab == (int(np.argmax(tam)) + 1), iterations=2)) & m
     ys, xs = np.where(m); y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
     return np.asarray(im)[y0:y1, x0:x1], m[y0:y1, x0:x1]
 
@@ -93,7 +99,7 @@ def main():
         r = np.asarray(Image.fromarray(rgb).resize((w, ALTO), Image.LANCZOS)); mm = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).resize((w, ALTO), Image.LANCZOS)) > 127
         esc.append((r, mm, eje))
     medio = max(max(e, r.shape[1] - e) for r, _, e in esc); tw = int(np.ceil((2 * medio + 12) / PASO) * PASO); gx = tw // PASO + 1; gy = TH // PASO + 1
-    cen = recorte_cenital(sys.argv[4]) if len(sys.argv) > 4 else None
+    cen = recorte_cenital(sys.argv[4], sin_sombra=pid in SOMBRA_CENITAL) if len(sys.argv) > 4 else None
     filas = FILAS.get(pid, 1); nt = 9 if cen else 8; cols = -(-nt // filas)
     atlas = np.zeros((TH * filas, tw * cols, 4), np.uint8); zs = []; cubres = []
     def tesela(n): fy, fx = divmod(n, cols); return atlas[fy * TH:(fy + 1) * TH, fx * tw:(fx + 1) * tw]
