@@ -10,6 +10,7 @@ import Tablero3D from './components/Tablero3D.jsx';
 import { turnoVisible } from './game/escena3d.js';
 import { useTrasViajes } from './hooks/useTrasViajes.js';
 import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
+import { filasDeMenu } from './hooks/filasMenu.js';
 import BarraEstado from './components/BarraEstado.jsx';
 import PanelAcciones from './components/PanelAcciones.jsx';
 import AccionesTurno from './components/AccionesTurno.jsx';
@@ -118,22 +119,30 @@ function Juego({ lienzo }) {
   const cerrar = useCallback(() => setPanel(null), []);
   // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
   // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta, f pantalla completa, Shift + flecha arriba o abajo recorre el menú de acciones o de mercado y Enter elige. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
+  // Jorge (24 de noviembre): e abre las reacciones rápidas (los emojis; Shift + flechas elige y Enter envía), r la ventana de retos, x sola la mano
+  // (al soltarla, para no chocar con x + espacio) y Shift + 1 a 6 las cartas de la barra de arriba, entre «Ronda» y «Pantalla completa», en su orden; z las cierra.
+  // Sin menú abierto, Shift + flechas mueve la cámara tres veces más rápido (escena3d/camara.js). | + flecha izquierda o derecha gira
+  // la cámara, como las flechas circulares de la esquina (| es la tecla a la izquierda del 1 en el teclado latinoamericano).
   useEffect(() => {
-    let xAbajo = false;      // la x sostenida, para x + espacio
+    const esBarra = (ev) => ev.key === '|' || ev.code === 'Backquote'; let barraAbajo = false;      // la | sostenida, para | + flecha
+    let xAbajo = false, xUsada = false;      // la x sostenida, para x + espacio; si se suelta sin haber usado el espacio, abre la mano
     // Shift + flecha arriba o abajo recorre las filas del menú abierto (acciones o mercado) y Enter elige la marcada (Jorge, 23 de noviembre).
     const marcarFila = (paso) => {
-      // primero lo que pide respuesta: las opciones de la carta abierta (trivia), luego las de la decisión (Rebelión de los Zanj, ifrit…), luego el menú
-      const visibles = (sel) => [...document.querySelectorAll(sel)].filter((f) => f.offsetParent && !f.disabled);
-      let filas = visibles('.carta .opciones button');
-      if (!filas.length) filas = visibles('.decision .decision-botones > button, .decision .decision-opc > li, .decision > button, .decision-num ~ button');
-      if (!filas.length) filas = visibles('[role="dialog"] .accion-fila, [role="dialog"] .lista-merc > li, [role="dialog"] .trato.entrante');
+      const filas = filasDeMenu();
       if (!filas.length) return;
       const ant = document.querySelector('.fila-marcada'), i = filas.indexOf(ant);
       const sig = filas[i < 0 ? (paso > 0 ? 0 : filas.length - 1) : (i + paso + filas.length) % filas.length];
       if (ant) ant.classList.remove('fila-marcada');
       sig.classList.add('fila-marcada'); sig.scrollIntoView({ block: 'nearest' });
     };
-    const soltar = (ev) => { if (ev) sinEspacio(ev); if (!ev || ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') xAbajo = false; };
+    const soltar = (ev) => {
+      if (ev) sinEspacio(ev);
+      if (!ev || esBarra(ev)) barraAbajo = false;
+      if (ev && !(ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x')) return;
+      const sola = !!ev && xAbajo && !xUsada; xAbajo = false; xUsada = false;
+      if (!sola || ev.ctrlKey || ev.metaKey || ev.altKey || document.body.classList.contains('viendo-pelea')) return;
+      const e = leer().estado; if (e && e.fase === 'juego' && e.jugadores?.[e.yo]) abrir('mano');   // x sola: la mano
+    };
     // Jorge (23 de noviembre): el espacio solo tira el dado de ingreso (y x + espacio termina el turno). Nunca aprieta el botón enfocado,
     // ni cierra cartas, ni hace de Enter: se le quita su efecto de siempre fuera de los campos de texto.
     const sinEspacio = (ev) => { if (ev.key !== ' ' && ev.code !== 'Space') return false; const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return false; ev.preventDefault(); return true; };
@@ -143,19 +152,30 @@ function Juego({ lienzo }) {
       const t = ev.target; if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || ''))) return;
       const e = leer().estado; if (!e || e.fase === 'lobby') return;
       if (document.body.classList.contains('viendo-pelea')) return;   // durante la pelea no se abre nada
-      if (ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') { xAbajo = true; return; }
+      if (esBarra(ev)) { barraAbajo = true; ev.preventDefault(); return; }
+      if (barraAbajo && (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight')) {   // | + flecha: girar la cámara, como su botón (y que la flecha no la desplace)
+        ev.preventDefault(); ev.stopImmediatePropagation(); if (ev.repeat) return;
+        const b = document.querySelector(`.tablero3d button[aria-label="Girar a la ${ev.key === 'ArrowLeft' ? 'izquierda' : 'derecha'}"]`); if (b) b.click();
+        return;
+      }
+      if (ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x') { if (!ev.repeat) { xAbajo = true; xUsada = false; } return; }
       if (ev.repeat) return;
       if (xAbajo && (ev.code === 'Space' || ev.key === ' ')) {   // x + espacio: terminar el turno (como el botón, con sus mismos avisos si todavía no se puede)
-        ev.preventDefault();
+        ev.preventDefault(); xUsada = true;
         const b = [...document.querySelectorAll('.acc-botones button')].find((x) => x.textContent.trim() === 'Terminar turno');
         if (b) b.click();
         return;
       }
       if (ev.shiftKey && (ev.key === 'ArrowUp' || ev.key === 'ArrowDown')) { ev.preventDefault(); marcarFila(ev.key === 'ArrowDown' ? 1 : -1); return; }
+      if (ev.shiftKey && /^Digit[1-6]$/.test(ev.code || '')) {   // Shift + 1 a 6: las cartas de la barra de arriba, en su orden
+        const b = [...document.querySelectorAll('.barra-izq button.chip')].filter((x) => x.offsetParent)[Number(ev.code.slice(5)) - 1];
+        if (b) { ev.preventDefault(); b.click(); }
+        return;
+      }
       if (ev.key === 'Enter') {   // Enter elige la fila marcada con Shift + flechas
         const f = document.querySelector('.fila-marcada');
         if (!f || !f.isConnected || !f.offsetParent) return;
-        if (f.tagName === 'BUTTON') { ev.preventDefault(); if (!f.disabled) f.click(); return; }
+        if (f.tagName === 'BUTTON') { ev.preventDefault(); if (f.closest('.reacciones-lista')) ev.stopImmediatePropagation(); if (!f.disabled) f.click(); return; }   // una reacción: que el Enter no cierre además la carta abierta
         const caja = f.querySelector('input[type="checkbox"], input[type="radio"]'); if (caja) { ev.preventDefault(); if (!caja.disabled) caja.click(); return; }
         const bs = [...f.querySelectorAll('button')].filter((x) => !x.disabled && !x.getAttribute('aria-label') && !/^(Detalles|Menos)$/.test(x.textContent.trim()));
         const b = bs.find((x) => !x.classList.contains('sec')) || bs[0];
@@ -173,10 +193,12 @@ function Juego({ lienzo }) {
       else if (k === 'a') { if (e.turno?.pid === e.yo && e.turno.fase !== 'ingreso') abrir('acciones'); else return; }
       else if (k === 'n') { if (e.fase === 'juego') abrir('chat'); else return; }
       else if (k === 'c') abrir('ultima');
+      else if (k === 'e') { const b = document.querySelector('.reacciones-btn'); if (b) b.click(); else return; }   // las reacciones rápidas, como su botón
+      else if (k === 'r') { if (e.fase === 'juego') abrir('misiones'); else return; }
       else if (k === 'f') { const b = document.querySelector('.btn-pantalla'); if (b) b.click(); else return; }   // pantalla completa, como su botón
       else if (k === 'z') {
-        const b = document.querySelector('.modal-cerrar:not([disabled])');
-        if (b) b.click(); else setPanel(null);
+        const b = document.querySelector('.modal-cerrar:not([disabled])'), r = document.querySelector('.reacciones-lista') && document.querySelector('.reacciones-btn');
+        if (r) r.click(); else if (b) b.click(); else setPanel(null);
       } else return;
       ev.preventDefault();
     };

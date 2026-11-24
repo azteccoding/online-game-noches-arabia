@@ -4,6 +4,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { ANCHO, ALTO } from './medidas.js';
 import { MARCO, MARCO_Y } from './tablero.js';
 import { BANDEJA } from './dados.js';
+import { filasDeMenu } from '../hooks/filasMenu.js';
 
 const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
 const suaveCubo = (t) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
@@ -43,19 +44,24 @@ export function crearCamara(el) {
 
   // Teclado (Jorge, 23 de noviembre): las flechas mueven la cámara sobre el mapa (arriba = adelante, hacia donde mira) y + / − del
   // teclado numérico (o del teclado normal) acercan y alejan. No actúan mientras se escribe en un campo.
-  const flechas = new Set();
+  // Jorge (24 de noviembre): con Shift, las flechas mueven la cámara tres veces más rápido; si hay un menú, una decisión o las
+  // reacciones abiertas, Shift + flechas recorre sus filas (App.jsx) y la cámara no se mueve.
+  const flechas = new Set(); let rapido = false;
   const escribiendo = (ev) => { const t = ev.target; return !!t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName || '')); };
   const FLECHAS = { ArrowUp: 1, ArrowDown: 1, ArrowLeft: 1, ArrowRight: 1 };
   function zoomTecla(f) { interrumpir(); const d = dMeta ?? cam.position.distanceTo(ctl.target); dMeta = clamp(d * f, ctl.minDistance, ctl.maxDistance); ancla = null; }
   const alTecla = (ev) => {
     if (ev.ctrlKey || ev.metaKey || ev.altKey || escribiendo(ev)) return;
-    // Con Shift, las flechas recorren el menú abierto (App.jsx), no mueven la cámara.
-    if (FLECHAS[ev.key] && !ev.shiftKey) { ev.preventDefault(); if (!flechas.has(ev.key)) interrumpir(); flechas.add(ev.key); return; }
+    if (ev.key === 'Shift') { rapido = true; return; }
+    if (FLECHAS[ev.key]) {
+      if (ev.shiftKey && filasDeMenu().length) { flechas.clear(); return; }   // con un menú abierto, Shift + flechas es suyo
+      ev.preventDefault(); rapido = ev.shiftKey; if (!flechas.has(ev.key)) interrumpir(); flechas.add(ev.key); return;
+    }
     if (ev.key === '+' || ev.code === 'NumpadAdd') { ev.preventDefault(); zoomTecla(0.8); }
     else if (ev.key === '-' || ev.code === 'NumpadSubtract') { ev.preventDefault(); zoomTecla(1.25); }
   };
-  const alSoltar = (ev) => { flechas.delete(ev.key); };
-  const alPerderFoco = () => flechas.clear();
+  const alSoltar = (ev) => { if (ev.key === 'Shift') rapido = false; flechas.delete(ev.key); };
+  const alPerderFoco = () => { flechas.clear(); rapido = false; };
   window.addEventListener('keydown', alTecla); window.addEventListener('keyup', alSoltar); window.addEventListener('blur', alPerderFoco);
   const adelante = new THREE.Vector3(), lado = new THREE.Vector3();
   function moverConFlechas(dt) {
@@ -65,7 +71,7 @@ export function crearCamara(el) {
     cam.getWorldDirection(adelante); adelante.y = 0;
     if (adelante.lengthSq() < 1e-6) adelante.set(0, 0, -1); adelante.normalize();
     lado.set(-adelante.z, 0, adelante.x);
-    const vel = Math.max(0.8, cam.position.distanceTo(ctl.target) * 0.22) * dt;   // más lejos, más rápido
+    const vel = Math.max(0.8, cam.position.distanceTo(ctl.target) * 0.22) * dt * (rapido ? 3 : 1);   // más lejos, más rápido; con Shift, el triple
     v2.copy(adelante).multiplyScalar(fz).addScaledVector(lado, fx).normalize().multiplyScalar(vel);
     ctl.target.add(v2); cam.position.add(v2);
   }
