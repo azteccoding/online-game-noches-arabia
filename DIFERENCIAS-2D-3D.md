@@ -59,7 +59,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 23 nov | En el Jorasán el mercado no se despliega: solo dice «Estás en el Jorasán: no hay nada que comprar ni vender». | Se abre el mercado completo. | `4661dda` |
 | 23 nov | Toda carta trae el foco en el botón Cerrar y Enter la cierra (respetando el tiempo mínimo de lectura); el espacio ni cierra ni hace de Enter. | Como antes: el espacio también aprieta el botón enfocado. | `992ab78` |
 | 23 nov | El texto de una carta pintada se agranda solo con el mouse sobre la carta, no sobre el botón Cerrar ni sobre sus botones. | Igual que antes. | `ee4eb0f` |
-| 23 nov | En un trato solo se anotan dinares del 0 al 500 y noches del 0 al 900 (casillas y motor); nunca negativos. | Sin tope: cualquier número de 0 en adelante. | pendiente |
+| 23 nov | En un trato solo se anotan dinares del 0 al 500 y noches del 0 al 900 (casillas y motor); nunca negativos. | Sin tope: cualquier número de 0 en adelante. | `b6dc600` |
 
 ## Despliegue
 
