@@ -7,6 +7,7 @@ import { NIVEL_MAR } from './relieve.js';
 import { texAro } from './texturas.js';
 import { crearArma, crearEscudo } from './armas.js';
 import { crearFigura, cargarTexturaFigura, ALTO_FIGURA } from './figuras.js';
+import { crearNotas, T_SACAR, T_GUARDAR, T_TOCAR } from './laud.js';
 
 export const ALTO_FICHA = ALTO_FIGURA;
 const Y_PIE = 0.004;      // los pies de la figura, apenas sobre el mapa
@@ -33,12 +34,19 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   }
   function vestir(f, pid) {
     const pj = personajes[pid]; if (!pj || !recursos.figuras[pid]) throw new Error(`No hay figura para el personaje «${pid}».`);
-    f.pj = pj; f.pid = pid;
+    f.pj = pj; f.pid = pid; if (pid === '4') sonido?.prepararMusica?.('laud-jamil');      // Jamil en la mesa: su música se va bajando
     const promesa = texturaDe(pid).then((t) => {
       if (f.pid !== pid || f.fuera) return;
-      if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; }
+      if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; soltarLaud(f); }
       f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true; if (f.conEscudo) ponerEscudo(f);
     });
+    // la figura con la que toca el laúd (Jamil sentado): la del personaje con una «t»; se queda escondida hasta que toque
+    const dt = recursos.figuras[pid + 't'];
+    f.listaToca = !dt ? null : Promise.all([promesa, texturaDe(pid + 't')]).then(([, t]) => {
+      if (f.pid !== pid || f.fuera || f.figToca) return;
+      f.figToca = crearFigura(dt.datos, t, { alto: ALTO_FIGURA * dt.datos.th / recursos.figuras[pid].datos.th }); f.figToca.grupo.position.y = Y_PIE;
+      f.figToca.ponerPresencia(0, true); f.figToca.grupo.visible = false; f.cuerpo.add(f.figToca.grupo);
+    }).catch((e) => console.warn('[3D] figura que toca:', e?.message || e));
     f.lista = promesa; return promesa;
   }
   function crear(j) {
@@ -55,13 +63,59 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     fichas.push(f); return f;
   }
   function quitar(f) {
-    f.fuera = true; if (f.viaje) terminarViaje(f, false); ponerTransporte(f, null);
+    f.fuera = true; if (f.viaje) terminarViaje(f, false); ponerTransporte(f, null); soltarLaud(f);
     const o = f.ciudad ? tablero.ciudades.get(f.ciudad).ocupantes : null; if (o) { const q = o.indexOf(f.ranura); if (q >= 0) o.splice(q, 1); }
     escena.remove(f.nodo); f.fig?.destruir(); for (const m of [f.sombra, f.aro, f.onda, f.blanco]) m.material.dispose();
     blancos.splice(blancos.indexOf(f.blanco), 1); fichas.splice(fichas.indexOf(f), 1); fichas.forEach((x, i) => { x.indice = i; });
   }
   const porId = (id) => fichas.find((f) => f.id === id) || null;
   let cambios = false;
+
+  // --- Laúd (Jorge, 24 de noviembre): la figura se sienta con el laúd al frente, hace como que toca «tocar» segundos y se
+  // levanta con el laúd otra vez a la espalda. Es el relevo entre sus dos figuras pintadas: la de pie se encoge mientras la
+  // sentada (figToca) aparece a su misma altura. Solo quieta en su ciudad (ni de viaje ni en una pelea). alTerminar(completo)
+  // avisa al acabar; alSonar(true | false), cuando empieza y cuando deja de tocar (para la música).
+  function tocarLaud(f, { tocar = T_TOCAR, alSonar = null, alTerminar = null } = {}) {
+    if (!f.fig || !f.figToca || f.viaje || f.control || f.laud || f.fuera) return false;
+    f.notas ||= crearNotas({ escena, alto: f.fig.alto });
+    f.laud = { t: 0, tocar: Math.max(1, tocar), sonando: false, alSonar, alTerminar }; cambios = true;
+    return true;
+  }
+  // u: 0 = de pie, 1 = sentado. Las dos figuras miden lo mismo durante el relevo: la de pie baja hasta la altura de la sentada.
+  function posturaLaud(f, u) {
+    const T = f.figToca; if (!T) return;
+    const e = paso(0, 1, u), p = paso(0.25, 0.75, u), razon = T.alto / f.fig.alto * 0.99, h = 1 - (1 - razon) * e;
+    f.fig.grupo.scale.y = h; T.grupo.scale.y = h / razon;
+    f.fig.ponerPresencia(1 - p); T.ponerPresencia(p * (1 - f.fig.arriba), true); T.grupo.visible = p > 0.001;      // casi a plomo se ve su pintura cenital
+    if (f.escudo) f.escudo.grupo.visible = p < 0.5;
+  }
+  function terminarLaud(f, completo) {
+    const L = f.laud; if (!L) return; f.laud = null;
+    if (L.sonando) { L.sonando = false; try { L.alSonar?.(false); } catch (e) { console.error(e); } }
+    posturaLaud(f, 0); f.figToca?.animar(0, { tocar: 0 });
+    try { L.alTerminar?.(completo); } catch (e) { console.error(e); }
+  }
+  function soltarLaud(f) {
+    terminarLaud(f, false);
+    if (f.notas) { f.notas.destruir(); f.notas = null; }
+    if (f.figToca) { f.cuerpo.remove(f.figToca.grupo); f.figToca.destruir(); f.figToca = null; }
+  }
+  // Devuelve cuánto se mece la figura mientras toca: { alto, cabeceo, ladeo }.
+  const boca = new THREE.Vector3();
+  function avanzarLaud(f, t, dt, s, desde) {
+    const L = f.laud, T = f.figToca; L.t += dt;
+    const fin = T_SACAR + L.tocar, u = L.t < T_SACAR ? L.t / T_SACAR : L.t < fin ? 1 : 1 - (L.t - fin) / T_GUARDAR;
+    const toca = Math.min(1, Math.max(0, (L.t - T_SACAR) / 0.35)) * Math.min(1, Math.max(0, (fin - L.t) / 0.35));
+    if (toca > 0 && !L.sonando) { L.sonando = true; try { L.alSonar?.(true); } catch (e) { console.error(e); } }
+    if (L.t >= fin && L.sonando) { L.sonando = false; try { L.alSonar?.(false); } catch (e) { console.error(e); } }
+    if (L.t >= fin + T_GUARDAR) { terminarLaud(f, true); return { alto: 0, cabeceo: 0, ladeo: 0 }; }
+    posturaLaud(f, Math.max(0, u)); T.ponerAzimut(desde); T.animar(t, { tocar: toca });
+    // las notas salen de la roseta del laúd: delante del vientre, hacia su costado derecho
+    f.cuerpo.updateWorldMatrix(true, false); boca.set(-0.07 * f.fig.alto, 0.3 * f.fig.alto, 0.16 * f.fig.alto).applyMatrix4(f.cuerpo.matrixWorld);
+    f.notas.sonar(toca, dt, boca, s);
+    // se mece al compás
+    return { alto: 0, cabeceo: 0.012 * toca * Math.sin(t * 3.2), ladeo: 0.03 * toca * Math.sin(t * 1.6) };
+  }
 
   // --- Transporte: null | 'burro' | 'caballo' | 'camello' | 'caballoMongol' | 'alfombra'. El animal espera junto a la figura;
   // la alfombra va guardada (no se ve) hasta que se viaja con ella. Si la figura está de viaje, el cambio se aplica al llegar.
@@ -346,7 +400,9 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       f.nivel += (meta - f.nivel) * k; if (Math.abs(f.nivel - meta) < 0.002) f.nivel = meta;
       if (antes !== f.nivel || f.elegida || f.rival) sucio = true;
       const mat = f.fig?.material, M = f.montura, esAlf = f.transporte === 'alfombra';
-      if (f.fig) { const desde = Math.atan2(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z) - f.giro; if (f.fig.ponerElevacion) f.fig.ponerElevacion(Math.atan2(ojo.y - f.nodo.position.y, Math.hypot(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z))); if (f.fig.ponerAzimut) f.fig.ponerAzimut(desde); else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
+      const desde = Math.atan2(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z) - f.giro;
+      if (f.fig) { if (f.fig.ponerElevacion) f.fig.ponerElevacion(Math.atan2(ojo.y - f.nodo.position.y, Math.hypot(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z))); if (f.fig.ponerAzimut) f.fig.ponerAzimut(desde); else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
+      if (f.laud && (f.control || f.viaje)) terminarLaud(f, false);      // una pelea o un viaje cortan la tocada
       if (f.control) {      // la pelea lleva la ficha: aquí solo se apagan los adornos de reposo y se da vuelo a las telas
         sucio = true; f.control(f, t, dt, s);
         f.aro.visible = false; f.blanco.scale.setScalar(s); f.sombra.scale.setScalar(0.8 * s); if (mat) mat.emissiveIntensity = 0;
@@ -366,7 +422,9 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
         alto = f.nivel * (0.06 + (f.elegida || f.rival ? 0.03 * Math.sin(t * 3.2 + (f.rival ? 2 : 0)) : 0));
         f.andar *= Math.exp(-dt * 9); f.vuelo *= Math.exp(-dt * 2.2); f.empuje *= Math.exp(-dt * 4);
         if (f.andar > 0.003 || f.vuelo > 0.003) sucio = true;
+        if (f.laud) { sucio = true; const m = avanzarLaud(f, t, dt, s, desde); alto += m.alto; cabeceo = m.cabeceo; ladeo = m.ladeo; }
       }
+      if (f.notas?.actualizar(dt)) sucio = true;
       const m = f.mont, encoger = esAlf ? 0.3 : 0.55;
       if (f.fig) {
         f.fig.grupo.position.y = Y_PIE * (1 - m) + m * (esAlf ? 0.02 - f.fig.yAsiento * (1 - encoger) : M ? M.asiento.y * (ESC_ESPERA + (ESC_MONTADO - ESC_ESPERA) * m) - f.fig.yAsiento : 0);
@@ -390,5 +448,5 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     return (f.armas[f.arma] ||= (() => { const a = crearArma(f.arma, mats), porta = new THREE.Group(); porta.scale.setScalar(1.22); a.grupo.visible = false; porta.add(a.grupo); f.fig.mano.add(porta); return a; })());
   }
   function destruir() { for (const f of fichas.slice()) quitar(f); tAro.dispose(); gPlano.dispose(); gBlanco.dispose(); for (const p of texturas.values()) p.then((t) => t.dispose()).catch(() => {}); }
-  return { fichas, blancos, porId, poner, ponerTodos, quitar, viajar, actualizar, mirarDesde, armaDe, destruir, get sucio() { return sucio; } };
+  return { fichas, blancos, porId, poner, ponerTodos, quitar, viajar, tocarLaud, actualizar, mirarDesde, armaDe, destruir, get sucio() { return sucio; } };
 }

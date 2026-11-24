@@ -2,7 +2,7 @@ import React, { memo, useEffect, useRef, useState } from 'react';
 import { DATA, tablero, pjDe } from '../game/data.js';
 import { crearEscena } from '../escena3d/index.js';
 import { ponerEscena, escenaActual, enCola, viajeDe, quietos } from '../game/escena3d.js';
-import { marcarIfrit } from '../game/store.js';
+import { marcarIfrit, avisar } from '../game/store.js';
 import { SONIDOS } from '../escena3d/banco/sonidos.js';
 import { leerAjusteSonido, guardarAjusteSonido } from '../game/sonidos3d.js';
 import '../styles/board.css';      // el marco del tablero y los botones de la esquina (girar, vista general, centrar, sonido) viven ahí
@@ -19,6 +19,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
+    laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '',
   }));
 }
 
@@ -66,7 +67,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     const ahora = fichasDe(jugadores, e3d, turnoPid);
     const antes = previo.current;
     previo.current = Object.fromEntries(ahora.map((f) => [f.id, f]));
-    const limpio = ({ viajeN, medio, ...f }) => f;
+    const limpio = ({ viajeN, medio, laudN, laudTexto, ...f }) => f;
     if (!antes) { esc.ponerJugadores(ahora.map(limpio)).then(() => { if (previo.current?.[miId]) return esc.enfocar(miId, { duracion: 1.6, distancia: DISTANCIA_INICIO }); }).catch((err) => console.warn('[3D]', err)); return; }
     for (const id of Object.keys(antes)) {
       if (previo.current[id]) continue;
@@ -87,6 +88,9 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
             : e.viajar(f.id, f.ciudad, { llevar: true, seguir: f.id === miId }))   // viaje normal: a pie, con su animal (si tiene) del cabestro
           : e.actualizarJugador(f.id, { ciudad: f.ciudad })));                   // sin camino dibujado: aparece allá
       }
+      // Jamil toca el laúd (Jorge, 24 de noviembre): se lo pone al frente y toca, con música; el premio y su aviso salen al terminar
+      // (el resto de la pantalla espera, igual que con un viaje: useTrasViajes).
+      if (f.laudN > a.laudN) viajeDe(f.id, (e) => Promise.resolve(e.tocarLaud(f.id, { seguir: f.id === miId })).catch((err) => console.warn('[3D]', err?.message || err)).then(() => { if (f.laudTexto) avisar(f.laudTexto); }));
     }
   }, [lista, jugadores, e3d, turnoPid, miId]);
 

@@ -143,6 +143,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (x.sub === 'haren') return apuros(j) ? 'fortaleza:Zubayda se refugia en el harén' : 'fortaleza:Zubayda pasa la noche en el harén';
     if (x.sub === 'honra') return 'fortaleza:Jamil propone versos en honra';
     if (x.sub === 'satira') return 'fortaleza:Jamil canta sátira';
+    if (x.sub === 'laud') return 'fortaleza:Jamil toca el laúd';
     return undefined;
   };
   const pesoAccion = (pid, x, base) => {
@@ -179,6 +180,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
     if (x.k === 'venderFirmanYafar') return 0.02;                                             // Yafar conserva su Firmán
     if (x.k === 'pj' && x.sub === 'honra') return 0.8;
     if (x.k === 'pj' && x.sub === 'satira') return 0.3;
+    if (x.k === 'pj' && x.sub === 'laud') return 0.25;   // 1 noche y 1 dinar: solo cuando no hay nada mejor que hacer
     if (x.k === 'pj' && x.sub === 'haren') return apuros(j) ? 2.5 : base + 0.3 * enCiudad(pid, 'Bagdad');
     return base;
   };
@@ -210,7 +212,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       const tkey = e.ronda + ':' + pid; if (tkey !== turnoActual) { turnoActual = tkey; accionesTurno = 0; }
       // Sobrecargado, el bot vende lo que pese hasta poder viajar (si no, se queda atorado para siempre en una ciudad).
       if (t.fase !== 'ingreso' && !t.ccActual && cargaExcedida(e.jugadores[pid], e)) {
-        for (const c of e.jugadores[pid].mano.filter(pesaCarta).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'vender', uid: c.uid }); }
+        for (const c of e.jugadores[pid].mano.filter((c) => pesaCarta(c, e.jugadores[pid])).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'vender', uid: c.uid }); }
         // atorado: primero intenta comprarle un animal de carga a otro jugador de su ciudad (Jorge, 19 de noviembre); si nadie le vende, tira
         if (cargaExcedida(e.jugadores[pid], e)) {
           const yo = e.jugadores[pid];
@@ -221,7 +223,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
             if (r0.ok) { const tr = Object.values(e.tratos).find((q) => q.de === pid && q.con === x); if (tr) { const r1 = act(x, { t: 'responderTrato', id: tr.id, ok: R() < 0.7 }); if (r1.ok && !cargaExcedida(yo, e)) { cuenta(stats.acciones, 'compra un animal a otro jugador para no quedar atorado'); break; } } }
           }
         }
-        for (const c of e.jugadores[pid].mano.filter(pesaCarta).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'tirar', uid: c.uid }); }   // si nadie le vende, tira lo que no se vende aquí
+        for (const c of e.jugadores[pid].mano.filter((c) => pesaCarta(c, e.jugadores[pid])).slice()) { if (!cargaExcedida(e.jugadores[pid], e)) break; act(pid, { t: 'tirar', uid: c.uid }); }   // si nadie le vende, tira lo que no se vende aquí
       }
       const v = vista(data, e, pid);
       const ac = v.acciones;

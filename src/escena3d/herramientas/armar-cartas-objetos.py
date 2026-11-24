@@ -74,3 +74,6 @@ f = fondo_noche(); lam = vistas(os.path.join(ARTE, 'transportes/lampara.png'), c
 cl = poner(f, lam, (340, 690, 730, 885)); pico = (cl[0] + 8, cl[1] + round((cl[3] - cl[1]) * 0.33))
 alto = pico[1] - 185; e = alto / gen.height; ancho = round(gen.width * e); cola = round(ancho * 0.52)      # la punta de la cola cae sobre la boquilla
 poner(f, gen, (pico[0] - cola, 185, pico[0] - cola + ancho, pico[1]), sombra=False); guardar(f, 'if')
+# Laúd de Jamil (24 de noviembre): la vista de tres cuartos de su hoja, un poco ladeada
+hoja_laud = os.path.join(ARTE, 'personajes/jamil/jamil_tocando/v1/laud_jamil.png')
+if os.path.exists(hoja_laud): f = fondo_zoco(); poner(f, vistas(hoja_laud)[1], (120, 120, W - 120, 900), -14); guardar(f, 'it-laud')

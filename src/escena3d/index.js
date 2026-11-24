@@ -168,7 +168,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   let t = 0, reloj = 0, cuadros = 0, raf = 0, pausaManual = false, oculto = typeof document !== 'undefined' && document.hidden, fueraDeVista = false, medio = 0, muestras = 0, enfriar = 3;
   let atenuada = false, ultimoDibujo = 0, sombraSucia = true, conIfrit = false, relojFondo = 0;
   const corriendo = () => !destruida && !pausaManual && !oculto && !fueraDeVista && !sinContexto;
-  const enMovimiento = () => ronda.enCurso || pelea.activa || ifrit.activo || dados.estado !== 'quieto' || camara.enVuelo || fichas.fichas.some((f) => f.viaje);
+  const enMovimiento = () => ronda.enCurso || pelea.activa || ifrit.activo || dados.estado !== 'quieto' || camara.enVuelo || fichas.fichas.some((f) => f.viaje || f.laud);
   function pedirCuadro() {
     if (destruida) return;
     if (corriendo()) { if (relojFondo) { clearInterval(relojFondo); relojFondo = 0; sonido.fondo(false); } if (!raf) raf = requestAnimationFrame(cuadro); }
@@ -217,7 +217,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     const dt = simular(transcurrido(), esc);
     amb.actualizar(t - desfase, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
-    const agitado = ronda.enCurso || pelea.activa || ifrit.activo || fichas.fichas.some((f) => f.viaje);
+    const agitado = ronda.enCurso || pelea.activa || ifrit.activo || fichas.fichas.some((f) => f.viaje || f.laud);
     tamSombra(agitado ? Math.min(sombraBase(), 2048) : sombraBase());
     tablero.superficie.ponerLuna(amb.dirLuna, COLOR_LUNA, 1.6 * amb.cielo.noche);
     tablero.superficie.actualizar(t, dt, camara.cam, vista, !camara.enVuelo && !abajo);
@@ -394,6 +394,30 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
       });
     },
 
+    // ----- Laúd (solo animación): el jugador se sienta con el laúd al frente, hace como que toca y se levanta; mientras toca suena
+    // la música de la ranura 'laud-jamil'. duracion: segundos tocando (sin contar sentarse y levantarse). Se resuelve al terminar.
+    // Solo puede quien tiene figura sentada (fig-<personaje>t: Jamil).
+    tocarLaud(id, { duracion, seguir = false } = {}) {
+      return new Promise((ok, mal) => {
+        const f = ficha(id);
+        if (f.viaje) return mal(new Error(`«${id}» está de viaje.`));
+        if (f.control || pelea.activa) return mal(new Error('Hay una pelea en curso.'));
+        if (f.laud) return mal(new Error(`«${id}» ya está tocando.`));
+        Promise.resolve(f.lista).then(() => f.listaToca).then(() => {
+          alDia();
+          let previa = null;      // con «seguir», la cámara se acerca a verlo tocar y al terminar vuelve a donde estaba (si nadie la movió)
+          const va = fichas.tocarLaud(f, { tocar: duracion, alSonar: (v) => sonido.musica('laud-jamil', v, { tramo: (duracion || 6.5) + 1 }),
+            alTerminar: (completo) => { if (previa && !camara.tocado && !camara.enVuelo && !destruida) camara.volar(previa, 1.1); ok({ id, completo }); } });
+          if (!va) return mal(new Error(`«${id}» no puede tocar ahora.`));
+          if (seguir && !menosMovimiento) {
+            const a = camara.leer(), d = Math.min(a.d, 4.8);
+            if (a.d > d + 0.5 || !camara.enPantalla(f.nodo.position, 0.7)) { previa = a; camara.tocado = false; camara.volar({ ...a, x: f.nodo.position.x, z: f.nodo.position.z, d, pol: camara.polDe(d) }, 0.9); }
+          }
+          pedirCuadro();
+        }, mal);
+      });
+    },
+
     // ----- Ifrit: la lámpara aparece junto a una ficha (id de jugador) o una ciudad; se resuelve cuando el genio ya está fuera, en reposo.
     aparecerIfrit(objetivo) {
       const f = fichas.porId(objetivo), c = f ? null : tablero.ciudades.get(objetivo); if (!f && !c) return Promise.reject(new Error(`aparecerIfrit: no conozco «${objetivo}».`));
@@ -471,7 +495,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
 
     // ----- Estado y avisos (se asignan desde fuera: escena.alHacerClicCiudad = (id) => …)
     get hora() { return ronda.hora; },      // hora de la luz, de 0 a 1 (0 = medianoche, 0,5 = mediodía)
-    get ocupada() { return { dados: dados.estado !== 'quieto', pelea: pelea.activa, ronda: ronda.enCurso, ifrit: ifrit.activo, viajes: fichas.fichas.filter((f) => f.viaje).map((f) => f.id) }; },
+    get ocupada() { return { dados: dados.estado !== 'quieto', pelea: pelea.activa, ronda: ronda.enCurso, ifrit: ifrit.activo, viajes: fichas.fichas.filter((f) => f.viaje).map((f) => f.id), laud: fichas.fichas.filter((f) => f.laud).map((f) => f.id) }; },
     get ronda() { return ronda.ronda; },
     lienzo: el,
     alHacerClicCiudad: null, alHacerClicFicha: null, alHacerClicVacio: null, alApuntar: null, alCambiarRonda: null, alCambiarCalidad: null, alMoverCamara: null, alTocar: null, alPelear: null, alCuadro: null, alRecuperarContexto: null,

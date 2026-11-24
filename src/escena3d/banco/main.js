@@ -191,6 +191,13 @@ async function iniciar() {
     escena.activarSonido(); $('ifrit').disabled = true;
     escena.aparecerIfrit(estado.elegida || 'Bagdad').then(() => { $('carta-ifrit').hidden = false; }, (e) => { $('ifrit').disabled = false; fallo(e); });
   });
+  // Tocar el laúd: la ficha elegida o, si no hay, la primera que sea Jamil (personaje 4)
+  $('laud').addEventListener('click', () => {
+    escena.activarSonido();
+    const id = estado.elegida || Object.keys(J).find((k) => J[k].personaje === '4') || JUGADORES[0].id;
+    $('laud').disabled = true;
+    escena.tocarLaud(id, { seguir: true }).then(() => pista('Terminó de tocar', 1800), fallo).finally(() => { $('laud').disabled = false; });
+  });
   $('elegir-ifrit').addEventListener('click', () => {
     $('carta-ifrit').hidden = true;
     escena.esconderIfrit().catch(fallo).finally(() => { $('ifrit').disabled = false; });

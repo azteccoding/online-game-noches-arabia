@@ -1,7 +1,7 @@
 // Habilidades de los personajes (R 10): Yafar, Zein, Anís, Ruyán, Jamil, Zubayda y Adí. Nur al Din (reto de honor) y Anís (ventana) viven en pelea.js.
 import {
   ok, err, dado, dados, suma, par, log, nombre, activos, enCiudad, mostrarDados, pedir, registrar, eliminar, pagar, puedePagar, devolverPrincipal, puedePrincipal, vivos, info,
-enPartida, marcarBuscado, publicarCarta, } from './base.js';
+enPartida, marcarBuscado, publicarCarta, tieneItem, darItem, } from './base.js';
 import { peleaNPC } from './pelea.js';
 
 const jug = (e, id) => e.jugadores[id];
@@ -99,6 +99,9 @@ export function disponibles(data, e, pid) {
   // Jorge (19 de noviembre): Adí ya no tiene «Cuentos de noche».
   // Jamil (Jorge, 8 de noviembre): versos en honra (propuesta: el otro gana 30 noches y le paga 5) o de sátira (el otro pierde 10
   // noches o le paga 7). Con alguien de su misma ciudad; gasta la acción principal.
+  // Jorge (24 de noviembre, solo en el 3D): Jamil toca el laúd en cualquier ciudad, cada turno; no necesita público.
+  // Su laúd es una carta: si lo vendió, no toca hasta recuperarlo (nadie más sabe tocarlo, aunque lo compre).
+  if (j.pj === '4') r.push({ k: 'pj', sub: 'laud', titulo: `Tocar el laúd (+${LAUD.noches} noche y +${LAUD.dinares} dinar)`, texto: 'Te sientas con el laúd y tocas. Gasta tu acción principal.', bloqueado: tieneItem(j, 'laud') ? undefined : SIN_LAUD });
   if (j.pj === '4' && aqui.length) {
     r.push({ k: 'pj', sub: 'honra', titulo: `Proponer versos en su honra (el otro gana ${HONRA.noches} noches y te paga ${HONRA.dinares} dinares)`, objetivos: aqui });
     r.push({ k: 'pj', sub: 'satira', titulo: `Cantar versos de sátira (el otro pierde ${SATIRA.noches} noches o te paga ${SATIRA.dinares} dinares)`, objetivos: aqui });
@@ -134,6 +137,16 @@ export function accion(data, e, pid, a) {
         opciones: [{ id: 'si', texto: `Pagar ${precio} dinares`, desactivada: k.dinares < precio }, { id: 'no', texto: 'Rechazar' }], porDefecto: 'no', limiteMs: 45000, cont: { fn: 'pj.prost', args: { vend: pid, precio } } });
       return ok();
     }
+    case 'laud': {
+      if (j.pj !== '4') return err('Solo Jamil.');
+      if (j.transito || j.perdido) return err('Aquí no puedes tocar el laúd.');
+      if (!tieneItem(j, 'laud')) return err(SIN_LAUD);
+      t.principal = true;
+      j.noches += LAUD.noches; j.dinares += LAUD.dinares;
+      // la capa 3D reconoce esta línea para animarlo y poner la música (shared/vista3d.js, RE_LAUD): si cambia la frase, cambiar allá
+      log(e, `${j.nombre} toca el laúd en ${j.ciudad}: gana ${LAUD.noches} noche y ${LAUD.dinares} dinar.`, { pid });
+      return ok();
+    }
     case 'honra': {
       if (j.pj !== '4') return err('Solo Jamil.');
       if (!valido()) return err('Tiene que estar en tu misma ciudad.');
@@ -157,6 +170,15 @@ export function accion(data, e, pid, a) {
 }
 
 export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares: 7 };
+export const LAUD = { noches: 1, dinares: 1 };   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
+const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';
+// Partidas que empezaron antes de que el laúd fuera una carta: Jamil lo recibe al empezar su siguiente turno (una sola vez por partida).
+export function asegurarLaud(e) {
+  if (e.laudDado) return; e.laudDado = true;
+  const hay = Object.values(e.jugadores).some((x) => x.mano?.some((c) => c.tipo === 'item' && c.ref === 'laud')) || e.mercadoDados?.laud;
+  const jm = Object.values(e.jugadores).find((x) => x.pj === '4' && !x.eliminado && !x.npc);
+  if (!hay && jm) darItem(e, jm, 'laud');
+}
 registrar('pj.honra', (data, e, args, resp) => {
   const jm = jug(e, args.jamil), c = jug(e, resp.pid);
   if (resp.opcion !== 'si') { log(e, `${c.nombre} rechaza los versos en su honra de ${jm?.nombre}.`, { pid: args.jamil }); return devolverPrincipal(e, args.jamil, 'no aceptaron tus versos'); }

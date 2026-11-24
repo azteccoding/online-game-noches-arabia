@@ -84,7 +84,7 @@ enteros y legibles (muy lejos, muy cerca o a pie de calle), la cámara se abre l
 terminar. Con `dadosEnMapa: false` ruedan en su bandeja, al fondo de la mesa, como antes. El API, los valores y los tiempos
 son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la dirección apaga la opción.
 
-## Pelea, flecha e Ifrit (solo animación)
+## Pelea, flecha, Ifrit y laúd (solo animación)
 
 | Función | Qué hace |
 | --- | --- |
@@ -93,8 +93,9 @@ son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la direcc
 | `aparecerIfrit(idJugador | ciudad)` | Aparece la lámpara, tiembla y sale el genio. Se cumple con el genio fuera (unos 2,8 s) y ahí se queda. |
 | `esconderIfrit()` | La lámpara absorbe al genio y desaparece (unos 1,8 s). |
 | `soltarIfrit()` | Avisa que ya se eligió el deseo. Mientras el genio está en escena el mundo no avanza (fichas, barcos, ronda, pelea); tras este aviso solo sigue parado mientras el genio se mete. |
+| `tocarLaud(idJugador, { duracion, seguir })` | El jugador (Jamil) se sienta con el laúd al frente, hace como que toca `duracion` segundos (6,5 si no se dice) y se levanta con el laúd otra vez a la espalda: es el relevo entre su figura de pie y la sentada (`fig-4t`, el id del personaje con una «t»). Mientras toca suena la música de la ranura `laud-jamil` y suben notas. Unos 8 s en total. `seguir: true` acerca la cámara a la ficha y al terminar la devuelve a donde estaba, si nadie la movió. Se cumple al terminar con `{ id, completo }`. Se rechaza si la ficha viaja, pelea, ya está tocando o no tiene figura sentada. |
 
-Las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el estado del juego.
+Para pelear o disparar, las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el estado del juego.
 
 ## Ronda, luz y ciudades
 
@@ -124,7 +125,7 @@ mueve, dos dedos acercan y giran.
 - `atenuar(true | false)`: para cuando hay una carta o un modal encima. Dibuja a unos 20 cuadros por segundo (5 si nada se
   mueve), sin alargar ni cortar las promesas.
 - `ponerRapidez(n)`: solo para pruebas; multiplica la velocidad de todo (1 = tiempo real).
-- `ponerCalidad(nivel, { auto })`, `calidad`, `pausada`, `atenuada`, `ocupada` (`{ dados, pelea, ronda, ifrit, viajes }`),
+- `ponerCalidad(nivel, { auto })`, `calidad`, `pausada`, `atenuada`, `ocupada` (`{ dados, pelea, ronda, ifrit, viajes, laud }`),
   `ronda`, `lienzo`.
 - `destruir()`: suelta la tarjeta gráfica, los sonidos y los escuchas, y quita el lienzo. Las promesas que estuvieran
   pendientes en ese momento ya no se cumplen.
@@ -145,7 +146,10 @@ Los archivos están en `public/sonidos/` (créditos y licencias en `public/sonid
 sonido y suenan con Web Audio, todos por un volumen general. Cada momento tiene una ranura con nombre; la tabla completa, con el momento exacto
 en que suena cada una, está en `banco/sonidos.js` (`SONIDOS`). Para enchufar un sonido se pone la URL en su ranura y se
 pasa la tabla a `crearEscena`. Una ranura vacía suena con un provisional sintetizado, si lo tiene, o no suena. Familias:
-dados, fichas, ronda y ambiente, pelea y arco, mar y dhow, monturas y alfombra, Ifrit.
+dados, fichas, ronda y ambiente, pelea y arco, mar y dhow, monturas y alfombra, Ifrit, laúd.
+
+Una ranura de **música** (`{ musica: URL, volumen }`, hoy solo `laud-jamil`) es una pieza larga: no se decodifica entera, suena en
+su propio `<audio>` por el mismo volumen general, por tramos, y cada tramo sigue donde se quedó el anterior.
 
 ## Límites conocidos
 

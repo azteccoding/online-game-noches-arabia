@@ -8,7 +8,7 @@
 # va como novena tesela y figuras8.js la muestra cuando la cámara está casi a plomo.
 # Orden de las figuras en las hojas: frente, 3/4 de frente derecho, perfil derecho, 3/4 de espalda derecho | espalda,
 # 3/4 de espalda izquierdo, perfil izquierdo, 3/4 de frente izquierdo. Necesita Pillow, numpy y scipy.
-# Salida: public/arte3d/fig-<id>.webp (las ocho vistas en fila) y la entrada del personaje en src/escena3d/datos/figuras.json
+# Salida: public/arte3d/fig-<id>.webp (las ocho vistas en fila, o en dos filas si son muy anchas) y la entrada del personaje en src/escena3d/datos/figuras.json
 # (con «vistas»; mano, tela y demás se conservan de la entrada anterior).
 import sys, os, json, base64
 import numpy as np
@@ -23,12 +23,22 @@ AZIMUT = [0, -45, -90, -135, 180, 135, 90, 45]
 # eje vertical del cuerpo en cada recorte, en píxeles desde su borde izquierdo con la figura a 880 de alto (medido a ojo sobre la rejilla de control)
 EJES = {'6': [195, 165, 152, 168, 177, 158, 140, 153],
         '1': [235, 195, 130, 183, 218, 205, 120, 205],      # Nur al Din: entre la punta del yelmo y el centro de los pies
+        '4': [189, 155, 134, 167, 169, 152, 116, 169],      # Jamil (24 nov): entre el centro del turbante y el centro de los pies; el laúd a la espalda queda fuera del eje
+        '4t': [198, 147, 102, 167, 214, 252, 268, 252],     # Jamil sentado tocando el laúd: el centro del turbante (el tronco va derecho bajo la cabeza)
         'B': [185, 155, 140, 170, 171, 160, 120, 190]}      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
 # Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': None, '1': None, 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
+MANO = {'6': None, '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
 # fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
 RELLENO_ARRIBA = {'1': 0.14}
+# Figuras que no van de pie (Jamil sentado tocando, 24 nov): (alto de la tesela, alto de la figura) en píxeles, a la misma escala
+# que la figura de pie (880), y desde qué fracción de la tesela se busca la sombra del suelo (sentado, el fleco claro de la faja
+# llega al piso y no es sombra). El id lleva una «t» tras el del personaje: fichas.js la usa mientras toca.
+TALLA = {'4t': (576, 560)}
+FRANJA_SOMBRA = {'4t': 0.975}
+# Filas del atlas: las teselas anchas (el sentado, con el laúd atravesado) no caben en una sola fila de 4096 píxeles, que es
+# la textura más grande que aceptan muchos teléfonos. figuras8.js lee «filas» de los datos.
+FILAS = {'4t': 2}
 
 
 def papel_y_distancia(im):
@@ -74,7 +84,8 @@ def b64(a): return base64.b64encode(a.tobytes()).decode()
 
 def main():
     if len(sys.argv) < 4: sys.exit(__doc__ or 'Uso: preparar-vistas8.py <id> <fila 1> <fila 2>')
-    pid = sys.argv[1]; figs = recortes(sys.argv[2]) + recortes(sys.argv[3]); ejes = EJES[pid]; vista = os.environ.get('VISTA')
+    global TH, ALTO
+    pid = sys.argv[1]; TH, ALTO = TALLA.get(pid, (TH, ALTO)); figs = recortes(sys.argv[2]) + recortes(sys.argv[3]); ejes = EJES[pid]; vista = os.environ.get('VISTA')
     esc = []
     for (rgb, m), eje in zip(figs, ejes):
         k = ALTO / rgb.shape[0]; w = round(rgb.shape[1] * k)
@@ -82,14 +93,16 @@ def main():
         esc.append((r, mm, eje))
     medio = max(max(e, r.shape[1] - e) for r, _, e in esc); tw = int(np.ceil((2 * medio + 12) / PASO) * PASO); gx = tw // PASO + 1; gy = TH // PASO + 1
     cen = recorte_cenital(sys.argv[4]) if len(sys.argv) > 4 else None
-    atlas = np.zeros((TH, tw * (9 if cen else 8), 4), np.uint8); zs = []; cubres = []
+    filas = FILAS.get(pid, 1); nt = 9 if cen else 8; cols = -(-nt // filas)
+    atlas = np.zeros((TH * filas, tw * cols, 4), np.uint8); zs = []; cubres = []
+    def tesela(n): fy, fx = divmod(n, cols); return atlas[fy * TH:(fy + 1) * TH, fx * tw:(fx + 1) * tw]
     for i, (r, mm, eje) in enumerate(esc):
         ox = tw // 2 - eje; oy = TH - 8 - ALTO
         M = np.zeros((TH, tw), bool); M[oy:oy + ALTO, ox:ox + r.shape[1]] = mm
         C = np.zeros((TH, tw, 3), np.uint8); C[oy:oy + ALTO, ox:ox + r.shape[1]] = r
         M = ndi.binary_erosion(M, iterations=1)      # quita el filo claro del papel
         # la sombra pintada en el suelo (gris, sin color propio) no es parte de la figura: fuera, en la franja de los pies
-        cf = C.astype(np.float32); sat = (cf.max(2) - cf.min(2)) / np.maximum(cf.max(2), 1); pie = np.zeros_like(M); pie[int(TH * 0.88):] = True
+        cf = C.astype(np.float32); sat = (cf.max(2) - cf.min(2)) / np.maximum(cf.max(2), 1); pie = np.zeros_like(M); pie[int(TH * FRANJA_SOMBRA.get(pid, 0.88)):] = True
         M = M & ~(pie & (sat < 0.2)); M = ndi.binary_opening(M, iterations=1) | (M & ~pie)
         huecos = ndi.binary_fill_holes(M) & ~M; lab, n = ndi.label(huecos)      # cierra los poros sueltos; los huecos de verdad (entre brazo y cuerpo) se quedan
         if n: tam = ndi.sum(huecos, lab, range(1, n + 1)); M = M | np.isin(lab, [q + 1 for q, t in enumerate(tam) if t < 60])
@@ -100,7 +113,7 @@ def main():
             M = M | (ndi.binary_fill_holes(ndi.binary_closing(M & pie, iterations=3) | ~pie) & pie)
         # el color se corre hacia fuera del contorno para que el filtrado de la textura no traiga papel
         _, (iy, ix) = ndi.distance_transform_edt(~M, return_indices=True); C = C[iy, ix]
-        atlas[:, i * tw:(i + 1) * tw, :3] = C; atlas[:, i * tw:(i + 1) * tw, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
+        tesela(i)[:, :, :3] = C; tesela(i)[:, :, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
         # relieve: cero en el contorno, sube hacia dentro y se aplana (bajorrelieve); los huecos pequeños no lo hunden
         lleno = ndi.binary_closing(M, iterations=6) | M; d = ndi.distance_transform_edt(lleno)
         z = ZMAX * (1 - np.exp(-d / 26.0)); z = ndi.gaussian_filter(z, 5.0)
@@ -120,7 +133,7 @@ def main():
         M = np.zeros((TH, tw), bool); M[4:4 + h, 4:4 + w] = ndi.binary_erosion(mm, iterations=1)
         C = np.zeros((TH, tw, 3), np.uint8); C[4:4 + h, 4:4 + w] = r
         _, (iy, ix) = ndi.distance_transform_edt(~M, return_indices=True); C = C[iy, ix]
-        atlas[:, 8 * tw:, :3] = C; atlas[:, 8 * tw:, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
+        tesela(8)[:, :, :3] = C; tesela(8)[:, :, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
         f0w = esc[0][0].shape[1]
         datos_cen = {'x': 4, 'y': 4, 'w': w, 'h': h, 'ancho': round(f0w / TH, 4)}      # tan ancha como la vista de frente
         if vista: Image.fromarray(np.dstack([C, (M * 255).astype(np.uint8)])).save(os.path.join(vista, f'vista-{pid}-cenital.png'))
@@ -131,8 +144,10 @@ def main():
     figuras[pid] = {'tw': tw, 'th': TH, 'paso': PASO, 'vistas': 8, 'azimut': AZIMUT, 'zmax': ZMAX, 'z8': zs, 'cubre8': cubres, 'x0': int(x0), 'x1': int(x1),
                     'mano': [round(mano[0], 4), mano[1]], 'tela': antes.get('tela', [0.1, 0.66]), 'piernas': antes.get('piernas', 0)}
     if datos_cen: figuras[pid]['cenital'] = datos_cen
+    if filas > 1: figuras[pid]['filas'] = filas
+    if antes.get('toca'): figuras[pid]['toca'] = antes['toca']      # dónde rasguea y se mece la figura que toca: se pone a mano en figuras.json
     json.dump(figuras, open(FIGURAS, 'w', encoding='utf8'), ensure_ascii=False)
-    print(f'fig-{pid}.webp: 8 vistas de {tw} × {TH}; rejilla {gx} × {gy}')
+    print(f'fig-{pid}.webp: 8 vistas de {tw} × {TH} en {filas} fila(s), {atlas.shape[1]} × {atlas.shape[0]}; rejilla {gx} × {gy}')
 
 
 if __name__ == '__main__': main()

@@ -104,6 +104,8 @@ export const ITEMS = {
   libroIbnHazm: { nombre: 'Libro de Ibn Hazm', texto: 'Regalo del sheij Ibn Hazm al cumplir su Mensaje de entregar un libro, papiro o mapa. Empieza valiendo 50 dinares y gana 2 por ronda; solo lo compra la biblioteca de Bagdad, a la mitad de su valor actual. No se puede regalar ni vender a otros jugadores.' },
   dadosCairo: { nombre: 'Dados del Cairo', texto: 'Regalo de Zacaría al Ansari a Zein. Una vez por ronda, si vas a perder una pelea, repites tus dados. Se vende a otro jugador en un trato (al precio que quieran) o al mercado de la ciudad por 35 dinares, que luego la revende en 75. Duran 5 turnos de su dueño; a Zein, si llega a El Cairo con los suyos, le duran 7 en total.' },
   dadosPersia: { nombre: 'Dados de Persia', texto: 'Los dados de Anís. Una vez por ronda, si te atacan para robarte o matarte (no en duelo), tiras un dado: con 5 o 6 escapas por la ventana y el agresor pierde su acción. Se venden a otro jugador en un trato (al precio que quieran) o al mercado de la ciudad por 30 dinares, que luego los revende en 60.' },
+  // Jorge (24 de noviembre, solo en el 3D): el laúd de Jamil es una carta; se vende, pero solo él sabe tocarlo.
+  laud: { nombre: 'Laúd de Jamil', texto: 'El laúd de Jamil al Udhrí. Solo Jamil sabe tocarlo: en su turno, en cualquier ciudad, toca y gana 1 noche y 1 dinar (gasta su acción principal). Se vende al mercado de la ciudad por 30 dinares, que luego lo revende en 45, o a otro jugador en un trato (al precio que quieran); cuando se vende, todos se enteran. En otras manos no suena: nadie más sabe tocarlo. A Jamil no le pesa (lo lleva a la espalda); a cualquier otro le cuenta como un objeto.' },
   dadoIbnArabi: { nombre: 'Dado de Ibn Arabi', texto: 'Regalo de Ibn Arabi. La próxima vez que vayas a perder una pelea o un duelo (contra un jugador o un NPC), se repite la tirada una vez. Se gasta al usarlo.' },
   mapa: { nombre: 'Mapa de tesoro', texto: 'Permite buscar un tesoro en su ciudad (R 16.1).' },
   // Cartas de sheij de permiso (Jorge, 10 de noviembre): salen del mazo de Mensajes y van a la mano; no cargan; se venden solo en tratos.
@@ -318,7 +320,9 @@ export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPu
   'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'costalPistaches', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
   'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos', 'pescado', 'lampara'];   // la lámpara de aceite pesa (Jorge, 20 de noviembre)   // el pescado pesa (Jorge, 19 de noviembre)
 export const OBJ_SIN_PESO = ['OB46', 'OB05'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre)
-export const pesaCarta = (c) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && CARGA_ITEMS.includes(c.ref));
+// El laúd (Jorge, 24 de noviembre, solo en el 3D): a Jamil no le pesa, lo lleva a la espalda; a quien lo compre sí le cuenta como un objeto.
+// «j» es quien lleva la carta; sin él, el laúd cuenta como peso.
+export const pesaCarta = (c, j = null) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && (c.ref === 'laud' ? !(j && j.pj === '4') : CARGA_ITEMS.includes(c.ref)));
 // Dátiles (Jorge, 19 de noviembre): almudes en Yemen y Basra a 2, sin límite (solo te frena el peso); el mercado de Bagdad los compra a 4.
 // La primera vez que cada jugador los vende en Bagdad cumple R53 (20 noches). Hasta que alguien lo cumple, ningún mercado vende «Dátiles y pan de viaje» (OB19).
 export const DATILES = { compra: 2, venta: 4, ciudades: ['Yemen', 'Basra'], ciudadVenta: 'Bagdad', reto: 'R53', noches: 20, obj: 'OB19' };
@@ -372,7 +376,7 @@ export function moverAlfombras(e, ciudad, n) { alfombrasEn(e, ciudad); e.alfombr
 export const MAPA_JORASAN = { precio: 20, ciudad: 'Bagdad', envio: 5, impar: 'Basra', par: 'Samarcanda', seGasta: true, stock: 2, envioPrincipal: false, reponeRondas: 2, usadoRepone: true, npc: { facil: 0, normal: 1, dificil: 2 } };
 // Jorge (19 de noviembre, más tarde): las flechas pesan en pares: 1 flecha no pesa, 2 o 3 pesan 1, 4 o 5 pesan 2, etc.
 export const pesoFlechas = (n) => Math.floor(n / 2);
-export const nCarga = (j) => { const p = j.mano.filter(pesaCarta), f = p.filter((c) => c.ref === 'flechas').length; return p.length - f + pesoFlechas(f); };
+export const nCarga = (j) => { const p = j.mano.filter((c) => pesaCarta(c, j)), f = p.filter((c) => c.ref === 'flechas').length; return p.length - f + pesoFlechas(f); };
 export const cargaExcedida = (j, e) => !tieneCarga(j) && nCarga(j) > limiteCarga(e, j);
 export const MOTIVO_CARGA = `Sin caballo, burro o camello solo puedes llevar ${LIMITE_OBJETOS} objetos`;
 export const MSJ_COMPRA_LLENO = 'Ya cargas 7 objetos y sin animal no puedes llevar más, así que el mercado ya no te vende. Compra un caballo, burro o camello, o vende algo para hacer espacio.';   // Jorge (10 de noviembre): decir que por eso el mercado ya no te vende

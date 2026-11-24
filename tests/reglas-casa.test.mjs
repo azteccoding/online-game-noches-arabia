@@ -12,6 +12,8 @@ import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
 import { tieneItem, darItem, tieneEsp, tieneObj } from '../shared/base.js';
 import { cargarDatos } from '../server/datos.js';
+import { vista3d, laudDeLinea } from '../shared/vista3d.js';
+import { asegurarLaud } from '../shared/personajes.js';
 import { simular } from './sim.mjs';
 
 const data = cargarDatos();
@@ -3935,6 +3937,67 @@ console.log('reglas de la casa OK');
   assert.ok(g.act(adi, { t: 'decidir', id: e.pend.id, opcion: 'noches' }).ok);
   assert.equal(A.noches, 3 - 10, 'la sátira le deja 3 − 10 = −7 noches');
 }
+// Jorge (24 de noviembre, solo en el 3D): Jamil toca el laúd: 1 noche y 1 dinar, gasta su acción principal, en cualquier ciudad y cada turno.
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, adi] = g.ids, J = e.jugadores[jamil], A = e.jugadores[adi];
+  for (const ciudad of ['Samarcanda', 'Bagdad', 'Andalucía']) {      // solo, sin nadie más en la ciudad
+    turnoDe(e, jamil, ciudad); J.ciudad = ciudad; A.ciudad = ciudad === 'Bagdad' ? 'Basra' : 'Bagdad'; e.turno.fase = 'acciones'; J.noches = 40; J.dinares = 3;
+    const op = vistaDe(e, jamil).acciones.find((x) => x.k === 'pj' && x.sub === 'laud');
+    assert.ok(op && /\+1 noche y \+1 dinar/.test(op.titulo), `en ${ciudad} sale el botón de tocar el laúd`);
+    const n0 = e.logN || 0;
+    assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+    assert.equal(J.noches, 41); assert.equal(J.dinares, 4); assert.ok(e.turno.principal, 'gasta la acción principal');
+    assert.ok(!e.pend && !e.dados, 'sin ventana ni dados');
+    const linea = e.log.find((l) => l.n > n0 && laudDeLinea(l)); assert.ok(linea && linea.pid === jamil, 'la capa 3D reconoce la línea del registro');
+    assert.equal(vista3d(data, e).jugadores[jamil].laud.n, linea.n);
+    assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud'), 'ya no sale: usó su acción principal');
+    assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'una vez por turno');
+  }
+  // con deuda sigue ganando su dinar; nadie pasa de 1,001 noches
+  turnoDe(e, jamil, 'Bagdad'); e.turno.fase = 'acciones'; J.dinares = -5; J.noches = 1001;
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); assert.equal(J.dinares, -4); assert.equal(J.noches, 1001, 'el tope de 1,001 noches se respeta');
+  // solo Jamil, solo en su turno, y no perdido en el Jorasán
+  turnoDe(e, adi, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
+  assert.ok(!vistaDe(e, adi).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(adi, { t: 'pj', sub: 'laud' }).ok); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+  turnoDe(e, jamil, 'Jorasán'); e.turno.fase = 'acciones'; J.perdido = true;
+  assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+}
+// Jorge (24 de noviembre, solo en el 3D): el laúd es una carta de Jamil. Se vende al mercado por 30 (todos se enteran) y ahí se revende en 45;
+// quien lo compre no sabe tocarlo; Jamil no toca sin él y vuelve a tocar si lo recupera. No pesa.
+{
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, adi] = g.ids, J = e.jugadores[jamil], A = e.jugadores[adi];
+  const laud = () => J.mano.find((c) => c.tipo === 'item' && c.ref === 'laud');
+  assert.ok(laud(), 'Jamil empieza con su laúd'); assert.ok(!A.mano.some((c) => c.ref === 'laud'));
+  assert.ok(!BASE.pesaCarta(laud(), J), 'a Jamil no le pesa: lo lleva a la espalda'); assert.ok(BASE.pesaCarta(laud(), A), 'a cualquier otro sí'); assert.equal(BASE.nCarga(J), 0);
+  turnoDe(e, jamil, 'Damasco'); J.ciudad = 'Damasco'; A.ciudad = 'Damasco'; e.turno.fase = 'acciones'; J.dinares = 10; A.dinares = 100;
+  const n0 = e.logN || 0;
+  assert.ok(g.act(jamil, { t: 'vender', uid: laud().uid }).ok, 'el mercado se lo compra');
+  assert.equal(J.dinares, 40, '30 dinares por el laúd'); assert.ok(!laud()); assert.equal(e.mercadoDados.laud.ciudad, 'Damasco');
+  assert.ok(e.log.some((l) => l.n > n0 && l.aviso && /vendió el laúd: está a la venta en el mercado de Damasco por 45 dinares/.test(l.texto)), 'todos se enteran de la venta');
+  const op = vistaDe(e, jamil).acciones.find((x) => x.sub === 'laud'); assert.match(op?.bloqueado || '', /No tienes tu laúd/, 'sin laúd el botón sale apagado con su motivo');
+  assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'sin laúd no toca'); assert.ok(!e.turno.principal);
+  // Adí lo compra en 45 (se compra mientras juegan los demás) y no sabe tocarlo
+  assert.ok(tienda(data, e, adi).some((x) => x.ref === 'laud' && x.precio === 45), 'está en el mercado de Damasco a 45');
+  { // a quien lo compra le pesa: con 7 objetos y sin animal no se lo venden
+    const antes = A.mano; A.mano = [...antes, ...Array.from({ length: 7 }, (_, i) => ({ uid: 'peso' + i, tipo: 'item', ref: 'cesta', pub: true }))];
+    assert.ok(!g.act(adi, { t: 'comprar', ref: 'laud' }).ok, 'cargado con 7 no puede comprarlo'); assert.match(tienda(data, e, adi).find((x) => x.ref === 'laud').motivo || '', /7 objetos/);
+    A.mano = antes; }
+  const carga0 = BASE.nCarga(A);
+  assert.ok(g.act(adi, { t: 'comprar', ref: 'laud' }).ok); assert.equal(A.dinares, 55); assert.equal(BASE.nCarga(A), carga0 + 1, 'a Adí el laúd le cuenta como un objeto'); assert.ok(A.mano.some((c) => c.ref === 'laud')); assert.ok(!e.mercadoDados.laud);
+  turnoDe(e, adi, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(!vistaDe(e, adi).acciones.some((x) => x.sub === 'laud'), 'a Adí no le sale tocar'); assert.ok(!g.act(adi, { t: 'pj', sub: 'laud' }).ok, 'nadie más sabe tocarlo');
+  // Adí lo vende de nuevo y Jamil lo recupera: vuelve a tocar
+  assert.ok(g.act(adi, { t: 'vender', uid: A.mano.find((c) => c.ref === 'laud').uid }).ok); assert.equal(A.dinares, 85);
+  J.dinares = 44; assert.ok(!g.act(jamil, { t: 'comprar', ref: 'laud' }).ok, 'con 44 dinares no le alcanza'); J.dinares = 45;
+  assert.ok(g.act(jamil, { t: 'comprar', ref: 'laud' }).ok); assert.equal(J.dinares, 0); assert.ok(laud());
+  turnoDe(e, jamil, 'Damasco'); e.turno.fase = 'acciones';
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'con su laúd de vuelta, toca'); assert.equal(J.dinares, 1);
+  // partida empezada antes de que el laúd fuera una carta: lo recibe una sola vez
+  J.mano = J.mano.filter((c) => c.ref !== 'laud'); delete e.laudDado; asegurarLaud(e); assert.ok(laud(), 'lo recibe');
+  J.mano = J.mano.filter((c) => c.ref !== 'laud'); asegurarLaud(e); assert.ok(!laud(), 'pero no se repone si lo pierde después');
+}
 // Jorge (20 de noviembre): el harén del Califa da 12 dinares (antes 16).
 {
   const g = partida(['6', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
@@ -4874,7 +4937,7 @@ console.log('reglas de la casa OK');
   turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
   const t = OBJ.tienda(data, e, a).find((x) => x.ref === 'alforja'); assert.ok(t && t.precio === 6 && t.stock === 4, '4 en Basra a 6');
   assert.ok(g.act(a, { t: 'comprar', ref: 'alforja' }).ok); assert.equal(A.dinares, 44);
-  assert.equal(BASE.limiteCarga(e, A), 9, 'carga 9'); assert.equal(BASE.nCarga(A), BASE.nCarga({ mano: A.mano.filter((c) => c.ref !== 'alforja') }), 'la alforja no pesa');
+  assert.equal(BASE.limiteCarga(e, A), 9, 'carga 9'); assert.equal(BASE.nCarga(A), BASE.nCarga({ pj: A.pj, mano: A.mano.filter((c) => c.ref !== 'alforja') }), 'la alforja no pesa');
   assert.match(g.act(a, { t: 'comprar', ref: 'alforja' }).error || '', /solo puedes llevar una alforja/, 'sin animal, una');
   // un solo tramo por turno
   turnoDe(e, a, 'Basra'); e.turno.fase = 'mov';

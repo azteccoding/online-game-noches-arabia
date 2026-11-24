@@ -22,21 +22,28 @@ export function peleaDeLinea(e, l) {
   return { n: l.n, tipo: TIPO_PELEA[m[2]], atk: l.pid, def: def.id };
 }
 
+// «X toca el laúd en C: gana…» lo escribe la acción de Jamil (shared/personajes.js, case 'laud'). Con su número de línea, la capa 3D
+// sabe que tocó otra vez: lo anima y pone la música.
+const RE_LAUD = /^.+ toca el laúd en .+: gana /;
+export const laudDeLinea = (l) => (l?.pid && RE_LAUD.test(l.texto || '') ? { n: l.n, texto: l.texto } : null);
+
 export function vista3d(data, e) {
   const jugadores = {};
-  const viajes = {};
+  const viajes = {}, lauds = {};
   let pelea = null;
   for (const l of e.log || []) {
     if (!l.pid) continue;
     const medio = medioDeViaje(l.texto); if (medio) viajes[l.pid] = { n: l.n, medio };
     pelea = peleaDeLinea(e, l) || pelea;
+    const laud = laudDeLinea(l); if (laud) lauds[l.pid] = laud;
   }
   for (const id of Object.keys(e.jugadores || {})) {
     const j = e.jugadores[id]; if (!j?.mano) continue;
     const u = armasUsables(data, e, j, j.ciudad);                                // en Bagdad, sin Firmán, se pelea sin armas
     jugadores[id] = { arma: armaVisible(j), armaPelea: ORDEN_ARMAS.find((r) => u.includes(r) && ARMAS_ATAQUE.includes(r)) || '', arco: u.includes('arco'),
       escudo: !!tieneObj(j, 'OB04'),      // el escudo de cuero va a la vista (Jorge, 12 de noviembre: lo ven su dueño y los demás)
-      transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null };
+      transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null,
+      laud: lauds[id] || null };      // la última vez que tocó el laúd (solo Jamil)
   }
   // viva: la pelea sigue abierta (falta que el retado decida, o faltan dados). La animación empieza con los primeros dados de la pelea.
   if (pelea) pelea.viva = !!e.pelea && e.pelea.atk === pelea.atk && e.pelea.def === pelea.def;

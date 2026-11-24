@@ -125,7 +125,11 @@ export const VENTA_ANIMAL_BAGDAD = { caballo: 10, burro: 15, camello: 10 }, REVE
 export const ALFOMBRA_VENTA = { ciudades: ['Samarcanda', 'Isfahán'], precio: 20 };   // Jorge (10 de noviembre): 20 dinares y se deshace (nadie la revende)
 // Dados del Cairo y Dados de Persia (Jorge, 8 de noviembre): una sola carta de cada uno; el mercado de la ciudad la compra y la
 // revende (Cairo 35 → 75, Persia 30 → 60) y a todos les sale el aviso de dónde está. Entre jugadores, en un trato, al precio que quieran.
-export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 } };
+// Laúd de Jamil (Jorge, 24 de noviembre, solo en el 3D): igual que los dados, una sola carta; el mercado la compra en 30 y la revende en 45.
+export const DADOS_VENTA = { dadosCairo: { nombre: 'Dados del Cairo', venta: 35, reventa: 75 }, dadosPersia: { nombre: 'Dados de Persia', venta: 30, reventa: 60 },
+  laud: { nombre: 'Laúd de Jamil', venta: 30, reventa: 45, uno: true } };
+// «los Dados del Cairo» / «el Laúd de Jamil», y su verbo en singular o plural
+const elDe = (D) => (D.uno ? 'el ' : 'los ') + D.nombre, ElDe = (D) => (D.uno ? 'El ' : 'Los ') + D.nombre;
 export const MSJ_SIN_PISTACHES = 'Todavía no se vende: llega cuando alguien lleve pistaches de Isfahán a Bagdad (reto R56)';
 export const MSJ_SIN_DATILES = 'Todavía no se vende: llega cuando alguien lleve dátiles de Basra o Yemen al mercado de Bagdad (reto R53)';
 export function comprar(data, e, pid, a) {
@@ -179,10 +183,11 @@ export function comprar(data, e, pid, a) {
   }
   if (DADOS_VENTA[a.ref]) {                                                                              // dados revendidos por el mercado
     const D = DADOS_VENTA[a.ref], m = e.mercadoDados?.[a.ref];
-    if (!m || m.ciudad !== j.ciudad) return err(`Los ${D.nombre} no están a la venta aquí.`);
-    if (j.dinares < D.reventa) return err(`Cuestan ${D.reventa} dinares.`);
+    if (!m || m.ciudad !== j.ciudad) return err(`${ElDe(D)} no ${D.uno ? 'está' : 'están'} a la venta aquí.`);
+    if (j.dinares < D.reventa) return err(`${D.uno ? 'Cuesta' : 'Cuestan'} ${D.reventa} dinares.`);
+    if (a.ref === 'laud' && j.pj !== '4' && !tieneCarga(j) && nCarga(j) >= limiteCarga(e, j)) return err(MSJ_COMPRA_LLENO);      // a quien no es Jamil, el laúd le pesa
     j.dinares -= D.reventa; delete e.mercadoDados[a.ref]; m.carta.pub = true; j.mano.push(m.carta);
-    log(e, `${j.nombre} compra los ${D.nombre} en el mercado de ${j.ciudad} por ${D.reventa} dinares.`, { pid });
+    log(e, `${j.nombre} compra ${elDe(D)} en el mercado de ${j.ciudad} por ${D.reventa} dinares.`, { pid, ...(a.ref === 'laud' ? { aviso: true } : {}) });
     return ok();
   }
   if (typeof a.ref === 'string' && a.ref.startsWith('amarrado:')) return comprarAmarrado(e, pid, a.ref.slice(9));
@@ -482,8 +487,11 @@ export function vender(data, e, pid, a) {
   if (DADOS_VENTA[c.ref]) {
     const D = DADOS_VENTA[c.ref];
     quitarCarta(j, c.uid); j.dinares += D.venta; (e.mercadoDados ||= {})[c.ref] = { ciudad, carta: c }; apurosZein(e, j, c.ref);
-    log(e, `${j.nombre} vende los ${D.nombre} al mercado de ${ciudad} por ${D.venta} dinares.`, { pid });
-    log(e, `Los ${D.nombre} están a la venta en el mercado de ${ciudad} por ${D.reventa} dinares.`, { aviso: true }); return ok();
+    log(e, `${j.nombre} vende ${elDe(D)} al mercado de ${ciudad} por ${D.venta} dinares.`, { pid });
+    // el laúd (Jorge, 24 de noviembre): «cuando lo vende todos se enteran»
+    if (c.ref === 'laud') log(e, `${j.nombre} vendió el laúd: está a la venta en el mercado de ${ciudad} por ${D.reventa} dinares. Solo Jamil sabe tocarlo.`, { aviso: true });
+    else log(e, `Los ${D.nombre} están a la venta en el mercado de ${ciudad} por ${D.reventa} dinares.`, { aviso: true });
+    return ok();
   }
   if (ITEMS[c.ref]?.msg) return err('El mercado no compra cartas de sheij: véndela a otro jugador en un trato.');   // Jorge (10 de noviembre)
   if (c.ref === 'pergamino') { if (ciudad !== 'Damasco') return err('El pergamino se cobra en Damasco.'); quitarCarta(j, c.uid); j.dinares += 30; return ok(); }
@@ -603,7 +611,9 @@ export function tienda(data, e, pid) {
     r.push({ ref: 'shatranj', nombre: ITEMS.shatranj.nombre, tipo: 'Objeto original', texto: ITEMS.shatranj.texto, precio: p, stock: n, puede: n > 0 && j.dinares >= p && !lleno, motivo: n <= 0 ? `Agotado: solo hay ${SHATRANJ.stock} en todo el juego` : lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
   { const n = alfombrasEn(e, j.ciudad), p = precioAlfombraCompra(j.ciudad);   // Alfombras de Isfahán (Jorge, 18 de noviembre)
     if (n > 0) r.push({ ref: 'alfombraIsfahan', nombre: ITEMS.alfombraIsfahan.nombre, tipo: 'Objeto original', texto: ITEMS.alfombraIsfahan.texto, precio: p, stock: n, puede: j.dinares >= p && !lleno, motivo: lleno ? MSJ_COMPRA_LLENO : j.dinares < p ? 'No te alcanza' : undefined }); }
-  for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa });
+  for (const [ref, D] of Object.entries(DADOS_VENTA)) if (e.mercadoDados?.[ref]?.ciudad === j.ciudad) {
+    const llenoLaud = ref === 'laud' && j.pj !== '4' && lleno;      // a quien no es Jamil, el laúd le pesa
+    r.push({ ref, nombre: D.nombre, tipo: 'Objeto original', texto: ITEMS[ref].texto, precio: D.reventa, stock: 1, puede: j.dinares >= D.reventa && !llenoLaud, motivo: llenoLaud ? MSJ_COMPRA_LLENO : j.dinares < D.reventa ? 'No te alcanza' : undefined }); }
   for (const x of (e.amarrados || []).filter((q) => q.ciudad === j.ciudad && !q.vendido)) {   // camellos amarrados con lazo (Jorge, 19 de noviembre)
     const p = REVENTA_ANIMAL.camello, mio = x.dueno === pid;
     r.push({ ref: 'amarrado:' + x.carta.uid, nombre: `Camello amarrado de ${e.jugadores[x.dueno]?.nombre || 'otro jugador'}`, tipo: 'Transporte', texto: `Con las vidas que le quedan. ${ITEMS.camello.texto || ''}`, precio: p, stock: 1,
@@ -704,7 +714,7 @@ export function dondeVender(data, e, pid, c) {
   if (c.ref === 'yegua') return 'Solo el mercado de Estambul: 150 dinares por yegua. O a otro jugador en un trato, en cualquier ciudad, al precio que acuerden.';
   if (c.ref === 'caballoMongol') return 'Solo en Estambul, por 2 dinares (ahí vuelve a la venta): en las demás ciudades nadie lo quiere.';
   if (VENTA_ANIMAL_BAGDAD[c.ref] != null) return `En el mercado de cualquier ciudad: ${VENTA_ANIMAL_BAGDAD[c.ref]} dinares ${c.ref === 'burro' ? ', por desnutrido' : ''} (ahí se revende a ${REVENTA_ANIMAL[c.ref]}, con todos sus turnos de vida).`;
-  if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se revenden en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
+  if (DADOS_VENTA[c.ref]) return `Al mercado de cualquier ciudad por ${DADOS_VENTA[c.ref].venta} dinares (ahí se ${DADOS_VENTA[c.ref].uno ? 'revende' : 'revenden'} en ${DADOS_VENTA[c.ref].reventa}), o a otro jugador en un trato al precio que quieran.`;
   if (c.ref === 'mapaJorasan') return `Al mercado de cualquier ciudad por ${Math.floor(MAPA_JORASAN.precio / 2)} dinares (en Bagdad queda a la venta de inmediato; en otra ciudad desaparece y los escribas de Bagdad hacen otro en 2 rondas), o a otro jugador en un trato. Sirve para salir del Jorasán.`;
   if (c.ref === 'pergamino') return 'Solo se cobra en Damasco: 30 dinares.';
   if (c.ref === 'lampara') return 'No se vende al mercado: sirve para estudiar con mecenas (R46, R47 y R55).';

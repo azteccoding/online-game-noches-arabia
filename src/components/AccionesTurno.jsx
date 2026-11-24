@@ -96,11 +96,11 @@ function Personaje({ a, s }) {
   const [precio, setPrecio] = useState(30);
   return (
     <div className="accion-fila">
-      <div className="accion-txt"><b>{a.titulo}</b>{a.texto && <small>{a.texto}</small>}</div>
+      <div className="accion-txt"><b>{a.titulo}</b>{a.texto && <small>{a.texto}</small>}{a.bloqueado && <small className="error">{a.bloqueado}</small>}</div>
       <div className="accion-ctl">
         {a.objetivos && <Objetivo s={s} ids={a.objetivos} valor={con} onChange={setCon} />}
         {a.pidePrecio && <input type="number" min="0" max="200" value={precio} onChange={(e) => setPrecio(e.target.value)} aria-label="Precio en dinares" title="Precio en dinares" style={{ width: 80 }} />}
-        <button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => enviar(ACCIONES.pj(a.sub, { con, precio: Number(precio) }))}>Hacerlo</button>
+        <button className="btn mini" disabled={!!s.pend || !!s.dados || !!a.bloqueado} onClick={() => enviar(ACCIONES.pj(a.sub, { con, precio: Number(precio) }))}>Hacerlo</button>
       </div>
     </div>
   );

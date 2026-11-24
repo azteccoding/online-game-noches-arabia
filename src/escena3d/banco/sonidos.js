@@ -62,6 +62,8 @@ export const SONIDOS = {
   'ifrit-aparece': { archivos: [S + 'genio-aparece.mp3'], volumen: 0.9 },     //   cuando el genio brota de la lámpara
   'ifrit-ambiente': null,    //   bucle mientras el genio está fuera
   'ifrit-se-esconde': { archivos: [S + 'genio-se-esconde.mp3'], volumen: 0.8 },  //   cuando el genio es absorbido y la lámpara se cierra y desaparece
+  // --- Jamil toca el laúd (solo en el 3D). Es una ranura de música: una pieza larga que suena por tramos, cada vez desde donde se quedó.
+  'laud-jamil': { musica: S + 'laud-jamil.mp3', volumen: 1 },   //   mientras Jamil toca (tocarLaud); se apaga con un fundido cuando se cuelga el laúd
   // --- Momentos del juego (los toca la interfaz, no la escena)
   'muerte': { archivos: [S + 'muerte.mp3'], volumen: 0.85 },            //   cuando un personaje muere y su figura se retira del mapa
   'monedas': { archivos: [S + 'monedas.mp3'], volumen: 0.7 },           //   cuando te suben los dinares (ya con la carta cerrada)

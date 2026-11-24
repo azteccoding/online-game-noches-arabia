@@ -6,6 +6,8 @@
 // cargar, en su lugar suena el provisional (si lo hay).
 // Una ranura puede ser:  '/sonidos/x.mp3'   |   { archivo: '/sonidos/x.mp3', volumen: 0.6 }   |   { archivos: ['/a.mp3', '/b.mp3'], volumen: 0.6 }
 // (con varios archivos se elige uno al azar cada vez, para que los pasos o los choques no suenen idénticos).
+// Una ranura de música es  { musica: '/sonidos/x.mp3', volumen: 0.9 } : una pieza larga que no se decodifica entera en memoria;
+// suena por tramos con musica(clave, true | false) y cada tramo sigue donde se quedó el anterior.
 export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio: silencioInicial = false } = {}) {
   let ctx = null, master = null, ruido = null, activo = !silencioInicial, gesto = false, ambienteActual = null, pistaAmbiente = null;
   let vol = Math.max(0, Math.min(1, +volumenInicial || 0));
@@ -57,7 +59,7 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
       ruido = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 0.5), ctx.sampleRate);
       const d = ruido.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     } catch { ctx = null; return; }
-    cargarTodo();
+    cargarTodo(); for (const k of porPreparar) prepararMusica(k);
     if (ambienteActual) ambiente(ambienteActual);
     for (const k in bucles) if (bucles[k].n > 0) encenderBucle(k);
   }
@@ -178,11 +180,44 @@ export function crearSonido(TABLA = {}, { volumen: volumenInicial = 1, silencio:
     if (b.n > 0) encenderBucle(clave);
     else if (b.pista) { soltar(b.pista, 0.6); b.pista = null; }
   }
+  // Música de una acción que dura (Jamil toca el laúd): una pieza larga, en su propio <audio> (el navegador la va bajando y no hay
+  // que decodificarla entera), que pasa por el volumen general como todo lo demás. musica(clave, true) la hace sonar desde donde
+  // se quedó la vez anterior, con una entrada breve; musica(clave, false) la apaga con un fundido y la deja en pausa ahí. Cuando
+  // ya no queda pieza para otro tramo, vuelve a empezar.
+  const musicas = {}, porPreparar = new Set();
+  const urlMusica = (clave) => { const r = TABLA[clave]; return r && typeof r === 'object' && !Array.isArray(r) && r.musica ? { url: r.musica, volumen: r.volumen ?? 1 } : null; };
+  function prepararMusica(clave) {
+    const r = urlMusica(clave); if (!r) return null;
+    if (!ctx) { porPreparar.add(clave); return null; }
+    if (musicas[clave]) return musicas[clave];
+    try {
+      const el = new Audio(); el.preload = 'auto'; el.src = r.url;
+      const src = ctx.createMediaElementSource(el), g = ctx.createGain(); g.gain.value = 0.0001; src.connect(g); g.connect(master);
+      return (musicas[clave] = { el, g, volumen: r.volumen, sonando: false, reloj: 0 });
+    } catch { return null; }
+  }
+  function musica(clave, encendido, { entrada = 0.35, salida = 1.3, tramo = 8 } = {}) {
+    let m = musicas[clave];
+    if (!encendido) {
+      if (!m || !m.sonando) return; m.sonando = false;
+      try { const t = ctx.currentTime; m.g.gain.cancelScheduledValues(t); m.g.gain.setValueAtTime(Math.max(0.0001, m.g.gain.value), t); m.g.gain.linearRampToValueAtTime(0.0001, t + salida); } catch { /* el contexto ya se cerró */ }
+      clearTimeout(m.reloj); m.reloj = setTimeout(() => { if (!m.sonando) m.el.pause(); }, salida * 1000 + 80);
+      return;
+    }
+    if (!gesto || enFondo || !ctx) return;
+    m ||= prepararMusica(clave); if (!m) return;
+    clearTimeout(m.reloj); m.sonando = true;
+    const dur = m.el.duration; if (m.el.ended || (Number.isFinite(dur) && dur - m.el.currentTime < tramo + 2)) m.el.currentTime = 0;
+    const t = ctx.currentTime; m.g.gain.cancelScheduledValues(t); m.g.gain.setValueAtTime(0.0001, t); m.g.gain.linearRampToValueAtTime(Math.max(0.0001, m.volumen), t + entrada);
+    if (ctx.state === 'suspended') ctx.resume();
+    m.el.play().catch(() => { m.sonando = false; });
+  }
+  const callarMusicas = () => { for (const k in musicas) { const m = musicas[k]; clearTimeout(m.reloj); m.sonando = false; try { m.el.pause(); m.el.removeAttribute('src'); m.el.load(); } catch { /* */ } delete musicas[k]; } };
   const callarBucles = () => { for (const k in bucles) { bucles[k].n = 0; if (bucles[k].pista) { soltar(bucles[k].pista, 0.2); bucles[k].pista = null; } } };
   // Silencio y volumen: todo pasa por el volumen general, así que silenciar no corta los bucles (siguen, mudos) y al volver suenan donde iban.
   function alternar() { activo = !activo; if (!activo) fuego(0); aplicarVolumen(); return activo; }
   function silenciar(v) { if (activo === !v) return activo; return alternar(); }
   function volumen(v) { if (v != null) { vol = Math.max(0, Math.min(1, +v || 0)); aplicarVolumen(); } return vol; }
-  function destruir() { activo = false; fuego(0); callarBucles(); if (pistaAmbiente) { soltar(pistaAmbiente, 0.1); pistaAmbiente = null; } if (ctx) { ctx.close().catch(() => {}); ctx = null; master = null; } }
-  return { activar, tocar, ambiente, bucle, fuego, get nivelFuego() { return fuegoNivel; }, fondo, alternar, silenciar, volumen, destruir, tabla: TABLA, claves: Object.keys(TABLA), get activo() { return activo; }, get volumenActual() { return vol; } };
+  function destruir() { activo = false; fuego(0); callarBucles(); callarMusicas(); if (pistaAmbiente) { soltar(pistaAmbiente, 0.1); pistaAmbiente = null; } if (ctx) { ctx.close().catch(() => {}); ctx = null; master = null; } }
+  return { activar, tocar, ambiente, bucle, musica, prepararMusica, fuego, get nivelFuego() { return fuegoNivel; }, fondo, alternar, silenciar, volumen, destruir, tabla: TABLA, claves: Object.keys(TABLA), get activo() { return activo; }, get volumenActual() { return vol; } };
 }

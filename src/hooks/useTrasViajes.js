@@ -9,7 +9,9 @@ const TOPE_MS = 20000;   // ningún viaje retiene la pantalla más que esto (pes
 
 function viajan(antes, ahora) {
   if (!antes || !ahora || !escenaActual() || antes.fase !== 'juego' || ahora.fase !== 'juego' || antes.yo !== ahora.yo || antes.codigo !== ahora.codigo) return [];
-  return Object.keys(ahora.jugadores || {}).filter((id) => { const a = antes.jugadores?.[id], b = ahora.jugadores[id]; return a && b.pj && !b.eliminado && a.ciudad !== b.ciudad; });
+  // también retiene la pantalla quien acaba de tocar el laúd (Jamil): su premio sale cuando termina de tocar
+  const tocoLaud = (id) => (ahora.e3d?.jugadores?.[id]?.laud?.n || 0) > (antes.e3d?.jugadores?.[id]?.laud?.n || 0) && !!antes.e3d;
+  return Object.keys(ahora.jugadores || {}).filter((id) => { const a = antes.jugadores?.[id], b = ahora.jugadores[id]; return a && b.pj && !b.eliminado && (a.ciudad !== b.ciudad || tocoLaud(id)); });
 }
 
 export function useTrasViajes(s) {

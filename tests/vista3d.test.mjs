@@ -3,7 +3,7 @@
 import assert from 'node:assert/strict';
 import { nuevoJuego, unir, reducir, vista, tick, viajarPropio } from '../shared/engine.js';
 import { darItem, ITEMS } from '../shared/base.js';
-import { medioDeViaje, vista3d } from '../shared/vista3d.js';
+import { medioDeViaje, vista3d, laudDeLinea } from '../shared/vista3d.js';
 import { vistaCongelada } from '../shared/congelar.js';
 import { cargarDatos } from '../server/datos.js';
 
@@ -27,6 +27,24 @@ for (const ref of ['burro', 'caballo', 'camello', 'alfombra', 'caballoMongol']) 
 }
 assert.equal(medioDeViaje('Jorge viaja de Bagdad a Damasco (10 dinares).'), null, 'el viaje normal es a pie');
 assert.equal(medioDeViaje('Jorge viaja de Bagdad a Damasco.'), null);
+
+// Tocar el laúd (solo Jamil, solo en el 3D): la vista entrega la última línea «… toca el laúd en …» con su número.
+assert.ok(laudDeLinea({ pid: 'p1', n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 noche y 1 dinar.' }));
+assert.equal(laudDeLinea({ pid: 'p1', n: 7, texto: 'Jorge le canta versos de sátira a Carolina.' }), null);
+assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 noche y 1 dinar.' }), null, 'sin jugador no cuenta');
+{
+  const g = partida(['4', '7']); const { e, ids } = g; g.asentar();
+  const [jamil, adi] = ids;
+  assert.equal(vista3d(data, e).jugadores[jamil].laud, null, 'todavía no ha tocado');
+  e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = [];
+  e.turno = { pid: jamil, idx: e.orden.indexOf(jamil), fase: 'acciones', tramos: 0, ciudadInicio: e.jugadores[jamil].ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, gastos: {} };
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+  const L = vista(data, e, adi).e3d.jugadores[jamil].laud;
+  assert.ok(L && typeof L.n === 'number' && /toca el laúd/.test(L.texto), 'todos ven que Jamil tocó');
+  assert.equal(vista3d(data, e).jugadores[adi].laud, null);
+  e.turno.principal = false; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+  assert.ok(vista3d(data, e).jugadores[jamil].laud.n > L.n, 'cada vez que toca sube el número');
+}
 
 {
   const g = partida(['1', '4', '7']); const { e, ids } = g;

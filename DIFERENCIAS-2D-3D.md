@@ -14,6 +14,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 23 nov | **Toledo (H2)**: irse de Andalucía a Bagdad va por El Cairo y cobra los dos tramos (cada uno cuenta como viaje). | La opción a Bagdad salía «(null)» y el viaje era gratis. | `507b05f` |
 | 23 nov | **Zubayda en el harén**: sale la carta pintada y los 12 dinares llegan al cerrarla (o a los 90 s). | Los dinares llegan al instante, sin carta. | `71f423e` |
 | 23 nov | **Zubayda le renta a Adí, Anís o Jamil**: sale la carta pintada solo para los dos; el cobro y las consecuencias van al cerrarla. | Sin carta: las consecuencias son inmediatas. | `a1d0e08`, `66459ab` |
+| 24 nov | **Jamil toca el laúd**: acción propia de Jamil, en cualquier ciudad y cada turno. Gana 1 noche y 1 dinar y gasta su acción principal. En el tablero se sienta con el laúd, toca con música y se levanta; el premio se avisa al terminar. | No existe. | commit «Jamil toca el laúd» |
+| 24 nov | **El laúd es una carta de Jamil**: empieza la partida con él. Lo puede vender al mercado de cualquier ciudad por 30 dinares; ese mercado lo revende en 45 a quien lo quiera, y también cambia de manos en un trato. Cuando se vende, todos se enteran. Solo Jamil sabe tocarlo: sin el laúd no puede tocar, y en otras manos no suena. A Jamil no le pesa; a cualquier otro le cuenta como un objeto para el límite de 7. | No existe. | commit «Jamil toca el laúd» |
 
 ## Sala en línea, turnos y banco
 
@@ -71,6 +73,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | El Primer Viaje con Sindbad (R11) tiene su propia pintura, la isla viviente; R12, R13, R14 y la Flota de Sindbad siguen con la pintura compartida. | El 2D sigue con su ilustración de siempre. | `b37eea4` |
 | 24 nov | Pinturas nuevas: Mercader de armas (E10), La posta urgente (R39), Leva del sultán (H7), Guerra entre hermanos herederos (H12) y Ejército de Kanmakán (K1). | El 2D sigue con sus ilustraciones de siempre. | `f4b6047` |
 | 24 nov | Al obtener el Ejército de Kanmakán (500 noches o los cuatro viajes de Sindbad), su carta sale siempre en pantalla para toda la mesa, como la de un reto o un objeto; si hay dados en la mesa, espera a que se cierren. | En el 2D solo queda anotado en el registro y la carta aparece en la mano. | `f4b6047` |
+| 24 nov | Jamil de ocho vistas (jamil_v2) con pintura cenital, y un segundo juego de ocho vistas de Jamil sentado tocando el laúd; la carta del laúd lleva la pintura de su hoja. | El 2D sigue con su monito de siempre. | commit «Jamil toca el laúd» |
 
 ## Despliegue
 

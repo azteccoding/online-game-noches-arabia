@@ -64,7 +64,7 @@ export function aligerar(data, e, pid) {
   const valor = (c) => (c.tipo === 'objeto' ? objDe(data, c.ref)?.valor : ITEMS[c.ref]?.precio) || 0;
   const intentados = new Set();
   for (let k = 0; k < 60 && cargaExcedida(j, e); k++) {
-    const c = j.mano.filter((x) => !intentados.has(x.uid) && pesaCarta(x)).sort((a, b) => valor(a) - valor(b))[0];
+    const c = j.mano.filter((x) => !intentados.has(x.uid) && pesaCarta(x, j)).sort((a, b) => valor(a) - valor(b))[0];
     if (!c) break;
     intentados.add(c.uid); vender(data, e, pid, { uid: c.uid });
   }

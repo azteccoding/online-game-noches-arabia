@@ -408,6 +408,7 @@ function cierreRonda(data, e) {
 function iniciarTurno(data, e, id, idx) {
   const j = e.jugadores[id], p = pjDe(data, j.pj);
   j.extra.descuentos = null;                                                // los descuentos de entrenar duran hasta tu siguiente turno
+  PJ.asegurarLaud(e);                                                       // el laúd de Jamil, en partidas empezadas antes de que fuera una carta
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;

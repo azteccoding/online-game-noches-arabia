@@ -66,6 +66,16 @@ a mp3 mono; los bucles (barco, alfombra, fuego, pájaros, grillos) llevan un fun
 | dado-golpe-1 a 6.mp3 | dicehit_wood1, 3, 5, 7, 9, 11 | sonidos de dados del paquete npm @3d-dice/dice-box-threejs | 3D Dice | https://www.npmjs.com/package/@3d-dice/dice-box-threejs | MIT |
 | dado-arena-1 a 5.mp3 | surface_felt1 a 5 | sonidos de dados del paquete npm @3d-dice/dice-box-threejs | 3D Dice | https://www.npmjs.com/package/@3d-dice/dice-box-threejs | MIT |
 
+## Música (esta sí exige crédito)
+
+La música de Jamil tocando el laúd NO es de dominio público: tiene licencia Creative Commons Atribución 4.0 (CC BY 4.0,
+https://creativecommons.org/licenses/by/4.0/). Se puede usar y redistribuir, también en un juego de pago, siempre que se dé este crédito.
+El archivo es el mp3 de escucha de Freesound tal cual, sin recortar ni cambiar. Licencia comprobada en su página el 24 de noviembre de 2026.
+
+| Archivo | Título original | Autor | Página de origen | Licencia |
+|---|---|---|---|---|
+| laud-jamil.mp3 | «Orchestra-Tetouan-Asmir-07.wav» (Freesound #182730, vista previa HQ mp3): solo de laúd en un concierto de música arábigo-andalusí de la Orquesta Tetuán-Asmir, grabado en Tetuán, Marruecos, el 25 de febrero de 2013 | xserra (Xavier Serra, proyecto CompMusic) | https://freesound.org/people/xserra/sounds/182730/ | CC BY 4.0 (Creative Commons Atribución) |
+
 Aviso de la licencia MIT de los sonidos de dados:
 
 ```
