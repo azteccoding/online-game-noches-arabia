@@ -65,7 +65,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Sonidos reales (CC0) en peleas, retos, cartas, viajes y genio, con botón de volumen y silencio. | Sin sonidos. | `7a17eb2` |
 | 24 nov | Armas, flecha y escudo pintados en las peleas; cartas de cimitarra, alfanje, jambiya, arco, flechas, escudo y genio con su pintura; el barco se ve bien desde arriba. | Sin pinturas ni modelos 3D. | `34a3a53`, `fd7e650` |
 | 24 nov | Mientras el genio sale de la lámpara, flota y vuelve a meterse, todo lo demás se queda quieto (monitos, barcos, ronda); sigue al esconderse el genio. | El 2D no tiene animación del genio. | `b1dc128` |
-| 24 nov | Nur al Din de ocho vistas (v2). Pintura nueva de Zein en la Giralda (R26, vestida como en su hoja) y de Sherezada leyendo (R16); las anteriores se conservan. Botones de la esquina del mapa (girar, vista general, centrar, sonido) a la vista: estaban tapados por el lienzo 3D. Partida de muestra con los ocho personajes (`tools/partida-personajes.mjs`). | El 2D sigue con sus ilustraciones y su tablero de siempre. | `d5b851a` y siguiente |
+| 24 nov | Nur al Din de ocho vistas (v2). Pintura nueva de Zein en la Giralda (R26, vestida como en su hoja) y de Sherezada leyendo (R16); las anteriores se conservan. Botones de la esquina del mapa (girar, vista general, centrar, sonido) a la vista: estaban tapados por el lienzo 3D. Partida de muestra con los ocho personajes (`tools/partida-personajes.mjs`). | El 2D sigue con sus ilustraciones y su tablero de siempre. | `d5b851a`, `1248128` |
+| 24 nov | Yafar de ocho vistas (v2), con pintura cenital cuando la cámara lo mira desde arriba. | El 2D sigue con su monito de siempre. | `658cf8a` |
 
 ## Despliegue
 
