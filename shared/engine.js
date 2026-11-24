@@ -624,7 +624,7 @@ const esHost = (e, pid) => e.host === pid;
 const CAJA_CERRADA = 'La caja del banco está cerrada: ábrela en el panel del banco.';
 const hostAusente = (e) => !e.jugadores[e.host] || !e.jugadores[e.host].conectado;
 const puedeNPC = (e, pid) => esHost(e, pid) || hostAusente(e);
-const LIBRES = ['chat', 'jambiya', 'datiles', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio', 'ganarYa'];
+const LIBRES = ['chat', 'jambiya', 'datiles', 'volver', 'decidir', 'cerrarDados', 'lanzarDados', 'reclamarAnfitrion', 'cancelarTrato', 'proponerTrato', 'responderTrato', 'elegirPj', 'listo', 'iniciar', 'opciones', 'leido', 'votarReinicio', 'ganarYa', 'callarJamil'];
 
 // Libro de saldos: tras cada acción o tic del reloj, cada cambio de dinares o noches de un jugador queda en el registro con
 // el importe y el saldo nuevo (las líneas anteriores dicen el motivo).
@@ -721,6 +721,9 @@ function reducir0(data, e, pid, a, ahora) {
   if (e.fase === 'fin' && a.t === 'volverPartida') { const r = volverPartida(data, e, pid); if (r && r.ok) avanzar(data, e); return r; }
   if (e.fase === 'fin' && !String(a.t).startsWith('host.')) return err('La partida terminó.');
   if (e.pend && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Hay una decisión pendiente: respóndela primero.');
+  // «Que se calle Jamil»: mientras dura la votación Jamil está tocando y no hace otra cosa; si lo callaron, solo le queda terminar el turno
+  if (e.votoLaud?.pid === pid && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Estás tocando el laúd: espera a ver si te dejan seguir.');
+  if (e.turno?.callado && e.turno.pid === pid && !LIBRES.includes(a.t) && !['terminarTurno', 'responderCC'].includes(a.t) && !String(a.t).startsWith('host.')) return err('Te callaron: solo te queda terminar tu turno.');
   let r;
   const seq0 = e.seq || 0;
   try { r = despachar(data, e, pid, j, a, ahora); } catch (x) { if (x?.message?.startsWith('pend')) throw x; throw x; }
@@ -873,6 +876,7 @@ function despachar(data, e, pid, j, a, ahora) {
     }
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
+    case 'callarJamil': { const r = PJ.votarCallar(e, pid); if (r.ok) cerrarVotoLaud(data, e); return r; }
     case 'ganarYa': return accionGanarYa(data, e, pid);   // Jorge (19 de noviembre): con 1,001 noches, tras «Seguir jugando»
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
     case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); e.bancoFijo = true; if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
@@ -1553,7 +1557,7 @@ export function vista(data, e, pid) {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     armasCiudades: e.fase === 'juego' ? Object.fromEntries(data.ciudades.ciudades.map((c) => [c.id, OBJ.armasEnCiudad(data, e, c.id)])) : null, armasBagdad: !!e.mods?.armasBagdad,   // ficha de ciudad (Jorge, 12 de noviembre)
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, anuncios: (e.anuncios || []).filter((x) => x.para.includes(pid)).map(({ id, t, texto, tono, propio }) => ({ id, t, texto, tono, ...(propio ? { propio: true } : {}) })), ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
-    votoReinicio: vistaVoto(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
+    votoReinicio: vistaVoto(e, pid), votoLaud: PJ.vistaVotoLaud(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
     mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
     sabiduria: e.sabiduria && e.ronda <= e.sabiduria.hasta ? { quedan: e.sabiduria.hasta - e.ronda + 1 } : null,
     quemadas: Object.entries(e.cerradas || {}).filter(([, v]) => v === 'cruzada').map(([c]) => c),   // flamas en el mapa durante la Cruzada (Jorge, 19 de noviembre)
@@ -1608,6 +1612,13 @@ function revisarVoto(data, e, vencido = false) {
   if (no * 2 >= vs.length || vencido) { e.votoReinicio = null; log(e, `No hubo mayoría para empezar de nuevo (${si} sí, ${no} no): la partida sigue.`, { aviso: true }); }
   return ok();
 }
+// «Que se calle Jamil» (personajes.js lleva la votación): si lo callan, aquí se le termina el turno.
+function cerrarVotoLaud(data, e, vencido = false) {
+  const v = e.votoLaud; if (!v) return false;
+  const res = PJ.revisarVotoLaud(e, vencido);
+  if (res === 'callado' && e.turno?.pid === v.pid) { const r = terminarTurno(data, e, v.pid); if (!r.ok && e.turno?.pid === v.pid) e.turno.callado = true; }
+  return !e.votoLaud;
+}
 function vistaVoto(e, pid) {
   const v = e.votoReinicio; if (!v) return null;
   const vs = votantes(e);
@@ -1657,6 +1668,7 @@ function tick0(data, e, ahora) {
   // Jorge (8 de noviembre): las tiradas de Yafar NPC no tienen ventana de resultado: se ven rodar y, al terminar, siguen las consecuencias.
   else if (e.dados && e.dados.lanzado && dadosDeNPC(e, e.dados) && ahora - e.dados.t0 > RODAR_NPC_MS * Math.max(1, e.dados.grupos?.length || 1) + 400) { siguienteDados(e); cambio = true; }
   if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
+  if (e.votoLaud && cerrarVotoLaud(data, e, ahora - e.votoLaud.t0 >= e.votoLaud.limiteMs)) cambio = true;
   if (e.fase === 'juego') {
     if (e.pend && e.dados) e.pend.t0 = ahora;                     // el plazo de una decisión empieza cuando se cierran los dados
     else if (e.pend && vencerPend(data, e, ahora)) cambio = true;

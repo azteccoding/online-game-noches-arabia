@@ -95,6 +95,8 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     posturaLaud(f, 0); f.figToca?.animar(0, { tocar: 0 });
     try { L.alTerminar?.(completo); } catch (e) { console.error(e); }
   }
+  // Deja de tocar ya (lo callaron o se acabó la votación): se levanta sin esperar a que termine la pieza.
+  function callarLaud(f) { const L = f.laud; if (L && L.t < T_SACAR + L.tocar) { L.tocar = Math.max(0.3, L.t - T_SACAR); cambios = true; } }
   function soltarLaud(f) {
     terminarLaud(f, false);
     if (f.notas) { f.notas.destruir(); f.notas = null; }
@@ -448,5 +450,5 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     return (f.armas[f.arma] ||= (() => { const a = crearArma(f.arma, mats), porta = new THREE.Group(); porta.scale.setScalar(1.22); a.grupo.visible = false; porta.add(a.grupo); f.fig.mano.add(porta); return a; })());
   }
   function destruir() { for (const f of fichas.slice()) quitar(f); tAro.dispose(); gPlano.dispose(); gBlanco.dispose(); for (const p of texturas.values()) p.then((t) => t.dispose()).catch(() => {}); }
-  return { fichas, blancos, porId, poner, ponerTodos, quitar, viajar, tocarLaud, actualizar, mirarDesde, armaDe, destruir, get sucio() { return sucio; } };
+  return { fichas, blancos, porId, poner, ponerTodos, quitar, viajar, tocarLaud, callarLaud, actualizar, mirarDesde, armaDe, destruir, get sucio() { return sucio; } };
 }

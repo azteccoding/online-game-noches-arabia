@@ -94,6 +94,7 @@ son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la direcc
 | `esconderIfrit()` | La lámpara absorbe al genio y desaparece (unos 1,8 s). |
 | `soltarIfrit()` | Avisa que ya se eligió el deseo. Mientras el genio está en escena el mundo no avanza (fichas, barcos, ronda, pelea); tras este aviso solo sigue parado mientras el genio se mete. |
 | `tocarLaud(idJugador, { duracion, seguir })` | El jugador (Jamil) se sienta con el laúd al frente, hace como que toca `duracion` segundos (6,5 si no se dice) y se levanta con el laúd otra vez a la espalda: es el relevo entre su figura de pie y la sentada (`fig-4t`, el id del personaje con una «t»). Mientras toca suena la música de la ranura `laud-jamil` y suben notas. Unos 8 s en total. `seguir: true` acerca la cámara a la ficha y al terminar la devuelve a donde estaba, si nadie la movió. Se cumple al terminar con `{ id, completo }`. Se rechaza si la ficha viaja, pelea, ya está tocando o no tiene figura sentada. |
+| `callarLaud(idJugador)` | Deja de tocar ya y se levanta (lo callaron en la votación «Que se calle Jamil» o se acabó su tiempo). La promesa de `tocarLaud` se cumple como siempre. Si no está tocando, no hace nada. |
 
 Para pelear o disparar, las dos fichas deben estar quietas en la misma ciudad. Nada de esto cambia el estado del juego.
 

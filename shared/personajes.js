@@ -145,6 +145,8 @@ export function accion(data, e, pid, a) {
       j.noches += LAUD.noches; j.dinares += LAUD.dinares;
       // la capa 3D reconoce esta línea para animarlo y poner la música (shared/vista3d.js, RE_LAUD): si cambia la frase, cambiar allá
       log(e, `${j.nombre} toca el laúd en ${j.ciudad}: gana ${LAUD.noches} noche y ${LAUD.dinares} dinar.`, { pid });
+      // «Que se calle Jamil»: mientras toca, los demás votan (engine.js lo cierra con el reloj o cuando ya hay mayoría)
+      if (votantesLaud(e, pid).length) e.votoLaud = { pid, t0: e.ahora, limiteMs: LAUD.votoMs, callan: {} };
       return ok();
     }
     case 'honra': {
@@ -170,7 +172,42 @@ export function accion(data, e, pid, a) {
 }
 
 export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares: 7 };
-export const LAUD = { noches: 1, dinares: 1 };   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
+// Votación «Que se calle Jamil» (Jorge, 24 de noviembre): mientras Jamil toca, a los demás jugadores les sale un botón chico.
+// Si más de la mitad lo oprime, Jamil deja de tocar y termina su turno. Si no, cuando se acaba el tiempo gana el premio «sigue».
+// No oprimir cuenta como querer que siga. Sin nadie más en la mesa no hay votación ni premio.
+export const votantesLaud = (e, pid) => Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.npc && !x.eliminado && !x.sacado && !x.tarde && x.conectado !== false && e.orden.includes(id); });
+export function votarCallar(e, pid) {
+  const v = e.votoLaud;
+  if (!v) return err('Jamil ya no está tocando.');
+  if (!votantesLaud(e, v.pid).includes(pid)) return err('No participas en esta votación.');
+  if (v.callan[pid]) return err('Ya votaste.');
+  v.callan[pid] = true;
+  return ok();
+}
+// Cierra la votación si ya hay mayoría para callarlo o si se acabó el tiempo (vencido). Devuelve 'callado', 'sigue' o null.
+export function revisarVotoLaud(e, vencido = false) {
+  const v = e.votoLaud; if (!v) return null;
+  const j = e.jugadores[v.pid];
+  if (!j || j.eliminado || e.fase !== 'juego' || e.turno?.pid !== v.pid) { e.votoLaud = null; return null; }
+  const vs = votantesLaud(e, v.pid), callan = vs.filter((id) => v.callan[id]).length;
+  if (vs.length && callan * 2 > vs.length) {
+    e.votoLaud = null;
+    log(e, `Callaron a ${j.nombre} (${callan} de ${vs.length} lo ${callan === 1 ? 'pidió' : 'pidieron'}): deja de tocar y termina su turno.`, { pid: v.pid, aviso: true });
+    return 'callado';
+  }
+  if (!vencido && vs.length) return null;
+  e.votoLaud = null;
+  if (!vs.length) return null;                                   // se quedó sin público: ni castigo ni premio
+  j.noches += LAUD.sigue.noches; j.dinares += LAUD.sigue.dinares;
+  log(e, `Dejaron tocar a ${j.nombre} (${callan ? `${callan} de ${vs.length} ${callan === 1 ? 'quiso' : 'quisieron'}` : 'nadie quiso'} callarlo): gana ${LAUD.sigue.noches} noches y ${LAUD.sigue.dinares} dinares.`, { pid: v.pid, aviso: true });
+  return 'sigue';
+}
+export function vistaVotoLaud(e, pid) {
+  const v = e.votoLaud; if (!v) return null;
+  const vs = votantesLaud(e, v.pid);
+  return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid), yaVote: !!v.callan[pid], premio: LAUD.sigue };
+}
+export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 12000 };   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
 const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';
 // Partidas que empezaron antes de que el laúd fuera una carta: Jamil lo recibe al empezar su siguiente turno (una sola vez por partida).
 export function asegurarLaud(e) {

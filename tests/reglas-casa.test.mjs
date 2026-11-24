@@ -3953,15 +3953,54 @@ console.log('reglas de la casa OK');
     assert.equal(vista3d(data, e).jugadores[jamil].laud.n, linea.n);
     assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud'), 'ya no sale: usó su acción principal');
     assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'una vez por turno');
+    assert.ok(e.votoLaud, 'con otro jugador en la mesa se abre la votación'); e.votoLaud = null;
   }
   // con deuda sigue ganando su dinar; nadie pasa de 1,001 noches
   turnoDe(e, jamil, 'Bagdad'); e.turno.fase = 'acciones'; J.dinares = -5; J.noches = 1001;
   assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); assert.equal(J.dinares, -4); assert.equal(J.noches, 1001, 'el tope de 1,001 noches se respeta');
+  e.votoLaud = null;
   // solo Jamil, solo en su turno, y no perdido en el Jorasán
   turnoDe(e, adi, 'Bagdad'); A.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
   assert.ok(!vistaDe(e, adi).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(adi, { t: 'pj', sub: 'laud' }).ok); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
   turnoDe(e, jamil, 'Jorasán'); e.turno.fase = 'acciones'; J.perdido = true;
   assert.ok(!vistaDe(e, jamil).acciones.some((x) => x.sub === 'laud')); assert.ok(!g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+}
+// Jorge (24 de noviembre, solo en el 3D): «Que se calle Jamil». Mientras toca, los demás votan con un botón; si más de la mitad lo
+// oprime, deja de tocar y termina su turno; si no, al acabarse el tiempo gana 5 noches y 5 dinares. No oprimir cuenta como que siga.
+{
+  const g = partida(['4', '7', '6', 'B']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, adi, zub, nur] = g.ids, J = e.jugadores[jamil];
+  const tocar = () => { turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; e.votoLaud = null; J.noches = 40; J.dinares = 3; const n0 = e.logN || 0; assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); return n0; };
+  const aviso = (n0, re) => e.log.some((l) => l.n > n0 && l.aviso && re.test(l.texto));
+  // 1) nadie lo calla: al acabarse el tiempo gana 5 y 5 más
+  let n0 = tocar();
+  assert.equal(J.noches, 41); assert.equal(J.dinares, 4);
+  let v = vistaDe(e, adi).votoLaud; assert.ok(v && v.votas && !v.yaVote && v.total === 3 && v.callan === 0 && v.pid === jamil); assert.deepEqual(v.premio, { noches: 5, dinares: 5 });
+  assert.ok(!vistaDe(e, jamil).votoLaud.votas, 'Jamil no vota'); assert.ok(!g.act(jamil, { t: 'callarJamil' }).ok);
+  assert.equal(vista3d(data, e).jugadores[jamil].laud.voto, 12, 'la capa 3D sabe cuánto dura la votación');
+  assert.match(g.act(jamil, { t: 'terminarTurno' }).error || '', /tocando el laúd/, 'mientras votan, Jamil sigue tocando');
+  assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!g.act(adi, { t: 'callarJamil' }).ok, 'un voto por jugador');
+  assert.ok(e.votoLaud, '1 de 3 no es mayoría'); assert.ok(vistaDe(e, adi).votoLaud.yaVote); assert.equal(vistaDe(e, zub).votoLaud.callan, 1);
+  g.tickear(5000); assert.ok(e.votoLaud, 'todavía hay tiempo'); assert.equal(J.noches, 41);
+  g.tickear(8000); assert.ok(!e.votoLaud); assert.equal(J.noches, 46); assert.equal(J.dinares, 9); assert.ok(aviso(n0, /Dejaron tocar a .+ \(1 de 3 quiso callarlo\): gana 5 noches y 5 dinares/));
+  assert.equal(vista3d(data, e).jugadores[jamil].laud.voto, 0); assert.equal(e.turno.pid, jamil, 'sigue su turno'); assert.ok(!e.turno.fin);
+  assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok, 'y ya puede seguir jugando');
+  // 2) la mayoría lo calla: deja de tocar, no gana más y su turno termina
+  n0 = tocar();
+  assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(e.votoLaud); assert.ok(g.act(nur, { t: 'callarJamil' }).ok);
+  assert.ok(!e.votoLaud, '2 de 3 es mayoría: se cierra al momento'); assert.equal(J.noches, 41, 'conserva solo lo que ganó al tocar'); assert.equal(J.dinares <= 4, true);
+  assert.ok(aviso(n0, /Callaron a .+ \(2 de 3 lo pidieron\): deja de tocar y termina su turno/)); assert.ok(e.turno.pid !== jamil || e.turno.fin, 'su turno terminó');
+  assert.ok(!g.act(zub, { t: 'callarJamil' }).ok, 'ya no hay votación');
+  // 3) empate entre dos votantes: no es mayoría, sigue
+  e.jugadores[nur].conectado = false; n0 = tocar();
+  assert.equal(vistaDe(e, adi).votoLaud.total, 2, 'el desconectado no cuenta'); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(e.votoLaud, '1 de 2 no es más de la mitad');
+  g.tickear(12500); assert.equal(J.noches, 46);
+  e.jugadores[adi].conectado = true; n0 = tocar(); g.tickear(12500); assert.ok(aviso(n0, /Dejaron tocar a .+ \(nadie quiso callarlo\): gana 5 noches y 5 dinares/));
+  // 4) un solo votante decide; y sin nadie más conectado no hay votación ni premio
+  e.jugadores[zub].conectado = false; n0 = tocar(); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!e.votoLaud); assert.equal(J.noches, 41); assert.ok(aviso(n0, /Callaron a .+ \(1 de 1 lo pidió\)/));
+  e.jugadores[adi].conectado = false; n0 = tocar(); assert.ok(!e.votoLaud, 'sin público no se vota'); g.tickear(13000); assert.equal(J.noches, 41);
+  assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok);
+  console.log('«Que se calle Jamil» OK');
 }
 // Jorge (24 de noviembre, solo en el 3D): el laúd es una carta de Jamil. Se vende al mercado por 30 (todos se enteran) y ahí se revende en 45;
 // quien lo compre no sabe tocarlo; Jamil no toca sin él y vuelve a tocar si lo recupera. No pesa.
@@ -3993,7 +4032,7 @@ console.log('reglas de la casa OK');
   J.dinares = 44; assert.ok(!g.act(jamil, { t: 'comprar', ref: 'laud' }).ok, 'con 44 dinares no le alcanza'); J.dinares = 45;
   assert.ok(g.act(jamil, { t: 'comprar', ref: 'laud' }).ok); assert.equal(J.dinares, 0); assert.ok(laud());
   turnoDe(e, jamil, 'Damasco'); e.turno.fase = 'acciones';
-  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'con su laúd de vuelta, toca'); assert.equal(J.dinares, 1);
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok, 'con su laúd de vuelta, toca'); assert.equal(J.dinares, 1); e.votoLaud = null;
   // partida empezada antes de que el laúd fuera una carta: lo recibe una sola vez
   J.mano = J.mano.filter((c) => c.ref !== 'laud'); delete e.laudDado; asegurarLaud(e); assert.ok(laud(), 'lo recibe');
   J.mano = J.mano.filter((c) => c.ref !== 'laud'); asegurarLaud(e); assert.ok(!laud(), 'pero no se repone si lo pierde después');

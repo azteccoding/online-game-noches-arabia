@@ -418,6 +418,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
       });
     },
 
+    // Deja de tocar ya y se levanta (la promesa de tocarLaud se cumple como siempre, con completo: true). Si no está tocando, no hace nada.
+    callarLaud(id) { const f = fichas.porId(id); if (f) { fichas.callarLaud(f); pedirCuadro(); } },
+
     // ----- Ifrit: la lámpara aparece junto a una ficha (id de jugador) o una ciudad; se resuelve cuando el genio ya está fuera, en reposo.
     aparecerIfrit(objetivo) {
       const f = fichas.porId(objetivo), c = f ? null : tablero.ciudades.get(objetivo); if (!f && !c) return Promise.reject(new Error(`aparecerIfrit: no conozco «${objetivo}».`));

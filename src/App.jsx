@@ -32,6 +32,7 @@ import AlarmaDesconexion from './components/AlarmaDesconexion.jsx';
 import AvisoEspera from './components/AvisoEspera.jsx';
 import AvisoBuscado from './components/AvisoBuscado.jsx';
 import VotoReinicio from './components/VotoReinicio.jsx';
+import CallarJamil from './components/CallarJamil.jsx';
 import Alerta from './components/Alerta.jsx';
 import './styles/ui.css';
 
@@ -234,6 +235,7 @@ function Juego({ lienzo }) {
       {s.fase === 'fin' && !verFin && <button className="btn volver-fin" onClick={() => setVerFin(true)}>Volver al resultado{s.soyHost ? ' · Nueva partida' : ''}</button>}
       {conexion !== 'ok' && <div className="aviso-red" role="status">Reconectando…</div>}
       {s.fase === 'juego' && <AlarmaDesconexion s={s} />}
+      <CallarJamil s={sVivo || s} />
       {s.fase === 'juego' && <AvisoEspera s={s} />}
       {s.fase === 'juego' && <AvisoBuscado s={s} />}
       <BurbujasReacciones yo={s.yo} />

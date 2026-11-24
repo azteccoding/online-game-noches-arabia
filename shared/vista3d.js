@@ -43,7 +43,8 @@ export function vista3d(data, e) {
     jugadores[id] = { arma: armaVisible(j), armaPelea: ORDEN_ARMAS.find((r) => u.includes(r) && ARMAS_ATAQUE.includes(r)) || '', arco: u.includes('arco'),
       escudo: !!tieneObj(j, 'OB04'),      // el escudo de cuero va a la vista (Jorge, 12 de noviembre: lo ven su dueño y los demás)
       transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null,
-      laud: lauds[id] || null };      // la última vez que tocó el laúd (solo Jamil)
+      // la última vez que tocó el laúd (solo Jamil); voto: segundos que dura la votación «Que se calle Jamil» mientras sigue abierta (0 si no hay)
+      laud: lauds[id] ? { ...lauds[id], voto: e.votoLaud?.pid === id ? Math.round(e.votoLaud.limiteMs / 1000) : 0 } : null };
   }
   // viva: la pelea sigue abierta (falta que el retado decida, o faltan dados). La animación empieza con los primeros dados de la pelea.
   if (pelea) pelea.viva = !!e.pelea && e.pelea.atk === pelea.atk && e.pelea.def === pelea.def;

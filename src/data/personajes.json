@@ -143,6 +143,7 @@
     "Gana 5 noches por turno sin hacer nada.",
     "Habla persa desde el inicio (como si hubiera hecho el reto R46).",
     "Toca su laúd en cualquier ciudad: gana 1 noche y 1 dinar (gasta su acción principal). Solo él sabe tocarlo y a él no le pesa; puede venderlo al mercado por 30 dinares (ahí se revende en 45).",
+    "Mientras toca, los demás jugadores pueden oprimir «Que se calle Jamil»: si más de la mitad lo pide, deja de tocar y termina su turno; si no, gana 5 noches y 5 dinares más.",
     "Viaja gratis de El Cairo a Bagdad; a quien esté en su ciudad le propone versos en su honra (gana 30 noches y le paga 5 dinares) o le canta versos de sátira (pierde 10 noches o le paga 7 dinares)."
    ],
    "limite": "Sin armas ni destreza al inicio.",
