@@ -6,9 +6,9 @@ import * as THREE from 'three';
 import { crearFiguraVistas } from './figuras8.js';
 
 export const ALTO_FIGURA = 1.16;
-// Estaturas (Jorge, 24 nov 2026), de mayor a menor: los más altos, Anís, Yafar y Nur al Din; los de estatura promedio, Jamil,
-// Adí («más alto que Zubayda»), Zubayda y Ruyán; la más baja, Zein. Es la proporción sobre ALTO_FIGURA de cada personaje.
-export const ESTATURA = { 3: 1.08, B: 1.065, 1: 1.05, 4: 1.0, 7: 0.99, 6: 0.975, 5: 0.96, 2: 0.9 };
+// Estaturas (Jorge, 24 nov 2026, orden definitivo), de mayor a menor: los más altos, Anís, Yafar y Nur al Din; los de estatura
+// promedio, Ruyán, Zubayda, Jamil y Adí; la más baja, Zein. Es la proporción sobre ALTO_FIGURA de cada personaje.
+export const ESTATURA = { 3: 1.08, B: 1.065, 1: 1.05, 5: 1.0, 6: 0.985, 4: 0.97, 7: 0.955, 2: 0.9 };
 export const altoDe = (pid) => ALTO_FIGURA * (ESTATURA[pid] ?? 1);
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
