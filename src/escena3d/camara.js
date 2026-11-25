@@ -17,6 +17,14 @@ export function crearCamara(el) {
   // La rueda (o el pellizco) lleva de la vista de pájaro al pie de calle: lejos se mira casi desde arriba y, al acercarse, la cámara
   // baja hasta quedar a la altura de las figuras, mirando hacia el horizonte.
   const POL_LEJOS = 0.14, POL_CERCA = 1.40, D_CERCA = 3.2;
+  // Vista nadir (camera close-up): si se acerca todavía más que el pie de calle (entre D_CERCA y D_NADIR), la cámara baja a los pies
+  // del personaje más cercano y mira hacia arriba, al cielo, con la figura por encima (contrapicado extremo).
+  // La cámara lógica (cam, la de OrbitControls) no cambia: el giro se aplica sólo a la cámara con la que se pinta (camR).
+  const D_NADIR = 1.35, NADIR_DIST = 0.42, NADIR_ALTO = 0.07, NADIR_PITCH = 1.12, NADIR_FOV = 60, FOV = 36;
+  // Con versión nadir (pintura propia) la cámara se queda más atrás y no tan alzada: el personaje se ve entero, pisando la arena.
+  const P_DIST = 1.0, P_ALTO = 0.12, P_PITCH = 0.34, P_FOV = 64;
+  const camR = new THREE.PerspectiveCamera(FOV, 1, 0.05, 2500); camR.userData.nadir = 0;
+  let figuras = null, conPintura = null; const foco = new THREE.Vector3(), dirN = new THREE.Vector3(), posN = new THREE.Vector3();
   let dLejos = 40, dPrevia = null, inclinar = 0;
   // A pie de calle la cámara sube a la altura de los ojos de las figuras (si no, les cortaría la cabeza): se suma al final de cada cuadro.
   const ALZA = 0.85; let alza = 0;
@@ -29,7 +37,7 @@ export function crearCamara(el) {
 
   function puntoSuelo(cx, cy) {
     const r = el.getBoundingClientRect(); ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
-    rayo.setFromCamera(ndc, cam); const p = rayo.ray.intersectPlane(plano, new THREE.Vector3());
+    rayo.setFromCamera(ndc, camR); const p = rayo.ray.intersectPlane(plano, new THREE.Vector3());
     return p && p.length() < 60 ? p : null;
   }
   // La rueda se suaviza aquí (y acerca hacia el cursor); va antes de OrbitControls para que no la procese dos veces.
@@ -81,7 +89,7 @@ export function crearCamara(el) {
   ctl.screenSpacePanning = false;
   ctl.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
   ctl.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
-  ctl.minPolarAngle = 0.1; ctl.maxPolarAngle = 1.43; ctl.minDistance = D_CERCA; ctl.maxDistance = 120;
+  ctl.minPolarAngle = 0.1; ctl.maxPolarAngle = 1.43; ctl.minDistance = D_NADIR; ctl.maxDistance = 120;
   ctl.addEventListener('start', () => { interrumpir(); dMeta = null; });
   function interrumpir() { if (vuelo) { const f = vuelo.alInterrumpir; vuelo = null; f?.(); } compas = null; tocado = true; enGeneral = false; }
 
@@ -90,7 +98,7 @@ export function crearCamara(el) {
 
   const esf = new THREE.Spherical();
   function leer() { v1.copy(cam.position).sub(ctl.target); v1.y -= alza; esf.setFromVector3(v1); return { x: ctl.target.x, z: ctl.target.z, d: esf.radius, pol: esf.phi, az: esf.theta }; }
-  function poner(p) { ctl.target.set(p.x, 0, p.z); esf.set(p.d, clamp(p.pol, 0.02, 1.5), p.az); cam.position.setFromSpherical(esf).add(ctl.target); cam.lookAt(ctl.target); alza = 0; }
+  function poner(p) { ctl.target.set(p.x, 0, p.z); esf.set(p.d, clamp(p.pol, 0.02, 1.5), p.az); cam.position.setFromSpherical(esf).add(ctl.target); cam.lookAt(ctl.target); alza = 0; pintar(); }
 
   // Distancia a la que un conjunto de puntos cabe en la zona libre de la pantalla (sin los paneles).
   const camPrueba = new THREE.PerspectiveCamera();
@@ -124,14 +132,14 @@ export function crearCamara(el) {
     const de = ctl.target.clone(), a = de.clone().lerp(destino, peso); limitar(a);
     compas = { de, a, t: 0, dur, previo: de.clone() }; enGeneral = false;
   }
-  function enPantalla(p, borde = 0.72) { v1.copy(p).project(cam); return Math.abs(v1.x) < borde && Math.abs(v1.y) < borde; }
+  function enPantalla(p, borde = 0.72) { v1.copy(p).project(camR); return Math.abs(v1.x) < borde && Math.abs(v1.y) < borde; }
 
   function redimensionar(W, H, margen) {
     estado.W = W; estado.H = H; estado.margen = margen;
     cam.aspect = W / H;
     // centra la escena en la zona libre de paneles
     cam.setViewOffset(W, H, -(margen.izq - margen.der) / 2, -(margen.arr - margen.aba) / 2, W, H);
-    cam.updateProjectionMatrix();
+    cam.updateProjectionMatrix(); pintar();
     dLejos = vistaGeneral().d; ctl.maxDistance = Math.max(60, dLejos * 1.25);
   }
 
@@ -170,6 +178,56 @@ export function crearCamara(el) {
     if (!antes.equals(ctl.target)) { /* el objetivo tocó el límite: la cámara lo acompaña para no cambiar el ángulo */ cam.position.add(v1.copy(ctl.target).sub(antes)); }
     alza = alzaDe(leer().pol); cam.position.y += alza;
     if (tiembla > 0.002) { desvio.set((Math.random() - 0.5) * 2 * tiembla, (Math.random() - 0.5) * 2 * tiembla, (Math.random() - 0.5) * tiembla); cam.position.add(desvio); tiembla *= Math.exp(-dt * 11); } else tiembla = 0;
+    pintar(dt);
+  }
+  // Figura más cercana al centro de la vista (a menos de 2.2): es a la que se mira desde abajo. figuras() da { p, giro }.
+  function figuraCercana() {
+    if (!figuras) return null; let mejor = null, dm = 2.2;
+    for (const q of figuras()) { if (!q?.p) continue; const dd = Math.hypot(q.p.x - ctl.target.x, q.p.z - ctl.target.z); if (dd < dm) { dm = dd; mejor = q; } }
+    return mejor;
+  }
+  // ¿De qué lado del personaje está la cámara? 1 = de frente (anverso), -1 = detrás (reverso), 0 = de lado o sin pintura de ese lado.
+  // Su frente es (sin giro, cos giro). Con histéresis: para entrar hace falta estar claramente delante (o detrás); ya dentro, se
+  // sostiene hasta que la cámara pasa al costado.
+  let ladoN = 0;
+  function ladoA(fig) {
+    const c = fig && conPintura ? conPintura(fig.ref) : null; if (!c) return 0;
+    v2.set(cam.position.x - fig.p.x, 0, cam.position.z - fig.p.z); if (v2.lengthSq() < 1e-8) return ladoN; v2.normalize();
+    const k = v2.x * Math.sin(fig.giro) + v2.z * Math.cos(fig.giro);
+    if (ladoN === 1 && c.anverso && k > -0.05) return 1;
+    if (ladoN === -1 && c.reverso && k < 0.05) return -1;
+    if (c.anverso && k > 0.3) return 1;
+    if (c.reverso && k < -0.3) return -1;
+    return 0;
+  }
+  // Copia la cámara lógica en la de pintar y, si toca, aplica la vista nadir.
+  function pintar(dt = 0) {
+    camR.copy(cam, false); camR.near = 0.05;
+    const dAct = leer().d, fig = vuelo ? null : figuraCercana();
+    ladoN = ladoA(fig); const deFrente = ladoN !== 0;   // solo personajes con versión nadir de ese lado (nadir-<id>.webp / nadir-<id>-r.webp)
+    // Sin personaje de frente (detrás de él, de lado o sin nadie cerca) el acercamiento se queda en el pie de calle.
+    if (deFrente) ctl.minDistance = D_NADIR;
+    else {
+      ctl.minDistance = clamp(dAct, D_NADIR, D_CERCA);
+      if (dt > 0 && !vuelo && dAct < D_CERCA - 0.01 && (dMeta == null || dMeta < D_CERCA)) { dMeta = D_CERCA; ancla = null; }
+    }
+    const t0 = deFrente ? clamp((D_CERCA - dAct) / (D_CERCA - D_NADIR), 0, 1) : 0, t = t0 * t0 * (3 - 2 * t0);
+    camR.userData.nadir = t; camR.userData.nadirFicha = t > 0.001 ? fig.ref ?? null : null; camR.userData.nadirLado = t > 0.001 ? ladoN : 0;
+    if (t <= 0.001) { camR.fov = FOV; camR.updateProjectionMatrix(); return; }
+    if (dt > 0 && dMeta == null && !compas) {   // el centro de la vista se desliza hasta los pies del personaje
+      v2.set(fig.p.x - ctl.target.x, 0, fig.p.z - ctl.target.z).multiplyScalar(1 - Math.exp(-dt * 5 * t));
+      ctl.target.add(v2); cam.position.add(v2);
+    }
+    foco.set(ctl.target.x, fig.p.y, ctl.target.z);
+    dirN.copy(ctl.target).sub(cam.position).setY(0); if (dirN.lengthSq() < 1e-8) cam.getWorldDirection(dirN).setY(0); dirN.normalize();
+    cam.getWorldDirection(v2); const pitch0 = Math.asin(clamp(v2.y, -1, 1));
+    const META = ladoN ? { dist: P_DIST, alto: P_ALTO, pitch: P_PITCH, fov: P_FOV } : { dist: NADIR_DIST, alto: NADIR_ALTO, pitch: NADIR_PITCH, fov: NADIR_FOV };
+    const hor0 = Math.hypot(cam.position.x - foco.x, cam.position.z - foco.z), hor = hor0 + (META.dist - hor0) * t;
+    const y = cam.position.y + (foco.y + META.alto - cam.position.y) * t;
+    posN.set(foco.x - dirN.x * hor, y, foco.z - dirN.z * hor); camR.position.copy(posN);
+    const p = pitch0 + (META.pitch - pitch0) * t;
+    v2.set(dirN.x * Math.cos(p), Math.sin(p), dirN.z * Math.cos(p)).add(posN); camR.lookAt(v2);
+    camR.fov = FOV + (META.fov - FOV) * t; camR.updateProjectionMatrix();
   }
   // Encuadre para que un grupo de puntos quepa en la zona libre, y temblor breve para los golpes.
   function encuadre(puntos, p, holgura = 0.85) { return { ...p, d: clamp(distanciaParaVer(puntos, p, holgura), ctl.minDistance, 40) }; }
@@ -178,5 +236,5 @@ export function crearCamara(el) {
   function girar(pasos) { const p = leer(); volar({ ...p, az: p.az + pasos * (Math.PI / 4) }, 0.7, { curva: suaveSal }); }
 
   function destruir() { el.removeEventListener('wheel', alRodar); window.removeEventListener('keydown', alTecla); window.removeEventListener('keyup', alSoltar); window.removeEventListener('blur', alPerderFoco); ctl.dispose(); }
-  return { destruir, cam, ctl, leer, poner, polDe, volar, acompanar, enPantalla, vistaGeneral, vistaDados, encuadre, temblor, redimensionar, actualizar, girar, interrumpir, puntoSuelo, get enVuelo() { return !!vuelo; }, get tocado() { return tocado; }, set tocado(v) { tocado = v; }, get enGeneral() { return enGeneral; }, set enGeneral(v) { enGeneral = v; } };
+  return { destruir, cam: camR, camLogica: cam, dCalle: D_CERCA, set figuras(f) { figuras = f; }, set conPintura(f) { conPintura = f; }, ctl, leer, poner, polDe, volar, acompanar, enPantalla, vistaGeneral, vistaDados, encuadre, temblor, redimensionar, actualizar, girar, interrumpir, puntoSuelo, get enVuelo() { return !!vuelo; }, get tocado() { return tocado; }, set tocado(v) { tocado = v; }, get enGeneral() { return enGeneral; }, set enGeneral(v) { enGeneral = v; } };
 }

@@ -9,6 +9,7 @@ import { crearFichas, ALTO_FICHA } from './fichas.js';
 import { crearDados } from './dados.js';
 import { crearDadosMapa } from './dadosMapa.js';
 import { crearCamara } from './camara.js';
+import { crearPinturaNadir } from './nadir.js';
 import { crearSonido } from './sonido.js';
 import { crearEfectos } from './efectos.js';
 import { crearPelea } from './pelea.js';
@@ -96,6 +97,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   const dadosMapa = opciones.dadosEnMapa !== false ? crearDadosMapa({ escena, tablero, camara: () => camara, fichas: () => fichas, sonido, menosMovimiento }) : null;
   const dados = crearDados(escena, mats, recursos, renderer, sonido, { menosMovimiento, enMapa: dadosMapa });
   const camara = crearCamara(el);
+  camara.figuras = () => fichas.fichas.map((f) => ({ p: f.nodo.position, giro: f.giro, ref: f }));
+  const pinturaNadir = crearPinturaNadir(escena, DIR.arte3d, () => pedirCuadro()); camara.conPintura = (f) => pinturaNadir.caras(f);   // vista nadir: a quién mirar desde abajo
   const pelea = crearPelea({ escena, tablero, fichas, camara, efectos, sonido, mats });
   const ifrit = crearIfrit({ escena, mats, efectos, sonido, camara, tablero, figuraGenio: recursos.figuras.G });
   const ritmo = menosMovimiento ? 2.4 : 1;      // con «menos movimiento» las secuencias largas van abreviadas
@@ -214,7 +217,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     conIfrit = false; escPrevia = esc; fichas.mirarDesde(camara.cam.position);
     if (pelea.golpeando !== !!estado.peleaVista) { estado.peleaVista = pelea.golpeando; llamar("alPelear", estado.peleaVista); }      // golpes o flecha en marcha: la pantalla se despeja
     { const d = camara.cam.position.distanceTo(camara.ctl.target);      // acercamiento máximo y la cámara sobre tu monito
-      for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !f.viaje && !f.control && !camara.enVuelo && d <= camara.ctl.minDistance * 1.06 && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
+      // Camera close-up: con el acercamiento solo giran los monitos de ocho vistas (cambian de pintura en seco); los de pocas vistas
+      // (Zein, Anís, Ruyán, Adí) se veían girar sin parar: esos solo giran si los tocas.
+      for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !!FIGURAS[f.pid]?.vistas && !f.viaje && !f.control && !camara.enVuelo && camara.leer().d <= camara.dCalle * 1.06 && !pinturaNadir.tiene(f) && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
     const dt = simular(transcurrido(), esc);
     amb.actualizar(t - desfase, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
@@ -224,6 +229,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     tablero.superficie.actualizar(t, dt, camara.cam, vista, !camara.enVuelo && !abajo);
     if (cuadros < 4 || conIfrit || sombraSucia || amb.cielo.tomarSucio()) { renderer.shadowMap.needsUpdate = true; sombraSucia = false; }
     if (punteroSucio) { punteroSucio = false; apuntar(puntero ? bajoPuntero(puntero.x, puntero.y) : null); }
+    pinturaNadir.actualizar(camara.cam);
     renderer.render(escena, camara.cam);
     sonido.fuego(tablero.cercaniaFuego(camara.cam.position));      // el crepitar del incendio crece al acercarse a una ciudad en llamas
     llamar('alCuadro', dt);
@@ -482,7 +488,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
       if (destruida) return; destruida = true;
       cancelAnimationFrame(raf); clearInterval(relojFondo); clearTimeout(relojVuelta); obsTam?.disconnect(); obsVista?.disconnect(); window.removeEventListener('resize', alRedimensionar);
       for (const f of escucha) f();
-      ifrit.destruir(); camara.destruir(); sonido.destruir(); fichas.destruir(); flota.destruir(); dados.destruir(); tablero.superficie.destruir();
+      ifrit.destruir(); pinturaNadir.destruir(); camara.destruir(); sonido.destruir(); fichas.destruir(); flota.destruir(); dados.destruir(); tablero.superficie.destruir();
       escena.traverse((o) => {
         o.geometry?.dispose?.();
         for (const m of Array.isArray(o.material) ? o.material : o.material ? [o.material] : []) { for (const k in m) if (m[k] && m[k].isTexture) m[k].dispose(); m.dispose?.(); }

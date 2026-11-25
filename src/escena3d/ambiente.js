@@ -143,6 +143,9 @@ export function crearAmbiente(escena, mats) {
   const discoLuna = new THREE.Sprite(new THREE.SpriteMaterial({ map: texLuna(), transparent: true, depthWrite: false, fog: false }));
   const azL = -Math.PI / 2 + 0.5, elL = 0.125; discoLuna.position.set(Math.cos(elL) * Math.cos(azL) * 540, Math.sin(elL) * 540, Math.cos(elL) * Math.sin(azL) * 540);
   discoLuna.scale.set(150, 150, 1); discoLuna.renderOrder = -8; cielo.add(discoLuna);
+  // Techo de cielo para la vista nadir (la cámara a los pies de un personaje, mirando arriba). Usa public/arte3d/cielo-nadir.webp
+  // si existe; si no, unas pocas nubes pintadas (de noche se adelgazan y se ven las estrellas de la cúpula).
+  const techo = crearTechoNadir(); techo.malla.position.y = 260; cielo.add(techo.malla);
 
   // --- Ciudad lejana: siluetas de casas, cúpulas y alminares con ventanas encendidas
   const matSil = new THREE.MeshBasicMaterial({ color: 0x06060f });
@@ -253,8 +256,46 @@ export function crearAmbiente(escena, mats) {
     }
     gP.attributes.position.needsUpdate = true;
     estrellas.material.opacity = (0.9 + 0.1 * Math.sin(t * 1.7)) * noche * noche; estrellas.visible = noche > 0.01;
+    techo.poner(camara.userData?.nadir ?? 0, noche, t);
   }
   ponerHora(0.345);
   const cielo2 = { ponerHora, get exposicion() { return 0.82 + 0.18 * (1 - noche); }, get hora() { return hora; }, get noche() { return noche; }, tomarSucio() { const s = luzSucia; luzSucia = false; return s; } };
   return { actualizar, sol, clave, tex, faroles, cielo: cielo2, dirLuna: discoLuna.position.clone().normalize() };
+}
+
+// Techo de la vista nadir: plano grande, de cara al suelo, que sigue a la cámara y se desvanece hacia los bordes.
+function crearTechoNadir() {
+  const lienzo = (n, pintar) => { const c = document.createElement('canvas'); c.width = c.height = n; pintar(c.getContext('2d'), n); return c; };
+  const borde = new THREE.CanvasTexture(lienzo(256, (g, n) => {
+    const r = g.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2); r.addColorStop(0, '#fff'); r.addColorStop(0.55, '#fff'); r.addColorStop(1, '#000');
+    g.fillStyle = r; g.fillRect(0, 0, n, n);
+  }));
+  const r = azar(7);
+  const nubes = new THREE.CanvasTexture(lienzo(1024, (g, n) => {
+    g.clearRect(0, 0, n, n);
+    for (let k = 0; k < 9; k++) {                        // pocas nubes, cada una hecha de bolas suaves
+      const cx = n * (0.12 + r() * 0.76), cy = n * (0.12 + r() * 0.76), w = n * (0.06 + r() * 0.09);
+      for (let i = 0; i < 26; i++) {
+        const x = cx + (r() - 0.5) * w * 2.6, y = cy + (r() - 0.5) * w * 0.9, rr = w * (0.25 + r() * 0.45);
+        const b = g.createRadialGradient(x, y, 0, x, y, rr); b.addColorStop(0, 'rgba(255,255,255,0.55)'); b.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = b; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+      }
+    }
+  }));
+  nubes.colorSpace = THREE.SRGBColorSpace;
+  const mat = new THREE.MeshBasicMaterial({ map: nubes, alphaMap: borde, transparent: true, opacity: 0, depthWrite: false, fog: false, side: THREE.DoubleSide });
+  const malla = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600).rotateX(Math.PI / 2), mat);
+  malla.renderOrder = -9.5; malla.visible = false; malla.frustumCulled = false;
+  let foto = false;
+  new THREE.TextureLoader().load((import.meta.env?.BASE_URL || '/') + 'arte3d/cielo-nadir.webp', (tx) => {
+    tx.colorSpace = THREE.SRGBColorSpace; tx.anisotropy = 8; mat.map = tx; mat.needsUpdate = true; foto = true; nubes.dispose();
+  }, undefined, () => {});
+  const blanco = new THREE.Color(1, 1, 1), azulNoche = new THREE.Color(0.32, 0.36, 0.5);
+  function poner(nadir, noche, t) {
+    malla.visible = nadir > 0.001; if (!malla.visible) return;
+    if (foto) { mat.opacity = nadir; mat.color.copy(blanco); }
+    else { mat.opacity = nadir * (1 - 0.65 * noche); mat.color.copy(blanco).lerp(azulNoche, noche); }
+    malla.rotation.y = t * 0.004;                          // las nubes derivan despacio
+  }
+  return { malla, poner };
 }
