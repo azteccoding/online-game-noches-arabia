@@ -844,7 +844,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'esconder': return TES.esconder(data, e, pid, a);
     case 'recuperar': return TES.recuperar(data, e, pid, a);
     case 'asesinos': return NPC.contratar(data, e, pid, a);
-    case 'pj': return PJ.accion(data, e, pid, a);
+    case 'pj': { const r = PJ.accion(data, e, pid, a); if (r.ok && e.votoLaud) cerrarVotoLaud(data, e); return r; }   // el voto de Yafar NPC puede ser ya la mayoría
     // ---- anfitrión / banco (R 22): reparte, baraja y corrige errores; no decide por nadie
     // Caja del banco: las acciones que mueven recursos solo funcionan con la caja abierta, y abrirla o cerrarla se anuncia a todos.
     case 'host.caja': {

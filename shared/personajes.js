@@ -149,7 +149,13 @@ export function accion(data, e, pid, a) {
       const pieza = rnd(e) < 2 / 3 ? 2 : 1;
       log(e, `${j.nombre} toca el laúd en ${j.ciudad}: gana ${LAUD.noches} noche y ${LAUD.dinares} dinar.`, { pid, pieza });
       // «Que se calle Jamil»: mientras toca, los demás votan (engine.js lo cierra con el reloj o cuando ya hay mayoría)
-      if (votantesLaud(e, pid).length) e.votoLaud = { pid, t0: e.ahora, limiteMs: LAUD.piezas[pieza], callan: {} };
+      const vs = votantesLaud(e, pid);
+      if (vs.length) {
+        e.votoLaud = { pid, t0: e.ahora, limiteMs: LAUD.piezas[pieza], callan: {} };
+        // Jorge (25 de noviembre): Yafar NPC vota siempre antes que los demás, vota que sí se calle y todos se enteran de su voto
+        const npc = vs.find((id) => e.jugadores[id].npc);
+        if (npc) { e.votoLaud.callan[npc] = true; log(e, `${e.jugadores[npc].nombre} vota primero: que se calle ${j.nombre}.`, { pid: npc, aviso: true }); }
+      }
       return ok();
     }
     case 'honra': {
@@ -178,11 +184,12 @@ export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares:
 // Votación «Que se calle Jamil» (Jorge, 24 de noviembre): mientras Jamil toca, a los demás jugadores les sale un botón chico.
 // Si más de la mitad lo oprime, Jamil deja de tocar y termina su turno. Si no, cuando se acaba el tiempo gana el premio «sigue».
 // No oprimir cuenta como querer que siga. Sin nadie más en la mesa no hay votación ni premio.
-export const votantesLaud = (e, pid) => Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.npc && !x.eliminado && !x.sacado && !x.tarde && x.conectado !== false && e.orden.includes(id); });
+// Jorge (25 de noviembre): Yafar NPC sí vota en esta votación (siempre primero y siempre que se calle) y su voto cuenta para la mayoría.
+export const votantesLaud = (e, pid) => Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.eliminado && !x.sacado && e.orden.includes(id) && (x.npc || (!x.tarde && x.conectado !== false)); });
 export function votarCallar(e, pid) {
   const v = e.votoLaud;
   if (!v) return err('Jamil ya no está tocando.');
-  if (!votantesLaud(e, v.pid).includes(pid)) return err('No participas en esta votación.');
+  if (!votantesLaud(e, v.pid).includes(pid) || e.jugadores[pid]?.npc) return err('No participas en esta votación.');
   if (v.callan[pid]) return err('Ya votaste.');
   v.callan[pid] = true;
   return ok();
@@ -208,7 +215,8 @@ export function revisarVotoLaud(e, vencido = false) {
 export function vistaVotoLaud(e, pid) {
   const v = e.votoLaud; if (!v) return null;
   const vs = votantesLaud(e, v.pid);
-  return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid), yaVote: !!v.callan[pid], premio: LAUD.sigue };
+  const npc = vs.find((id) => e.jugadores[id].npc && v.callan[id]);
+  return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid) && !e.jugadores[pid]?.npc, yaVote: !!v.callan[pid], premio: LAUD.sigue, votoNpc: npc ? e.jugadores[npc].nombre : null };
 }
 export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 40000, piezas: { 1: 40000, 2: 22000 } };   // votoMs: lo que dura su canción, 40 segundos (Jorge, 24 de noviembre); piezas: lo que dura cada una de las dos que puede tocar, que es también lo que dura la votación  ·   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
 const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';

@@ -23,6 +23,7 @@ export default function CallarJamil({ s }) {
         <div className="callar-aviso" role="alertdialog" aria-label="Que se calle Jamil">
           <p><b>Si lo oprimes:</b> votas por callar a {jamil}. Si más de la mitad de los demás jugadores lo pide, deja de tocar y termina su turno.</p>
           <p><b>Si no lo oprimes:</b> cuenta como que siga tocando. Si no lo callan, {jamil} gana {v.premio.noches} noches y {v.premio.dinares} dinares.</p>
+          {v.votoNpc && <p>{v.votoNpc} ya votó que se calle.</p>}
           <p className="it">{cuenta} · quedan {resta} s</p>
           <div className="callar-botones">
             <button className="btn mini" onClick={() => { enviar(ACCIONES.callarJamil()); setAbierto(false); }}>Que se calle</button>

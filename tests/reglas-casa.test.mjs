@@ -5499,3 +5499,41 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.ok(A.mano.some((c) => c.tipo === 'especial' && c.ref === 'K1'), 'y queda en su mano');
   console.log('carta de Kanmakán al obtenerla OK');
 }
+
+// Jorge (25 de noviembre, solo en el 3D): en «Que se calle Jamil», Yafar NPC vota siempre antes que los demás, vota que sí se calle
+// y todos se enteran de su voto (su voto cuenta para la mayoría). En la votación para terminar la partida Yafar NPC no vota; Yafar jugador sí.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil, adi] = g.ids, J = e.jugadores[jamil];
+  assert.ok(e.jugadores.npc, 'con dos jugadores está Yafar NPC');
+  turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; const n0 = e.logN || 0;
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+  assert.ok(e.votoLaud && e.votoLaud.callan.npc, 'Yafar NPC ya votó al empezar a tocar');
+  const linea = e.log.find((l) => l.n > n0 && l.aviso && /Yafar.+vota primero: que se calle/.test(l.texto)); assert.ok(linea, 'todos se enteran de su voto');
+  const tocaN = e.log.find((l) => l.n > n0 && /toca el laúd/.test(l.texto)).n; assert.ok(linea.n > tocaN, 'vota en cuanto Jamil empieza a tocar');
+  const v = vistaDe(e, adi).votoLaud; assert.equal(v.total, 2); assert.equal(v.callan, 1); assert.ok(v.votas && !v.yaVote); assert.match(v.votoNpc, /Yafar/);
+  assert.ok(!g.act('npc', { t: 'callarJamil' }).ok, 'Yafar NPC no vota dos veces');
+  assert.ok(e.votoLaud, '1 de 2 no es mayoría');
+  assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!e.votoLaud, '2 de 2: lo callan');
+  // votación para terminar la partida: Yafar NPC no vota
+  for (const id of g.ids) e.jugadores[id].conectado = true;
+  assert.ok(g.act(jamil, { t: 'host.reiniciar' }).ok); assert.equal(vistaDe(e, adi).votoReinicio.total, 2, 'Yafar NPC no cuenta');
+  assert.ok(!g.act('npc', { t: 'votarReinicio', si: false }).ok, 'Yafar NPC no vota'); e.votoReinicio = null;
+}
+{
+  const g = partida(['4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [jamil] = g.ids, J = e.jugadores[jamil];
+  assert.ok(e.jugadores.npc, 'en solitario está Yafar NPC');
+  turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; const n0 = e.logN || 0;
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
+  assert.ok(!e.votoLaud, 'solo con Yafar NPC su voto ya es mayoría'); assert.ok(e.log.some((l) => l.n > n0 && l.aviso && /Callaron a .+ \(1 de 1 lo pidió\)/.test(l.texto)));
+}
+{
+  const g = partida(['B', '7', '4']); assert.ok(g.iniciar().ok);
+  const e = g.e, [yafar, adi] = g.ids;
+  for (const id of g.ids) e.jugadores[id].conectado = true;
+  assert.equal(e.jugadores.npc, undefined, 'con Yafar jugador no hay Yafar NPC');
+  assert.ok(g.act(yafar, { t: 'host.reiniciar' }).ok); assert.equal(vistaDe(e, adi).votoReinicio.total, 3, 'Yafar jugador sí vota');
+  e.votoReinicio = null;
+  console.log('Yafar NPC en las votaciones OK');
+}
