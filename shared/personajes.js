@@ -184,8 +184,12 @@ export const HONRA = { noches: 30, dinares: 5 }, SATIRA = { noches: 10, dinares:
 // Votación «Que se calle Jamil» (Jorge, 24 de noviembre): mientras Jamil toca, a los demás jugadores les sale un botón chico.
 // Si más de la mitad lo oprime, Jamil deja de tocar y termina su turno. Si no, cuando se acaba el tiempo gana el premio «sigue».
 // No oprimir cuenta como querer que siga. Sin nadie más en la mesa no hay votación ni premio.
-// Jorge (25 de noviembre): Yafar NPC sí vota en esta votación (siempre primero y siempre que se calle) y su voto cuenta para la mayoría.
-export const votantesLaud = (e, pid) => Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.eliminado && !x.sacado && e.orden.includes(id) && (x.npc || (!x.tarde && x.conectado !== false)); });
+// Jorge (25 de noviembre): Yafar NPC sí vota en esta votación (siempre primero y siempre que se calle) y su voto cuenta para la mayoría,
+// pero «solo cuenta si hay 2 jugadores humanos o más»: con Jamil como único humano, Yafar NPC no vota y no hay votación.
+export const votantesLaud = (e, pid) => {
+  const vs = Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.eliminado && !x.sacado && e.orden.includes(id) && (x.npc || (!x.tarde && x.conectado !== false)); });
+  return vs.some((id) => !e.jugadores[id].npc) ? vs : [];
+};
 export function votarCallar(e, pid) {
   const v = e.votoLaud;
   if (!v) return err('Jamil ya no está tocando.');

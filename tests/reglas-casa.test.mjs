@@ -5506,6 +5506,9 @@ console.log('Sherezada: los dados antes que la muerte OK');
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [jamil, adi] = g.ids, J = e.jugadores[jamil];
   assert.ok(e.jugadores.npc, 'con dos jugadores está Yafar NPC');
+  // con un humano más desconectado, Jamil queda como único humano: Yafar NPC no vota
+  e.jugadores[adi].conectado = false; turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones';
+  assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok); assert.ok(!e.votoLaud, 'un solo humano: no hay votación'); e.jugadores[adi].conectado = true;
   turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; const n0 = e.logN || 0;
   assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
   assert.ok(e.votoLaud && e.votoLaud.callan.npc, 'Yafar NPC ya votó al empezar a tocar');
@@ -5526,7 +5529,9 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.ok(e.jugadores.npc, 'en solitario está Yafar NPC');
   turnoDe(e, jamil, 'Bagdad'); J.ciudad = 'Bagdad'; e.turno.fase = 'acciones'; const n0 = e.logN || 0;
   assert.ok(g.act(jamil, { t: 'pj', sub: 'laud' }).ok);
-  assert.ok(!e.votoLaud, 'solo con Yafar NPC su voto ya es mayoría'); assert.ok(e.log.some((l) => l.n > n0 && l.aviso && /Callaron a .+ \(1 de 1 lo pidió\)/.test(l.texto)));
+  // Jorge: «solo cuenta si hay 2 jugadores humanos o más»: con Jamil como único humano no hay votación y Yafar NPC no vota
+  assert.ok(!e.votoLaud, 'sin otro humano no hay votación'); assert.ok(!e.log.some((l) => l.n > n0 && /vota primero|Callaron/.test(l.texto)));
+  g.tickear(41000); assert.equal(e.turno.pid, jamil, 'sigue su turno');
 }
 {
   const g = partida(['B', '7', '4']); assert.ok(g.iniciar().ok);
