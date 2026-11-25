@@ -44,7 +44,7 @@ FILAS = {'4t': 2}
 SOMBRA_CENITAL = {'6'}
 # Altura a la que se acuesta la cenital, en fracción del alto de la figura (figuras8.js: 0.97 si no se dice). A media altura
 # su centro coincide en pantalla con el de la figura de pie y el cambio no la sube (Zubayda, cenital a plomo del 24 nov)
-Y0_CENITAL = {'6': 0.5}
+Y0_CENITAL = {}      # Zubayda llevó 0.5 hasta el 25 nov; desde entonces se acuesta como la de Yafar (Jorge: «con Yafar quedó tan bien»)
 
 
 def papel_y_distancia(im):
