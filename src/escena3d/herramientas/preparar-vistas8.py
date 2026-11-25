@@ -42,6 +42,9 @@ FRANJA_SOMBRA = {'4t': 0.975}
 FILAS = {'4t': 2}
 # Cenitales pintadas con sombra gris en el suelo: se les quita (la de Yafar no la trae y se queda como está)
 SOMBRA_CENITAL = {'6'}
+# Altura a la que se acuesta la cenital, en fracción del alto de la figura (figuras8.js: 0.97 si no se dice). A media altura
+# su centro coincide en pantalla con el de la figura de pie y el cambio no la sube (Zubayda, cenital a plomo del 24 nov)
+Y0_CENITAL = {'6': 0.5}
 
 
 def papel_y_distancia(im):
@@ -143,6 +146,7 @@ def main():
         tesela(8)[:, :, :3] = C; tesela(8)[:, :, 3] = ndi.gaussian_filter(M.astype(np.float32), 0.6).clip(0, 1) * 255
         f0w = esc[0][0].shape[1]
         datos_cen = {'x': 4, 'y': 4, 'w': w, 'h': h, 'ancho': round(f0w / TH, 4)}      # tan ancha como la vista de frente
+        if pid in Y0_CENITAL: datos_cen['y0'] = Y0_CENITAL[pid]
         if vista: Image.fromarray(np.dstack([C, (M * 255).astype(np.uint8)])).save(os.path.join(vista, f'vista-{pid}-cenital.png'))
     Image.fromarray(atlas).save(os.path.join(A, f'fig-{pid}.webp'), quality=92, method=6)
     figuras = json.load(open(FIGURAS, encoding='utf8')); antes = figuras.get(pid, {})
