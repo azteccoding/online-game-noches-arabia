@@ -216,10 +216,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     const vista0 = camara.leer(), esc = Math.min(1.5, Math.max(1, (vista0.d / 22) ** 0.45));
     conIfrit = false; escPrevia = esc; fichas.mirarDesde(camara.cam.position);
     if (pelea.golpeando !== !!estado.peleaVista) { estado.peleaVista = pelea.golpeando; llamar("alPelear", estado.peleaVista); }      // golpes o flecha en marcha: la pantalla se despeja
-    { const d = camara.cam.position.distanceTo(camara.ctl.target);      // acercamiento máximo y la cámara sobre tu monito
-      // Camera close-up: con el acercamiento solo giran los monitos de ocho vistas (cambian de pintura en seco); los de pocas vistas
-      // (Zein, Anís, Ruyán, Adí) se veían girar sin parar: esos solo giran si los tocas.
-      for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !!FIGURAS[f.pid]?.vistas && !f.viaje && !f.control && !camara.enVuelo && camara.leer().d <= camara.dCalle * 1.06 && !pinturaNadir.tiene(f) && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
+    // Jorge (25 de noviembre): ningún monito da vueltas solo por acercarte (giraCerca queda apagado para todos). Tu monito gira
+    // únicamente si lo tocas; los de los demás nunca giran para ti.
+    for (const f of fichas.fichas) f.giraCerca = false;
     const dt = simular(transcurrido(), esc);
     amb.actualizar(t - desfase, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
