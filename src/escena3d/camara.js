@@ -84,6 +84,18 @@ export function crearCamara(el) {
     ctl.target.add(v2); cam.position.add(v2);
   }
 
+  // Tacto (Jorge, 25 de noviembre: «en iPhone se traba el mapa y no te deja desplazar la cámara a otros lados»). Con el dedo, de
+  // cerca, arrastrar movía la cámara casi nada (a pie de calle, una pantalla entera de arrastre eran 2 de las 30 unidades del mapa):
+  // con el tacto el desplazamiento crece al acercarse (hasta 4 veces a pie de calle); con el ratón queda como estaba. Mientras el dedo
+  // arrastra, la vista nadir no jala el centro de la vista hacia los pies del personaje. Y Safari no hace zoom a la página al pellizcar.
+  let tacto = false, dedos = 0;
+  const alBajar = (ev) => { tacto = ev.pointerType === 'touch'; if (tacto) dedos++; };
+  const alSubir = (ev) => { if (ev.pointerType === 'touch') dedos = Math.max(0, dedos - 1); };
+  const sinZoomPagina = (ev) => ev.preventDefault();
+  el.addEventListener('pointerdown', alBajar); window.addEventListener('pointerup', alSubir); window.addEventListener('pointercancel', alSubir);
+  for (const g of ['gesturestart', 'gesturechange']) document.addEventListener(g, sinZoomPagina, { passive: false });
+  const velTacto = (d) => clamp((20 / Math.max(d, 0.1)) ** 0.75, 1, 4);
+
   const ctl = new OrbitControls(cam, el);
   ctl.enableDamping = true; ctl.dampingFactor = 0.085; ctl.rotateSpeed = 0.55; ctl.panSpeed = 1.0; ctl.zoomSpeed = 0.9;
   ctl.screenSpacePanning = false;
@@ -161,6 +173,7 @@ export function crearCamara(el) {
       if (ancla) { ctl.target.sub(ancla).multiplyScalar(k).add(ancla); limitar(ctl.target); }
       cam.position.copy(ctl.target).add(v1);
     }
+    ctl.panSpeed = tacto ? velTacto(cam.position.distanceTo(ctl.target)) : 1.0;
     ctl.update(dt);
     // Inclinación ligada a la distancia: mientras cambia el zoom (rueda o pellizco) y un instante después, la cámara busca el ángulo
     // que le toca a esa distancia. Los vuelos de presentación (dados, pelea, genio) llevan su propio ángulo.
@@ -214,7 +227,7 @@ export function crearCamara(el) {
     const t0 = deFrente ? clamp((D_CERCA - dAct) / (D_CERCA - D_NADIR), 0, 1) : 0, t = t0 * t0 * (3 - 2 * t0);
     camR.userData.nadir = t; camR.userData.nadirFicha = t > 0.001 ? fig.ref ?? null : null; camR.userData.nadirLado = t > 0.001 ? ladoN : 0;
     if (t <= 0.001) { camR.fov = FOV; camR.updateProjectionMatrix(); return; }
-    if (dt > 0 && dMeta == null && !compas) {   // el centro de la vista se desliza hasta los pies del personaje
+    if (dt > 0 && dMeta == null && !compas && !dedos) {   // el centro de la vista se desliza hasta los pies del personaje (no mientras el dedo arrastra)
       v2.set(fig.p.x - ctl.target.x, 0, fig.p.z - ctl.target.z).multiplyScalar(1 - Math.exp(-dt * 5 * t));
       ctl.target.add(v2); cam.position.add(v2);
     }
@@ -235,6 +248,6 @@ export function crearCamara(el) {
   function temblor(a) { tiembla = Math.max(tiembla, a); }
   function girar(pasos) { const p = leer(); volar({ ...p, az: p.az + pasos * (Math.PI / 4) }, 0.7, { curva: suaveSal }); }
 
-  function destruir() { el.removeEventListener('wheel', alRodar); window.removeEventListener('keydown', alTecla); window.removeEventListener('keyup', alSoltar); window.removeEventListener('blur', alPerderFoco); ctl.dispose(); }
+  function destruir() { el.removeEventListener('wheel', alRodar); el.removeEventListener('pointerdown', alBajar); window.removeEventListener('pointerup', alSubir); window.removeEventListener('pointercancel', alSubir); for (const g of ['gesturestart', 'gesturechange']) document.removeEventListener(g, sinZoomPagina, { passive: false }); window.removeEventListener('keydown', alTecla); window.removeEventListener('keyup', alSoltar); window.removeEventListener('blur', alPerderFoco); ctl.dispose(); }
   return { destruir, cam: camR, camLogica: cam, dCalle: D_CERCA, set figuras(f) { figuras = f; }, set conPintura(f) { conPintura = f; }, ctl, leer, poner, polDe, volar, acompanar, enPantalla, vistaGeneral, vistaDados, encuadre, temblor, redimensionar, actualizar, girar, interrumpir, puntoSuelo, get enVuelo() { return !!vuelo; }, get tocado() { return tocado; }, set tocado(v) { tocado = v; }, get enGeneral() { return enGeneral; }, set enGeneral(v) { enGeneral = v; } };
 }
