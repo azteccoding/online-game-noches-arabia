@@ -37,6 +37,8 @@ ALTO_MAX = 6               # lo más que se busca subir o bajar un punto, en pí
 ALTO_ZONA = 10.0           # tamaño de la zona que vota cada corrimiento a lo alto (media resolución)
 ALTO_LISO = 12.0           # alisado del corrimiento a lo alto: son ajustes por partes del cuerpo, no por detalle
 FINO = (1e-3, 0.5, 1.0)     # paso más fino con que se guarda cada plano (de lado, a lo alto, relieve), en píxeles: así pesa menos
+LISO_GIRO = (20.0, 10.0)   # alisado final del corrimiento de lado, en filas y columnas de media resolución (40 y 20 píxeles de la pintura)
+ESTIRA_SUAVE = [0.72, 1.4]  # tras alisar, lo más que se encoge o se estira un trozo de pintura
 GRUESO = 2                 # el desplazamiento se guarda cada GRUESO vértices de la cáscara (es suave; figuras8.js lo interpola)
 
 
@@ -128,6 +130,24 @@ def alisar(F, sy, sx, m=None):
     return np.maximum.accumulate(G, axis=1)
 
 
+def suavizar(F, m):
+    """El corrimiento de lado, alisado a lo grande (LISO_GIRO) y sin estirar ni encoger ningún trozo más de ESTIRA_SUAVE.
+    Jorge, 24 de noviembre, ya con el giro continuo: «parece como si fuera un líquido dentro de una bolsa plástica». El
+    emparejamiento fino mueve cada fila y cada rasgo por su cuenta (el contorno de una pintura se amolda al de la otra, onda
+    por onda, y lo de dentro se escurre): eso es lo que se ve líquido. Alisado, el cuerpo se mueve por masas grandes, como algo
+    sólido que gira; lo que no llega a casar entre las dos pinturas se resuelve en el fundido corto."""
+    h, w = F.shape; x = np.arange(w, dtype=np.float32)[None, :]; D = F - x
+    p = ndi.gaussian_filter(m.astype(np.float32), 1.5) + 0.03      # pesa la figura; el papel de alrededor apenas opina
+    D = ndi.gaussian_filter(D * p, LISO_GIRO, mode='nearest') / ndi.gaussian_filter(p, LISO_GIRO, mode='nearest')
+    lo, hi = ESTIRA_SUAVE; g = np.clip(np.diff(D, axis=1), lo - 1, hi - 1)      # lo que se estira cada trozo, acotado
+    c = w // 2; D2 = np.concatenate([np.zeros((h, 1), np.float32), np.cumsum(g, axis=1)], axis=1); D2 += (D[:, c:c + 1] - D2[:, c:c + 1])
+    # el acotado se reparte desde el centro de la figura de cada fila, no desde el borde de la tesela
+    hay = m.any(1); cen = np.where(hay, (m.argmax(1) + (w - 1 - m[:, ::-1].argmax(1))) // 2, c)
+    D2 += (D[np.arange(h), cen] - D2[np.arange(h), cen])[:, None] - (D[:, c] - D2[:, c])[:, None]
+    D2 = ndi.gaussian_filter(D2, (LISO_GIRO[0] / 3, 1.0), mode='nearest')
+    return np.maximum.accumulate(x + D2, axis=1)
+
+
 def invertir(F):
     x = np.arange(F.shape[1], dtype=np.float32); G = np.empty_like(F)
     for y in range(F.shape[0]): G[y] = np.interp(x, F[y] + x * 1e-4, x)
@@ -167,7 +187,7 @@ def par(tA, tB):
     labA, mA = rasgos(tA); labB, mB = rasgos(tB)
     F = emparejar(labA, mA, labB, mB, previo(mA, mB, np.pi / 4), 0.9, 0.12)
     F = emparejar(labA, mA, labB, mB, alisar(F, 10, 5), 2.0, 0.05)      # segunda vuelta: se apoya en la primera, ya alisada
-    F = alisar(F, 7, 3, mA)
+    F = suavizar(alisar(F, 7, 3, mA), mA)
     return F, alturas(*de_lado(labA, mA, F), labB, mB)
 
 

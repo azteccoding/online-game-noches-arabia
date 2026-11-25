@@ -25,7 +25,7 @@ import * as THREE from 'three';
 
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
-const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 70;      // cuánto hay que pasarse del límite para cambiar de vista, y milisegundos del relevo (lo menos que dura un fundido completo)
+const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 70, RELEVO_ARRIBA = 220;      // cuánto hay que pasarse del límite para cambiar de vista, y milisegundos del relevo (lo menos que dura un fundido completo)
 const ORILLA = 0.4;       // girando, el fundido entre dos pinturas ocupa el camino entre ellas salvo esta fracción junto a cada una
 const LENTO = 2 * GRADOS / 1000, VIVO = 10 * GRADOS / 1000;      // radianes por milisegundo: por debajo de LENTO la figura «está quieta» (una sola pintura); desde VIVO, el fundido va con el ángulo
 const angulo = (d) => { d %= 2 * Math.PI; return d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d; };
@@ -138,18 +138,23 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     const geo = new THREE.PlaneGeometry(an, fo); geo.rotateX(-Math.PI / 2);      // la orilla de arriba de la pintura (la espalda) queda hacia −Z
     const uvA = geo.attributes.uv;
     for (let q = 0; q < uvA.count; q++) uvA.setXY(q, uDe(NV, (cx + uvA.getX(q) * cw) / tw), vDe(NV, (cy + (1 - uvA.getY(q)) * ch) / th));
-    const mat = new THREE.MeshStandardMaterial({ map: textura, alphaTest: 0.5, roughness: 0.86, metalness: 0, emissive: 0xfff0d0, emissiveMap: textura, emissiveIntensity: 0 });
-    const uVer = { value: 0 }, uAlReves = { value: 1 }, siempre = { value: 1 }, no = { value: 0 };      // la cenital no entra en el relevo entre figuras
+    // Sin trama (Jorge, 24 nov: «sigue el polvo»): la cenital entra y sale con transparencia de verdad (uVer es su opacidad).
+    const mat = new THREE.MeshStandardMaterial({ map: textura, alphaTest: 0.5, transparent: true, roughness: 0.86, metalness: 0, emissive: 0xfff0d0, emissiveMap: textura, emissiveIntensity: 0 });
+    const uVer = { value: 0 };
     mat.onBeforeCompile = (sh) => {
-      sh.uniforms.uVer = uVer; sh.uniforms.uAlReves = uAlReves; sh.uniforms.uPres = siempre; sh.uniforms.uPresReves = no;
-      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', CABECERA).replace('#include <map_fragment>', TRAMA);
+      sh.uniforms.uVer = uVer;
+      sh.fragmentShader = sh.fragmentShader.replace('#include <common>', '#include <common>\nuniform float uVer;').replace('#include <alphatest_fragment>', '#include <alphatest_fragment>\ndiffuseColor.a *= uVer;');
     };
-    mat.customProgramCacheKey = () => 'figura-cenital-1';
-    const malla = new THREE.Mesh(geo, mat); malla.position.y = alto * (datos.cenital.y0 ?? 0.97); malla.visible = false; malla.castShadow = false; grupo.add(malla);
-    cenital = { malla, geo, mat, uVer, uAlReves };
+    mat.customProgramCacheKey = () => 'figura-cenital-2';
+    const malla = new THREE.Mesh(geo, mat); malla.position.y = alto * (datos.cenital.y0 ?? 0.97); malla.visible = false; malla.castShadow = false; malla.renderOrder = 2; grupo.add(malla);
+    cenital = { malla, geo, mat, uVer };
   }
-  // ángulo de la cámara sobre el horizonte, visto desde la figura: de 58° a 70° se pasa a la vista cenital (el dhow cambia hacia los 60°)
-  function ponerElevacion(e) { if (cenital) uArriba = paso(58 * GRADOS, 70 * GRADOS, e); }
+  // Ángulo de la cámara sobre el horizonte, visto desde la figura: al pasar de 66° entra la vista cenital y al bajar de 62° sale
+  // (el dhow cambia hacia los 60°). Antes las dos se repartían los puntos de la pantalla entre 58° y 70° y, con la cámara parada en
+  // ese tramo, la figura se quedaba hecha polvo; ahora es un fundido corto (RELEVO_ARRIBA ms, lo lleva ponerAzimut) y fuera de él
+  // se ve una sola de las dos.
+  let quiereArriba = false;
+  function ponerElevacion(e) { if (cenital) quiereArriba = e > (quiereArriba ? 62 : 66) * GRADOS; }
   // Presencia (0 a 1): cuánto de la figura se ve cuando comparte sitio con otra del mismo personaje. Las dos se reparten los
   // puntos de la pantalla: a una se le da p y a la otra 1 − p con alReves. La vista cenital no entra: se ve siempre.
   let presencia = 1;
@@ -175,7 +180,7 @@ export function crearFiguraVistas(datos, textura, { alto }) {
   let actual = -1, otra = -1, pesoActual = 1, suelta = false, vivo = 0, aAntes = null, tAntes = 0, tUlt = null, vel = 0, aUlt = 0, aSombra = null;
   const lejos = (a, c) => Math.abs(angulo(a - c.az));
   function ponerAzimut(a, ahora = performance.now()) {
-    const dt = tUlt === null ? 0 : Math.min(100, Math.max(0, ahora - tUlt)); tUlt = ahora; aUlt = a;
+    const tUlt0 = tUlt, dt = tUlt === null ? 0 : Math.min(100, Math.max(0, ahora - tUlt)); tUlt = ahora; aUlt = a;
     if (aAntes === null) { aAntes = a; tAntes = ahora; }
     else if (ahora - tAntes >= 8) { const w = ahora - tAntes < 250 ? angulo(a - aAntes) / (ahora - tAntes) : 0; vel += (w - vel) * 0.4; aAntes = a; tAntes = ahora; }      // velocidad de giro, radianes por milisegundo
     const quiere = paso(LENTO, VIVO, Math.abs(vel)); vivo += (quiere - vivo) * (1 - Math.exp(-dt / (quiere > vivo ? 90 : 260)));
@@ -191,17 +196,19 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     const pareja = otra === natural && !suelta && otra >= 0;
     const quierePeso = pareja ? 1 - vivo * paso(ORILLA, 1 - ORILLA, Math.abs(d) / ANCHO) : 1, tope = dt / FUNDIDO;
     pesoActual = Math.min(1, Math.max(0, pesoActual + Math.min(tope, Math.max(-tope, quierePeso - pesoActual))));
-    const mezcla = otra >= 0 && pesoActual < 0.999, deLado = 1 - uArriba;
+    if (cenital) { const m = quiereArriba ? 1 : 0; uArriba = tUlt0 === null ? m : Math.min(1, Math.max(0, uArriba + Math.min(dt / RELEVO_ARRIBA, Math.max(-dt / RELEVO_ARRIBA, m - uArriba)))); }
+    const deLado = 1 - uArriba, sale = deLado < 0.999, mezcla = (otra >= 0 && pesoActual < 0.999) || sale;
     uLado.value.set(Math.cos(a), -Math.sin(a));
     for (let n = 0; n < NV; n++) {
       const c = capas[n], esta = n === actual || (mezcla && n === otra);
       c.malla.visible = esta && deLado > 0.001 && presencia > 0.001; if (!esta) continue;
       const dn = angulo(a - c.az); c.uVuelta.value = dn; c.uGiro.value = Math.min(1, Math.max(-1, dn / ANCHO));
-      c.uVer.value = deLado; c.uAlReves.value = 0;
-      const encima = mezcla && n === actual, debajo = mezcla && n === otra;
-      c.uFunde.value = encima ? pesoActual : debajo && pareja ? 1 - pesoActual : 1; c.uCerca.value = encima ? 0.09 * alto : 0;
+      c.uVer.value = 1; c.uAlReves.value = 0;
+      const dos = otra >= 0 && pesoActual < 0.999, encima = dos && n === actual, debajo = dos && n === otra;
+      // mientras la cenital entra o sale, las cáscaras de pie se transparentan con ella (deLado)
+      c.uFunde.value = (encima ? pesoActual : debajo && pareja ? 1 - pesoActual : 1) * deLado; c.uCerca.value = encima ? 0.09 * alto : 0;
       // la de abajo, si las dos casan, deja ver el fondo donde solo está ella: necesita saber dónde queda la otra en el atlas
-      c.uPareja.value = debajo && pareja ? 1 : 0; if (debajo && pareja) c.uSalto.value.set(capas[actual].u0 - c.u0, capas[actual].v0 - c.v0);
+      c.uPareja.value = debajo && pareja && !sale ? 1 : 0; if (debajo && pareja) c.uSalto.value.set(capas[actual].u0 - c.u0, capas[actual].v0 - c.v0);
       const m = mezcla ? c.matMezcla : c.mat; if (c.malla.material !== m) c.malla.material = m;
       c.malla.renderOrder = encima ? 1 : 0;
     }
@@ -210,7 +217,7 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     if (cenital) { cenital.uVer.value = uArriba; cenital.malla.visible = uArriba > 0.001; cenital.malla.rotation.y = a; }
   }
   // true mientras se mezclan dos pinturas (quien dibuja bajo demanda debe seguir dibujando)
-  const enRelevo = () => otra >= 0 && pesoActual < 0.999;
+  const enRelevo = () => (otra >= 0 && pesoActual < 0.999) || (cenital && uArriba !== (quiereArriba ? 1 : 0));
   // La sombra sale de la cáscara tal como se ve, así que cambia cuando cambia desde dónde se mira la figura: true si desde la
   // última vez que se preguntó eso cambió lo bastante como para rehacerla (quien lleva las sombras bajo demanda pregunta aquí).
   function sombraCambio() { if (aSombra !== null && !enRelevo() && Math.abs(angulo(aUlt - aSombra)) < 2 * GRADOS) return false; aSombra = aUlt; return true; }
