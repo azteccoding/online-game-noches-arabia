@@ -96,7 +96,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 24 nov | Zubayda V5-Z: vista cenital nueva de Jorge, ya a plomo (la anterior era un picado desde el frente y queda guardada en la versión `zubayda-v5z_v1`). Se acuesta a media altura de la figura y a su misma escala, así al cambiar de pie a cenital ya no se ve más grande ni brinca hacia arriba. | El 2D no tiene monitos en 3D. | `16f16ba` |
 | 25 nov | Giro de los monitos de ocho vistas con corte seco (Jorge lo probó y lo aprobó): al girar, el monito pasa de una pintura a la siguiente de golpe, a medio camino entre las dos, sin fundido ni deformación. Con `#giro=suave` al final de la dirección se ve el giro anterior, para comparar. | El 2D no tiene monitos en 3D. | `12f4c1d` |
 | 25 nov | Estaturas nuevas en tres grupos que se notan (unos 12 % entre grupo y grupo): los más altos, Anís, Yafar y Nur al Din; los de estatura promedio, Ruyán, Jamil y Zubayda; los más bajos, Adí y Zein. Dentro de cada grupo van en ese orden, de mayor a menor. | Todos los monitos miden lo mismo. | `99ac1aa` |
-| 25 nov | Zubayda: vista cenital nueva de Jorge (la anterior queda en la versión `zubayda-v5z_v2`). Ahora se acuesta a la altura de la cabeza, igual que la de Yafar, y no a media altura: desde arriba se ve del mismo tamaño que él. | El 2D no tiene monitos en 3D. | `25198d6` |
+| 25 nov | Zubayda: vista cenital nueva de Jorge (la anterior queda en la versión `zubayda-v5z_v2`). Ahora se acuesta a la altura de la cabeza, igual que la de Yafar, y no a media altura: desde arriba se ve del mismo tamaño que él. | El 2D no tiene monitos en 3D. | `7e99991` |
+| 25 nov | Arreglo: la cenefa azul con estrellas del tapete que rodea el tablero ya no parpadea al acercar o alejar la cámara; siempre se ve. | El 2D no tiene mesa ni tapete. | `4f11809` |
 
 ## Despliegue
 
