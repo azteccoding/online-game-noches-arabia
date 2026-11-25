@@ -191,7 +191,10 @@ export function crearAmbiente(escena, mats) {
   const tapete = new THREE.Mesh(new THREE.PlaneGeometry(TW, TH), new THREE.MeshStandardMaterial({ map: texTapete(), roughness: 0.95, metalness: 0, envMapIntensity: 0.25 }));
   tapete.rotation.x = -Math.PI / 2; tapete.position.set(0, MESA_Y + 0.03, 0); tapete.receiveShadow = true; escena.add(tapete);
   // canto fino y flecos, para que sea una tela y no una calcomanía
-  const cantoT = new THREE.Mesh(new THREE.BoxGeometry(TW, 0.03, TH), new THREE.MeshStandardMaterial({ color: 0x24060a, roughness: 1 }));
+  // Jorge (25 de noviembre): la cenefa azul con estrellas parpadeaba al acercar o alejar la cámara. La cara de arriba del canto quedaba
+  // a 1 mm del tapete y, de lejos, la cámara no distinguía cuál iba encima. El canto ya no tiene cara de arriba: solo sus costados.
+  const matCanto = new THREE.MeshStandardMaterial({ color: 0x24060a, roughness: 1 }), sinTapa = new THREE.MeshBasicMaterial({ visible: false });
+  const cantoT = new THREE.Mesh(new THREE.BoxGeometry(TW, 0.03, TH), [matCanto, matCanto, sinTapa, matCanto, matCanto, matCanto]);      // caras: +x, −x, +y (la de arriba, sin pintar), −y, +z, −z
   cantoT.position.set(0, MESA_Y + 0.014, 0); cantoT.receiveShadow = true; escena.add(cantoT);
   const tf = texFlecos(); tf.repeat.set(5, 1);
   const matFleco = new THREE.MeshStandardMaterial({ map: tf, transparent: true, roughness: 1, depthWrite: false, side: THREE.DoubleSide });
