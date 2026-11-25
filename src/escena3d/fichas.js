@@ -6,7 +6,7 @@ import { crearMontura, esAnimal, TRANSPORTES } from './monturas.js';
 import { NIVEL_MAR } from './relieve.js';
 import { texAro } from './texturas.js';
 import { crearArma, crearEscudo } from './armas.js';
-import { crearFigura, cargarTexturaFigura, ALTO_FIGURA } from './figuras.js';
+import { crearFigura, cargarTexturaFigura, ALTO_FIGURA, altoDe } from './figuras.js';
 import { crearNotas, T_SACAR, T_GUARDAR, T_TOCAR } from './laud.js';
 
 export const ALTO_FICHA = ALTO_FIGURA;
@@ -40,13 +40,13 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     const promesa = texturaDe(pid).then((t) => {
       if (f.pid !== pid || f.fuera) return;
       if (f.fig) { f.cuerpo.remove(f.fig.grupo); f.fig.destruir(); f.armas = {}; soltarLaud(f); }
-      f.fig = crearFigura(recursos.figuras[pid].datos, t); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true; if (f.conEscudo) ponerEscudo(f);
+      f.fig = crearFigura(recursos.figuras[pid].datos, t, { alto: altoDe(pid) }); f.cuerpo.add(f.fig.grupo); f.fig.grupo.position.y = Y_PIE; cambios = true; if (f.conEscudo) ponerEscudo(f);
     });
     // la figura con la que toca el laúd (Jamil sentado): la del personaje con una «t»; se queda escondida hasta que toque
     const dt = recursos.figuras[pid + 't'];
     f.listaToca = !dt ? null : Promise.all([promesa, texturaDe(pid + 't')]).then(([, t]) => {
       if (f.pid !== pid || f.fuera || f.figToca) return;
-      f.figToca = crearFigura(dt.datos, t, { alto: ALTO_FIGURA * dt.datos.th / recursos.figuras[pid].datos.th }); f.figToca.grupo.position.y = Y_PIE;
+      f.figToca = crearFigura(dt.datos, t, { alto: altoDe(pid) * dt.datos.th / recursos.figuras[pid].datos.th }); f.figToca.grupo.position.y = Y_PIE;
       f.figToca.ponerPresencia(0, true); f.figToca.grupo.visible = false; f.cuerpo.add(f.figToca.grupo);
     }).catch((e) => console.warn('[3D] figura que toca:', e?.message || e));
     f.lista = promesa; return promesa;

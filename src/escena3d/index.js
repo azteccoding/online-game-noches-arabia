@@ -461,7 +461,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // Dónde cae en el lienzo (px) el punto que queda justo encima de una ciudad o de una ficha: para colgar rótulos o globos de la interfaz.
     posicionEnPantalla(objetivo) {
       const c = tablero.ciudades.get(objetivo); if (c) return aPantalla(v.copy(c.pos).setY(c.pos.y + c.alto * c.s + 0.12));
-      const f = ficha(objetivo); return aPantalla(v.copy(f.nodo.position).setY(f.nodo.position.y + (ALTO_FICHA + 0.08) * f.cuerpo.scale.y + f.cuerpo.position.y));
+      const f = ficha(objetivo); return aPantalla(v.copy(f.nodo.position).setY(f.nodo.position.y + ((f.fig?.alto ?? ALTO_FICHA) + 0.08) * f.cuerpo.scale.y + f.cuerpo.position.y));
     },
     ponerMargenes(m) { Object.assign(estado.margen, m); medir(); if (camara.enGeneral && !camara.enVuelo) camara.poner(camara.vistaGeneral()); pedirCuadro(); },
 
