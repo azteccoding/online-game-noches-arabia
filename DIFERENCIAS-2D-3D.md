@@ -98,6 +98,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 25 nov | Estaturas nuevas en tres grupos que se notan (unos 12 % entre grupo y grupo): los más altos, Anís, Yafar y Nur al Din; los de estatura promedio, Ruyán, Jamil y Zubayda; los más bajos, Adí y Zein. Dentro de cada grupo van en ese orden, de mayor a menor. | Todos los monitos miden lo mismo. | `99ac1aa` |
 | 25 nov | Zubayda: vista cenital nueva de Jorge (la anterior queda en la versión `zubayda-v5z_v2`). Ahora se acuesta a la altura de la cabeza, igual que la de Yafar, y no a media altura: desde arriba se ve del mismo tamaño que él. | El 2D no tiene monitos en 3D. | `7e99991` |
 | 25 nov | Arreglo: la cenefa azul con estrellas del tapete que rodea el tablero ya no parpadea al acercar o alejar la cámara; siempre se ve. | El 2D no tiene mesa ni tapete. | `4f11809` |
+| 25 nov | **Vista nadir** (camera close-up): de frente o desde atrás de Zubayda, si sigues acercando la cámara más allá del pie de calle, baja a sus pies y su monito se cambia por su pintura en contrapicado (el anverso de frente, el reverso desde atrás), de pie sobre la arena y con su estatura; detrás se ve el cielo, con nubes de día y estrellas de noche. De lado, o con los demás personajes (aún sin pintura nadir), el acercamiento se queda en el pie de calle. Cada personaje se agrega con `public/arte3d/nadir-<id>.webp` y `nadir-<id>-r.webp`. | El 2D no tiene cámara. | `87216c6` |
+| 25 nov | Ningún monito gira al acercarte: ya no hay vueltas con el acercamiento máximo (Jorge: «jugando con Zubayda me acerco a Nur al Din y éste comienza a girar 360° sin parar»). Tu monito gira únicamente si lo tocas; los de los demás nunca giran para ti. | No aplica. | `9ca9279` |
 
 ## Despliegue
 
