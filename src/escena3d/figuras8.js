@@ -26,6 +26,10 @@ import * as THREE from 'three';
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));
 const GRADOS = Math.PI / 180, HOLGURA = 3 * GRADOS, FUNDIDO = 70, RELEVO_ARRIBA = 220;      // cuánto hay que pasarse del límite para cambiar de vista, y milisegundos del relevo (lo menos que dura un fundido completo)
+// Jorge (25 de noviembre): «corte seco, sin fundido»; lo probó y lo aprobó. Al girar, el monito pasa de una pintura a la siguiente
+// de golpe, a medio camino entre las dos, sin mezclarlas ni deformarlas. Con #giro=suave (o ?giro=suave) en la dirección se ve el giro
+// de antes (fundido y deformación), para comparar.
+const CORTE_SECO = !(typeof location !== 'undefined' && /[?&#]giro=suave/.test(location.href));
 const ORILLA = 0.4;       // girando, el fundido entre dos pinturas ocupa el camino entre ellas salvo esta fracción junto a cada una
 const LENTO = 2 * GRADOS / 1000, VIVO = 10 * GRADOS / 1000;      // radianes por milisegundo: por debajo de LENTO la figura «está quieta» (una sola pintura); desde VIVO, el fundido va con el ángulo
 const angulo = (d) => { d %= 2 * Math.PI; return d > Math.PI ? d - 2 * Math.PI : d < -Math.PI ? d + 2 * Math.PI : d; };
@@ -189,12 +193,12 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     else if (mejor !== actual && lejos(a, capas[actual]) > Math.PI / NV + HOLGURA) {
       // cambio de vista: la nueva hereda el peso que ya tuviera como «otra» (nada brinca); si no es vecina de la anterior
       // (la figura dio un salto), es un fundido suelto, sin deformación que las case
-      pesoActual = otra === mejor ? 1 - pesoActual : 0; suelta = sig[actual] !== mejor && ant[actual] !== mejor; otra = actual; actual = mejor;
+      pesoActual = CORTE_SECO ? 1 : otra === mejor ? 1 - pesoActual : 0; suelta = sig[actual] !== mejor && ant[actual] !== mejor; otra = actual; actual = mejor;
     }
     const d = angulo(a - capas[actual].az), natural = mejor !== actual ? mejor : d >= 0 ? sig[actual] : ant[actual];      // la otra pintura del tramo en que cae el ángulo
     if (otra !== natural && pesoActual > 0.999) { otra = natural; suelta = false; pesoActual = 1; }
     const pareja = otra === natural && !suelta && otra >= 0;
-    const quierePeso = pareja ? 1 - vivo * paso(ORILLA, 1 - ORILLA, Math.abs(d) / ANCHO) : 1, tope = dt / FUNDIDO;
+    const quierePeso = CORTE_SECO ? 1 : pareja ? 1 - vivo * paso(ORILLA, 1 - ORILLA, Math.abs(d) / ANCHO) : 1, tope = dt / FUNDIDO;
     pesoActual = Math.min(1, Math.max(0, pesoActual + Math.min(tope, Math.max(-tope, quierePeso - pesoActual))));
     if (cenital) { const m = quiereArriba ? 1 : 0; uArriba = tUlt0 === null ? m : Math.min(1, Math.max(0, uArriba + Math.min(dt / RELEVO_ARRIBA, Math.max(-dt / RELEVO_ARRIBA, m - uArriba)))); }
     const deLado = 1 - uArriba, sale = deLado < 0.999, mezcla = (otra >= 0 && pesoActual < 0.999) || sale;
@@ -202,7 +206,7 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     for (let n = 0; n < NV; n++) {
       const c = capas[n], esta = n === actual || (mezcla && n === otra);
       c.malla.visible = esta && deLado > 0.001 && presencia > 0.001; if (!esta) continue;
-      const dn = angulo(a - c.az); c.uVuelta.value = dn; c.uGiro.value = Math.min(1, Math.max(-1, dn / ANCHO));
+      const dn = angulo(a - c.az); c.uVuelta.value = dn; c.uGiro.value = CORTE_SECO ? 0 : Math.min(1, Math.max(-1, dn / ANCHO));
       c.uVer.value = 1; c.uAlReves.value = 0;
       const dos = otra >= 0 && pesoActual < 0.999, encima = dos && n === actual, debajo = dos && n === otra;
       // mientras la cenital entra o sale, las cáscaras de pie se transparentan con ella (deLado)
