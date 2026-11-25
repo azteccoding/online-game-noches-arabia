@@ -213,8 +213,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     const vista0 = camara.leer(), esc = Math.min(1.5, Math.max(1, (vista0.d / 22) ** 0.45));
     conIfrit = false; escPrevia = esc; fichas.mirarDesde(camara.cam.position);
     if (pelea.golpeando !== !!estado.peleaVista) { estado.peleaVista = pelea.golpeando; llamar("alPelear", estado.peleaVista); }      // golpes o flecha en marcha: la pantalla se despeja
-    { const d = camara.cam.position.distanceTo(camara.ctl.target);      // acercamiento máximo y la cámara sobre tu monito
-      for (const f of fichas.fichas) f.giraCerca = f.id === estado.propia && !f.viaje && !f.control && !camara.enVuelo && d <= camara.ctl.minDistance * 1.06 && Math.hypot(camara.ctl.target.x - f.nodo.position.x, camara.ctl.target.z - f.nodo.position.z) < 2.2; }
+    // Jorge (25 de noviembre): tu monito ya no da vueltas solo con el acercamiento máximo (giraCerca); únicamente si lo tocas.
     const dt = simular(transcurrido(), esc);
     amb.actualizar(t - desfase, camara.cam); renderer.toneMappingExposure = amb.cielo.exposicion * (1 - 0.3 * ifrit.nivel);
     const vista = camara.leer();
