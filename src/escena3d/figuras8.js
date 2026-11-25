@@ -183,21 +183,19 @@ export function crearFiguraVistas(datos, textura, { alto }) {
   const sig = capas.map((c, n) => junto(n, 1)), ant = capas.map((c, n) => junto(n, -1));
   let actual = -1, otra = -1, pesoActual = 1, suelta = false, vivo = 0, aAntes = null, tAntes = 0, tUlt = null, vel = 0, aUlt = 0, aSombra = null;
   const lejos = (a, c) => Math.abs(angulo(a - c.az));
-  // a: desde dónde mira la cámara (la cáscara siempre se vuelve hacia ella). vista: qué pintura se enseña; si no se da, la de ese mismo
-  // ángulo. Jorge (25 de noviembre): en reposo la figura no cambia de pintura porque la cámara se mueva o se acerque (ver fichas.js).
-  function ponerAzimut(a, ahora = performance.now(), vista = a) {
+  function ponerAzimut(a, ahora = performance.now()) {
     const tUlt0 = tUlt, dt = tUlt === null ? 0 : Math.min(100, Math.max(0, ahora - tUlt)); tUlt = ahora; aUlt = a;
     if (aAntes === null) { aAntes = a; tAntes = ahora; }
     else if (ahora - tAntes >= 8) { const w = ahora - tAntes < 250 ? angulo(a - aAntes) / (ahora - tAntes) : 0; vel += (w - vel) * 0.4; aAntes = a; tAntes = ahora; }      // velocidad de giro, radianes por milisegundo
     const quiere = paso(LENTO, VIVO, Math.abs(vel)); vivo += (quiere - vivo) * (1 - Math.exp(-dt / (quiere > vivo ? 90 : 260)));
-    let mejor = 0; for (let n = 1; n < NV; n++) if (lejos(vista, capas[n]) < lejos(vista, capas[mejor])) mejor = n;
+    let mejor = 0; for (let n = 1; n < NV; n++) if (lejos(a, capas[n]) < lejos(a, capas[mejor])) mejor = n;
     if (actual < 0) actual = mejor;
-    else if (mejor !== actual && lejos(vista, capas[actual]) > Math.PI / NV + HOLGURA) {
+    else if (mejor !== actual && lejos(a, capas[actual]) > Math.PI / NV + HOLGURA) {
       // cambio de vista: la nueva hereda el peso que ya tuviera como «otra» (nada brinca); si no es vecina de la anterior
       // (la figura dio un salto), es un fundido suelto, sin deformación que las case
       pesoActual = CORTE_SECO ? 1 : otra === mejor ? 1 - pesoActual : 0; suelta = sig[actual] !== mejor && ant[actual] !== mejor; otra = actual; actual = mejor;
     }
-    const d = angulo(vista - capas[actual].az), natural = mejor !== actual ? mejor : d >= 0 ? sig[actual] : ant[actual];      // la otra pintura del tramo en que cae el ángulo
+    const d = angulo(a - capas[actual].az), natural = mejor !== actual ? mejor : d >= 0 ? sig[actual] : ant[actual];      // la otra pintura del tramo en que cae el ángulo
     if (otra !== natural && pesoActual > 0.999) { otra = natural; suelta = false; pesoActual = 1; }
     const pareja = otra === natural && !suelta && otra >= 0;
     const quierePeso = CORTE_SECO ? 1 : pareja ? 1 - vivo * paso(ORILLA, 1 - ORILLA, Math.abs(d) / ANCHO) : 1, tope = dt / FUNDIDO;
@@ -208,7 +206,7 @@ export function crearFiguraVistas(datos, textura, { alto }) {
     for (let n = 0; n < NV; n++) {
       const c = capas[n], esta = n === actual || (mezcla && n === otra);
       c.malla.visible = esta && deLado > 0.001 && presencia > 0.001; if (!esta) continue;
-      const dn = angulo(a - c.az); c.uVuelta.value = dn; c.uGiro.value = CORTE_SECO ? 0 : Math.min(1, Math.max(-1, angulo(vista - c.az) / ANCHO));
+      const dn = angulo(a - c.az); c.uVuelta.value = dn; c.uGiro.value = CORTE_SECO ? 0 : Math.min(1, Math.max(-1, dn / ANCHO));
       c.uVer.value = 1; c.uAlReves.value = 0;
       const dos = otra >= 0 && pesoActual < 0.999, encima = dos && n === actual, debajo = dos && n === otra;
       // mientras la cenital entra o sale, las cáscaras de pie se transparentan con ella (deLado)

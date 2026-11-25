@@ -106,14 +106,14 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
   }
   // Devuelve cuánto se mece la figura mientras toca: { alto, cabeceo, ladeo }.
   const boca = new THREE.Vector3();
-  function avanzarLaud(f, t, dt, s, desde, vista = desde) {
+  function avanzarLaud(f, t, dt, s, desde) {
     const L = f.laud, T = f.figToca; L.t += dt;
     const fin = T_SACAR + L.tocar, u = L.t < T_SACAR ? L.t / T_SACAR : L.t < fin ? 1 : 1 - (L.t - fin) / T_GUARDAR;
     const toca = Math.min(1, Math.max(0, (L.t - T_SACAR) / 0.35)) * Math.min(1, Math.max(0, (fin - L.t) / 0.35));
     if (toca > 0 && !L.sonando) { L.sonando = true; try { L.alSonar?.(true); } catch (e) { console.error(e); } }
     if (L.t >= fin && L.sonando) { L.sonando = false; try { L.alSonar?.(false); } catch (e) { console.error(e); } }
     if (L.t >= fin + T_GUARDAR) { terminarLaud(f, true); return { alto: 0, cabeceo: 0, ladeo: 0 }; }
-    posturaLaud(f, Math.max(0, u)); T.ponerAzimut(desde, undefined, vista); T.animar(t, { tocar: toca });
+    posturaLaud(f, Math.max(0, u)); T.ponerAzimut(desde); T.animar(t, { tocar: toca });
     // las notas salen de la roseta del laúd: delante del vientre, hacia su costado derecho
     f.cuerpo.updateWorldMatrix(true, false); boca.set(-0.07 * f.fig.alto, 0.3 * f.fig.alto, 0.16 * f.fig.alto).applyMatrix4(f.cuerpo.matrixWorld);
     f.notas.sonar(toca, dt, boca, s);
@@ -405,12 +405,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       if (antes !== f.nivel || f.elegida || f.rival) sucio = true;
       const mat = f.fig?.material, M = f.montura, esAlf = f.transporte === 'alfombra';
       const desde = Math.atan2(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z) - f.giro;
-      // Jorge (25 de noviembre): «quita ese efecto de que cuando te les acercas a los personajes éstos giran; únicamente gira tu personaje
-      // si lo tocas y los de los demás nunca giran para ti». En reposo en una ciudad (sin viaje ni pelea) cada monito enseña siempre su
-      // pintura de frente, vuelta hacia la cámara, se mueva o se acerque esta como sea; solo la vuelta del toque (f.giro) la cambia.
-      // De viaje o peleando se sigue viendo según hacia dónde va (eso sí es el monito girando).
-      const vista = !f.viaje && !f.control ? Math.atan2(Math.sin(-f.giro), Math.cos(-f.giro)) : desde;
-      if (f.fig) { if (f.fig.ponerElevacion) f.fig.ponerElevacion(Math.atan2(ojo.y - f.nodo.position.y, Math.hypot(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z))); if (f.fig.ponerAzimut) { f.fig.ponerAzimut(desde, undefined, vista); if (f.fig.sombraCambio?.()) sucio = true; } else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
+      if (f.fig) { if (f.fig.ponerElevacion) f.fig.ponerElevacion(Math.atan2(ojo.y - f.nodo.position.y, Math.hypot(ojo.x - f.nodo.position.x, ojo.z - f.nodo.position.z))); if (f.fig.ponerAzimut) { f.fig.ponerAzimut(desde); if (f.fig.sombraCambio?.()) sucio = true; } else f.fig.ponerLado(paso(0.42, 0.85, Math.abs(Math.sin(desde)))); }
       if (f.laud && (f.control || f.viaje)) terminarLaud(f, false);      // una pelea o un viaje cortan la tocada
       if (f.control) {      // la pelea lleva la ficha: aquí solo se apagan los adornos de reposo y se da vuelo a las telas
         sucio = true; f.control(f, t, dt, s);
@@ -424,8 +419,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       else {
         const c = tablero.ciudades.get(f.ciudad), r = c.ranuras[f.ranura]; f.nodo.position.set(c.pos.x + r.x * s, 0, c.pos.z + r.z * s); f.nodo.position.y = tablero.altura(f.nodo.position.x, f.nodo.position.z);
         // en reposo mira al sur (hacia la vista general)
-        // Jorge (23 de noviembre): tu monito da una vuelta entera si lo tocas (girar). Lo de dar vueltas con el acercamiento máximo (giraCerca)
-        // se quitó el 25 de noviembre: giraCerca ya nunca se enciende.
+        // Jorge (23 de noviembre): tu monito da vueltas despacio con el acercamiento máximo (giraCerca) y da una vuelta entera si lo tocas (girar)
         // Jorge (24 de noviembre): girando despacio se notaba mucho el paso de una pintura a la siguiente; ahora gira más aprisa. La vuelta del toque arranca y llega suave.
         if (f.giraCerca || f.girar > 0) {
           let vel = f.girar > 0 ? GIRO_TOQUE * Math.min(1, 0.35 + Math.min(f.girar, 2 * Math.PI - f.girar) / 0.8) : 0; if (f.giraCerca) vel = Math.max(vel, GIRO_CERCA);
@@ -436,7 +430,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
         alto = f.nivel * (0.06 + (f.elegida || f.rival ? 0.03 * Math.sin(t * 3.2 + (f.rival ? 2 : 0)) : 0));
         f.andar *= Math.exp(-dt * 9); f.vuelo *= Math.exp(-dt * 2.2); f.empuje *= Math.exp(-dt * 4);
         if (f.andar > 0.003 || f.vuelo > 0.003) sucio = true;
-        if (f.laud) { sucio = true; const m = avanzarLaud(f, t, dt, s, desde, vista); alto += m.alto; cabeceo = m.cabeceo; ladeo = m.ladeo; }
+        if (f.laud) { sucio = true; const m = avanzarLaud(f, t, dt, s, desde); alto += m.alto; cabeceo = m.cabeceo; ladeo = m.ladeo; }
       }
       if (f.notas?.actualizar(dt)) sucio = true;
       const m = f.mont, encoger = esAlf ? 0.3 : 0.55;
