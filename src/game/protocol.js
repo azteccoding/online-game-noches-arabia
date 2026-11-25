@@ -47,7 +47,7 @@ export const ACCIONES = {
   pj: (sub, extra = {}) => ({ t: 'pj', sub, ...extra }),
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
   votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),
-  callarJamil: () => ({ t: 'callarJamil' }),
+  callarJamil: (si = true) => ({ t: 'callarJamil', si }),
   volver: () => ({ t: 'volver' }),
   volverPartida: () => ({ t: 'volverPartida' }),
   ganarYa: () => ({ t: 'ganarYa' }),   // Jorge (19 de noviembre): con 1,001 noches, tras «Seguir jugando»   // Jorge (19 de noviembre): seguir jugando después de ganar con 1,001 noches

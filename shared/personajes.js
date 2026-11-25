@@ -190,26 +190,29 @@ export const votantesLaud = (e, pid) => {
   const vs = Object.keys(e.jugadores).filter((id) => { const x = e.jugadores[id]; return id !== pid && x.pj && !x.eliminado && !x.sacado && e.orden.includes(id) && (x.npc || (!x.tarde && x.conectado !== false)); });
   return vs.some((id) => !e.jugadores[id].npc) ? vs : [];
 };
-export function votarCallar(e, pid) {
+// Jorge (25 de noviembre): «TODOS los jugadores que puedan votar deben votar y hasta el final de la votación se cuentan los votos y se
+// desarrollan las consecuencias». Cada quien vota que se calle (si) o que siga; la votación se cierra cuando ya votaron todos o se
+// acaba el tiempo (quien no votó a tiempo cuenta como que siga), y solo entonces se cuenta.
+export function votarCallar(e, pid, si = true) {
   const v = e.votoLaud;
   if (!v) return err('Jamil ya no está tocando.');
   if (!votantesLaud(e, v.pid).includes(pid) || e.jugadores[pid]?.npc) return err('No participas en esta votación.');
-  if (v.callan[pid]) return err('Ya votaste.');
-  v.callan[pid] = true;
+  if (v.callan[pid] !== undefined) return err('Ya votaste.');
+  v.callan[pid] = !!si;
   return ok();
 }
-// Cierra la votación si ya hay mayoría para callarlo o si se acabó el tiempo (vencido). Devuelve 'callado', 'sigue' o null.
+// Cierra la votación cuando ya votaron todos o se acabó el tiempo (vencido), y solo entonces cuenta. Devuelve 'callado', 'sigue' o null.
 export function revisarVotoLaud(e, vencido = false) {
   const v = e.votoLaud; if (!v) return null;
   const j = e.jugadores[v.pid];
   if (!j || j.eliminado || e.fase !== 'juego' || e.turno?.pid !== v.pid) { e.votoLaud = null; return null; }
-  const vs = votantesLaud(e, v.pid), callan = vs.filter((id) => v.callan[id]).length;
+  const vs = votantesLaud(e, v.pid), callan = vs.filter((id) => v.callan[id] === true).length, votaron = vs.filter((id) => v.callan[id] !== undefined).length;
+  if (!vencido && vs.length && votaron < vs.length) return null;      // faltan votos y todavía hay tiempo
   if (vs.length && callan * 2 > vs.length) {
     e.votoLaud = null;
     log(e, `Callaron a ${j.nombre} (${callan} de ${vs.length} lo ${callan === 1 ? 'pidió' : 'pidieron'}): deja de tocar y termina su turno.`, { pid: v.pid, aviso: true });
     return 'callado';
   }
-  if (!vencido && vs.length) return null;
   e.votoLaud = null;
   if (!vs.length) return null;                                   // se quedó sin público: ni castigo ni premio
   j.noches += LAUD.sigue.noches; j.dinares += LAUD.sigue.dinares;
@@ -220,7 +223,7 @@ export function vistaVotoLaud(e, pid) {
   const v = e.votoLaud; if (!v) return null;
   const vs = votantesLaud(e, v.pid);
   const npc = vs.find((id) => e.jugadores[id].npc && v.callan[id]);
-  return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id]).length, votas: vs.includes(pid) && !e.jugadores[pid]?.npc, yaVote: !!v.callan[pid], premio: LAUD.sigue, votoNpc: npc ? e.jugadores[npc].nombre : null };
+  return { pid: v.pid, t0: v.t0, limiteMs: v.limiteMs, total: vs.length, callan: vs.filter((id) => v.callan[id] === true).length, votaron: vs.filter((id) => v.callan[id] !== undefined).length, votas: vs.includes(pid) && !e.jugadores[pid]?.npc, yaVote: v.callan[pid] !== undefined, miVoto: v.callan[pid] ?? null, premio: LAUD.sigue, votoNpc: npc ? e.jugadores[npc].nombre : null };
 }
 export const LAUD = { noches: 1, dinares: 1, sigue: { noches: 5, dinares: 5 }, votoMs: 40000, piezas: { 1: 40000, 2: 22000 } };   // votoMs: lo que dura su canción, 40 segundos (Jorge, 24 de noviembre); piezas: lo que dura cada una de las dos que puede tocar, que es también lo que dura la votación  ·   // Jorge (24 de noviembre): tocar el laúd da 1 noche y 1 dinar y gasta la acción principal
 const SIN_LAUD = 'No tienes tu laúd: recupéralo para volver a tocar';

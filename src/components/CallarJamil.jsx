@@ -15,19 +15,21 @@ export default function CallarJamil({ s }) {
   if (!v || !v.votas) return null;
   const jamil = s.jugadores[v.pid]?.nombre || 'Jamil';
   const resta = Math.max(0, Math.ceil((visto.current.queda - (Date.now() - visto.current.en)) / 1000));
-  const cuenta = `${v.callan} de ${v.total} ${v.callan === 1 ? 'pide' : 'piden'} que se calle`;
-  if (v.yaVote) return <div className="callar-jamil" role="status"><span className="callar-nota">Pediste que se calle · {cuenta} · {resta} s</span></div>;
+  // Jorge (25 de noviembre): todos votan y los votos se cuentan hasta el final; aquí solo se ve cuántos ya votaron
+  const cuenta = `votaron ${v.votaron} de ${v.total}`;
+  if (v.yaVote) return <div className="callar-jamil" role="status"><span className="callar-nota">Votaste que {v.miVoto ? 'se calle' : 'siga'} · {cuenta} · {resta} s</span></div>;
   return (
     <div className="callar-jamil">
       {abierto && (
         <div className="callar-aviso" role="alertdialog" aria-label="Que se calle Jamil">
-          <p><b>Si lo oprimes:</b> votas por callar a {jamil}. Si más de la mitad de los demás jugadores lo pide, deja de tocar y termina su turno.</p>
-          <p><b>Si no lo oprimes:</b> cuenta como que siga tocando. Si no lo callan, {jamil} gana {v.premio.noches} noches y {v.premio.dinares} dinares.</p>
+          <p><b>Que se calle:</b> si al final de la votación más de la mitad de los demás jugadores lo pidió, {jamil} deja de tocar y termina su turno.</p>
+          <p><b>Dejarlo tocar:</b> si no lo callan, {jamil} gana {v.premio.noches} noches y {v.premio.dinares} dinares. Si no votas a tiempo, cuenta como que siga.</p>
+          <p>Los votos se cuentan cuando ya votaron todos o se acaba el tiempo.</p>
           {v.votoNpc && <p>{v.votoNpc} ya votó que se calle.</p>}
           <p className="it">{cuenta} · quedan {resta} s</p>
           <div className="callar-botones">
             <button className="btn mini" onClick={() => { enviar(ACCIONES.callarJamil()); setAbierto(false); }}>Que se calle</button>
-            <button className="btn mini sec" onClick={() => setAbierto(false)}>Dejarlo tocar</button>
+            <button className="btn mini sec" onClick={() => { enviar(ACCIONES.callarJamil(false)); setAbierto(false); }}>Dejarlo tocar</button>
           </div>
         </div>
       )}

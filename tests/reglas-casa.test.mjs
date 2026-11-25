@@ -1147,6 +1147,8 @@ for (let k = 0; k < 6; k++) {
   assert.equal(e.votoReinicio, null, 'al minuto vence sin mayoría'); assert.equal(e.fase, 'juego');
   assert.ok(g.act(host, { t: 'host.reiniciar' }).ok);
   assert.ok(g.act(b, { t: 'votarReinicio', si: true }).ok);
+  assert.equal(e.fase, 'juego', 'Jorge (25 nov): aunque ya hay mayoría, se espera a que voten todos');
+  assert.ok(g.act(c, { t: 'votarReinicio', si: false }).ok);
   assert.equal(e.fase, 'lobby', 'con mayoría vuelve a la sala');
   assert.ok(e.archivoPendiente && JSON.parse(e.archivoPendiente).fase === 'juego', 'la partida anterior queda para archivar');
   assert.deepEqual([...e.orden].sort(), [host, b, c].sort()); assert.equal(e.host, host); assert.equal(e.jugadores.npc, undefined);
@@ -4046,9 +4048,17 @@ console.log('reglas de la casa OK');
   // 2) la mayoría lo calla: deja de tocar, no gana más y su turno termina
   n0 = tocar();
   assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(e.votoLaud); assert.ok(g.act(nur, { t: 'callarJamil' }).ok);
-  assert.ok(!e.votoLaud, '2 de 3 es mayoría: se cierra al momento'); assert.equal(J.noches, 41, 'conserva solo lo que ganó al tocar'); assert.equal(J.dinares <= 4, true);
+  // Jorge (25 nov): todos votan y los votos se cuentan hasta el final: con 2 de 3 todavía falta Zubayda
+  assert.ok(e.votoLaud, 'falta un voto: no se cuenta todavía'); assert.equal(J.noches, 41);
+  { const w = vistaDe(e, adi).votoLaud; assert.equal(w.votaron, 2); assert.equal(w.miVoto, true); }
+  assert.ok(g.act(zub, { t: 'callarJamil', si: false }).ok, 'Zubayda vota que siga');
+  assert.ok(!e.votoLaud, 'ya votaron todos: se cuenta'); assert.equal(J.noches, 41, 'conserva solo lo que ganó al tocar'); assert.equal(J.dinares <= 4, true);
   assert.ok(aviso(n0, /Callaron a .+ \(2 de 3 lo pidieron\): deja de tocar y termina su turno/)); assert.ok(e.turno.pid !== jamil || e.turno.fin, 'su turno terminó');
-  assert.ok(!g.act(zub, { t: 'callarJamil' }).ok, 'ya no hay votación'); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, true, 'la capa 3D sabe que lo callaron: deja de tocar ya');
+  assert.ok(!g.act(nur, { t: 'callarJamil' }).ok, 'ya no hay votación'); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, true, 'la capa 3D sabe que lo callaron: deja de tocar ya');
+  // 2b) si todos votan que siga, se cuenta en cuanto vota el último
+  n0 = tocar(); assert.ok(g.act(adi, { t: 'callarJamil', si: false }).ok); assert.ok(!g.act(adi, { t: 'callarJamil' }).ok, 'un voto por jugador'); assert.ok(g.act(nur, { t: 'callarJamil', si: false }).ok); assert.ok(e.votoLaud);
+  assert.ok(g.act(zub, { t: 'callarJamil', si: false }).ok); assert.ok(!e.votoLaud); assert.equal(J.noches, 46); assert.ok(aviso(n0, /Dejaron tocar a .+ \(nadie quiso callarlo\)/));
+  assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok);
   // 3) empate entre dos votantes: no es mayoría, sigue
   e.jugadores[nur].conectado = false; n0 = tocar();
   assert.equal(vistaDe(e, adi).votoLaud.total, 2, 'el desconectado no cuenta'); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(e.votoLaud, '1 de 2 no es más de la mitad');

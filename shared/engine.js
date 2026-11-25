@@ -878,7 +878,7 @@ function despachar(data, e, pid, j, a, ahora) {
     }
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
-    case 'callarJamil': { const r = PJ.votarCallar(e, pid); if (r.ok) cerrarVotoLaud(data, e); return r; }
+    case 'callarJamil': { const r = PJ.votarCallar(e, pid, a.si !== false); if (r.ok) cerrarVotoLaud(data, e); return r; }
     case 'ganarYa': return accionGanarYa(data, e, pid);   // Jorge (19 de noviembre): con 1,001 noches, tras «Seguir jugando»
     case 'host.revelarCarta': if (!esHost(e, pid)) return err('Solo el anfitrión.'); return hostRevelar(data, e, a);
     case 'host.ceder': if (!esHost(e, pid)) return err('Solo el anfitrión.'); if (!e.jugadores[a.pid] || e.jugadores[a.pid].npc) return err('Jugador inexistente.'); e.bancoFijo = true; if (e.cajaAbierta) { e.cajaAbierta = false; log(e, `${j.nombre} cerró la caja del banco.`, { caja: true }); } e.host = a.pid; return ok();
@@ -1620,11 +1620,15 @@ function votarReinicio(data, e, pid, a) {
   v.votos[pid] = !!a.si;
   return revisarVoto(data, e);
 }
+// Jorge (25 de noviembre, solo en el 3D): «TODOS los jugadores que puedan votar deben votar y hasta el final de la votación se cuentan
+// los votos y se desarrollan las consecuencias». Se cierra cuando ya votaron todos o se acaba el minuto (quien no votó cuenta como no).
 function revisarVoto(data, e, vencido = false) {
   const v = e.votoReinicio; if (!v) return ok();
   const vs = votantes(e), si = vs.filter((id) => v.votos[id] === true).length, no = vs.filter((id) => v.votos[id] === false).length;
-  if (si * 2 > vs.length) { e.votoReinicio = null; log(e, `La mayoría aceptó (${si} de ${vs.length}): termina la partida y empieza otra desde cero.`, { aviso: true }); return reiniciar(data, e); }
-  if (no * 2 >= vs.length || vencido) { e.votoReinicio = null; log(e, `No hubo mayoría para empezar de nuevo (${si} sí, ${no} no): la partida sigue.`, { aviso: true }); }
+  if (!vencido && si + no < vs.length) return ok();                // faltan votos y todavía hay tiempo
+  e.votoReinicio = null;
+  if (si * 2 > vs.length) { log(e, `La mayoría aceptó (${si} de ${vs.length}): termina la partida y empieza otra desde cero.`, { aviso: true }); return reiniciar(data, e); }
+  log(e, `No hubo mayoría para empezar de nuevo (${si} sí, ${no} no): la partida sigue.`, { aviso: true });
   return ok();
 }
 // «Que se calle Jamil» (personajes.js lleva la votación): si lo callan, aquí se le termina el turno.
@@ -1682,7 +1686,7 @@ function tick0(data, e, ahora) {
   if (e.dados && e.dados.lanzado && ahora - e.dados.t0 > AUTOCIERRE_DADOS_MS) { siguienteDados(e); cambio = true; }
   // Jorge (8 de noviembre): las tiradas de Yafar NPC no tienen ventana de resultado: se ven rodar y, al terminar, siguen las consecuencias.
   else if (e.dados && e.dados.lanzado && dadosDeNPC(e, e.dados) && ahora - e.dados.t0 > RODAR_NPC_MS * Math.max(1, e.dados.grupos?.length || 1) + 400) { siguienteDados(e); cambio = true; }
-  if (e.votoReinicio && ahora - e.votoReinicio.t0 > e.votoReinicio.limiteMs) { revisarVoto(data, e, true); cambio = true; }
+  if (e.votoReinicio) { const v0 = e.votoReinicio; revisarVoto(data, e, ahora - v0.t0 > v0.limiteMs); if (e.votoReinicio !== v0) cambio = true; }   // también se cierra si quien faltaba se fue
   if (e.votoLaud && cerrarVotoLaud(data, e, ahora - e.votoLaud.t0 >= e.votoLaud.limiteMs)) cambio = true;
   if (e.fase === 'juego') {
     if (e.pend && e.dados) e.pend.t0 = ahora;                     // el plazo de una decisión empieza cuando se cierran los dados
