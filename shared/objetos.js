@@ -10,6 +10,8 @@ ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombra
 // carga, vive 2 turnos y solo lo compra el mercado de Estambul,
 // por 2 dinares (ahí vuelve a la venta a 32). Yafar NPC: en fácil no lo compra, en normal hasta 1, en difícil los que quiera.
 // Albéitar y comida: cada yegua y cada caballo mongol pagan por turno lo mismo que el caballo normal (Jorge, 12 de noviembre).
+// Jorge (23 de noviembre), solo en el 3D: cada yegua que llega a Estambul pone a la venta 2 caballos mongoles, no 1 (es regla, no fallo).
+export const MONGOLES_POR_YEGUA = 2;
 export const YEGUAS = { precio: 70, max: 3, venta: 150, ciudadVenta: 'Estambul' };
 export const MONGOL = { precio: 32, ciudad: 'Estambul', venta: 2, ciudadesVenta: ['Estambul'] };   // solo lo compra el mercado de Estambul
 const limiteMongolNPC = (e) => ({ facil: 0, normal: 1, dificil: Infinity }[e.opciones?.dificultad] ?? 1);
@@ -471,9 +473,9 @@ export function vender(data, e, pid, a) {
   if (c.ref === 'yegua') {
     if (ciudad !== YEGUAS.ciudadVenta) return err('Las yeguas solo las compra el mercado de Estambul (150 dinares cada una). También puedes vendérselas a otro jugador en un trato.');
     quitarCarta(j, c.uid); j.dinares += YEGUAS.venta;
-    const nuevo = !e.mongoles?.habilitado; e.mongoles = { habilitado: true, stock: (e.mongoles?.stock || 0) + 1 };
+    const nuevo = !e.mongoles?.habilitado; e.mongoles = { habilitado: true, stock: (e.mongoles?.stock || 0) + MONGOLES_POR_YEGUA };
     log(e, `${j.nombre} vende una yegua de la estepa al mercado de Estambul por ${YEGUAS.venta} dinares.`, { pid });
-    log(e, nuevo ? 'Ya se venden caballos mongoles en Estambul.' : `Llega otro caballo mongol al mercado de Estambul (hay ${e.mongoles.stock}).`, { aviso: true });
+    log(e, nuevo ? `Ya se venden caballos mongoles en Estambul: llegan ${MONGOLES_POR_YEGUA} con la yegua.` : `Llegan otros ${MONGOLES_POR_YEGUA} caballos mongoles al mercado de Estambul (hay ${e.mongoles.stock}).`, { aviso: true });
     return ok();
   }
   if (c.ref === 'caballoMongol') {

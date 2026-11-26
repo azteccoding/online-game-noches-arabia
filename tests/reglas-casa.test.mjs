@@ -2987,14 +2987,15 @@ console.log('reglas de la casa OK');
     A.ciudad = 'Estambul'; B.ciudad = 'Estambul'; B.dinares = 100; turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
     assert.ok(!tienda(data, e, b).find((x) => x.ref === 'caballoMongol'), 'antes de las yeguas no hay caballos mongoles');
     assert.match(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).error || '', /Todavía no se venden/);
-    const d1 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(A.dinares, d1 + 150, '150 por yegua');
+    const d1 = A.dinares; assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(A.dinares, d1 + 150, '150 por yegua'); assert.equal(e.mongoles.stock, 2, 'Jorge (23 nov, 3D): 2 caballos mongoles por yegua');
     assert.ok(e.historial.some((h) => /Ya se venden caballos mongoles en Estambul/.test(JSON.stringify(h))) || e.log?.some?.((h) => /Ya se venden caballos mongoles/.test(h.texto)), 'anuncio');
-    assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(e.mongoles.stock, 2, 'uno por cada yegua que llegó');
+    assert.ok(g.act(a, { t: 'vender', uid: yeguas(A)[0].uid }).ok); assert.equal(e.mongoles.stock, 4, 'dos por cada yegua que llegó');
     // comprar caballo mongol a 32; carga
-    const t1 = tienda(data, e, b).find((x) => x.ref === 'caballoMongol'); assert.ok(t1 && t1.puede && t1.precio === 32 && t1.stock === 2);
-    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok); assert.equal(B.dinares, 68); assert.equal(e.mongoles.stock, 1);
+    const t1 = tienda(data, e, b).find((x) => x.ref === 'caballoMongol'); assert.ok(t1 && t1.puede && t1.precio === 32 && t1.stock === 4);
+    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok); assert.equal(B.dinares, 68); assert.equal(e.mongoles.stock, 3);
     assert.ok(tieneCarga(B), 'el caballo mongol es animal de carga');
-    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok, 'se pueden tener varios'); assert.equal(e.mongoles.stock, 0);
+    assert.ok(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).ok, 'se pueden tener varios'); assert.equal(e.mongoles.stock, 2);
+    e.mongoles.stock = 0;   // se acaban
     assert.match(g.act(b, { t: 'comprar', ref: 'caballoMongol' }).error || '', /Agotado/);
     // viajar: a cualquier ciudad, incluida India, sin terminar el turno (Jorge, 21 de noviembre)
     turnoDe(e, b, 'Estambul'); e.turno.fase = 'acciones';
