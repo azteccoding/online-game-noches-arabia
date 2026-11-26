@@ -120,15 +120,24 @@ export function crearDhowPintado() {
   const yCubierta = (CUBIERTA - CALADO) * alto, cubierta = planoCenital('cubierta', yCubierta - 0.004), cenital = planoCenital('cenital', yCubierta + 0.012);
   cubierta.receiveShadow = true; grupo.add(cubierta, cenital);
   const dir = new THREE.Vector3(), giro = new THREE.Quaternion();
-  cubierta.onBeforeRender = (r, e, camara) => {      // a plomo: fuera las cáscaras (con alphaTest, una opacidad menor que el umbral no pinta nada) y dentro la pintura cenital
+  // Jorge (26 de noviembre): «al subir o bajar la cámara a veces se pierde la popa del dhow y se queda abierto». Esto se calculaba
+  // al dibujar la cubierta, pero el espejo, el fondo y el frente del toldo se dibujaban ANTES que ella (three ordena por material) y
+  // usaban lo del cuadro anterior; si la cámara se detenía justo al cruzar A_PLOMO, el último cuadro quedaba con la popa escondida.
+  // Ahora lo hace un «control» sin tamaño que se dibuja antes que todo lo demás (renderOrder) y nunca se recorta.
+  const control = new THREE.Mesh(new THREE.BufferGeometry(), new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false, depthTest: false }));
+  control.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(9), 3));
+  control.frustumCulled = false; control.castShadow = false; control.renderOrder = -1000; grupo.add(control);
+  control.onBeforeRender = (r, e, camara) => {      // a plomo: fuera las cáscaras (con alphaTest, una opacidad menor que el umbral no pinta nada) y dentro la pintura cenital
     const plomo = Math.abs(camara.getWorldDirection(dir).y) > A_PLOMO;
     for (const m of popa.materiales) m.opacity = plomo ? 0.3 : 1;
     cenital.material.opacity = plomo ? 1 : 0.3;
     dir.applyQuaternion(grupo.getWorldQuaternion(giro).invert());      // la mirada de la cámara, en los ejes del barco
     const abre = plomo ? 0 : escalon(A_LO_LARGO[0], A_LO_LARGO[1], Math.abs(dir.z) / (Math.hypot(dir.x, dir.z) || 1));
-    popa.vela.visible = abre > 0.02; popa.vela.scale.x = Math.max(0.02, abre);
+    // la vela de la popa siempre está en la lista de dibujo: se esconde con la opacidad (bajo el alphaTest) y su ancho se aplica ya
+    // en este cuadro (visible y la matriz del mundo ya se habían leído antes de dibujar)
+    popa.vela.material.opacity = abre > 0.02 ? 1 : 0.3; popa.vela.scale.x = Math.max(0.02, abre); popa.vela.updateMatrix(); popa.vela.updateMatrixWorld();
   };
-  cenital.material.opacity = 0.3; popa.vela.visible = false;
+  cenital.material.opacity = 0.3; popa.vela.material.opacity = 0.3;
   return { grupo, vela: new THREE.Object3D(), yCubierta, zPasajero: -0.12 * ESLORA_PINTADO };
 }
 
