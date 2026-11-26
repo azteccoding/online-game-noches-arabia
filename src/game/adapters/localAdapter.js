@@ -9,12 +9,13 @@ import eventos from '../../data/eventos.json';
 import mensajes from '../../data/mensajes.json';
 import trivias from '../../data/trivias.json';
 import cuentos from '../../data/cuentos.json';
+import ej from '../../data/eventosJugador.json';
 import retos from '../../data/retos.json';
 import { nuevoJuego, unir, reducir, vista, tick } from '../../../shared/engine.js';
 import { armarReaccion, respuestaYafar, ESPERA_YAFAR_MS } from '../../../shared/reacciones.js';
 import { vistaCongelada, dadosPendientes } from '../../../shared/congelar.js';
 
-const DATA = { config, ciudades, rutas, personajes, objetos, eventos, mensajes, trivias, cuentos, retos };
+const DATA = { config, ciudades, rutas, personajes, objetos, eventos, mensajes, trivias, cuentos, ej, retos };
 
 export function crearLocal() {
   const cb = { estado: () => {}, conexion: () => {}, error: () => {}, reaccion: () => {} };

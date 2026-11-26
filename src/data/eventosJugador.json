@@ -1,0 +1,616 @@
+{
+ "nota": "Mazo de eventos de jugador (EJ). Textos de Jorge tal cual (26 de noviembre de 2026). Salen al pagar alojamiento o dormir en una ciudad (una por turno como máximo); las del Jorasán, cuando estás perdido ahí y no logras salir en tu turno. «ciudades» vacío = cualquier ciudad. «arte» = pintura genérica (public/arte/cartas).",
+ "cartas": [
+  {
+   "id": "EJ1",
+   "titulo": "Remedio de camellero",
+   "texto": [
+    "El Zalmedina te sorprende bebiendo orina de camellos pero tranquilo eso no es un crimen en esta ciudad"
+   ],
+   "regla": [],
+   "ciudades": [
+    "Basra",
+    "Yemen"
+   ],
+   "jorasan": false,
+   "arte": "EJ"
+  },
+  {
+   "id": "EJ2",
+   "titulo": "Gramos de menos",
+   "texto": [
+    "El Almotacén te atrapa vendiendo gramos de menos. Paga 4 dinares de fianza o pierde tu acción principal el próximo turno.",
+    "No te pasa nada si traes Balanza de Mercader"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ3",
+   "titulo": "Manos ligeras",
+   "texto": [
+    "No tienes destreza ni arma pero eres un carterista hábil, le robas un objeto a un jugador en tu ciudad",
+    "(Requisito no tener destreza en ningun arma ni armas)"
+   ],
+   "regla": [
+    "Eliges a la víctima entre los jugadores de tu ciudad, y el objeto sale al azar de su mano, como sacar una carta a ciegas."
+   ],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ4",
+   "titulo": "La salida de la casa",
+   "texto": [
+    "Se te vió saliendo borracho de una casa de esta ciudad, el alcohol está prohibido así que si traes Botella de Vino serás enviado al Jorasán o pagarás una fianza de 30 dinares"
+   ],
+   "regla": [
+    "Tú eliges entre el Jorasán y los 30 dinares, y en los dos casos te quitan la Botella de vino. Sin botella no pasa nada."
+   ],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ5",
+   "titulo": "Las monedas del músico",
+   "texto": [
+    "Estudioso del fiqh. La música es permitida en el Islam pues Allah es bello y ama lo bello.",
+    "Si te cruzas con Jamil en la misma ciudad, te mira tan escuálido que incluso ese músico te lanza unas monedas.",
+    "(+5 dinares salen del banco no del haber de Jamil)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ6",
+   "titulo": "Las tabas del zoco",
+   "texto": [
+    "El Zalmedina te ve ganando demasiado a los dados en el zoco. Si traes Dados cargados te los quita y pagas 5 dinares de multa. Si no traes, te pide disculpas por sospechar de una cara tan honrada y te entrega 1 dinar por el tiempo perdido."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ7",
+   "titulo": "La generosidad de los Taí",
+   "texto": [
+    "Te haces el pobre frente a la casa de Adí hijo de Hatim al Taí, porque ya sabes que en esa familia nadie se va con las manos vacías. Si traes Disfraz de mendigo y Adí está en tu ciudad, te da 5 dinares sin preguntar. Si no traes disfraz, te reconoce y te invita a cenar, pero de dinero nada.",
+    "(+5 dinares salen del haber de Adí, forzosa e ineludiblemente)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ"
+  },
+  {
+   "id": "EJ8",
+   "titulo": "La gallina de la anciana",
+   "texto": [
+    "Traes la Túnica de guardia y una anciana te ruega que atrapes al ladrón de su gallina. No lo logras pero la gallina regresa sola y la anciana te paga 3 dinares por el esfuerzo.",
+    "(Solo si traes Túnica de guardia; sin ella no pasa nada)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ9",
+   "titulo": "La comisión contra la corrupción",
+   "texto": [
+    "El visir de esta ciudad abre una investigación contra los sobornos. Si traes Sobre de sobornos, el investigador te lo pide «como prueba» y nunca más se vuelve a saber del sobre ni de la investigación.",
+    "(Pierdes el Sobre de sobornos; sin él no pasa nada)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ10",
+   "titulo": "Presumido en el hammam",
+   "texto": [
+    "En el baño turco presumes que Zubayda se invitó sola a tu alberca. Si Zubayda está en tu ciudad, te desmiente delante de todos y pierdes 10 noches de vergüenza. Si no está, nadie puede desmentirte y ganas 15 noches de buena fama."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ11",
+   "titulo": "El refrán equivocado",
+   "texto": [
+    "Discutes con un mercader y le sueltas un refrán que no viene al caso. Si traes Refranero andalusí, encuentras el refrán exacto y el mercader, avergonzado, te regala 3 dinares. Si no, le pagas 2 dinares por la ofensa."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ12",
+   "titulo": "Cara de sospechoso",
+   "texto": [
+    "Masrur, el verdugo del Califa, pasa por esta ciudad buscando a alguien «con cara de sospechoso» y te elige a ti. Pierdes tu acción principal el próximo turno explicando quién eres.",
+    "No te pasa nada si traes Regalo para Masrur (lo pierdes, pero él te ignora)."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ13",
+   "titulo": "El posadero que ronca",
+   "texto": [
+    "El posadero ronca tan fuerte que tiembla la lámpara. Si traes Pastel de pistaches, se lo das, se lo come y se queda dormido sin roncar: duermes como sultán y ganas 10 noches. Si no traes, pasas la noche contando camellos y pierdes 5 noches."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ14",
+   "titulo": "Perfume sospechoso",
+   "texto": [
+    "El Almotacén revisa tu equipaje y descubre que tu Perfume de rosas huele mejor que el suyo. Si traes Perfume de rosas, te lo compra por 50 dinares. Si no traes, te multa con 2 dinares por oler a camello."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Bagdad",
+    "Damasco"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ15",
+   "titulo": "La consulta del Sabio",
+   "texto": [
+    "Te pasas la noche preguntándole al Sabio Ruyán sobre historias de los antiguos. Si Ruyán está en tu ciudad, te ofrece 2 dinares de su haber. Si no está, el posadero te repite lo que Ruyán le habría dicho y no entiendes nada pero ganas 5 noches."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ16",
+   "titulo": "La princesa equivocada",
+   "texto": [
+    "Llegas a la posada con la cara tapada y te confunden con una princesa de Isfahán. Si traes Velo de viajero, te sirven Sopa del mesón y te devuelven lo que pagaste de alojamiento. Si no, te reconocen y te cobran hasta el aire.",
+    "(Sin velo no pasa nada más)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ17",
+   "titulo": "El presumido de los duelos",
+   "texto": [
+    "Nur al Din duerme en tu posada y no se calla relatando sus duelos ganados. Si Nur al Din está en tu ciudad, el posadero te quita tu cuarto para que lo dejes de escuchar: te devuelven lo que pagaste de alojamiento.",
+    "(Sale del banco)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ18",
+   "titulo": "La apuesta del patio",
+   "texto": [
+    "Zein al Mawasif juega shatranj en el patio de la posada y te gana en tres jugadas. Si Zein está en tu ciudad, le pagas 6 dinares de la apuesta, que van a su haber. Si no está, juegas contra el posadero y empatan por aburrimiento."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ19",
+   "titulo": "El que habla dormido",
+   "texto": [
+    "Yafar el Bermekí duerme en el cuarto de al lado y habla dormido de sus intrigas. Si Yafar está en tu ciudad, te enteras de un secreto de la corte y ganas 10 noches. Si no, solo oyes roncar a una cabra."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ20",
+   "titulo": "La patrulla nocturna",
+   "texto": [
+    "La patrulla toca a tu puerta buscando a un ladrón con tu misma cara. Paga 4 dinares de fianza o pierde tu acción principal el próximo turno explicando que no eres tú.",
+    "No te pasa nada si traes Máscara del zoco"
+   ],
+   "regla": [],
+   "ciudades": [
+    "Bagdad"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ21",
+   "titulo": "La isla que nadaba",
+   "texto": [
+    "Unos marineros te juran en la posada que desembarcaron en una isla que resultó ser un pez. Les crees y les pagas la cena: 2 dinares. Si traes Pluma de roc, les ganas la historia y ellos te pagan la cena a ti: ganas 3 dinares."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Basra",
+    "Yemen",
+    "India"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ22",
+   "titulo": "El poeta sin papel",
+   "texto": [
+    "Un poeta de la posada te pide una hoja para escribir su qasida. Si traes Papel de Samarcanda, papel amate u otro papel (menos libros), se la das y te dedica un verso que se canta en todo el zoco: ganas 15 noches y 25 dinares, y pierdes el papel.",
+    "(Sin papel no pasa nada)"
+   ],
+   "regla": [],
+   "ciudades": [
+    "Samarcanda"
+   ],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ23",
+   "titulo": "El trovador del plato",
+   "texto": [
+    "Un trovador canta en la posada y pasa el plato. Si traes Refranero andalusí, le corriges un refrán, la posada entera se ríe y el trovador te comparte el plato: ganas 3 dinares. Si no, le das 1 dinar por cortesía."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Andalucía",
+    "Magreb",
+    "El Cairo"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ24",
+   "titulo": "Se acabó el aceite",
+   "texto": [
+    "A medianoche se acaba el aceite de la posada y todos tropiezan con todos. Si traes Linterna de aceite, guías a los huéspedes y el posadero te lo agradece con la mejor almohada: ganas 30 noches y 5 dinares. Si no, te pisas tu propio turbante y no pasa nada más."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ25",
+   "titulo": "El espejo sincero",
+   "texto": [
+    "Antes de dormir te miras en el espejo y, por primera vez en tu vida, alguien te dice la verdad sobre tu cara. Si traes Espejo encantado, para consolarte te revela dónde esconde el posadero sus ahorros: ganas 60 dinares. Si no traes, te miras en el agua del pozo, que es más caritativa, y ganas 5 noches de autoestima."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ26",
+   "titulo": "La viuda de los dátiles",
+   "texto": [
+    "Una viuda rica confunde tu cara de cansancio con mirada de poeta y te manda dátiles con una nota perfumada. Si traes Joya de granate, se la das como dote y te casas con ella. Tira un dado: en ese número de turnos tuyos, la viuda fallece y te deja una herencia de 80 dinares y 1 noche de amor (fue todo lo que pudiste darle sin vomitar). Si traes Veneno, heredas al terminar este turno y pierdes el veneno.",
+    "(Sin Joya de granate no pasa nada)"
+   ],
+   "regla": [],
+   "ciudades": [
+    "Damasco",
+    "Aleppo",
+    "Estambul",
+    "El Cairo"
+   ],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ27",
+   "titulo": "El músico de mentiras",
+   "texto": [
+    "Te cuelas en una boda del barrio jurando que eres el músico contratado. Si Jamil está en tu ciudad, llega el músico de verdad, toca de verdad y a ti te sacan de la oreja: pierdes 10 noches. Si no está, nadie nota que no sabes tocar, la novia te sonríe más de la cuenta y cenas como príncipe: ganas 20 noches y 5 dinares."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ28",
+   "titulo": "El camello enamorado",
+   "texto": [
+    "Tu camello se enamora de la camella del posadero y se niega a salir del establo. Si traes camello, el posadero, conmovido, te paga 15 dinares para que se queden juntos una noche más (no pierdes tu camello). Si no traes camello, el posadero te cuenta toda la noche su propia vida amorosa y pierdes 10 noches."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Bagdad",
+    "Estambul",
+    "El Cairo",
+    "Yemen",
+    "India",
+    "Samarcanda",
+    "Isfahán",
+    "Andalucía",
+    "Magreb"
+   ],
+   "jorasan": false,
+   "arte": "EJ"
+  },
+  {
+   "id": "EJ29",
+   "titulo": "La despensa cerrada",
+   "texto": [
+    "A medianoche te da hambre y la despensa está cerrada con candado. Si traes Ganzúa o Llave de bronce, la abres, cenas como emir y encuentras 8 dinares en un frasco de miel; el posadero culpa a su suegra. Ganas 15 noches y 8 dinares. Si no traes, cenas pan duro con agua y te sientes muy santo: ganas 5 noches de paciencia."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Bagdad",
+    "Estambul",
+    "El Cairo",
+    "Yemen",
+    "India",
+    "Samarcanda",
+    "Isfahán",
+    "Andalucía",
+    "Magreb"
+   ],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ30",
+   "titulo": "El mercader más mentiroso",
+   "texto": [
+    "Un mercader te jura que su alfombra vuela, que su gato habla y que su suegra es buena persona. Si traes Seda de Isfahán, le ganas en mentiras: le juras que tu seda la tejieron los genios y te la compra por 40 dinares. Si no traes, le compras el gato que habla. No habla. Pagas 3 dinares."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Estambul",
+    "Aleppo",
+    "Damasco"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ31",
+   "titulo": "La apuesta del desierto",
+   "texto": [
+    "Un caravanero te apuesta que no aguantas un día entero sin agua. Si traes Odre de agua, bebes a escondidas detrás del camello, ganas la apuesta con cara de mártir y cobras 15 dinares. Si no traes, aguantas medio día y te desmayas sobre un camello que no era tuyo: pierdes 5 noches."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Magreb"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ32",
+   "titulo": "El astrólogo de la plaza",
+   "texto": [
+    "Un astrólogo te lee la palma y te predice tu fortuna: una vida de abundancia y una esposa hermosa. Te cobra 3 dinares, y lo único que acierta es que ibas a perder 3 dinares. Si traes Amuleto de turquesa, se asusta creyendo que eres un mago de verdad, te devuelve el dinero y te da 25 de propina para que no lo maldigas."
+   ],
+   "regla": [],
+   "ciudades": [
+    "El Cairo",
+    "Andalucía",
+    "Magreb"
+   ],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ33",
+   "titulo": "El ghul vegetariano",
+   "texto": [
+    "Te topas con un ghul que jura ser vegetariano desde hace tres lunas y te pide recetas de hummus con albahaca. Le das la de tu abuela y, conmovido, no te come: ganas 25 noches por sobrevivir a una conversación con un ghul. Si traes Dátiles y pan de viaje, se los regalas y él te da 25 dinares que le quitó a su última cena, que no era vegetariana."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ34",
+   "titulo": "El que se perdió antes",
+   "texto": [
+    "Tropiezas con los huesos de un viajero que se perdió antes que tú. Tiene la bolsa intacta y una nota que dice «por aquí no era». Ganas 30 dinares y la lección, que no te sirve de nada porque sigues perdido. Si traes Pala de zapador, cavas un poco más y encuentras su otra bolsa: 30 dinares más."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ35",
+   "titulo": "El sello que nadie lee",
+   "texto": [
+    "Presentas tu Carta de recomendación al posadero, que no sabe leer pero reconoce un sello cuando lo ve. Si traes Carta de recomendación, te da el cuarto del visir: te devuelven lo que pagaste de alojamiento y ganas 50 noches (pierdes la carta). Si no traes, le juras que eres primo del visir; no te cree, te devuelve el alojamiento y te manda a dormir al corral de las cabras."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ36",
+   "titulo": "La caravana más perdida",
+   "texto": [
+    "Te encuentras una caravana todavía más perdida que tú, cuyo jefe jura que conoce el camino desde hace tres semanas. Te pide indicaciones; le señalas cualquier lado con mucha seguridad y te paga 10 dinares por el consejo. Si traes Cuaderno de ruta, se lo vendes por 35 dinares y lo pierdes; nadie revisa que sea de otra ruta."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ37",
+   "titulo": "La ventana de siempre",
+   "texto": [
+    "Un marido celoso llega a la posada buscando al joven que le guiñó el ojo a su esposa en el zoco. Si eres Anís, sales por la ventana, como siempre, y la esposa te lanza su bolsa por la misma ventana: ganas 25 dinares y 25 noches. Si no eres Anís, el marido te mira la cara, decide que no eres tan guapo y se va: ganas 5 noches, aunque te duela."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Isfahán"
+   ],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ38",
+   "titulo": "El retrato del joven",
+   "texto": [
+    "Un pintor de la posada busca al joven más guapo de la ciudad para un retrato. Si Anís está en tu ciudad, lo escoge a él y le paga 15 dinares, y mientras posa, Anís se roba una alfombra de Isfahán del taller; a ti te toca cargar el caballete y te dan 2. Si no está, te escoge a ti por falta de opciones y ganas 5 dinares de consolación."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Isfahán",
+    "Samarcanda",
+    "Andalucía"
+   ],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ39",
+   "titulo": "La pastora del Jorasán",
+   "texto": [
+    "Una pastora te encuentra medio muerto de sed entre las dunas. Si eres Anís, se enamora a primera vista, te esconde en su tienda, te regala 15 dinares y 20 noches y te enseña la salida: en tu próximo turno sales del Jorasán a Basra sin tirar. Si no eres Anís, te mira, suspira y te presta a su perro, que tampoco sabe el camino: ganas 5 noches."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ40",
+   "titulo": "Otra ventana",
+   "texto": [
+    "En medio del desierto encuentras unas ruinas con una sola ventana. Si eres Anís, sales por ella, como siempre, y caes encima del tesoro de un bandido dormido: ganas 30 dinares. Si no eres Anís, te asomas, ves más desierto y pierdes 5 noches de esperanza."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ41",
+   "titulo": "La carta del esposo",
+   "texto": [
+    "Llega a la posada una carta del esposo de Zein con dinero «para que no le falte nada», aunque la letra es de ella misma. Si eres Zein, recibes 20 dinares de mahr extra y 10 noches por aguantar a la suegra. Si no eres Zein, el mensajero te la entrega por error; y los cobras. Si ella está en la misma ciudad lo compartes a mitades."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ42",
+   "titulo": "Los poetas de Andalucía",
+   "texto": [
+    "Todos los poetas de la posada le escriben versos a Zein, alabando su belleza y estatus.",
+    "Por eso en esa ronda nadie se atreve a desafiarla atacarla ni robarle."
+   ],
+   "regla": [],
+   "ciudades": [
+    "Andalucía",
+    "Magreb",
+    "Isfahán"
+   ],
+   "jorasan": false,
+   "arte": "EJ"
+  },
+  {
+   "id": "EJ43",
+   "titulo": "Los bandidos y la hermosa",
+   "texto": [
+    "Unos bandidos te rodean entre las dunas. Si eres Zein, la reconocen, recuerdan que quien la toca queda Buscado y, para que no le cuente a nadie, le dan su botín: ganas 25 dinares. Si no eres Zein, te quitan 3 dinares y te dejan su mapa, que está mal dibujado."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ44",
+   "titulo": "Las pirámides que no eran",
+   "texto": [
+    "A lo lejos ves las pirámides de El Cairo. Si eres Zein, no es un espejismo: es la caravana de tu esposo, que te anda buscando. Te recoge, ganas 10 noches y en tu próximo turno sales del Jorasán a El Cairo sin tirar. Si no eres Zein, corres hacia las pirámides, que eran dunas, y pierdes 5 noches."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": true,
+   "arte": "EJ-jorasan"
+  },
+  {
+   "id": "EJ45",
+   "titulo": "¿Por qué el cielo es azul?",
+   "texto": [
+    "Los huéspedes le preguntan al Sabio Ruyán por qué el cielo es azul, y él cobra por adelantado. Si Ruyán está en tu ciudad, cada jugador de la ciudad le paga 2 dinares (salen de sus bolsas) y todos ganan 15 noches de sabiduría que mañana no van a recordar. Si no está, la pregunta se queda sin respuesta y nadie duerme. (pierden 1 noche)"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ"
+  },
+  {
+   "id": "EJ46",
+   "titulo": "La respuesta en sueños",
+   "texto": [
+    "Te desvelas tratando de recordar la respuesta de una trivia.",
+    "El Sabio Ruyán te las sopla.",
+    "Si el Sabio Ruyán está en tu ciudad gana 5 dinares y tú, 30 noches por la próxima trivia acertada."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  },
+  {
+   "id": "EJ47",
+   "titulo": "La academia de la posada",
+   "texto": [
+    "El Sabio Ruyán y Adí hijo de Hatim al Taí abren juntos una academia en la posada: Ruyán pone la sabiduría y Adí, el pan. Toda la mesa paga la inscripción sin entender bien para qué: cada jugador que no sea Ruyán ni Adí pierde 5 dinares, y Ruyán y Adí se reparten lo juntado a mitades. Si alguno de los dos no está en la partida, su parte se la queda Yafar, sea NPC o jugador, que siempre cobra."
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-pierdes"
+  },
+  {
+   "id": "EJ48",
+   "titulo": "El banquete de los Taí",
+   "texto": [
+    "Adí hijo de Hatim al Taí invita a cenar a toda la posada, porque en su familia hasta el que pierde invita. Si Adí está en tu ciudad, todos los jugadores de la ciudad ganan 10 noches y Adí, por la fama, gana 50 noches"
+   ],
+   "regla": [],
+   "ciudades": [],
+   "jorasan": false,
+   "arte": "EJ-ganas"
+  }
+ ]
+}

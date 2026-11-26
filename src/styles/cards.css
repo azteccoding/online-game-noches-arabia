@@ -33,7 +33,7 @@
 .c-cuerpo { flex: 1; min-height: 0; overflow-y: auto; scrollbar-width: thin; padding: 2.4cqw 3.2cqw; border-radius: 2.2cqw; background: color-mix(in srgb, var(--papel2) 70%, #fff 8%); border: .35cqw solid color-mix(in srgb, var(--marco) 60%, transparent); }
 .deck-mensaje .c-cuerpo, .deck-objeto .c-cuerpo, .deck-reto .c-cuerpo, .deck-ifrit .c-cuerpo { background: rgba(0, 0, 0, .28); }
 .c-texto { margin: 0; font-size: 4.6cqw; line-height: 1.28; text-wrap: pretty; }
-.deck-ifrit .c-texto { white-space: pre-line; }   /* un deseo por renglón */
+.deck-ifrit .c-texto, .deck-ej .c-texto { white-space: pre-line; }   /* un deseo por renglón; en los eventos de jugador, cada párrafo de Jorge */   /* un deseo por renglón */
 .c-nota { margin: 1.4cqw 0 0; font-size: 3.3cqw; line-height: 1.22; color: var(--lema); }
 .c-cita { margin: 0; text-align: center; font-style: italic; font-size: 3.2cqw; line-height: 1.2; color: var(--lema); }
 .chips { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2cqw; }

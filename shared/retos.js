@@ -907,13 +907,10 @@ T.R37 = { ciudad: 'El Cairo', req: (data, e, pid) => { const j = e.jugadores[pid
   if (aplic(data, e, pid, us, 'OB30') || (j.dinares < 10 && consumirObj(data, e, pid, 'OB30'))) ctx.say('Entras con tu carta de recomendación.'); else j.dinares -= 10;
   const [x0] = ctx.t(`${j.nombre}: la boda`, 1); const x = x0 + (aplic(data, e, pid, us, 'OB21') ? 1 : 0);
   if (x <= 2) { j.extra.sinPrincipal = true; ctx.say('Se te sube el vino: perderás tu próxima acción principal.'); }
-  else if (x <= 5) {   // Jorge (20 de noviembre): 30 dinares y lees la Carta de Cuentos de El Cairo (+2 al cerrarla), no una trivia
+  else if (x <= 5) {   // Jorge (20 de noviembre): 30 dinares y una carta más. 3D (26 de noviembre): ya no hay Cartas de Cuentos; sacas un evento de jugador
     premio(data, e, pid, { dinares: 30 }, 'Contactos útiles:');
-    // Jorge (20 de noviembre): si el de El Cairo ya salió, lees otro que no haya salido; si ya salieron los 7, solo los 30.
-    const salidos = e.cuentosSacados || [], claves = [...new Set(data.cuentos.cuentos.map((c) => c.clave))].filter((k) => !salidos.includes(k));
-    const clave = claves.includes('El Cairo') ? 'El Cairo' : claves.length ? claves[Math.floor(rnd(e) * claves.length)] : null;
-    if (clave && HOOK.sacarCuento(data, e, pid, clave)) ctx.say(`Ganas 30 dinares y lees una Carta de Cuentos${clave === 'El Cairo' ? ' de El Cairo' : ''} (+2 dinares al cerrarla).`);
-    else ctx.say('Ganas 30 dinares. Ya salieron todas las Cartas de Cuentos de la partida.');
+    if (HOOK.sacarEJ?.(data, e, pid)) ctx.say('Ganas 30 dinares y sacas un evento de jugador.');
+    else ctx.say('Ganas 30 dinares.');
   }
   else { darTransporte(data, e, pid, 'caballo'); ctx.say('Un socio generoso te regala un caballo nuevo.'); }   // Jorge (19 de noviembre): un caballo en vez de 60 dinares
 } };

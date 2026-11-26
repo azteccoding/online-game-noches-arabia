@@ -18,6 +18,7 @@ import * as TES from './tesoros.js';
 import * as EVE from './eventos.js';
 import * as NPC from './npc.js';
 import * as PJ from './personajes.js';
+import * as EJ from './eventosJugador.js';
 import { vista3d } from './vista3d.js';
 
 export { VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, cartaDatos, clone };
@@ -414,6 +415,8 @@ function iniciarTurno(data, e, id, idx) {
   const t = e.turno = { pid: id, idx, t0: e.ahora, fase: 'ingreso', tramos: 0, ciudadInicio: j.ciudad, movio: false, llegadas: [], cc: 0, ccBien: 0, ccActual: null, principal: false, primerTurnoBagdad: !j.extra.jugoTurno, npc: !!j.npc, gastos: {} };
   const primerTurno = !j.extra.jugoTurno;
   j.extra.jugoTurno = true; j.turnos++;
+  EJ.alIniciarTurno(data, e, id, t);                                        // eventos de jugador: la viuda de EJ26 y las salidas del Jorasán de EJ39 y EJ44
+  t.perdidoInicio = !!j.perdido;
   if (j.extra.huidasPend) { t.huidas = j.extra.huidasPend; j.extra.huidasPend = 0; }   // huida obligada fuera de su turno: un viaje menos (Jorge, 21 de noviembre)
   if (j.extra.viajePalacio && j.turnos > PJ.PALACIOS.turnos) { j.extra.viajePalacio = false; log(e, `${j.nombre} ya no usó su viaje gratis a los palacios del Califa: se pierde.`, { pid: id }); }
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
@@ -825,7 +828,7 @@ function despachar(data, e, pid, j, a, ahora) {
       log(e, `${j.nombre} ${a.ocultar ? 'esconde' : 'saca'} ${objetivo.length > 1 ? 'sus jambiyas' : 'una jambiya'}.`, { pid });
       return ok();
     }
-    case 'leido': if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (j.extra.harenPend && Number(a.nro) >= j.extra.harenPend.nro) PJ.cobrarHaren(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
+    case 'leido': if (j.extra.ejPend && Number(a.nro) >= j.extra.ejPend.nro) EJ.resolver(data, e, j.id); if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (j.extra.harenPend && Number(a.nro) >= j.extra.harenPend.nro) PJ.cobrarHaren(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay Carta de Trivias pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
     case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
@@ -1163,8 +1166,7 @@ export function robarCC(data, e, pid, ciudad) {
   const [c] = m.cc[origen].splice(i, 1);
   m.ccVistas.push(c.k + c.id);
   (m.descarte.cc[origen] ||= []).push(c);
-  t.cc++;
-  sacarCuento(data, e, pid, ciudad);                                                                          // R 19.7
+  t.cc++;   // 3D (Jorge, 26 de noviembre): ya no salen las Cartas de Cuentos (R 19.7); las reemplaza el mazo de eventos de jugador
   const tipo = c.k === 't' ? 'trivia' : 'mesa';
   const datos = cartaDatos(data, tipo, c.id);
   const ent = publicarCarta(e, datos, pid);
@@ -1218,7 +1220,7 @@ function responderCC(data, e, pid, a) {
   log(e, `${j.nombre} ${acierto ? 'acierta la trivia (+' + tr.premio + ' dinares)' : 'falla la trivia'}.`, { pid });
   t.ccActual = null; if (ent) e.ultimaCarta = ent.nro;
   if (t.finTrasCC) t.fin = true;                                                                             // llegó en caballo, camello o alfombra
-  sacarCuento(data, e, pid, 'Respuestas');                                                                   // R 19.7
+  EJ.trasTrivia(e, j, acierto);                                                                              // EJ46: la trivia que sopló Ruyán
   if (acierto) RET.mensajes(data, e, pid, 'cc', { n: t.ccBien });
   RET.tras(data, e, pid, 'cc', { acierto });
   return ok();
@@ -1246,13 +1248,19 @@ function terminarTurno(data, e, pid) {
       if (e.mods.alojDoble?.includes(j.ciudad)) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);
       if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = 10 * (j.pj === 'B' ? 2 : 1);
       costo = OBJ.sopa(data, e, pid, costo);
-      pagar(data, e, pid, costo);
+      pagar(data, e, pid, costo); t.alojPagado = costo;
       log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad} (no se movió este turno).`, { pid });
     }
   }
   for (const m of j.mensajes.filter((x) => x.turnoLimite != null && e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   RET.finTurno(data, e, pid);
+  // Eventos de jugador (Jorge, 26 de noviembre): uno al pagar alojamiento o dormir en una ciudad; los del Jorasán si empezaste el turno
+  // perdido y lo terminas perdido. Como máximo uno por turno.
+  if (!t.ejSacada && !j.eliminado) {
+    if (!t.movio && !j.perdido && !t.omitido && !t.sinAlojamiento && !j.transito) { if (EJ.alDormir(data, e, pid, { aloj: t.alojPagado || 0 })) t.ejSacada = true; }
+    else if (j.perdido && t.perdidoInicio) { if (EJ.alSeguirPerdido(data, e, pid)) t.ejSacada = true; }
+  }
   t.fin = true;
   return ok();
 }
@@ -1672,6 +1680,7 @@ function tick0(data, e, ahora) {
   if (e.turno?.fase === 'ingreso' && (e.pend || e.dados)) e.turno.t0 = ahora;   // los 60 segundos cuentan desde que puede tirar
   const sac = sacable(e); if (sac !== !!e.avisoSacar) { e.avisoSacar = sac; cambio = true; }
   for (const j of Object.values(e.jugadores)) if (j.extra?.cuentoPend && ahora - j.extra.cuentoPend.t > 90000) { cobrarCuento(e, j); cambio = true; }   // si nunca cierra la carta, cobra igual
+  for (const j of Object.values(e.jugadores)) if (EJ.pendienteVencido(j, ahora)) { EJ.resolver(data, e, j.id); cambio = true; }   // el evento de jugador, igual
   for (const j of Object.values(e.jugadores)) if (j.extra?.mahrPend && ahora - j.extra.mahrPend.t > 90000) { cobrarMahr(e, j); cambio = true; }   // el mahr de Zein, igual
   for (const j of Object.values(e.jugadores)) if (j.extra?.harenPend && ahora - j.extra.harenPend.t > 90000) { PJ.cobrarHaren(e, j); cambio = true; }   // la noche de Zubayda en el harén, igual
   if (e.fase === 'lobby') {
@@ -1714,4 +1723,5 @@ export function migrar(e) {
 
 // ---------------------------------------------------------------- enlaces para los demás módulos
 HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.viajarPropio = viajarPropio; HOOK.robarCC = robarCC; HOOK.sacarCuento = sacarCuento;
+HOOK.sacarEJ = (data, e, pid) => { const t = e.turno; if (t?.ejSacada) return null; const r = EJ.alDormir(data, e, pid); if (r && t?.pid === pid) t.ejSacada = true; return r; };
 HOOK.darMensaje = darMensaje; HOOK.avanzar = avanzar; HOOK.multiplicador = multiplicadorRonda; HOOK.sacarCuento = sacarCuento;

@@ -94,5 +94,9 @@
   "M7": {"letra": "mini", "imagen": "me-ibn-hazm"},
   "M8": {"letra": "mini", "imagen": "me-ibn-hazm"},
   "M17": {"letra": "mini", "imagen": "me-ibn-hazm"},
-  "it:cartaIbnHazm": {"letra": "mini", "imagen": "me-ibn-hazm"}
+  "it:cartaIbnHazm": {"letra": "mini", "imagen": "me-ibn-hazm"},
+  "EJ": {"letra": "mini"},
+  "EJ-pierdes": {"letra": "mini"},
+  "EJ-ganas": {"letra": "mini"},
+  "EJ-jorasan": {"letra": "mini"}
 }

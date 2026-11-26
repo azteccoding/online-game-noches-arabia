@@ -16,7 +16,7 @@ import { vista3d, laudDeLinea } from '../shared/vista3d.js';
 import { asegurarLaud } from '../shared/personajes.js';
 import { simular } from './sim.mjs';
 
-const data = cargarDatos();
+const data = { ...cargarDatos(), ej: { cartas: [] } };   // sin eventos de jugador: estas pruebas cuentan dinares y noches exactos al terminar turnos (el mazo EJ se prueba en eventos-jugador.test.mjs y en la simulación)
 function partida(pjs, opciones = {}, semilla = 5) {
   const e = nuevoJuego(data, { semilla, ahora: 1000, opciones });
   let now = 1000;
@@ -5184,24 +5184,24 @@ console.log('reglas de la casa OK');
   const d0 = A.dinares; assert.ok(g.act(a, { t: 'reto', id: 'R38' }).ok);
   assert.ok(tieneItem(A, 'camello'), 'R38 ganado: camello'); assert.equal(A.dinares, d0, 'recupera su apuesta, sin los 30');
 }
-// Jorge (20 de noviembre): R37 con 3 a 5 da 30 dinares y una Carta de Cuentos (+2 al cerrarla): la de El Cairo o, si ya salió, otra que no haya salido; no una trivia
+// Jorge (20 de noviembre): R37 con 3 a 5 da 30 dinares y una carta más, no una trivia. 3D (26 de noviembre): ya no hay Cartas de Cuentos;
+// la carta es un evento de jugador (cuenta como el de ese turno: al terminarlo ya no sale otro)
 {
+  data.ej = cargarDatos().ej;
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
-  e.cuentosSacados = ['El Cairo'];
   turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; A.dinares = 50; e.turno.fase = 'acciones'; e.turno.ccActual = null; forzar(e, 4);
   const cc0 = e.turno.cc;
   assert.ok(g.act(a, { t: 'reto', id: 'R37' }).ok);
   assert.equal(A.dinares, 70, 'pagas 10 y cobras 30');
-  assert.ok(A.extra.cuentoPend && A.extra.cuentoPend.monto === 2, 'cuento pendiente de 2 dinares');
-  assert.equal(e.cuentosSacados.length, 2, 'otro cuento que no había salido');
+  assert.ok(A.extra.ejPend, 'evento de jugador pendiente de cerrar');
   assert.equal(e.turno.cc, cc0, 'no roba una Carta de Trivias'); assert.ok(!e.turno.ccActual, 'sin trivia pendiente');
-  assert.equal(e.historial.at(-1).deck, 'cuento');
-  assert.ok(g.act(a, { t: 'leido', nro: A.extra.cuentoPend.nro }).ok); assert.equal(A.dinares, 72, '+2 al cerrar el cuento');
-  // ya salieron los 7: solo los 30
-  e.cuentosSacados = [...new Set(data.cuentos.cuentos.map((c) => c.clave))]; A.retosHechos = A.retosHechos.filter((x) => x !== 'R37');
-  turnoDe(e, a, 'El Cairo'); A.ciudad = 'El Cairo'; e.turno.fase = 'acciones'; forzar(e, 5);
-  assert.ok(g.act(a, { t: 'reto', id: 'R37' }).ok); assert.equal(A.dinares, 92, 'solo 30'); assert.ok(!A.extra.cuentoPend);
+  assert.equal(e.historial.at(-1).deck, 'ej');
+  assert.ok(!e.historial.some((h) => h.deck === 'cuento'), 'sin cuentos');
+  const n0 = e.seq; e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  assert.ok(g.act(a, { t: 'terminarTurno' }).ok);
+  assert.ok(!e.historial.some((h) => h.nro > n0 && h.deck === 'ej'), 'uno por turno: al terminarlo no sale otro');
+  data.ej = { cartas: [] };
 }
 // Jorge (20 de noviembre): R25 sin noches; R52 da 10 a los que no son el primero; R44 da 20 base; R56 da 50 al primero
 {

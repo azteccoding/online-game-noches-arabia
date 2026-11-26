@@ -1,6 +1,7 @@
 // Combate, duelos, robos y asesinato entre jugadores (R 11, R 12) y peleas contra NPC (retos, Patrulla, esposo de Zein).
 // Reglas de la casa oficiales (config.reglasCasa): bonos de arma para AMBOS bandos y defensor que mata sin quedar Buscado.
 // Todo se resuelve en el servidor; las decisiones del defensor se piden con «pend» y las tiradas se muestran con la cola de dados.
+import { protegidaPorPoetas, MSJ_POETAS } from './eventosJugador.js';
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
@@ -197,6 +198,7 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   if (j.ciudad !== d.ciudad) return err('Deben estar en la misma ciudad.');
   if (d.transito || j.transito) return err('Quien viaja con transporte propio no puede ser atacado.');
   if (d.extra.bajoTecho) return err('Zubayda está bajo el techo del Califa: no se la puede atacar.');
+  if (protegidaPorPoetas(e, d.id)) return err(MSJ_POETAS);   // EJ42, solo 3D (Jorge, 26 de noviembre)
   if (j.perdido || d.perdido) return err('Alguien está perdido en el Jorasán.');
   if (!npc) {
     if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');

@@ -12,15 +12,16 @@ const P = {
   mesa: <path d="M4 8h16M6 8v10M18 8v10M8 12h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
   ifrit: <path d="M5 16c0-3 3-4 5-6s1-5 3-6c0 3 4 3 4 8 0 3-2 5-6 5s-6-1-6-1z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />,
   especial: <path d="M12 3l2 6h6l-5 4 2 7-5-4-5 4 2-7-5-4h6z" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />,
+  ej: <path d="M12 3c1.5 2 1.5 3.5 0 5-1.5-1.5-1.5-3 0-5zM3 13c2-2 7-3 11-2.5 2 .3 3.5 1 4.5 2l2.5-1.5-2 3.5c-1 2.5-4 4-8 4s-6.5-1.5-7.5-3.5zM8 21h8" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />,
   personaje: <path d="M12 4a4 4 0 110 8 4 4 0 010-8zM4 21c0-5 4-7 8-7s8 2 8 7" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />,
 };
 export const Icono = ({ deck, size = 22 }) => <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true">{P[deck] || P.especial}</svg>;
 
 export const ETIQUETA = {
   evento: ['EVENTO', 'حدث'], historico: ['HISTORIA', 'تاريخ'], mensaje: ['MENSAJE', 'رسالة'], reto: ['RETO', 'تحدٍّ'], objeto: ['OBJETO', 'غرض'],
-  trivia: ['TRIVIA', 'سؤال'], mesa: ['DE MESA', 'سؤال'], cuento: ['CUENTO', 'قصة'], ifrit: ['IFRIT', 'عفريت'], especial: ['ESPECIAL', 'خاص'], personaje: ['PERSONAJE', 'شخصية'],
+  trivia: ['TRIVIA', 'سؤال'], mesa: ['DE MESA', 'سؤال'], cuento: ['CUENTO', 'قصة'], ifrit: ['IFRIT', 'عفريت'], especial: ['ESPECIAL', 'خاص'], personaje: ['PERSONAJE', 'شخصية'], ej: ['EVENTO DE JUGADOR', 'حدث'],
 };
-export const DORSO = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', reto: 'retos', objeto: 'objetos', trivia: 'trivia', mesa: 'trivia', cuento: 'cc', ifrit: 'ifrit', especial: 'objetos', personaje: 'personajes' };
+export const DORSO = { evento: 'eventos', historico: 'historicos', mensaje: 'mensajes', reto: 'retos', objeto: 'objetos', trivia: 'trivia', mesa: 'trivia', cuento: 'cc', ifrit: 'ifrit', especial: 'objetos', personaje: 'personajes', ej: 'cc' };
 
 // Adorno geométrico procedural (estrella de 8 puntas) para cartas sin ilustración. Vectorial, no pesa ni se pixela.
 export const Adorno = () => (
