@@ -4357,10 +4357,11 @@ console.log('reglas de la casa OK');
   for (const pj of ['2', '5']) {
     const g = partida([pj, '7']); assert.ok(g.iniciar().ok);
     const e = g.e, [z] = g.ids, Z = e.jugadores[z];
-    // R25 (destreza general): para ellos es destreza solo con la jambiya
+    // R25 (destreza general): Jorge (26 nov): no los deja intentarla; la de la jambiya la entrenan en Yemen
     Z.ciudad = 'Estambul'; Z.dinares = 200; turnoDe(e, z, 'Estambul'); e.turno.fase = 'acciones'; Z.extra.destrezaJambiya = false;   // (Zein ya la trae de inicio)
-    { const r = g.act(z, { t: 'reto', id: 'R25' }); assert.ok(r.ok, r.error); e.jugadores[z].turnos++; recibirDestreza(data, e, z); e.jugadores[z].pierdeTurno = 0; }
-    assert.ok(!Z.destreza, `${pj}: no gana la destreza general`); assert.ok(Z.extra.destrezaJambiya, `${pj}: solo con la jambiya`);
+    { const op = vistaDe(e, z).acciones.find((x) => x.k === 'reto' && x.id === 'R25'); assert.ok(!op || op.bloqueado, `${pj}: R25 sale bloqueado`); }
+    assert.match(g.act(z, { t: 'reto', id: 'R25' }).error || '', /salvo con la jambiya/, `${pj}: no intenta la destreza general`);
+    assert.ok(!Z.destreza && Z.dinares === 200, `${pj}: no paga ni gana nada`); Z.extra.destrezaJambiya = true;
     Z.mano = Z.mano.filter((c) => !['cimitarra', 'alfanje', 'arco', 'jambiya'].includes(c.ref)); darItem(e, Z, 'cimitarra'); Z.ciudad = 'Damasco';
     assert.ok(!perfil(data, e, z).destreza, `${pj}: con cimitarra pelea sin destreza`);
     darItem(e, Z, 'jambiya');
@@ -5551,4 +5552,60 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.ok(g.act(yafar, { t: 'host.reiniciar' }).ok); assert.equal(vistaDe(e, adi).votoReinicio.total, 3, 'Yafar jugador sí vota');
   e.votoReinicio = null;
   console.log('Yafar NPC en las votaciones OK');
+}
+
+// Jorge (26 de noviembre, solo en el 3D): en difícil, la primera preocupación de Yafar NPC es conseguir armas y destreza (entrenar con
+// sus armas) para robar o retar a duelo después.
+{
+  const NPC = await import('../shared/npc.js');
+  const prep = (dific) => {
+    const g = partida(['4', '7'], { dificultad: dific }); assert.ok(g.iniciar().ok);
+    const e = g.e, Y = e.jugadores.npc, [a, b] = g.ids;
+    for (const id of [a, b]) e.jugadores[id].ciudad = 'Damasco';
+    e.ronda = 5; turnoDe(e, 'npc', 'Bagdad'); e.turno.fase = 'acciones'; Y.ciudad = 'Bagdad';
+    Y.mano = Y.mano.filter((c) => !['cimitarra', 'alfanje', 'arco', 'flechas'].includes(c.ref)); Y.dinares = 200;
+    return { g, e, Y };
+  };
+  // sin armas y con dinero, en Bagdad (no venden alfanje ni cimitarra): va a conseguirlas
+  { const { e } = prep('dificil'); const r = NPC._destinoNPC(data, e, 'npc'); assert.equal(r.motivo, 'va a conseguir armas'); assert.ok(r.destino && r.destino !== 'Bagdad'); }
+  { const { e } = prep('normal'); const r = NPC._destinoNPC(data, e, 'npc'); assert.notEqual(r.motivo, 'va a conseguir armas', 'en normal, como antes'); }
+  // en una ciudad donde venden: las compra al empezar su acción, antes de atacar a nadie
+  { const { e, Y } = prep('dificil'); Y.ciudad = 'Samarcanda'; e.turno.ciudadInicio = 'Samarcanda'; const n0 = e.logN || 0;
+    NPC.accionPrincipal(data, e, 'npc');
+    const compra = e.log.find((l) => l.n > n0 && /Yafar NPC compra (alfanje|cimitarra)/.test(l.texto)); assert.ok(compra, 'compra un arma');
+    const ataque = e.log.find((l) => l.n > n0 && /intenta el reto|asalta|duelo/.test(l.texto)); assert.ok(!ataque || ataque.n > compra.n, 'antes que cualquier otra cosa'); }
+  // con dos armas: va a entrenar con ellas; y donde se entrena, entrena antes de atacar
+  { const { e, Y } = prep('dificil'); darItem(e, Y, 'cimitarra'); darItem(e, Y, 'alfanje'); Y.extra.entrenado = { arco: true };
+    const r = NPC._destinoNPC(data, e, 'npc'); assert.equal(r.motivo, 'va a entrenar con sus armas');
+    Y.ciudad = 'Damasco'; e.turno.ciudadInicio = 'Damasco'; const n0 = e.logN || 0;
+    NPC.accionPrincipal(data, e, 'npc'); assert.ok(e.log.some((l) => l.n > n0 && /intenta el reto R42/.test(l.texto)), 'entrena alfanje en Damasco aunque haya a quién atacar');
+    assert.ok(Y.extra.entrenado?.alfanje, 'queda entrenado'); }
+  console.log('Yafar difícil: primero armas y destreza OK');
+}
+
+// Jorge (26 de noviembre, solo en el 3D): si los libros de las transcripciones de los sheijs valen distinto, Acciones dice cuál conviene más.
+{
+  const { hablaIdioma } = await import('../shared/retos.js');
+  const g = partida(['1', '7', '6']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; (A.extra.idiomas ||= []).push('árabe');
+  if (!hablaIdioma(A, 'árabe')) A.idiomas = [...(A.idiomas || []), 'árabe'];
+  darItem(e, A, 'caballo');
+  const ops = vistaDe(e, a).acciones.filter((x) => x.k === 'reto' && ['R60', 'R61', 'R62'].includes(x.id));
+  assert.equal(ops.length, 3, 'salen las tres transcripciones');
+  const r60 = ops.find((x) => x.id === 'R60'), r61 = ops.find((x) => x.id === 'R61');
+  assert.match(r60.titulo, /te conviene más/); assert.ok(r60.conviene); assert.ok(!/te conviene más/.test(r61.titulo));
+  assert.match(r60.nota, /valen hoy 250 dinares en total \(50 cada uno/); assert.match(r61.nota, /los de R60 valen 250/);
+  console.log('transcripciones: cuál conviene más OK');
+}
+
+// Jorge (26 de noviembre): sacó a un jugador desconectado y quedó solo (Ruyán) contra Yafar NPC: en su turno el mercado debe venderle.
+{
+  const g = partida(['5', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [r, o] = g.ids, R = e.jugadores[r];
+  R.ciudad = 'Bagdad'; turnoDe(e, r, 'Bagdad'); e.turno.fase = 'acciones'; R.dinares = 100;
+  assert.match(g.act(r, { t: 'comprar', ref: 'jambiya' }).error || '', /mientras juegan los demás/, 'con otro jugador, en tu turno no');
+  e.jugadores[o].sacado = true;
+  const v = g.act(r, { t: 'comprar', ref: 'jambiya' }); assert.ok(v.ok, v.error);
+  console.log('comprar solo tras sacar a un jugador OK');
 }

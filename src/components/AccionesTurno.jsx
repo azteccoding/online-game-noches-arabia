@@ -80,6 +80,7 @@ function Reto({ a, s }) {
       <div className="accion-txt">
         <b>{a.titulo}</b>
         {a.premio && <small>Premio: {typeof a.premio === 'string' ? a.premio : JSON.stringify(a.premio)}</small>}
+        {a.nota && <small className={a.conviene ? 'conviene' : undefined}>{a.nota}</small>}
         {a.bloqueado && <small className="error">{a.bloqueado}</small>}
         {ver && <small>{a.texto}{a.requisito ? ` · Requisito: ${a.requisito}` : ''}</small>}
       </div>

@@ -53,6 +53,7 @@ export function darTransporte(data, e, pid, ref) {
   return c;
 }
 const libroNuevo = (e) => ({ valor: nProb(e) * 4, ronda: e.ronda });
+const LIBRO_IBN_HAZM_VALOR = 50;   // lo que vale al recibirlo un Libro de Ibn Hazm
 export function darLibro(e, pid, ref = 'libro') { return darItem(e, e.jugadores[pid], ref, libroNuevo(e)); }
 const bonoCim = (data) => data.config.armas?.cimitarra?.bono ?? 2;
 function tomarDeBotin(data, e, pid, id) {
@@ -87,6 +88,21 @@ export function sirvePara(data, c) {
 
 // Quien empieza su turno herido se cura, pero ese turno no tiene acción principal (R 11): ni retos, ni robos, ni duelos, ni tesoros.
 export const RECUPERANDO = 'Ya no estás herido, pero te estás recuperando: este turno no tienes acción principal, así que no puedes iniciar retos (ni robar, desafiar o buscar tesoros). En tu próximo turno, sí.';
+// Jorge (26 de noviembre, solo en el 3D): si los libros que dan las transcripciones de los tres sheijs (R60 Ibn Hazm, R61 Abu Hayyan,
+// R62 Ibn Arabi; y las traducciones al persa) valen distinto, en Acciones se dice cuánto valen y cuál conviene más.
+function marcarCopias(e, r) {
+  const valor = (id) => TRANSCRIBIR.libros * (COPIAS[id].ibnHazm ? LIBRO_IBN_HAZM_VALOR : libroNuevo(e).valor);
+  const cs = r.filter((x) => x.k === 'reto' && COPIAS[x.id]);
+  if (cs.length < 2 || new Set(cs.map((x) => valor(x.id))).size < 2) return;
+  const max = Math.max(...cs.map((x) => valor(x.id)));
+  const mejores = cs.filter((x) => valor(x.id) === max).map((x) => x.id);
+  for (const x of cs) {
+    const v = valor(x.id), mejor = v === max;
+    x.conviene = mejor;
+    if (mejor) x.titulo += ' · te conviene más';
+    x.nota = `Sus ${TRANSCRIBIR.libros} libros valen hoy ${v} dinares en total (${v / TRANSCRIBIR.libros} cada uno; ganan 2 por ronda)${mejor ? ': son los que más valen.' : `; los de ${mejores.join(' y ')} valen ${max}.`}`;
+  }
+}
 export function disponibles(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
   const recupera = t?.heridoAhora && t.principal && !j.transito && !j.perdido ? RECUPERANDO : null;   // se ven, pero deshabilitados y con el motivo
@@ -105,6 +121,7 @@ export function disponibles(data, e, pid) {
     const msg = (RETOS_MAR.includes(id) && j.herido ? HERIDO_BARCO : null) || (T[id].req ? T[id].req(data, e, pid) : null);   // herido no te embarcas (Jorge, 19 de noviembre)
     r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion && d.resolucion.split(d.ciudad).join(j.ciudad), requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined, aviso: RETOS_MAR.includes(id) ? avisoEscorbuto(j) || undefined : undefined });
   }
+  marcarCopias(e, r);
   return r;
 }
 // Pagar una deuda con una ciudad (Jorge, 21 de noviembre): solo en esa ciudad, en cualquier momento de tu turno, sin gastar la acción
@@ -160,6 +177,7 @@ export function retoNPC(data, e, pid, id, { libre = false } = {}) {
   ejecutar(data, e, pid, id, []);
   return true;
 }
+export const ciudadesReto = (id) => (T[id] ? T[id].ciudades || [T[id].ciudad] : []);   // dónde se hace un reto (para Yafar NPC)
 export const puedeRetoNPC = (data, e, pid, id) => { const j = e.jugadores[pid], def = T[id], d = m1(data, id); return !!(def && d && !hecho(j, id) && !(def.req && def.req(data, e, pid))); };
 registrar('reto.obj', (data, e, args, resp) => ejecutar(data, e, resp.pid, args.id, (resp.valores || []).map((u) => e.jugadores[resp.pid].mano.find((c) => c.uid === u)?.ref).filter(Boolean)));
 // Resultado de un reto para los DEMÁS jugadores (Jorge, 19 de noviembre): no ven ninguna ventana, solo una alerta que se quita al
@@ -716,7 +734,9 @@ T.R42 = { ciudad: 'Aleppo', ciudades: ['Aleppo', 'Damasco'], req: reqArma('R42')
 T.R19 = { ciudad: 'Yemen', req: reqArma('R19'), run(data, e, pid) { entrenarArma(e, pid, 'R19'); } };
 T.R43 = { ciudad: 'Andalucía', ciudades: ['Andalucía', 'Yemen', 'Samarcanda'], req: reqArma('R43'),   // también en Yemen y Samarcanda (Jorge, 19 de noviembre)
   run(data, e, pid) { entrenarArma(e, pid, 'R43'); } };
-T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid, ctx) {
+// Jorge (26 de noviembre, solo en el 3D): «No te debe dejar intentar la destreza si eres Zein o Ruyán excepto en jambiya»: la destreza
+// general de Estambul no la pueden hacer (la de la jambiya la entrenan en Yemen, R19).
+T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (soloJambiya(e.jugadores[pid]) ? MSJ_SOLO_JAMBIYA : tieneDestrezaGeneral(e.jugadores[pid]) ? 'Ya tienes destreza con armas.' : e.jugadores[pid].dinares >= DESTREZA.costo ? null : `Cuesta ${DESTREZA.costo} dinares.`), run(data, e, pid, ctx) {
   // Jorge (21 de noviembre): la destreza general tarda 2 turnos (este, que termina aquí, y el siguiente, que pierdes entrenando) y llega
   // al terminar el segundo; da 60 noches al momento (el 20 de noviembre no daba; antes 50). Yafar NPC la sigue recibiendo al momento.
   const j = e.jugadores[pid]; if (ctx) ctx.resultado = 'logro'; j.dinares -= DESTREZA.costo; j.noches += DESTREZA.noches; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 dinares (antes 45); Zein y Ruyán: solo con jambiya
@@ -1163,7 +1183,7 @@ for (const [id, C] of Object.entries(COPIAS)) {
     run(data, e, pid, ctx) {
       const j = e.jugadores[pid]; hacer(e, pid, id);
       for (let i = 0; i < TRANSCRIBIR.libros; i++) {
-        const c = C.ibnHazm ? darItem(e, j, 'libroIbnHazm', { valor: 50, ronda: e.ronda, titulo: 'Al-Muhalla' }) : darLibro(e, pid);
+        const c = C.ibnHazm ? darItem(e, j, 'libroIbnHazm', { valor: LIBRO_IBN_HAZM_VALOR, ronda: e.ronda, titulo: 'Al-Muhalla' }) : darLibro(e, pid);
         c.extra = { ...(c.extra || {}), transcrito: true };   // se venden también en Samarcanda, Andalucía y Estambul (Jorge, 19 de noviembre)
       }
       j.noches += TRANSCRIBIR.noches; ctx.resultado = 'logro';

@@ -30,7 +30,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const miTurno = s.turno?.pid === s.yo && s.fase === 'juego' && s.turno.fase !== 'ingreso' && !yo.transito && !yo.perdido && !s.turno.fin && !s.pend;
   const vendibles = s.mano.filter((c) => c.tipo !== 'especial');
   const esMiTurno = s.turno?.pid === s.yo;
-  const solo = Object.values(s.jugadores).filter((j) => j.pj && !j.npc && !j.eliminado).length <= 1;   // en solitario también se compra en el propio turno
+  const solo = Object.values(s.jugadores).filter((j) => j.pj && !j.npc && !j.eliminado && !j.sacado).length <= 1;   // en solitario también se compra en el propio turno (el sacado no cuenta)
   const puedeComprar = s.fase === 'juego' && !!s.turno && (!esMiTurno || solo) && !yo.transito && !yo.perdido && !yo.eliminado && !s.pend;   // regla de la casa: fuera de tu turno
   // por qué no se puede comprar ahora (Jorge, 10 de noviembre)
   const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : s.pend ? 'Espera un momento: hay una decisión pendiente en la partida; al resolverse puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán, sí).' : 'Ahora no puedes comprar.';

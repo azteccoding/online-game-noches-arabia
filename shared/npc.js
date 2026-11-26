@@ -6,7 +6,7 @@ marcarBuscado,
 enPartida, cargaExcedida, objDe, CARGA_ITEMS, ITEMS, pesaCarta, burrosEn, esRutaMar, } from './base.js';
 import { atacar, validarAtaque, bonosCombate, conArco } from './pelea.js';
 import { vender, existenciaArma, quitarArma, RECARGO_ARMA, comprar, motivoNoMongol, destinosTransporte, burroDelMercado, VENTA_BURRO_MERCADO } from './objetos.js';
-import { retoNPC, puedeRetoNPC } from './retos.js';
+import { retoNPC, puedeRetoNPC, ciudadesReto, ENTRENAMIENTOS } from './retos.js';
 
 const npcDe = (e) => e.orden.find((id) => e.jugadores[id].npc && !e.jugadores[id].eliminado) || null;
 
@@ -78,6 +78,10 @@ function elegirDestino(data, e, pid) {
   const { dist, prev } = dijkstra(data, e, j, j.ciudad);
   const alcanzables = Object.keys(dist).filter((c) => c !== j.ciudad);
   let destino = null, motivo = '';
+  // Jorge (26 de noviembre, solo en el 3D): en difícil, «la primera preocupación de Yafar es conseguir armas y destreza para poder
+  // robarte o retarte a duelo después». Mientras le falten armas o entrenar con las que trae, va a donde las consigue.
+  const meta = dif(e) === 'dificil' ? metaArmas(data, e, pid, dist) : null;
+  if (meta) return { d, destino: meta.c, motivo: meta.motivo, prev };
   const porJugador = (x, txt) => { if (!x) return null; const c = e.jugadores[x].ciudad; return c !== j.ciudad && dist[c] !== undefined ? c : null; };
   if (d <= 2) { destino = porJugador(primero((q) => q.dinares)); motivo = 'va tras el jugador con más dinares'; }
   else if (d >= 5) { destino = porJugador(primero((q) => q.noches)); motivo = 'va tras el jugador con más noches'; }
@@ -175,11 +179,55 @@ function movimiento(data, e, pid) {
   void t;
 }
 
+// Armas de Yafar NPC: las que compra (la jambiya de inicio no cuenta) y cuántas puede traer.
+const ARMAS_NPC = ['cimitarra', 'alfanje', 'arco'];
+const precioArmaNPC = (data, ref, ciudad) => (data.config.armas?.[ref]?.precio ?? { cimitarra: 35, alfanje: 25, arco: 15 }[ref]) + (RECARGO_ARMA[ref]?.[ciudad] || 0) + (ref === 'arco' ? 5 : 0);
+const maxArmasNPC = (e) => (dif(e) === 'dificil' ? 2 : 1);   // Jorge (12 de noviembre): en difícil puede traer dos armas
+const nArmasNPC = (j) => ARMAS_NPC.filter((r) => tieneItem(j, r)).length;
+function comprarArmasNPC(data, e, pid) {
+  const j = e.jugadores[pid];
+  const paraArmas = dif(e) === 'facil' ? j.dinares > 60 : j.dinares >= 40;   // Jorge (12 de noviembre): en normal y difícil, desde 40
+  if (!paraArmas || nArmasNPC(j) >= maxArmasNPC(e)) return;
+  for (const ref of ARMAS_NPC) {
+    if (tieneItem(j, ref)) continue;
+    const pr = precioArmaNPC(data, ref, j.ciudad) - (ref === 'arco' ? 5 : 0);
+    if (j.dinares >= pr + (ref === 'arco' ? 5 : 0) && existenciaArma(e, ref, j.ciudad) > 0) {   // solo donde hay (Jorge, 10 de noviembre)
+      j.dinares -= pr; quitarArma(e, ref, j.ciudad); j.mano.push({ uid: uid(e), tipo: 'item', ref });
+      if (ref === 'arco' && !tieneItem(j, 'flechas')) { j.dinares -= 5; j.mano.push({ uid: uid(e), tipo: 'item', ref: 'flechas' }); }
+      log(e, `Yafar NPC compra ${ref}.`, { pid });
+      break;
+    }
+  }
+}
+// Entrenamientos con sus armas (R18 cimitarra, R19 jambiya, R42 alfanje, R43 arco) que ya puede pagar.
+const entrenosNPC = (data, e, pid) => Object.keys(ENTRENAMIENTOS).filter((id) => puedeRetoNPC(data, e, pid, id));
+function entrenarNPC(data, e, pid) {
+  const j = e.jugadores[pid];
+  for (const id of entrenosNPC(data, e, pid)) if (ciudadesReto(id).includes(j.ciudad) && retoNPC(data, e, pid, id)) return true;
+  return false;
+}
+// Difícil: la ciudad alcanzable más cercana donde consigue un arma que le falta (y le alcanza) o entrena con una que ya trae.
+function metaArmas(data, e, pid, dist) {
+  const j = e.jugadores[pid], cerca = (cs) => cs.filter((c) => dist[c] !== undefined).sort((a, b) => dist[a] - dist[b])[0] || null;
+  if (j.dinares >= 40 && nArmasNPC(j) < maxArmasNPC(e)) {
+    const cs = Object.keys(dist).filter((c) => ARMAS_NPC.some((r) => !tieneItem(j, r) && existenciaArma(e, r, c) > 0 && j.dinares >= precioArmaNPC(data, r, c)));
+    if (cs.includes(j.ciudad)) return null;                     // aquí mismo las compra
+    const c = cerca(cs); if (c) return { c, motivo: 'va a conseguir armas' };
+  }
+  const ids = entrenosNPC(data, e, pid);
+  if (ids.some((id) => ciudadesReto(id).includes(j.ciudad))) return null;   // aquí mismo entrena
+  const c = cerca(ids.flatMap((id) => ciudadesReto(id)));
+  return c ? { c, motivo: 'va a entrenar con sus armas' } : null;
+}
+
 export function accionPrincipal(data, e, pid) {   // exportada para las pruebas
   const j = e.jugadores[pid], t = e.turno;
   const cont = { fn: 'npc.cierre', args: { pid } };
   destrezaNPC(data, e, pid, true);   // difícil, con Firmán: la destreza no gasta su acción principal
+  if (dif(e) === 'dificil') comprarArmasNPC(data, e, pid);   // difícil: primero las armas (Jorge, 26 de noviembre)
   if (!t.principal && !t.bloqueoPrincipal) {
+    // difícil: antes que atacar, entrena con sus armas si aquí se puede (Jorge, 26 de noviembre: primero armas y destreza)
+    if (dif(e) === 'dificil' && entrenarNPC(data, e, pid)) return cierreTrasReto(data, e, pid);
     // (a) ataque
     if (e.ronda > data.config.primerosTurnosSinMatar) {
       const objetivos = enCiudad(e, j.ciudad, pid).filter((x) => !e.jugadores[x].npc && !(t.rechazaronNPC || []).includes(x));   // no vuelve a retar a quien le rechazó el duelo
@@ -214,22 +262,7 @@ function cierreTrasReto(data, e, pid) { if (e.pend || e.pelea) return; cierre(da
 function cierre(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno;
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
-  const precio = (ref) => data.config.armas?.[ref]?.precio ?? { cimitarra: 35, alfanje: 25, arco: 15 }[ref];
-  const maxArmas = dif(e) === 'dificil' ? 2 : 1;   // Jorge (12 de noviembre): en difícil puede traer dos armas
-  const nArmas = () => ['cimitarra', 'alfanje', 'arco'].filter((r) => tieneItem(j, r)).length;   // las que compra (la jambiya de inicio no cuenta, como antes)
-  const paraArmas = dif(e) === 'facil' ? j.dinares > 60 : j.dinares >= 40;   // Jorge (12 de noviembre): en normal y difícil, desde 40
-  if (paraArmas && nArmas() < maxArmas) {
-    for (const ref of ['cimitarra', 'alfanje', 'arco']) {
-      if (tieneItem(j, ref)) continue;
-      const pr = precio(ref) + (RECARGO_ARMA[ref]?.[j.ciudad] || 0);
-      if (j.dinares >= pr + (ref === 'arco' ? 5 : 0) && existenciaArma(e, ref, j.ciudad) > 0) {   // solo donde hay (Jorge, 10 de noviembre)
-        j.dinares -= pr; quitarArma(e, ref, j.ciudad); j.mano.push({ uid: uid(e), tipo: 'item', ref });
-        if (ref === 'arco' && !tieneItem(j, 'flechas')) { j.dinares -= 5; j.mano.push({ uid: uid(e), tipo: 'item', ref: 'flechas' }); }
-        log(e, `Yafar NPC compra ${ref}.`, { pid });
-        break;
-      }
-    }
-  }
+  comprarArmasNPC(data, e, pid);
   if (!j.eliminado) comprasNPC(data, e, pid);   // animal de carga y transporte
   if (!t.movio) { const c = ciudadDe(data, j.ciudad); pagar(data, e, pid, c.alojamiento * 2); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
@@ -483,3 +516,4 @@ function sinPuja(data, e, probable) {
 }
 
 void suma; void patrimonio;
+export const _destinoNPC = (data, e, pid) => elegirDestino(data, e, pid);   // solo para las pruebas
