@@ -10,7 +10,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | Fecha | Qué cambia en el 3D | En el 2D | Commit 3D |
 |---|---|---|---|
 | 23 nov | **R6 Álgebra en la Madrasa**: ganas si el dado extra cae igual al promedio, o uno más o uno menos. | Solo ganas con uno más o uno menos (igual al promedio no gana). | `785c4b8` |
-| 23 nov | **Caballos mongoles**: Jorge dice que en el 3D salen **2** caballos mongoles por cada yegua. | El código (igual en los dos) pone 1 a la venta por cada yegua vendida en Estambul. | por confirmar con Jorge |
+| 23 nov | **Caballos mongoles**: Jorge dice que en el 3D salen **2** caballos mongoles por cada yegua. Ya está hecho: cada yegua que llega a Estambul pone a la venta 2 (a 32 dinares cada uno). | Sigue poniendo 1 a la venta por cada yegua vendida en Estambul. | `cb9cdc4` |
 | 23 nov | **Toledo (H2)**: irse de Andalucía a Bagdad va por El Cairo y cobra los dos tramos (cada uno cuenta como viaje). | La opción a Bagdad salía «(null)» y el viaje era gratis. | `507b05f` |
 | 23 nov | **Zubayda en el harén**: sale la carta pintada y los 12 dinares llegan al cerrarla (o a los 90 s). | Los dinares llegan al instante, sin carta. | `71f423e` |
 | 23 nov | **Zubayda le renta a Adí, Anís o Jamil**: sale la carta pintada solo para los dos; el cobro y las consecuencias van al cerrarla. | Sin carta: las consecuencias son inmediatas. | `a1d0e08`, `66459ab` |
