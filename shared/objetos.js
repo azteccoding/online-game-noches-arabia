@@ -829,7 +829,7 @@ export function disponibles(data, e, pid) {
       else if (c.ref === 'burro' && destinosTransporte(data, 'burro', j.ciudad).length) {   // Jorge (26 de noviembre): durante la Cruzada, desde El Cairo solo quedaba el Jorasán y no se decía por qué
         const cer = destinosTransporte(data, 'burro', j.ciudad).filter((q) => ciudadCerrada(e, q));
         r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: `Desde ${j.ciudad} el burro solo va a ${cer.join(' y ')}, y ahora no se puede ir: ${motivoCerrada(e, cer[0])}` });
-      } else if (c.ref === 'burro') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: 'El burro solo viaja por tierra entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, y Basra y Bagdad. Aquí no te mueve, pero lo puedes vender.' });
+      } else if (c.ref === 'burro') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: 'El burro solo viaja por tierra entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, Basra y Bagdad, Damasco y Bagdad, y Aleppo y Bagdad. Aquí no te mueve, pero lo puedes vender.' });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
   }
@@ -850,7 +850,7 @@ export function destinosTransporte(data, ref, desde) {
   if (r.solo) return todas.filter((q) => r.solo.includes(q));
   return todas.filter((q) => !(r.excepto || []).includes(q));
 }
-const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos por tierra: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad (ida y vuelta).', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
+const textoTransporte = (ref) => ({ burro: 'el burro solo hace viajes cortos por tierra: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad, Basra–Bagdad, Damasco–Bagdad y Aleppo–Bagdad (ida y vuelta).', caballo: 'el caballo no va a Samarcanda, al Magreb, a India ni a Bagdad, y no sale de India.', camello: 'el camello solo va al Magreb, a Samarcanda y a Yemen, y no sale de India.', alfombra: 'la alfombra no sirve para ir a Bagdad.' })[ref] || '';
 
 // Veneno (R 15.1): por la Anciana Devota (20 dinares + transporte desde Bagdad) o sobornando a Masrur para envenenar un abrevadero (5 dinares por jugador vivo).
 export const MSJ_VENENO_YAFAR = 'Los espías corruptos de Yafar lo protegen del veneno.';

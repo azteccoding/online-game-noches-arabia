@@ -345,8 +345,8 @@ function forzar(e, ...valores) {
   };
   let { g, e, pid, j, c } = prep('burro');
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Samarcanda' }).ok, 'el burro no hace viajes largos');
-  // Jorge (19 de noviembre): desde Bagdad el burro solo va a Isfahán o a Basra
-  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Estambul' }).ok && !g.act(pid, { t: 'usar', uid: c.uid, destino: 'Damasco' }).ok, 'el burro no va de Bagdad a Estambul ni a Damasco');
+  // Jorge (19 de noviembre): desde Bagdad el burro va a Isfahán o a Basra (y desde el 26 de noviembre, en el 3D, también a Damasco y Aleppo)
+  assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Estambul' }).ok, 'el burro no va de Bagdad a Estambul');
   assert.ok(!g.act(pid, { t: 'usar', uid: c.uid, destino: 'Yemen' }).ok, 'el burro no va a Yemen');
   assert.ok(g.act(pid, { t: 'usar', uid: c.uid, destino: 'Isfahán' }).ok);
   assert.equal(j.ciudad, 'Isfahán', 'llega en el mismo turno'); assert.ok(!e.turno.fin && !e.turno.principal, 'el burro no termina el turno');
@@ -1097,8 +1097,9 @@ for (let k = 0; k < 6; k++) {
 {
   const { destinosTransporte } = await import('../shared/objetos.js');
   for (const ref of ['caballo', 'camello', 'alfombra']) for (const desde of ['Estambul', 'El Cairo', 'Damasco', 'Andalucía']) assert.ok(!destinosTransporte(data, ref, desde).includes('Bagdad'), `${ref} no va a Bagdad desde ${desde}`);
-  // Jorge (19 de noviembre): rutas del burro, ida y vuelta: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad
-  const rb = { Estambul: ['Aleppo'], Aleppo: ['Estambul', 'Damasco'], 'El Cairo': ['Damasco'], Damasco: ['El Cairo', 'Aleppo'], Isfahán: ['Bagdad'], Bagdad: ['Isfahán', 'Basra'], Basra: ['Bagdad'], Yemen: [], Samarcanda: [], Andalucía: [] };
+  // Jorge (19 de noviembre): rutas del burro, ida y vuelta: Estambul–Aleppo, El Cairo–Damasco, Damasco–Aleppo, Isfahán–Bagdad y Basra–Bagdad;
+  // Jorge (26 de noviembre, 3D): «el burro debe poder ir a Alepo y Damasco desde Bagdad»
+  const rb = { Estambul: ['Aleppo'], Aleppo: ['Estambul', 'Damasco', 'Bagdad'], 'El Cairo': ['Damasco'], Damasco: ['El Cairo', 'Aleppo', 'Bagdad'], Isfahán: ['Bagdad'], Bagdad: ['Isfahán', 'Basra', 'Damasco', 'Aleppo'], Basra: ['Bagdad'], Yemen: [], Samarcanda: [], Andalucía: [] };
   for (const [desde, d] of Object.entries(rb)) assert.deepEqual(destinosTransporte(data, 'burro', desde).sort(), [...d].sort(), `burro desde ${desde}`);
   for (const ref of ['caballo', 'camello']) { assert.deepEqual(destinosTransporte(data, ref, 'India'), [], `${ref}: no sale de India`); for (const d of ['Basra', 'Isfahán', 'Samarcanda', 'Yemen']) assert.ok(!destinosTransporte(data, ref, d).includes('India'), `${ref}: no va a India desde ${d}`); }
   assert.ok(destinosTransporte(data, 'alfombra', 'India').length > 0 && destinosTransporte(data, 'alfombra', 'Basra').includes('India'), 'la alfombra sí va y vuelve de India');
