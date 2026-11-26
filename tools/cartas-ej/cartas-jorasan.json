@@ -1,0 +1,100 @@
+[
+ {
+  "id": "EJ33",
+  "n": 33,
+  "titulo": "El ghul vegetariano",
+  "ciudades": "Jorasán",
+  "texto": [
+   "Te topas con un ghul que jura ser vegetariano desde hace tres lunas y te pide recetas de hummus con albahaca. Le das la de tu abuela y, conmovido, no te come: ganas 25 noches por sobrevivir a una conversación con un ghul. Si traes Dátiles y pan de viaje, se los regalas y él te da 25 dinares que le quitó a su última cena, que no era vegetariana."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ34",
+  "n": 34,
+  "titulo": "El que se perdió antes",
+  "ciudades": "Jorasán",
+  "texto": [
+   "Tropiezas con los huesos de un viajero que se perdió antes que tú. Tiene la bolsa intacta y una nota que dice «por aquí no era». Ganas 30 dinares y la lección, que no te sirve de nada porque sigues perdido. Si traes Pala de zapador, cavas un poco más y encuentras su otra bolsa: 30 dinares más."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ36",
+  "n": 36,
+  "titulo": "La caravana más perdida",
+  "ciudades": "Jorasán",
+  "texto": [
+   "Te encuentras una caravana todavía más perdida que tú, cuyo jefe jura que conoce el camino desde hace tres semanas. Te pide indicaciones; le señalas cualquier lado con mucha seguridad y te paga 10 dinares por el consejo. Si traes Cuaderno de ruta, se lo vendes por 35 dinares y lo pierdes; nadie revisa que sea de otra ruta."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ39",
+  "n": 39,
+  "titulo": "La pastora del Jorasán",
+  "ciudades": "Jorasán",
+  "texto": [
+   "Una pastora te encuentra medio muerto de sed entre las dunas. Si eres Anís, se enamora a primera vista, te esconde en su tienda, te regala 15 dinares y 20 noches y te enseña la salida: en tu próximo turno sales del Jorasán a Basra sin tirar. Si no eres Anís, te mira, suspira y te presta a su perro, que tampoco sabe el camino: ganas 5 noches."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ40",
+  "n": 40,
+  "titulo": "Otra ventana",
+  "ciudades": "Jorasán",
+  "texto": [
+   "En medio del desierto encuentras unas ruinas con una sola ventana. Si eres Anís, sales por ella, como siempre, y caes encima del tesoro de un bandido dormido: ganas 30 dinares. Si no eres Anís, te asomas, ves más desierto y pierdes 5 noches de esperanza."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ43",
+  "n": 43,
+  "titulo": "Los bandidos y la hermosa",
+  "ciudades": "Jorasán",
+  "texto": [
+   "Unos bandidos te rodean entre las dunas. Si eres Zein, la reconocen, recuerdan que quien la toca queda Buscado y, para que no le cuente a nadie, le dan su botín: ganas 25 dinares. Si no eres Zein, te quitan 3 dinares y te dejan su mapa, que está mal dibujado."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ },
+ {
+  "id": "EJ44",
+  "n": 44,
+  "titulo": "Las pirámides que no eran",
+  "ciudades": "Jorasán",
+  "texto": [
+   "A lo lejos ves las pirámides de El Cairo. Si eres Zein, no es un espejismo: es la caravana de tu esposo, que te anda buscando. Te recoge, ganas 10 noches y en tu próximo turno sales del Jorasán a El Cairo sin tirar. Si no eres Zein, corres hacia las pirámides, que eran dunas, y pierdes 5 noches."
+  ],
+  "regla": [],
+  "arte": "EJ-jorasan.png",
+  "jorasan": true,
+  "sub": "Se lee a toda la mesa · si no logras salir del Jorasán",
+  "pos": "50% 36%"
+ }
+]

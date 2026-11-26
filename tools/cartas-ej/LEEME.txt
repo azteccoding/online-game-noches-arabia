@@ -1,0 +1,14 @@
+CARTAS IMPRESAS DEL MAZO «EVENTOS DE JUGADOR» (EJ)
+
+Hace los PDF de impresión: 41 cartas normales y 7 del Jorasán, 9 por hoja A4,
+cada hoja de frentes seguida de su hoja de dorsos en espejo (doble cara, borde largo).
+
+1. Pinturas: copia a ./arte/ las cuatro de ilustraciones\nuevas\cartas\
+   EJ.png (posada), EJ-pierdes.png, EJ-ganas.png y EJ-jorasan.png.
+2. Datos (solo si cambiaste los textos): python datos.py y python datos.py jorasan
+   leen los .md de «diseño de mejoras» (carpeta en la variable EJ_MD) y escriben
+   cartas.json y cartas-jorasan.json. Ahí se decide qué pintura lleva cada carta.
+3. Cartas en PNG (744 x 1039): node render.js   y   CARTAS=cartas-jorasan.json node render.js
+   (necesita Playwright con Chromium; las fuentes salen de Google Fonts).
+4. PDF: python pdf-jpg.py cartas-eventos-de-jugador.pdf
+        python pdf-jpg.py cartas-eventos-de-jugador-jorasan.pdf cartas-jorasan.json
