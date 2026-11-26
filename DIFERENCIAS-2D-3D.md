@@ -110,3 +110,8 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 ## Despliegue
 
 - El 3D va en su propio servicio de Render, desde la rama `juego-3d` (`182dc2c`), con clave de sala `MUN_CLAVE`.
+| 26 nov | Zein y Ruyán ya no pueden intentar la destreza de Estambul (R25): les sale bloqueada con el aviso de que solo pueden usar la jambiya (Jorge: «No te debe dejar intentar la destreza si eres zein o rujan excepto en jambiya»). El entrenamiento con jambiya sigue abierto para ellos. | Zein y Ruyán sí pueden intentar R25. | `c34fcdb` |
+| 26 nov | Comprar en el mercado cuando juegas solo contra Yafar: quien fue sacado de la partida por no conectarse ya no cuenta como jugador, así que el que queda solo vuelve a poder comprar en su propio turno (antes se le apagaba el botón). Lo mismo en los tratos. | El jugador sacado sigue contando y el que queda solo no puede comprar en su turno. | `c34fcdb` |
+| 26 nov | Yafar NPC en modo difícil: su primera preocupación es conseguir armas (va a la ciudad donde las venden y las compra) y luego entrenar con ellas para tener destreza; solo después va a robarte o a retarte a duelo. En modo normal no cambia. | Yafar difícil no busca armas ni destreza primero. | `c34fcdb` |
+| 26 nov | Transcripciones de los sheijs (Ibn Hazm y los otros dos): si los libros que entregan valen distinto, en Acciones la que más conviene dice «te conviene más» en dorado, con una nota de cuánto valen hoy sus 5 libros y cuánto los de las otras. | No se señala cuál conviene. | `c34fcdb` |
+| 26 nov | Adí un poco más alto en el tablero 3D (estatura de 0.86 a 0.90). | No aplica (sin monitos 3D). | `c34fcdb` |
