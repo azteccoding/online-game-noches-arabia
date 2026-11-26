@@ -34,7 +34,8 @@
     <meta name="apple-mobile-web-app-title" content="Mil y una Noches" />
     <link rel="preload" href="/svg/tablero-mapa.svg" as="fetch" crossorigin />
     <link rel="preload" href="/fonts/MarcellusSC.woff2" as="font" type="font/woff2" crossorigin />
-    <!-- Pantalla de inicio (Jorge, 25 de noviembre): mientras el juego carga, en colores oscuros, dura 1.5 segundos -->
+    <!-- Pantalla de inicio (Jorge, 25 de noviembre): mientras el juego carga, en colores oscuros. Al cargar la página no tiene duración
+         mínima: la quita el programa en cuanto carga (src/inicio.js); al comenzar la partida sale otra vez y dura mínimo 1.5 segundos. -->
     <style>
       @font-face { font-family: 'Marcellus SC'; src: url('/fonts/MarcellusSC.woff2') format('woff2'); font-display: swap; }
       @font-face { font-family: 'Alegreya'; src: url('/fonts/Alegreya-Italic.woff2') format('woff2'); font-weight: 400 900; font-style: italic; font-display: swap; }
@@ -47,11 +48,8 @@
   <body>
     <div id="inicio" aria-hidden="true"><h1>Mil y una Noches</h1><p>by Jorge Montes C.</p></div>
     <script>
-      (function () {
-        var el = document.getElementById('inicio'), t = 1500 - (window.performance ? performance.now() : 0);
-        setTimeout(function () { el.className = 'fuera'; }, Math.max(0, t - 250));
-        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, Math.max(0, t));
-      })();
+      // por si el programa no llegara a cargar: que la pantalla de inicio no se quede para siempre
+      setTimeout(function () { var el = document.getElementById('inicio'); if (el && !el.getAttribute('data-partida') && el.parentNode) el.parentNode.removeChild(el); }, 20000);
     </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>

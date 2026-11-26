@@ -11,6 +11,7 @@ import { turnoVisible } from './game/escena3d.js';
 import { useTrasViajes } from './hooks/useTrasViajes.js';
 import { BurbujasReacciones, BotonReacciones } from './components/Reacciones.jsx';
 import { filasDeMenu } from './hooks/filasMenu.js';
+import { mostrarInicio, quitarInicioCarga } from './inicio.js';
 import BarraEstado from './components/BarraEstado.jsx';
 import PanelAcciones from './components/PanelAcciones.jsx';
 import AccionesTurno from './components/AccionesTurno.jsx';
@@ -54,6 +55,12 @@ function Juego({ lienzo }) {
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
   useEffect(() => { if (s?.fase === 'fin') setVerFin(true); }, [s?.fase]);   // cada vez que la partida termina (también tras «Volver a la partida») sale el resultado
+  // Pantalla de inicio (Jorge, 25 de noviembre; inicio.js). Al cargar la página no tiene duración mínima: se quita en cuanto el juego
+  // carga. Al comenzar la partida vuelve a salir 1.5 segundos, a todos, en cuanto la sala pasa a la partida (sea por el clic en
+  // «Comenzar partida» o por la cuenta regresiva).
+  useEffect(() => { quitarInicioCarga(); }, []);
+  const faseAntes = useRef(null);
+  useEffect(() => { if (faseAntes.current === 'lobby' && s?.fase === 'juego') mostrarInicio(); faseAntes.current = s?.fase ?? null; }, [s?.fase]);
   // Avisos verdes: premios propios (dinares o noches que suben) y comienzo de cada ronda.
   const prev = useRef(null);
   useEffect(() => {
