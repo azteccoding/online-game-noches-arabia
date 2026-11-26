@@ -4374,6 +4374,9 @@ console.log('reglas de la casa OK');
     // R54 con par: no entrena la cimitarra
     Z.extra.entrenado = {}; Z.ciudad = 'Estambul'; Z.herido = false; Z.mano = Z.mano.filter((c) => c.ref !== 'jambiya'); turnoDe(e, z, 'Estambul'); e.turno.fase = 'acciones'; forzar(e, 2, 1);
     { const r = g.act(z, { t: 'reto', id: 'R54' }); assert.ok(r.ok, r.error); } assert.ok(!e.pend && !Z.extra.entrenado?.cimitarra, `${pj}: R54 no entrena cimitarra`);
+    // Jorge (26 nov): «Ponle que ahí sí dan destreza»: con par en R54 también ellos ganan la destreza en todas las armas
+    recibirDestreza(data, e, z); assert.ok(Z.destreza, `${pj}: R54 sí da destreza`); darItem(e, Z, 'cimitarra'); Z.ciudad = 'Damasco';
+    assert.ok(perfil(data, e, z).destreza, `${pj}: tras R54, con cimitarra pelea con destreza`);
   }
   // los demás sí ganan la destreza general
   const g = partida(['7', '4']); assert.ok(g.iniciar().ok);

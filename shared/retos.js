@@ -708,7 +708,7 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   j.extra.destrezaPend = qs.filter((q) => !listas.includes(q));
   for (const q of listas) {
     let texto;
-    if (q.t === 'general') { darDestreza(j); texto = soloJambiya(j) ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
+    if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
     else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco (con 3 o 4 en tu flecha el rival pelea con −1).' : `Terminó tu turno de entrenamiento: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
@@ -1127,15 +1127,17 @@ export function finForja(data, e, pid) {
 T.R54 = { ciudad: 'Estambul', req: (d, e, pid) => { const j = e.jugadores[pid];
     return j.npc ? 'Yafar NPC no se alista en el ejército del sultán.' : j.herido ? 'Herido no puedes alistarte.' : !tieneArma(d, e, j) ? 'Necesitas llevar un arma (la que sea) para alistarte.' : null; },
   run(data, e, pid, ctx) { hacer(e, pid, 'R54'); combateR54(e, pid, ctx); } };
+// Jorge (26 de noviembre): «Ponle que ahí sí dan destreza»: R54 es la excepción a la regla de Zein y Ruyán; con par también ellos
+// reciben la destreza en todas las armas, no solo con la jambiya.
 function combateR54(e, pid, ctx) {
-  const j = e.jugadores[pid], ya = tieneDestrezaGeneral(j) || (j.extra.destrezaPend || []).some((q) => q.t === 'general');
+  const j = e.jugadores[pid], ya = !!j.destreza || (j.extra.destrezaPend || []).some((q) => q.t === 'general' && (q.plena || !soloJambiya(j)));
   const [x] = ctx.t(`${j.nombre}: el combate (impar, herido y 25 noches y 5 dinares; par, ${ya ? '' : 'destreza en todas las armas y '}10 noches)`, 1);
   const [y] = ctx.t(`${j.nombre}: la batalla (1 a 3, libre el siguiente turno; 4 a 6, sigue en batalla)`, 1);
   ctx.resultado = x % 2 ? 'fallo' : 'logro';   // impar: herido (las noches y dinares son por el servicio); par: destreza
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
-    if (!ya) aplazarDestreza(e, pid, { t: 'general', de: 'R54' });   // llega al terminar el turno (Jorge, 21 de noviembre)
-    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${ya ? ' (ya tenías la destreza con armas)' : soloJambiya(j) ? '; al terminar tu turno tendrás destreza, solo con la jambiya' : '; al terminar tu turno tendrás destreza con armas (+1 en todas las peleas)'}.`);
+    if (!ya) aplazarDestreza(e, pid, { t: 'general', de: 'R54', plena: true });   // llega al terminar el turno (Jorge, 21 de noviembre)
+    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${ya ? ' (ya tenías la destreza con armas)' : '; al terminar tu turno tendrás destreza con armas (+1 en todas las peleas)'}.`);
   }
   if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }
   else ctx.say(`${y}: terminas tu servicio; el siguiente turno estás libre.`);

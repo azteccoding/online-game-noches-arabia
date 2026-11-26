@@ -233,7 +233,7 @@ export function vencerPend(data, e, ahora) {
 // general (R25, deseos, tesoros), para ellos es destreza solo con la jambiya (j.extra.destrezaJambiya); y solo entrenan la jambiya.
 export const SOLO_JAMBIYA = ['2', '5'];
 export const soloJambiya = (j) => SOLO_JAMBIYA.includes(j?.pj);
-export const MSJ_SOLO_JAMBIYA = 'Zein y el Sabio Ruyán nunca consiguen destreza, salvo con la jambiya.';
+export const MSJ_SOLO_JAMBIYA = 'Zein y el Sabio Ruyán nunca consiguen destreza, salvo con la jambiya o combatiendo a los húngaros (R54).';
 export const puedeEntrenarArma = (j, arma) => !soloJambiya(j) || arma === 'jambiya';
 export const tieneDestrezaGeneral = (j) => !!j.destreza || (soloJambiya(j) && !!j.extra?.destrezaJambiya);
 export function darDestreza(j) { if (soloJambiya(j)) (j.extra ||= {}).destrezaJambiya = true; else j.destreza = true; }
