@@ -153,7 +153,7 @@
    "valor": 10,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Anula un intento de huida de otro jugador en tu ciudad (por ejemplo con cortina de humo o caballo) cuando lo desafías o atacas. En el reto R33 (Damasco) atrapas al ladrón sin tirar. En Basra puedes pescar con ella (gasta tu acción principal; la red no se gasta): el pescado se vende en Basra por 5, en Bagdad por 10 y en las demás ciudades por 8 dinares, y se esfuma al venderlo.",
+   "efecto": "Anula un intento de huida de otro jugador en tu ciudad (con cortina de humo) cuando lo desafías o atacas. En el reto R33 (Damasco) atrapas al ladrón sin tirar. En Basra puedes pescar con ella (gasta tu acción principal; la red no se gasta): el pescado se vende en Basra por 5, en Bagdad por 10 y en las demás ciudades por 8 dinares, y se esfuma al venderlo.",
    "sirvePara": "R33; combate; pesca en Basra",
    "seConsigueEn": "Basra, Aleppo",
    "humor": "Pesca peces, mercaderes y excusas.",
