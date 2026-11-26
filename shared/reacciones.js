@@ -42,17 +42,28 @@ export function armarReaccion(e, pid, id, ahora, ultima = 0) {
 //  · «¡Matemos a Yafar!»: siempre contesta «Te estoy esperando», con un cuchillo.
 //  · «Como que ya se tardó, ¿No?»: solo cuando es el turno de Yafar; una de cada tres veces «Paciencia, esclavo» y las otras dos
 //    «Tardaré lo que tenga que tardar».
+// Jorge (26 de noviembre): «Yafar no contesta a ese emoji y es su turno; debería responder "Paciencia, esclavo" y otro más». No
+// contestaba porque su turno se juega al instante: en la mesa todavía se ve «Turno de Yafar» (sus dados siguen abiertos al empezar el
+// turno del siguiente), pero en el servidor ya era el turno del otro. Ahora cuenta el turno que se ve en la mesa, como turnoVisible del
+// tablero, con las dos respuestas que él dio el 24 de noviembre (no se inventa otra).
 export const RESPUESTAS_YAFAR = {
   matemosYafar: [{ emoji: '🔪', texto: 'Te estoy esperando' }],
   manitas: [{ emoji: '😏', texto: 'Paciencia, esclavo' }, { emoji: '⏳', texto: 'Tardaré lo que tenga que tardar' }],
 };
 export const ESPERA_YAFAR_MS = 1200;   // lo que tarda en contestar
+// De quién es el turno que se ve en la mesa: si el siguiente apenas empieza (ingreso) y los dados abiertos son del anterior, sigue
+// siendo del anterior (lo mismo que turnoVisible en src/game/escena3d.js).
+export function turnoEnMesa(e) {
+  const t = e?.turno, d = e?.dados;
+  if (t && d && t.fase === 'ingreso' && d.por !== t.pid && e.jugadores?.[d.por]) return d.por;
+  return t?.pid ?? null;
+}
 // r: la reacción recién mandada (la que devuelve armarReaccion). Devuelve la burbuja de Yafar NPC, o null si no contesta.
 export function respuestaYafar(e, r, ahora, azar = Math.random()) {
   const y = Object.values(e?.jugadores || {}).find((x) => x.pj === 'B' && x.npc && !x.eliminado);
   if (!y || !r || r.de === y.id) return null;
   let c = null;
   if (r.id === 'matemosYafar') c = RESPUESTAS_YAFAR.matemosYafar[0];
-  else if (r.id === 'manitas' && e.turno?.pid === y.id) c = RESPUESTAS_YAFAR.manitas[azar < 1 / 3 ? 0 : 1];
+  else if (r.id === 'manitas' && turnoEnMesa(e) === y.id) c = RESPUESTAS_YAFAR.manitas[azar < 1 / 3 ? 0 : 1];
   return c ? { id: 'yafar:' + r.id, emoji: c.emoji, texto: c.texto, de: y.id, nombre: y.nombre, a: r.de, aNombre: r.nombre, ts: ahora } : null;
 }

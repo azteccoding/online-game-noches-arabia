@@ -3979,6 +3979,10 @@ console.log('reglas de la casa OK');
   assert.equal(respuestaYafar(e, tarda, 5), null, 'si no es el turno de Yafar, no contesta a «Como que ya se tardó»');
   e.turno.pid = 'npc';
   assert.equal(respuestaYafar(e, tarda, 5, 0.1).texto, 'Paciencia, esclavo'); assert.equal(respuestaYafar(e, tarda, 5, 0.5).texto, 'Tardaré lo que tenga que tardar'); assert.equal(respuestaYafar(e, tarda, 5, 0.99).texto, 'Tardaré lo que tenga que tardar');
+  // Jorge (26 nov): en la mesa todavía se ve el turno de Yafar (sus dados abiertos mientras empieza el turno del siguiente): también contesta
+  e.turno = { pid: 'j1', fase: 'ingreso' }; e.dados = { por: 'npc', motivo: 'npc:Yafar' };
+  assert.equal(respuestaYafar(e, tarda, 5, 0.1).texto, 'Paciencia, esclavo', 'con el turno de Yafar todavía en la mesa, contesta');
+  e.turno.fase = 'acciones'; assert.equal(respuestaYafar(e, tarda, 5), null, 'ya en tu jugada, no'); e.turno = { pid: 'npc' }; delete e.dados;
   assert.ok(respuestaYafar(e, tarda, 5, 0.1).emoji && respuestaYafar(e, tarda, 5, 0.9).emoji, 'cada respuesta lleva su emoji');
   assert.ok(respuestaYafar(e, mata, 5), 'a «¡Matemos a Yafar!» contesta también en su turno');
   assert.equal(respuestaYafar(e, armarReaccion(e, 'j1', 'bien', 9e12, 0).r, 5), null, 'a las demás no contesta');
