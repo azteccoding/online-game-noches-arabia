@@ -5091,6 +5091,11 @@ console.log('reglas de la casa OK');
   // si sale antes al robar, se reabre en ese momento
   e.cruzada = null; e.cerradas = {}; e.ronda = 8; EVE.aplicarHistorico(data, e, 'H21'); assert.ok(BASE.ciudadCerrada(e, 'Damasco'));
   EVE.aplicarHistorico(data, e, 'H22'); assert.ok(!BASE.ciudadCerrada(e, 'Damasco') && !e.mazos.historicos.includes('H22'), 'al robarla, se reabre');
+  // Jorge (26 nov): burro en El Cairo durante la Cruzada: su única ruta (Damasco) está cerrada y se dice por qué; con Saladino vuelve
+  { const B2 = e.jugadores[g.ids[1]]; e.cruzada = null; e.cerradas = {}; EVE.aplicarHistorico(data, e, 'H21'); B2.ciudad = 'El Cairo'; B2.eliminado = false; darItem(e, B2, 'burro'); turnoDe(e, g.ids[1], 'El Cairo');
+    const ver = () => vistaDe(e, g.ids[1]).acciones.find((x) => /^Viajar con Burro/.test(x.titulo || ''));
+    assert.match(ver().bloqueado || '', /Desde El Cairo el burro solo va a Damasco.*cruzados/, 'dice que Damasco está tomada');
+    EVE.aplicarHistorico(data, e, 'H22'); assert.deepEqual(ver().destinos, ['Damasco'], 'con Saladino, el burro vuelve a ir a Damasco'); }
   // Reconquista en la ronda 18
   A.ciudad = 'Andalucía'; A.dinares = 50; e.ronda = 17; e.pend = null; e.colaPend = []; vaciar();
   empezarRonda(data, e);

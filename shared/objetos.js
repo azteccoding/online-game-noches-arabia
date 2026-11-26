@@ -826,7 +826,10 @@ export function disponibles(data, e, pid) {
       const vida = ANIMAL_DEF[c.ref] ? ` · le quedan ${turnosAnimal(data, c)} turno(s)` : '';   // con dos del mismo tipo, se distinguen por su vida
       if (c.ref === 'burro' && t.burroUsado && dest.length) { r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: BURRO_CANSADO }); continue; }
       if (dest.length) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre + (data.objetos.transportes?.[c.ref]?.terminaTurno ? ' (termina tu turno)' : '') + vida, destinos: dest });
-      else if (c.ref === 'burro') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: 'El burro solo viaja por tierra entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, y Basra y Bagdad. Aquí no te mueve, pero lo puedes vender.' });
+      else if (c.ref === 'burro' && destinosTransporte(data, 'burro', j.ciudad).length) {   // Jorge (26 de noviembre): durante la Cruzada, desde El Cairo solo quedaba el Jorasán y no se decía por qué
+        const cer = destinosTransporte(data, 'burro', j.ciudad).filter((q) => ciudadCerrada(e, q));
+        r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: `Desde ${j.ciudad} el burro solo va a ${cer.join(' y ')}, y ahora no se puede ir: ${motivoCerrada(e, cer[0])}` });
+      } else if (c.ref === 'burro') r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con Burro' + vida, bloqueado: 'El burro solo viaja por tierra entre Estambul y Aleppo, El Cairo y Damasco, Damasco y Aleppo, Isfahán y Bagdad, y Basra y Bagdad. Aquí no te mueve, pero lo puedes vender.' });
       else if ((data.objetos.transportes?.[c.ref]?.noSaleDe || []).includes(j.ciudad)) r.push({ k: 'usar', uid: c.uid, titulo: 'Viajar con ' + ITEMS[c.ref].nombre, bloqueado: `Ni el caballo ni el camello van a ${j.ciudad} ni salen de allí: viaja en caravana o en alfombra.` });
     }
   }
