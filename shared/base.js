@@ -319,7 +319,7 @@ export const CALAMO_MAX = 6;   // Jorge (17 de noviembre): máximo 6 cálamos de
 export const CARGA_ITEMS = ['alfanje', 'cimitarra', 'vino', 'alfombra', 'tintaPulpo', 'alfombraIsfahan', 'shatranj',   // las alfombras de Isfahán pesan (18 de noviembre)
   'arco', 'jambiya', 'flechas', 'libro', 'libroIbnHazm', 'buza', 'cesta', 'almudDatiles', 'costalPistaches', 'dadosCairo', 'dadosPersia', 'dadoIbnArabi',
   'brujula', 'astrolabio', 'idolo', 'velo', 'veneno', 'especias', 'sal', 'citricos', 'pescado', 'lampara'];   // la lámpara de aceite pesa (Jorge, 20 de noviembre)   // el pescado pesa (Jorge, 19 de noviembre)
-export const OBJ_SIN_PESO = ['OB46', 'OB05'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre)
+export const OBJ_SIN_PESO = ['OB46', 'OB05', 'OB14'];   // Manuscritos de la India; Lazo de camellero, que se lleva sobre la cabeza (Jorge, 19 de noviembre); Sobre de sobornos (Jorge, 26 de noviembre: «el sobre no pesa»)
 // El laúd (Jorge, 24 de noviembre, solo en el 3D): a Jamil no le pesa, lo lleva a la espalda; a quien lo compre sí le cuenta como un objeto.
 // «j» es quien lleva la carta; sin él, el laúd cuenta como peso.
 export const pesaCarta = (c, j = null) => (c.tipo === 'objeto' ? !OBJ_SIN_PESO.includes(c.ref) : c.tipo === 'item' && (c.ref === 'laud' ? !(j && j.pj === '4') : CARGA_ITEMS.includes(c.ref)));

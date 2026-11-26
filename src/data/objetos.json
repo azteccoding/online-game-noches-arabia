@@ -213,7 +213,7 @@
    "valor": 15,
    "duracion": "1 vez",
    "momento": "Reacción",
-   "efecto": "Neutraliza a un guardia, vigilante o la Patrulla: no pagas el soborno que te correspondería y no peleas en esa ocasión. En un reto cambia el dado del guardia por el resultado que necesitas. Sirve una sola vez y se agota: no vuelve al mercado. Solo hay 1 en cada mercado de Aleppo, Bagdad y Damasco.",
+   "efecto": "Neutraliza a un guardia, vigilante o la Patrulla: no pagas el soborno que te correspondería y no peleas en esa ocasión. En un reto cambia el dado del guardia por el resultado que necesitas. Sirve una sola vez y se agota: no vuelve al mercado. No pesa. Solo hay 1 en cada mercado de Aleppo, Bagdad y Damasco.",
    "sirvePara": "R30, R31, E11, H6, H18, arresto en Bagdad",
    "seConsigueEn": "Aleppo, Bagdad, Damasco",
    "humor": "Un buen argumento con sello propio.",
@@ -477,7 +477,7 @@
   },
   {
    "id": "OB33",
-   "nombre": "Cuaderno de refranes",
+   "nombre": "Refranero andalusí",
    "tipo": "Documento",
    "copias": 3,
    "valor": 12,

@@ -4246,6 +4246,11 @@ console.log('reglas de la casa OK');
   // no pesa
   const c0 = nCarga(A); A.mano.push({ uid: 'lz2', tipo: 'objeto', ref: 'OB05', pub: true }); assert.equal(nCarga(A), c0, 'no pesa');
   A.mano = A.mano.filter((x) => x.uid !== 'lz2');
+  // Jorge (26 de noviembre): el Sobre de sobornos tampoco pesa; el Cuaderno de refranes se llama Refranero andalusí
+  A.mano.push({ uid: 'sb1', tipo: 'objeto', ref: 'OB14', pub: true }); assert.equal(nCarga(A), c0, 'el sobre no pesa');
+  A.mano.push({ uid: 'rf1', tipo: 'objeto', ref: 'OB33', pub: true }); assert.equal(nCarga(A), c0 + 1, 'el refranero sí pesa');
+  A.mano = A.mano.filter((x) => x.uid !== 'sb1' && x.uid !== 'rf1');
+  assert.match(JSON.stringify(data), /"Refranero andalusí"/); assert.doesNotMatch(JSON.stringify(data), /Cuaderno de refranes/);
   // venderlo en cualquier mercado a la mitad (6), menos el impuesto de venta de cada ciudad (Bagdad 0, Samarcanda 50 %)
   const { impuesto } = await import('../shared/objetos.js');
   for (const [ciudad, esperado] of [['Damasco', 6 - impuesto(data, e, 'Damasco', 6)], ['Bagdad', 6], ['Samarcanda', 3]]) {

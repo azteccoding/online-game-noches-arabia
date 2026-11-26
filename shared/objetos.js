@@ -750,7 +750,7 @@ export function sopa(data, e, pid, costo) {
 // ---------------------------------------------------------------- uso de objetos y cartas durante el turno
 const USOS = {
   OB05: { titulo: 'Lazo de camellero', obj: true }, OB15: { titulo: 'Joya para el visir' }, OB16: { titulo: 'Regalo para Masrur' }, OB19: { titulo: 'Dátiles y pan de viaje', si: (j) => j.herido || false },
-  OB24: { titulo: 'Botella de genio' }, OB27: { titulo: 'Pluma de roc' }, OB31: { titulo: 'Cuaderno de ruta' }, OB33: { titulo: 'Cuaderno de refranes' }, OB42: { titulo: 'Disfraz de mendigo', si: (j) => j.buscado > 0 },
+  OB24: { titulo: 'Botella de genio' }, OB27: { titulo: 'Pluma de roc' }, OB31: { titulo: 'Cuaderno de ruta' }, OB33: { titulo: 'Refranero andalusí' }, OB42: { titulo: 'Disfraz de mendigo', si: (j) => j.buscado > 0 },
 };
 const TRANSPORTE = { caballo: 1, camello: 2, burro: 3, alfombra: 1, caballoMongol: 1 };
 // Yafar NPC y los burros (Jorge, 19 de noviembre): en fácil ni los compra ni los usa; en normal los compra para que no los compre ningún
