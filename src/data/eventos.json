@@ -365,8 +365,8 @@
    "tipo": "historico",
    "nombre": "Cruzada",
    "ciudades": "Damasco, Aleppo, Estambul",
-   "efecto": "Los cruzados conquistan el Levante: nadie puede viajar a Damasco, Aleppo ni Estambul hasta que salga «La reconquista de Saladino» (a más tardar 3 rondas después). Quienes estén ahí deben pagar la caravana a Bagdad y se van; si no les alcanza, quedan en deuda",
-   "costo": "Esperemos que Saladino devuelva esas tierras a los musulmanes: sale su carta, a más tardar 3 rondas después. Yafar no se va: es un traidor, se alía con los cristianos y recibe 30 dinares (y cítricos)",
+   "efecto": "Los cruzados conquistan el Levante: nadie puede viajar a Damasco, Aleppo ni Estambul hasta que salga «La reconquista de Saladino» (a más tardar 3 rondas después). Yafar no se va: es un traidor, se alía con los cristianos y recibe 30 dinares (y cítricos)",
+   "costo": "Quienes estén ahí deben pagar la caravana a Bagdad y se van; si no les alcanza, quedan en deuda",
    "fomenta": "",
    "arte": "hi",
    "refReglamento": "17.2"
