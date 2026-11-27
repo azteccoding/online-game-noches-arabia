@@ -1,7 +1,8 @@
 // Mazo de eventos de jugador (EJ), solo en el 3D (Jorge, 26 de noviembre de 2026: «Sí, reemplaza los cuentos»).
 // Reemplaza a las Cartas de Cuentos. 48 cartas: 41 de ciudad y 7 del Jorasán (src/data/eventosJugador.json, textos de Jorge tal cual).
 // Reglas del mazo (decisiones de Jorge del 26 de noviembre):
-// - Sale al pagar alojamiento o dormir en una ciudad (al terminar un turno en que no te moviste), como máximo una por turno.
+// - Sale al iniciar tu turno, porque la noche anterior dormiste en una ciudad (Jorge, 27 de noviembre), en cada turno salvo el
+//   primero y si no estás perdido en el Jorasán; como máximo una por turno (R37 da otra aparte).
 // - Las del Jorasán salen cuando estás perdido ahí y no logras salir en tu turno (empezaste el turno perdido y lo terminas perdido).
 // - Sale en cualquier ciudad, salvo las cartas que dicen ciudades.
 // - Se lee a toda la mesa; las consecuencias se aplican cuando quien la sacó la cierra (o a los 90 segundos), como toda carta.
@@ -71,7 +72,7 @@ function sacar(data, e, j, jorasan) {
   return c;
 }
 
-// Al terminar el turno (engine.terminarTurno): aloj = lo que pagó de alojamiento (para las cartas que lo devuelven).
+// Al iniciar el turno (engine.iniciarTurno): aloj = lo que pagó de alojamiento la noche anterior (para las cartas que lo devuelven).
 export function alDormir(data, e, pid, { aloj = 0 } = {}) {
   const j = jug(e, pid);
   if (!j || j.npc || j.eliminado || j.transito || j.perdido || !cartas(data).length) return null;
