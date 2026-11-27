@@ -3640,13 +3640,14 @@ console.log('reglas de la casa OK');
   // compra en cualquier mercado, a 5, y pesan
   for (const ciudad of ['Bagdad', 'Samarcanda', 'Yemen']) { turnoDe(e, b, ciudad); e.turno.fase = 'acciones'; A.ciudad = ciudad; assert.equal(tienda(data, e, a).find((x) => x.ref === 'citricos')?.precio, 5, 'cítricos en ' + ciudad); }
   A.mano = []; A.dinares = 5; assert.ok(g.act(a, { t: 'comprar', ref: 'citricos' }).ok); assert.equal(A.dinares, 0); assert.equal(nCarga(A), 1, 'pesan');
-  // caravana El Cairo → Yemen: aviso antes de pagar, se gastan los cítricos
+  // caravana El Cairo → Yemen: ya no se pregunta antes de pagar (Jorge, 27 de noviembre); se gastan los cítricos y lo avisa una alerta roja
   A.mano = []; A.herido = false; A.ciudad = 'El Cairo'; A.dinares = 50; turnoDe(e, a, 'El Cairo'); e.turno.fase = 'mov';
-  const op = vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === 'Yemen'); assert.match(op.aviso || '', /escorbuto/, 'aviso antes de pagar');
-  assert.ok(!vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === 'Damasco')?.aviso, 'por tierra no hay aviso');
-  darItem(e, A, 'citricos'); assert.ok(!vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === 'Yemen').aviso, 'con cítricos no hay aviso');
+  const op = vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === 'Yemen'); assert.ok(!op.aviso, 'sin pregunta antes de embarcarse');
+  darItem(e, A, 'citricos');
   let r = g.act(a, { t: 'viajar', destino: 'Yemen' }); assert.ok(r.ok, r.error); assert.equal(A.ciudad, 'Yemen');
   assert.ok(!A.herido && !tieneItem(A, 'citricos'), 'los cítricos se gastan y no hay escorbuto');
+  { const al = (e.anuncios || []).at(-1); assert.ok(al && al.tono === 'rojo' && al.propio && al.para[0] === a && /Se usaron tus cítricos/.test(al.texto), 'alerta roja: se usaron los cítricos'); }
+  assert.ok(!(e.pend && e.pend.titulo === 'Viaje por mar') && !(e.colaPend || []).some((p) => p.titulo === 'Viaje por mar'), 'sin ventana de «Viaje por mar»');
   // herido no te embarcas
   A.herido = true; turnoDe(e, a, 'Yemen'); e.turno.fase = 'mov';
   assert.ok(!vistaDe(e, a).acciones.some((x) => x.k === 'viajar' && x.destino === 'El Cairo'), 'herido no aparece el viaje por mar');
@@ -3657,19 +3658,20 @@ console.log('reglas de la casa OK');
   // vuelta sin cítricos: herido
   turnoDe(e, a, 'Yemen'); e.turno.fase = 'mov'; r = g.act(a, { t: 'viajar', destino: 'El Cairo' }); assert.ok(r.ok, r.error);
   assert.ok(A.herido, 'sin cítricos, herido por escorbuto'); assert.ok(e.log.some((l) => /escorbuto/.test(l.texto) && l.aviso));
+  assert.ok(/quedas herido por escorbuto/.test((e.anuncios || []).at(-1)?.texto || ''), 'alerta roja: herido por escorbuto');
   // por tierra no pasa nada
   A.herido = false; turnoDe(e, a, 'El Cairo'); e.turno.fase = 'mov'; assert.ok(g.act(a, { t: 'viajar', destino: 'Damasco' }).ok); assert.ok(!A.herido, 'por tierra no hay escorbuto');
   // Abisinia (R40), piratas y barco de Sindbad
-  A.herido = false; A.mano = []; assert.equal(viajePorMar(e, a, 'x'), 'No llevabas cítricos: quedas herido por escorbuto.'); assert.ok(A.herido);
+  A.herido = false; A.mano = []; assert.equal(viajePorMar(e, a, 'x'), 'No llevabas cítricos x: quedas herido por escorbuto.'); assert.ok(A.herido);
   A.herido = false; A.ciudad = 'Yemen'; A.dinares = 100; turnoDe(e, a, 'Yemen'); e.turno.fase = 'acciones';
-  assert.match(vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.id === 'R40').aviso || '', /escorbuto/, 'R40 avisa');
+  assert.ok(!vistaDe(e, a).acciones.find((x) => x.k === 'reto' && x.id === 'R40').aviso, 'R40 ya no pregunta');
   forzar(e, 6); assert.ok(g.act(a, { t: 'reto', id: 'R40' }).ok); assert.ok(A.herido, 'el cruce a Abisinia también da escorbuto');
   A.herido = false; A.dinares = 100; turnoDe(e, a, 'Yemen'); e.turno.fase = 'acciones'; darItem(e, A, 'citricos');
   r = g.act(a, { t: 'tesoro', sub: 'jorasan', via: 'piratas' }); assert.ok(r.ok, r.error); assert.ok(!A.herido && !tieneItem(A, 'citricos'), 'los piratas: se gastan los cítricos');
   const g2 = partida(['4', '7']); assert.ok(g2.iniciar().ok);
   const e2 = g2.e, p2 = g2.ids[0], J = e2.jugadores[p2];
   turnoDe(e2, p2, 'India'); J.ciudad = 'India'; e2.turno.fase = 'acciones'; J.herido = false;
-  assert.match(vistaDe(e2, p2).acciones.find((x) => x.k === 'reto' && x.id === 'R11').aviso || '', /escorbuto/);
+  assert.ok(!vistaDe(e2, p2).acciones.find((x) => x.k === 'reto' && x.id === 'R11').aviso, 'R11 ya no pregunta');
   J.herido = true; assert.ok(!g2.act(p2, { t: 'reto', id: 'R11' }).ok, 'herido no te embarcas con Sindbad'); J.herido = false;
   assert.ok(g2.act(p2, { t: 'reto', id: 'R11' }).ok); assert.equal(J.ciudad, 'Basra'); assert.ok(J.herido, 'el barco de regreso a Basra da escorbuto');
 }

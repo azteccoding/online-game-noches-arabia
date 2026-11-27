@@ -3,7 +3,7 @@ import { huidaCuentaViaje } from './base.js';
 import {
   ok, err, dado, dados, suma, par, log, nombre, ciudadDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, pagar, puedePrincipal, publicarCarta, cartaDatos,
   eliminar, TESOROS, HOOK, escondites, sincronizarEscondites, mostrarDados, consumirObj, info, pedir, registrar, robar, humanosVivos, ITEMS, rnd, MAPA_JORASAN,
-viajePorMar, avisoEscorbuto, AVISO_ESCORBUTO, HERIDO_BARCO, opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra, ciudadCerrada, deseosAlAzar, puedeEntrenarArma } from './base.js';
+viajePorMar, HERIDO_BARCO, opcionesIfrit, deseosIfrit, gastarVeloSiAlfombra, ciudadCerrada, deseosAlAzar, puedeEntrenarArma } from './base.js';
 import { etiquetaBurro, reponerMapaJorasanLuego } from './objetos.js';
 
 const mapasDe = (j) => j.mano.filter((c) => c.tipo === 'item' && c.ref === 'mapa');
@@ -30,7 +30,7 @@ export function disponibles(data, e, pid) {
   const perdidos = j.npc ? [] : Object.values(e.jugadores).filter((x) => x.id !== pid && x.perdido && !x.eliminado && !x.npc).map((x) => x.nombre);
   const ayuda = perdidos.length ? { texto: `Puedes entrar a ayudar a ${perdidos.join(' y ')}: al llegar, intenten salir juntos.`, aviso: `Al entrar quedarás perdido en el Jorasán. Desde ahí podrás intentar salir junto con ${perdidos.join(' o ')}. ¿Entrar?` } : {};
   if (transp) r.push({ k: 'tesoro', sub: 'jorasan', via: 'transporte', titulo: (perdidos.length ? `Entrar al Jorasán a ayudar a ${perdidos.join(' y ')} con ` : 'Viajar al Jorasán con ') + ITEMS[transp].nombre, ...ayuda });
-  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: perdidos.length ? `Pagar a los piratas de Yemen para entrar a ayudar a ${perdidos.join(' y ')}` : 'Pagar a los piratas de Yemen para ir al Jorasán', ...ayuda, ...(j.herido ? { bloqueado: HERIDO_BARCO } : {}), ...(avisoEscorbuto(j) ? { aviso: [ayuda.aviso, AVISO_ESCORBUTO].filter(Boolean).join(' ') } : {}) });
+  if (j.ciudad === 'Yemen') r.push({ k: 'tesoro', sub: 'jorasan', via: 'piratas', titulo: perdidos.length ? `Pagar a los piratas de Yemen para entrar a ayudar a ${perdidos.join(' y ')}` : 'Pagar a los piratas de Yemen para ir al Jorasán', ...ayuda, ...(j.herido ? { bloqueado: HERIDO_BARCO } : {}) });
   return r;
 }
 

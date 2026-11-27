@@ -349,14 +349,21 @@ export const esRutaMar = (a, b) => RUTAS_MAR.some(([x, y]) => (a === x && b === 
 export const HERIDO_BARCO = 'Herido no puedes viajar en barco.';   // Jorge (19 de noviembre)
 export const AVISO_ESCORBUTO = 'Es un viaje por mar y no llevas cítricos: quedarás herido por escorbuto. Los cítricos se venden en cualquier mercado a 5 dinares.';
 export const avisoEscorbuto = (j) => (j && !tieneItem(j, 'citricos') ? AVISO_ESCORBUTO : '');
+// Jorge (27 de noviembre): ya no se pregunta nada antes de embarcarse; los cítricos se gastan siempre en el primer viaje por mar y
+// se avisa con una alerta roja propia (sale cuando la ficha ya llegó). Sin cítricos, la alerta dice que quedas herido.
+export function alertaRoja(e, pid, texto) {
+  if (!e.jugadores[pid] || e.jugadores[pid].npc) return;
+  (e.anuncios ||= []).push({ id: ++e.seq, t: e.ahora, para: [pid], texto, tono: 'rojo', propio: true });
+  if (e.anuncios.length > 30) e.anuncios.splice(0, e.anuncios.length - 30);
+}
 export function viajePorMar(e, pid, que) {
   const j = e.jugadores[pid];
   if (!j || j.eliminado) return '';
-  if (quitarPrimero(j, 'item', 'citricos')) { const m = `Comes tus cítricos ${que}: no te da escorbuto.`; log(e, `${j.nombre} come sus cítricos ${que} y no le da escorbuto.`, { pid }); return m; }
+  if (quitarPrimero(j, 'item', 'citricos')) { const m = `Se usaron tus cítricos ${que}: no te da escorbuto.`; log(e, `${j.nombre} come sus cítricos ${que} y no le da escorbuto.`, { pid }); alertaRoja(e, pid, m); return m; }
   if (j.herido) { log(e, `${j.nombre} no llevaba cítricos ${que}, pero ya estaba herido.`, { pid }); return ''; }
   j.herido = true;
   log(e, `${j.nombre} no llevaba cítricos ${que} y queda herido por escorbuto.`, { pid, aviso: true });
-  return 'No llevabas cítricos: quedas herido por escorbuto.';
+  const m = `No llevabas cítricos ${que}: quedas herido por escorbuto.`; alertaRoja(e, pid, m); return m;
 }
 // Alfombras de Isfahán (Jorge, 18 de noviembre): 20 en todo el juego, empiezan en el mercado de Isfahán. Ahí cuestan 30 (20 en el reto R17).
 // Los demás mercados las compran a 35 (Andalucía a 40) y las revenden 3 dinares más caras; el de Isfahán las recompra a 15 (y las vende a 30).

@@ -27,7 +27,7 @@ for (const { id, ciudad } of data.retos.retos) {
     const pendiente = [e.pend, ...(e.colaPend || [])].some((p) => p && p.para.includes(a) && p.tipo !== 'info');
     if (pendiente) continue;   // el reto sigue con una decisión tuya: su desenlace sale al terminar
     const dados = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.por === a && d.motivo === 'reto:' + id);
-    const alerta = (vista(data, e, a).anuncios || []).find((x) => x.propio);
+    const alerta = (vista(data, e, a).anuncios || []).find((x) => x.propio && !/cítricos/.test(x.texto));   // los cítricos avisan aparte, en rojo (Jorge, 27 de noviembre)
     assert.ok(dados.some((d) => d.resumen.some((r) => TITULAR.test(r))) || (alerta && TITULAR.test(alerta.texto)), `${id} (semilla ${sem}) termina sin desenlace`);
     assert.ok(![e.pend, ...(e.colaPend || [])].some((p) => p && p.tipo === 'info' && p.titulo === `Reto ${id}`), `${id}: ya no sale la ventana «Entendido», sino la alerta`);
     if (alerta) assert.match(alerta.texto, new RegExp(`^Reto ${id} · `), `${id}: la alerta dice de qué reto es`);

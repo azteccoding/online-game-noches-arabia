@@ -4,7 +4,7 @@ import { huidaCuentaViaje } from './base.js';
 import {
   ok, err, rnd, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, avisoEscorbuto, HERIDO_BARCO, deudasDe, deudaDe, contraerDeuda, pagarDeuda, } from './base.js';
+itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, HERIDO_BARCO, deudasDe, deudaDe, contraerDeuda, pagarDeuda, } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -119,7 +119,7 @@ export function disponibles(data, e, pid) {
     if (esperaVolver(j, id)) continue;
     if (j.misiones.some((m) => m.id === id)) continue;
     const msg = (RETOS_MAR.includes(id) && j.herido ? HERIDO_BARCO : null) || (T[id].req ? T[id].req(data, e, pid) : null);   // herido no te embarcas (Jorge, 19 de noviembre)
-    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion && d.resolucion.split(d.ciudad).join(j.ciudad), requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined, aviso: RETOS_MAR.includes(id) ? avisoEscorbuto(j) || undefined : undefined });
+    r.push({ k: 'reto', id, titulo: id + ' · ' + d.nombre, texto: d.resolucion && d.resolucion.split(d.ciudad).join(j.ciudad), requisito: d.requisito, premio: d.premio, bloqueado: recupera || sinPrincipal || msg || undefined });
   }
   marcarCopias(e, r);
   return r;
@@ -567,7 +567,7 @@ T.R10 = { ciudad: 'El Cairo', run(data, e, pid, ctx) {
 // ---------------------------------------------------------------- Sindbad R11-R14
 // Escorbuto (Jorge, 19 de noviembre): el barco que te regresa a Basra es viaje por mar; sin cítricos llegas herido.
 const RETOS_MAR = ['R11', 'R12', 'R13', 'R14', 'R40'];
-function sindbadFin(data, e, pid, ctx) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; const m = viajePorMar(e, pid, 'en el barco de regreso a Basra'); if (m) ctx?.say(m); HOOK.llegada(data, e, pid, 'India'); }
+function sindbadFin(data, e, pid, ctx) { const j = e.jugadores[pid]; j.ciudad = 'Basra'; viajePorMar(e, pid, 'en el barco de regreso a Basra'); HOOK.llegada(data, e, pid, 'India'); }
 T.R11 = { ciudad: 'India', run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; hacer(e, pid, 'R11'); const v = ctx.t(`${j.nombre}: viaje con Sindbad`, 2);
   // Regla de la casa (noviembre de 2026): las noches de Sindbad no se multiplican por ronda; al naufragar no hay dinares pero se ganan 30 noches por la historia vivida.
@@ -1296,7 +1296,7 @@ T.R40 = { ciudad: 'Yemen', req: (d, e, pid) => { const j = e.jugadores[pid]; if 
       HOOK.genioFuera(data, e, pid, { titulo: 'La lámpara de Abisinia', texto: 'Frotas la lámpara que encontraste en las montañas de Abisinia y sale un genio: te concede uno de estos 3 deseos.' });
     } else if (r >= 4) ctx.say('Las corrientes te regresan a Moca: pierdes el pasaje.');
     else { j.herido = true; ctx.say('Tormenta en el estrecho: pierdes el pasaje y quedas herido.'); }
-    { const m = viajePorMar(e, pid, 'en el cruce del estrecho'); if (m) ctx.say(m); }   // escorbuto (Jorge, 19 de noviembre)
+    viajePorMar(e, pid, 'en el cruce del estrecho');   // escorbuto (Jorge, 19 de noviembre); alerta roja propia (27 de noviembre)
   } };
 // R41 (regla de la casa): el ídolo de Toledo, uno solo por partida. 1 dado +1 destreza: 5+ lo robas; 3–4 nada; 1–2 herido y 20 de rescate.
 T.R41 = { ciudad: 'Andalucía', req: (d, e) => (e.idolo ? 'El ídolo de Toledo ya no está en su iglesia.' : null),

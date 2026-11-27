@@ -10,7 +10,7 @@ import {
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
 textoBuscado,
 motivoNoSalir,
-apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, avisoEscorbuto, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, huidaCuentaViaje, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
+apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, huidaCuentaViaje, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
@@ -1056,7 +1056,7 @@ export function partir(data, e, pid, args) {
   if (!e.caravanas.includes(destino + '>' + origen) && data.rutas.tarifas[destino + '>' + origen] !== undefined) e.caravanas.push(destino + '>' + origen);
   j.ciudad = destino;
   log(e, `${j.nombre} viaja de ${origen} a ${destino}${args.precio ? ` (${args.precio} dinares)` : ''}.`, { pid });
-  if (esRutaMar(origen, destino)) { const m = viajePorMar(e, pid, 'en el viaje por mar'); if (m) info(e, pid, 'Viaje por mar', m); }   // escorbuto (Jorge, 19 de noviembre)
+  if (esRutaMar(origen, destino)) viajePorMar(e, pid, 'en el viaje por mar');   // escorbuto (Jorge, 19 de noviembre); avisa con alerta roja (27 de noviembre)
   return llegada(data, e, pid, origen);
 }
 
@@ -1501,7 +1501,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifaTurno(data, e, j, d), aviso: esRutaMar(j.ciudad, d) ? avisoEscorbuto(j) || undefined : undefined });
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifaTurno(data, e, j, d) });   // sin preguntar por los cítricos (Jorge, 27 de noviembre)
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
