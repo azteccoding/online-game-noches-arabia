@@ -1245,7 +1245,9 @@ function terminarTurno(data, e, pid) {
   if (t.fase === 'ingreso') return err('Primero tira el dado de ingreso.');
   if (t.ccActual) return err('Resuelve primero la Carta de Trivias (o sáltala).');
   RET.mensajes(data, e, pid, 'finTurno', {});
-  if (!t.movio && !j.perdido && !t.omitido && !t.sinAlojamiento) {                                           // R 6.2 fase 5 / 8.2: alojamiento
+  // Alojamiento (Jorge, 27 de noviembre): «si terminas tu turno pagas el alojamiento de esa ciudad», aunque acabes de llegar.
+  // Antes solo pagaba quien terminaba donde había empezado.
+  if (!j.perdido && !j.transito && !t.omitido && !t.sinAlojamiento) {                                        // R 6.2 fase 5 / 8.2: alojamiento
     if (j.pj === '2' && j.ciudad === 'Andalucía') log(e, `${j.nombre} no paga alojamiento en Andalucía.`, { pid });   // Jorge (19 de noviembre)
     else if (!t.primerTurnoBagdad || j.ciudad !== 'Bagdad') {
       const c = ciudadDe(data, j.ciudad); let costo = c.alojamiento * (j.pj === 'B' ? 2 : 1);
@@ -1253,7 +1255,7 @@ function terminarTurno(data, e, pid) {
       if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = 10 * (j.pj === 'B' ? 2 : 1);
       costo = OBJ.sopa(data, e, pid, costo);
       pagar(data, e, pid, costo); t.alojPagado = costo;
-      log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad} (no se movió este turno).`, { pid });
+      log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad}.`, { pid });
     }
   }
   for (const m of j.mensajes.filter((x) => x.turnoLimite != null && e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }

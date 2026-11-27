@@ -333,7 +333,7 @@
    "valor": 5,
    "duracion": "2 usos",
    "momento": "Fin del turno",
-   "efecto": "Si no te moviste, pagas solo la mitad del alojamiento (redondeo hacia arriba). Te sirve 2 turnos.",
+   "efecto": "Pagas solo la mitad del alojamiento (redondeo hacia arriba). Te sirve 2 turnos.",
    "sirvePara": "Alojamiento (8.2)",
    "seConsigueEn": "Bagdad, Andalucía, Damasco, Aleppo",
    "humor": "Tibia, grasosa y suficientemente barata.",

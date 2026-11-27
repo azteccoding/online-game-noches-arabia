@@ -264,7 +264,7 @@ function cierre(data, e, pid) {
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
   comprarArmasNPC(data, e, pid);
   if (!j.eliminado) comprasNPC(data, e, pid);   // animal de carga y transporte
-  if (!t.movio) { const c = ciudadDe(data, j.ciudad); pagar(data, e, pid, c.alojamiento * 2); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }
+  if (!j.perdido && !j.transito) { const c = ciudadDe(data, j.ciudad); pagar(data, e, pid, c.alojamiento * 2); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }   // cada turno, aunque haya viajado (Jorge, 27 de noviembre)
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   t.fin = true;
 }
