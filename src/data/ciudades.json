@@ -13,7 +13,7 @@
    },
    "nochesLlegada": 40,
    "nochesLuego": 8,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Bagdad",
    "retos": [
     "R26",
@@ -38,7 +38,7 @@
    },
    "nochesLlegada": 50,
    "nochesLuego": 5,
-   "alojamiento": 3,
+   "alojamiento": 2,
    "mazoCC": "Bagdad",
    "retos": [
     "R23",
@@ -60,7 +60,7 @@
    },
    "nochesLlegada": 15,
    "nochesLuego": 15,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "El Cairo",
    "retos": [
     "R8",
@@ -83,7 +83,7 @@
    },
    "nochesLlegada": 5,
    "nochesLuego": 5,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Bagdad",
    "retos": [
     "R25",
@@ -105,7 +105,7 @@
    },
    "nochesLlegada": 5,
    "nochesLuego": 5,
-   "alojamiento": 2,
+   "alojamiento": 1,
    "mazoCC": "Aleppo",
    "retos": [
     "R27",
@@ -127,7 +127,7 @@
    },
    "nochesLlegada": 5,
    "nochesLuego": 5,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Damasco",
    "retos": [
     "R20",
@@ -151,7 +151,7 @@
    },
    "nochesLlegada": 5,
    "nochesLuego": 5,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Bagdad",
    "retos": [
     "R19",
@@ -174,7 +174,7 @@
    },
    "nochesLlegada": 5,
    "nochesLuego": 10,
-   "alojamiento": 3,
+   "alojamiento": 2,
    "mazoCC": "Basra",
    "retos": [
     "R24"
@@ -195,7 +195,7 @@
    },
    "nochesLlegada": 0,
    "nochesLuego": 0,
-   "alojamiento": 10,
+   "alojamiento": 9,
    "mazoCC": "Bagdad",
    "retos": [
     "R1",
@@ -222,7 +222,7 @@
    },
    "nochesLlegada": 15,
    "nochesLuego": 15,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Isfahán",
    "retos": [
     "R16",
@@ -246,7 +246,7 @@
    },
    "nochesLlegada": 30,
    "nochesLuego": 10,
-   "alojamiento": 5,
+   "alojamiento": 4,
    "mazoCC": "Bagdad",
    "retos": [
     "R15",
@@ -269,7 +269,7 @@
    },
    "nochesLlegada": 50,
    "nochesLuego": 20,
-   "alojamiento": 10,
+   "alojamiento": 9,
    "mazoCC": "Bagdad",
    "retos": [
     "R11",

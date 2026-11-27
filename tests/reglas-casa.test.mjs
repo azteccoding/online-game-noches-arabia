@@ -649,7 +649,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   const { disponibles, ENTRENAMIENTOS } = await import('../shared/retos.js');
   const { destinosTransporte } = await import('../shared/objetos.js');
   assert.equal(data.rutas.tarifas['Bagdad>Andalucía'], undefined); assert.equal(data.rutas.tarifas['Andalucía>Bagdad'], undefined);
-  assert.equal(data.rutas.tarifas['El Cairo>Andalucía'], 20); assert.equal(data.rutas.tarifas['Magreb>Andalucía'], 5); assert.equal(data.rutas.tarifas['Andalucía>Magreb'], 6);
+  assert.equal(data.rutas.tarifas['El Cairo>Andalucía'], 17);   // 20 - 3 (Jorge, 27 de noviembre) assert.equal(data.rutas.tarifas['Magreb>Andalucía'], 5); assert.equal(data.rutas.tarifas['Andalucía>Magreb'], 6);
   assert.ok(destinosTransporte(data, 'alfombra', 'Bagdad').includes('Andalucía'), 'la alfombra sigue llegando a Andalucía');
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, j = e.jugadores[a];
@@ -4005,16 +4005,16 @@ console.log('reglas de la casa OK');
   assert.equal(SEDA_PASO, 2);
   // de Bagdad a Isfahán y se queda: tarifa normal (10)
   turno('Bagdad'); assert.equal(precioA('Isfahán'), 10); assert.deepEqual(viaja('Isfahán'), { pago: 10, dev: 0 }, 'si te quedas en Isfahán pagas los 10 de siempre');
-  // de Bagdad a Samarcanda pasando por Isfahán: el primer tramo queda en 2 (se devuelven 8) y el segundo a mitad de precio (22)
-  turno('Bagdad'); viaja('Isfahán'); assert.equal(precioA('Samarcanda'), 22); { const d0 = A.dinares; assert.deepEqual(viaja('Samarcanda'), { pago: 22, dev: 8 }, 'de paso por Isfahán: 2 dinares por el tramo de Bagdad a Isfahán'); assert.ok(A.dinares >= d0 + 8 - 22); }
+  // de Bagdad a Samarcanda pasando por Isfahán: el primer tramo queda en 2 (se devuelven 8) y el segundo a mitad de precio (21)
+  turno('Bagdad'); viaja('Isfahán'); assert.equal(precioA('Samarcanda'), 21); { const d0 = A.dinares; assert.deepEqual(viaja('Samarcanda'), { pago: 21, dev: 8 }, 'de paso por Isfahán: 2 dinares por el tramo de Bagdad a Isfahán'); assert.ok(A.dinares >= d0 + 8 - 21); }
   // si el segundo tramo solo le alcanza contando la devolución, también puede
-  turno('Bagdad'); A.dinares = 26; viaja('Isfahán'); A.dinares = 16; assert.deepEqual(viaja('Samarcanda'), { pago: 22, dev: 8 });
+  turno('Bagdad'); A.dinares = 26; viaja('Isfahán'); A.dinares = 16; assert.deepEqual(viaja('Samarcanda'), { pago: 21, dev: 8 });
   // de vuelta: de Samarcanda a Bagdad pasando por Isfahán, el tramo de Isfahán a Bagdad sale en 2
-  turno('Samarcanda'); assert.equal(viaja('Isfahán').pago, 18); assert.equal(precioA('Bagdad'), 2); assert.deepEqual(viaja('Bagdad'), { pago: 2, dev: 0 });
-  // saliendo de Isfahán en otro turno (se quedó ahí): tarifa normal a Bagdad (12)
-  turno('Isfahán'); assert.equal(precioA('Bagdad'), 12); assert.deepEqual(viaja('Bagdad'), { pago: 12, dev: 0 });
+  turno('Samarcanda'); assert.equal(viaja('Isfahán').pago, 16); assert.equal(precioA('Bagdad'), 2); assert.deepEqual(viaja('Bagdad'), { pago: 2, dev: 0 });
+  // saliendo de Isfahán en otro turno (se quedó ahí): tarifa normal a Bagdad (9)
+  turno('Isfahán'); assert.equal(precioA('Bagdad'), 9); assert.deepEqual(viaja('Bagdad'), { pago: 9, dev: 0 });
   // sin la carta: nada cambia
-  turno('Bagdad'); e.mods = {}; viaja('Isfahán'); assert.equal(precioA('Bagdad'), 12); assert.equal(precioA('Samarcanda'), 44); assert.deepEqual(viaja('Samarcanda'), { pago: 44, dev: 0 });
+  turno('Bagdad'); e.mods = {}; viaja('Isfahán'); assert.equal(precioA('Bagdad'), 9); assert.equal(precioA('Samarcanda'), 41); assert.deepEqual(viaja('Samarcanda'), { pago: 41, dev: 0 });
   assert.match(data.eventos.historicos.find((x) => x.id === 'H10').efecto, /solo si vas de paso por Isfahán/);
 }
 // Jorge (24 de noviembre, solo en el 3D): Jamil toca una de dos piezas de la misma canción, al azar: dos de cada tres veces la segunda
@@ -5109,7 +5109,7 @@ console.log('reglas de la casa OK');
   const p = [e.pend, ...(e.colaPend || [])].find((x) => x && x.titulo === 'Reconquista' && x.para.includes(a));
   assert.ok(p, 'elige a dónde huir'); e.pend = p; e.colaPend = []; const n0 = A.noches;
   assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'El Cairo' }).ok);
-  assert.equal(A.ciudad, 'El Cairo'); assert.ok(e.log.some((l) => /huye de Andalucía a El Cairo: paga 15 dinares y recibe 60 noches/.test(l.texto)) && A.noches >= n0 + 60, '60 noches');
+  assert.equal(A.ciudad, 'El Cairo'); assert.ok(e.log.some((l) => /huye de Andalucía a El Cairo: paga 12 dinares y recibe 60 noches/.test(l.texto)) && A.noches >= n0 + 60, '60 noches');
   e.ronda = 40; assert.ok(BASE.ciudadCerrada(e, 'Andalucía'), 'sigue cerrada');
 }
 // Jorge (23 de noviembre): con «Los cristianos toman Toledo», Bagdad ya no sale «(null)» ni gratis: se va por El Cairo, se cobran los dos tramos y gasta los 2 viajes
@@ -5122,9 +5122,9 @@ console.log('reglas de la casa OK');
   const p = e.pend; assert.ok(p && p.para.includes(a), 'pregunta a quien está en Andalucía');
   assert.ok(p.opciones.every((o) => !/null|undefined/.test(o.texto)), 'ninguna opción con precio (null)');
   const ob = p.opciones.find((o) => o.id === 'Bagdad'); assert.ok(ob, 'Bagdad sigue');
-  assert.match(ob.texto, /pasando por El Cairo \(15 \+ 4 = 19; gasta tus 2 viajes\)/);
+  assert.match(ob.texto, /pasando por El Cairo \(12 \+ 4 = 16; gasta tus 2 viajes\)/);
   assert.ok(g.act(a, { t: 'decidir', id: p.id, opcion: 'Bagdad' }).ok);
-  assert.equal(A.ciudad, 'Bagdad'); assert.equal(A.dinares, 31, 'cobra 15 + 4');
+  assert.equal(A.ciudad, 'Bagdad'); assert.equal(A.dinares, 34, 'cobra 12 + 4');
   assert.ok(A.herido, 'escorbuto en el barco a El Cairo');
   assert.equal(e.turno?.pid === a ? e.turno.huidas : A.extra.huidasPend, 2, 'gasta los 2 viajes del turno'); void b;
 }

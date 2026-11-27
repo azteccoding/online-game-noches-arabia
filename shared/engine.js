@@ -1252,7 +1252,7 @@ function terminarTurno(data, e, pid) {
     else if (!t.primerTurnoBagdad || j.ciudad !== 'Bagdad') {
       const c = ciudadDe(data, j.ciudad); let costo = c.alojamiento * (j.pj === 'B' ? 2 : 1);
       if (e.mods.alojDoble?.includes(j.ciudad)) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);
-      if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = 10 * (j.pj === 'B' ? 2 : 1);
+      if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);   // inundación del Nilo: el doble
       costo = OBJ.sopa(data, e, pid, costo);
       pagar(data, e, pid, costo); t.alojPagado = costo;
       log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad}.`, { pid });
