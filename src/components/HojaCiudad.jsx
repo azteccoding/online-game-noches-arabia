@@ -24,7 +24,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
   if ((s.quemadas || []).includes(id)) {   // Jorge (22 de noviembre): tomada por los cruzados, sin ficha de ciudad; solo lo que dice la carta
     const h = (eventosData.eventos || eventosData).find((x) => x.id === 'H21');
     return (
-      <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}, tomada por los cruzados`}>
+      <div className="hoja-modal panel hoja-ciudad" tabIndex={-1} role="dialog" aria-label={`Ciudad ${id}, tomada por los cruzados`}>
         <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
         <div className="desp-cuerpo">
           <p><b>{h?.nombre || 'Cruzada'}</b></p>
@@ -41,7 +41,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
   const mult = s.mult;
   const presentes = Object.values(s.jugadores).filter((j) => j.ciudad === id && j.pj && !j.eliminado);
   return (
-    <div className="hoja-modal panel hoja-ciudad" role="dialog" aria-label={`Ciudad ${id}`}>
+    <div className="hoja-modal panel hoja-ciudad" tabIndex={-1} role="dialog" aria-label={`Ciudad ${id}`}>
       <div className="desp-cab"><h2>{id} <span className="ar">{c.ar}</span></h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
         {s.noSalir && <p className="aviso-mal">⛔ No puedes salir de tu ciudad: {s.noSalir}</p>}
@@ -64,7 +64,7 @@ export default function HojaCiudad({ s, id, onCerrar }) {
         {id !== yo.ciudad && <p><b>Caravana desde {yo.ciudad}:</b> {tarifa !== undefined ? `${tarifa} dinares` : 'sin ruta directa (usa un transbordo)'}</p>}
         <button className="btn mini sec" aria-expanded={verVentas} onClick={() => setVerVentas((v) => !v)}>{verVentas ? 'Ocultar consejos de venta' : 'Consejos para ganar dinares aquí'}</button>
         {verVentas && <ul className="consejos-venta">{consejosVenta(id).map((x) => <li key={x}>{x}</li>)}</ul>}
-        {puedeViajar && <button className="btn" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>{`Viajar a ${id} (${tarifa} dinares)`}</button>}
+        {puedeViajar && <button className="btn btn-viajar" disabled={yo.dinares < tarifa} onClick={() => { if (!confirmarViajeBurro(s, id)) return; if (viaje?.aviso && !window.confirm(viaje.aviso)) return; enviar(ACCIONES.viajar(id)); onCerrar(); }}>{`Viajar a ${id} (${tarifa} dinares)`}</button>}
         {puedeViajar && yo.dinares < tarifa && <p className="error">No te alcanzan los dinares.</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && yo.herido && esRutaMar(yo.ciudad, id) && <p className="it">{HERIDO_BARCO}</p>}
         {miTurno && s.turno.fase !== 'ingreso' && id !== yo.ciudad && !viaje && !(yo.herido && esRutaMar(yo.ciudad, id)) && s.noSalir && <p className="error">⛔ No puedes viajar a {id}: {s.noSalir}</p>}

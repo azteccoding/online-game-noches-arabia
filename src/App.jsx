@@ -51,7 +51,8 @@ function Juego({ lienzo }) {
   const demo = useJuego((x) => x.demo);
   const pids = useJuego((x) => x.pids);
   const [verTablero, setVerTablero] = useState(false);   // sin personaje en la primera ronda: mirar la partida en vez de la sala
-  const [panel, setPanel] = useState(null);       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
+  const [panel, setPanel] = useState(null);
+  const panelRef = useRef(null); panelRef.current = panel;   // para las teclas «.» y «,» (qué ciudad está abierta)       // personajes | mano | mercado | acciones | misiones | historial | registro | anfitrion | acerca | ciudad:X
   const [consulta, setConsulta] = useState(null);
   const [verFin, setVerFin] = useState(true);
   useEffect(() => { if (s?.fase === 'fin') setVerFin(true); }, [s?.fase]);   // cada vez que la partida termina (también tras «Volver a la partida») sale el resultado
@@ -209,6 +210,19 @@ function Juego({ lienzo }) {
       else if (k === 'e') { const b = document.querySelector('.reacciones-btn'); if (b) b.click(); else return; }   // las reacciones rápidas, como su botón
       else if (k === 'r') { if (e.fase === 'juego') abrir('misiones'); else return; }
       else if (k === 'f') { const b = document.querySelector('.btn-pantalla'); if (b) b.click(); else return; }   // pantalla completa, como su botón
+      // Jorge (27 de noviembre): l agranda la letra de la carta abierta, como tocarla o darle clic, y otra l la regresa a su tamaño.
+      else if (k === 'l') { if (!document.querySelector('.carta.tam-completa')) return; window.dispatchEvent(new Event('carta-lectura')); }
+      // Jorge (27 de noviembre): «.» abre la ventana de la siguiente ciudad a la que puedes viajar y «,» la de la siguiente de todas,
+      // en orden alfabético descendente (de la Z a la A); la ventana queda con el foco y Shift + flecha abajo marca «Viajar».
+      else if (ev.key === '.' || ev.key === ',') {
+        const todas = ev.key === ',';
+        const lista = (todas ? DATA.ciudades.ciudades.map((c) => c.id) : [...new Set((e.acciones || []).filter((a) => a.k === 'viajar').map((a) => a.destino))])
+          .sort((x, y) => y.localeCompare(x, 'es'));
+        if (!lista.length) { avisar('Ahora no puedes viajar a ninguna ciudad.'); ev.preventDefault(); return; }
+        const p = panelRef.current, actual = p?.startsWith('ciudad:') ? p.slice(7) : null;
+        setPanel('ciudad:' + lista[(lista.indexOf(actual) + 1) % lista.length]);
+        setTimeout(() => document.querySelector('.hoja-ciudad')?.focus({ preventScroll: true }), 0);
+      }
       else if (k === 'z') {
         const b = document.querySelector('.modal-cerrar:not([disabled])'), r = document.querySelector('.reacciones-lista') && document.querySelector('.reacciones-btn');
         if (r) r.click(); else if (b) b.click(); else setPanel(null);

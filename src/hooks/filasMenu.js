@@ -8,5 +8,6 @@ export function filasDeMenu() {
   if (!filas.length) filas = visibles('.carta .opciones button');
   if (!filas.length) filas = visibles('.decision .decision-botones > button, .decision .decision-opc > li, .decision > button, .decision-num ~ button');
   if (!filas.length) filas = visibles('[role="dialog"] .accion-fila, [role="dialog"] .lista-merc > li, [role="dialog"] .trato.entrante');
+  if (!filas.length) filas = visibles('.hoja-ciudad .btn-viajar');   // la ventana de una ciudad (teclas «.» y «,»): Shift + flecha abajo marca «Viajar» (Jorge, 27 de noviembre)
   return filas;
 }

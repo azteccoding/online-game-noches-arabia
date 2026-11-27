@@ -52,6 +52,9 @@ export default function Carta({ datos, tam = 'completa', children, className = '
   // Jorge (23 de noviembre, repetido): NINGUNA carta pintada lleva el recuadro borroso; todas van en letra mini y crecen sobre fondo opaco al pasar el mouse.
   const [leyendo, setLeyendo] = useState(false);
   const tactil = useRef(false);
+  // Jorge (27 de noviembre): la tecla l hace lo mismo que tocar la carta (App.jsx); cada carta nueva empieza con su letra chica.
+  useEffect(() => { if (!completa) return undefined; const f = () => setLeyendo((v) => !v); window.addEventListener('carta-lectura', f); return () => window.removeEventListener('carta-lectura', f); }, [completa]);
+  useEffect(() => { setLeyendo(false); }, [datos?.id, datos?.nro]);
   const lectura = {
     onPointerDown: (e) => { tactil.current = e.pointerType !== 'mouse'; },
     onPointerOver: (e) => { if (e.pointerType === 'mouse') setLeyendo(!e.target.closest('button, a, .modal-pie')); },   // solo sobre la carta, no sobre sus botones ni el de Cerrar (Jorge, 23 de noviembre)
