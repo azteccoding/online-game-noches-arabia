@@ -524,7 +524,7 @@
    "ciudad": "Yemen",
    "tipo": "V",
    "requisito": "Pagar 15 dinares de pasaje. No se puede intentar herido.",
-   "resolucion": "Desde Moca, un dhow cruza el estrecho de Bab el-Mandeb hacia Abisinia, la tierra del Negus que dio refugio a los primeros musulmanes que huyeron de La Meca en tiempos del Profeta Muhammad (la paz sea con él). Dicen que en sus montañas duermen genios atrapados en lámparas. Tira 1 dado (+1 con destreza, +1 con camello): 6 o más, llegas a Abisinia, encuentras una lámpara y su genio te concede uno de 3 deseos (lo pides en ese momento; la carta no se guarda) y vuelves a Yemen; 4 o 5, las corrientes te regresan a Moca; 1 a 3, tormenta en el estrecho.",
+   "resolucion": "Desde Moca, un dhow cruza el estrecho hacia Abisinia, la tierra del Negus que dio refugio a los primeros musulmanes en tiempos del Profeta Muhammad (la paz sea con él). Tira 1 dado (+1 con destreza, +1 con camello). Con 6 o más encuentras una lámpara cuyo genio te concede uno de 3 deseos y vuelves a Yemen; con 4 o 5 las corrientes te regresan a Moca; con 1 a 3, tormenta en el estrecho.",
    "premio": "Un deseo de Ifrit: eliges 1 de 3 en ese momento.",
    "riesgo": "Con 4 o 5 pierdes el pasaje; con 1 a 3 pierdes el pasaje y quedas herido.",
    "objetos": "",

@@ -171,7 +171,7 @@ function aplicarHistorico0(data, e, id) {
       // Jorge (19 de noviembre): con el Disfraz de mendigo no te reclutan y el disfraz no se gasta.
       const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Aleppo', 'El Cairo'])).filter((x) => { if (!tieneObj(jug(e, x), 'OB42')) return true; log(e, `${jug(e, x).nombre} pasa inadvertido en la leva con su Disfraz de mendigo.`, { pid: x }); return false; });
       ids.forEach((pid, i) => {
-        const j = jug(e, pid), puede = j.destreza && ['alfanje', 'cimitarra', 'jambiya'].some((r) => tieneItem(j, r));   // el arco no cuenta como arma (Jorge, 19 de noviembre)
+        const j = jug(e, pid), pf = perfil(data, e, pid), puede = pf.destreza && pf.armas.length > 0;   // el arco no cuenta como arma (Jorge, 19 de noviembre); Jorge (27 nov): vale toda destreza (general, de jambiya o de un arma entrenada), aunque estés herido
         const op = []; if (puede) op.push({ id: 'alistar', texto: 'Alistarme (+30 dinares; pierdo mi acción principal del siguiente turno)' });
         op.push({ id: 'pagar', texto: 'Pagar 10 dinares' }); op.push({ id: 'noches', texto: `Perder ${LEVA_NOCHES} noches` });
         pedir(e, { tipo: 'historico', para: [pid], titulo: 'Leva del sultán', texto: 'El sultán recluta soldados.', opciones: op, porDefecto: 'noches', cont: { fn: 'ev.h7', args: { ultimo: i === ids.length - 1 } } });

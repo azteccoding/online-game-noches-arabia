@@ -17,7 +17,7 @@ VISTA = os.environ.get('VISTA')
 # alto: altura total en unidades de armas.js · puno: fila del centro de la empuñadura (fracción de la altura, 0 arriba)
 # guarda: fila donde empieza la hoja · sz: +1 si el lado derecho de la pintura va hacia +Z (el filo), −1 si va hacia −Z (la cuerda del arco)
 AJ = {
-  'cimitarra': dict(alto=128, puno=0.855, guarda=0.73, sz=1),
+  'cimitarra': dict(alto=128, puno=0.855, guarda=0.73, sz=-1),   # Jorge (27 nov): la parte cóncava hacia el personaje y la convexa (el filo) hacia el oponente
   'alfanje': dict(alto=120, puno=0.80, guarda=0.635, sz=1),
   'jambiya': dict(alto=70, puno=0.79, guarda=0.60, sz=1),
   'arco': dict(alto=120, puno=0.465, guarda=0.465, sz=-1, arco=True),

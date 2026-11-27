@@ -1,5 +1,5 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import Carta from './Carta.jsx';
+import Carta, { tieneLectura } from './Carta.jsx';
 import { enviar, marcarCartaEnPantalla, marcarCartaPorLeer, useJuego } from '../game/store.js';
 import { escenaActual } from '../game/escena3d.js';
 import { ACCIONES } from '../game/protocol.js';
@@ -33,6 +33,9 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   const [fase, setFase] = useState('frente');      // espera | dorso | frente
   const veniaVacia = useRef(true);
   const ifritFuera = useJuego((x) => x.ifritFuera);   // juego 3D: el genio ya salió de la lámpara
+  // Jorge (27 nov): en pantallas chicas, durante la primera ronda, un dedo que parpadea fuera de la carta dice «Toca la carta»
+  // (tocarla agranda la letra). Dura 3 s o hasta que la toquen.
+  const [dedo, setDedo] = useState(false);
 
   useEffect(() => {
     // Al montar (inicio de partida o recarga) solo se dan por leídas las cartas antiguas; la del arranque (evento de la ronda 1) sí se muestra.
@@ -130,6 +133,12 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
     window.addEventListener('keydown', tecla, true);
     return () => window.removeEventListener('keydown', tecla, true);
   }, [hayCarta]);
+  const chica = typeof document !== 'undefined' && ['xs', 's'].includes(document.querySelector('.lienzo')?.dataset.tam);
+  const conDedo = !!carta && modoLectura && fase === 'frente' && s.ronda === 1 && chica && tieneLectura(carta);
+  useEffect(() => {
+    if (!conDedo) { setDedo(false); return undefined; }
+    setDedo(true); const t = setTimeout(() => setDedo(false), 3000); return () => clearTimeout(t);
+  }, [conDedo, carta?.nro]);
   if (!carta) return null;
   if (modoLectura && fase === 'espera') return null;
   if (modoLectura && s.pend?.tipo === 'ifrit' && escenaActual() && !ifritFuera) return null;   // primero sale el genio, sin ninguna carta encima (Jorge, 27 de noviembre); luego su carta
@@ -162,6 +171,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
             <i className="barra-i" key={abierto} style={{ animationDuration: minLectura(carta) + 'ms' }} />
           </div>
         )}
+        <div className="carta-tocable" onPointerDown={() => setDedo(false)}>
         <Carta datos={carta} key={carta.nro}>
           {esTrivia && (
             <div className="opciones" role="group" aria-label="Opciones">
@@ -182,7 +192,9 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
             </div>
           )}
         </Carta>
+        </div>
         <div className="modal-pie">
+          {dedo && <span className="toca-carta" aria-hidden="true"><span className="toca-dedo">👆</span><span>Toca la carta</span></span>}
           {consultaObj?.uid && s.mano.some((c) => c.uid === consultaObj.uid && c.venta != null) && s.turno?.pid === s.yo && <button className="btn sec" onClick={() => { enviar(ACCIONES.vender(consultaObj.uid)); onCerrarConsulta(); }}>Vender</button>}
           <button className="btn modal-cerrar" ref={botonCerrar} disabled={!puedeCerrar} onClick={cerrar} onKeyDown={(e) => { if (e.key === ' ') e.preventDefault(); }} onKeyUp={(e) => { if (e.key === ' ') e.preventDefault(); }}>
             {puedeCerrar ? 'Cerrar' : `Leyendo… ${resta}`}

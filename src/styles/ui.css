@@ -404,3 +404,11 @@ body.viendo-pelea .app > *:not(.mesa), body.viendo-pelea .mesa > *:not(.tablero)
 /* Igual durante la animación de un viaje (Jorge, 23 de noviembre): todo espera a que la ficha llegue */
 .app.en-viaje > *:not(.mesa), .app.en-viaje .mesa > *:not(.tablero), .app.en-viaje .tablero > *:not(.tablero3d-lienzo) { visibility: hidden !important; }
 .accion-txt small.conviene { color: var(--oro-claro, #e8c46a); font-weight: 600; }
+
+/* Jorge (27 nov): en pantallas chicas, en la primera ronda, un dedo que parpadea junto al botón Cerrar (fuera de la carta) dice «Toca la carta» */
+.carta-tocable { display: contents; }
+.toca-carta { position: absolute; right: calc(100% + 8px); top: 50%; translate: 0 -40%; display: flex; align-items: center; gap: 4px; max-width: 96px; padding: 3px 8px; border-radius: 12px; background: rgba(20, 12, 4, .85); color: #ffe9b0; font-weight: 700; font-size: 12px; line-height: 1.1; text-align: left; pointer-events: none; animation: toca-parpadeo .75s ease-in-out infinite alternate; }   /* a la izquierda del botón Cerrar, sin moverlo */
+.toca-dedo { display: inline-block; font-size: 20px; animation: toca-dedo .75s ease-in-out infinite alternate; }
+@keyframes toca-parpadeo { from { opacity: 1; } to { opacity: .35; } }
+@keyframes toca-dedo { from { transform: translateY(0); } to { transform: translateY(-5px); } }
+@media (prefers-reduced-motion: reduce) { .toca-carta, .toca-dedo { animation: none; } }

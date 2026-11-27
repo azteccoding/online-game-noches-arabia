@@ -5710,3 +5710,19 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.equal(A.dinares, 15); assert.equal(B.dinares, 5, 'aceptado: pasan los 5');
   console.log('ofrecer 5 dinares con aceptación OK');
 }
+
+// Jorge (27 nov): en la Leva del sultán, con arma y destreza (también la de un arma entrenada) te puedes alistar aunque estés herido.
+{
+  const { aplicarHistorico } = await import('../shared/eventos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  const opciones = () => { e.pend = null; e.colaPend = []; aplicarHistorico(data, e, 'H7'); return [e.pend, ...(e.colaPend || [])].find((p) => p?.titulo === 'Leva del sultán' && p.para.includes(a))?.opciones.map((o) => o.id) || []; };
+  A.ciudad = 'Damasco'; A.herido = true; A.destreza = false; A.extra.entrenado = {}; A.mano = A.mano.filter((c) => !['cimitarra', 'alfanje', 'jambiya', 'OB42'].includes(c.ref));
+  assert.ok(!opciones().includes('alistar'), 'sin arma no se alista');
+  darItem(e, A, 'cimitarra'); assert.ok(!opciones().includes('alistar'), 'arma sin destreza: no');
+  A.extra.entrenado = { cimitarra: true }; assert.ok(opciones().includes('alistar'), 'cimitarra entrenada y herido: sí se alista');
+  A.extra.entrenado = {}; A.destreza = true; assert.ok(opciones().includes('alistar'), 'destreza general y herido: sí');
+  e.pend = null; e.colaPend = []; aplicarHistorico(data, e, 'H7'); const p = [e.pend, ...(e.colaPend || [])].find((x) => x?.para.includes(a));
+  const d0 = A.dinares; { const r = g.act(a, { t: 'decidir', id: p.id, opcion: 'alistar' }); assert.ok(r.ok, r.error); } assert.equal(A.dinares, d0 + 30, 'cobra los 30 dinares');
+  console.log('leva del sultán con destreza y herido OK');
+}

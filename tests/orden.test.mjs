@@ -35,3 +35,15 @@ assert.equal(cartaEspera({ cola0: 12, dados: null, votoPendiente: true }), true,
   assert.equal(cartaDelMotivo('e11'), 'E11'); assert.equal(cartaDelMotivo('h12'), 'H12'); assert.equal(cartaDelMotivo('ej:EJ26'), 'EJ26');
   assert.equal(cartaDelMotivo('reto:R3'), 'R3'); assert.equal(cartaDelMotivo('pelea'), null); assert.equal(cartaDelMotivo('jorasan'), null); assert.equal(cartaDelMotivo(undefined), null);
 }
+
+// Jorge (27 nov): cada frase de una carta en su renglón
+{
+  const { conSaltos } = await import('../src/game/frases.js');
+  assert.equal(conSaltos('Uno. Dos! ¿Tres? «Cuatro». 5 dinares.'), 'Uno.\nDos!\n¿Tres?\n«Cuatro».\n5 dinares.');
+  assert.equal(conSaltos('Hacia el 518 a. C. El imperio cae.'), 'Hacia el 518 a. C.\nEl imperio cae.');
+  assert.equal(conSaltos('(la paz sea con él). Tira 1 dado.'), '(la paz sea con él).\nTira 1 dado.');
+  assert.equal(conSaltos('pagas 1,001 noches; luego. sigue'), 'pagas 1,001 noches; luego. sigue');
+  assert.equal(conSaltos('Ya.\nOtra.'), 'Ya.\nOtra.');
+  assert.equal(conSaltos(''), ''); assert.equal(conSaltos(undefined), undefined);
+  console.log('frases en renglones OK');
+}

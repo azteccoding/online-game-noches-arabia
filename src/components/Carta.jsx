@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Icono, ETIQUETA, DORSO, Adorno } from './iconos.jsx';
 import { useArte } from '../hooks/useArte.js';
 import PINTADAS from '../data/arteCartas.json';
+import { conSaltos } from '../game/frases.js';
 import '../styles/cards.css';
 
 // Cartas con pintura propia (public/arte/cartas/<clave>.webp): la pintura llena toda la carta, con el título encima y el texto en un recuadro abajo.
@@ -9,6 +10,7 @@ import '../styles/cards.css';
 // Fondos genéricos (Jorge, 23 de noviembre): la carta que todavía no tiene pintura propia usa la de su mazo, con su texto encima.
 const GENERICA = { reto: 'GEN-1', historico: 'GEN-2', evento: 'GEN-2', objeto: 'GEN-3' };
 const pintadaDe = (d) => (PINTADAS[d.id] ? d.id : PINTADAS[d.arte] ? d.arte : PINTADAS[GENERICA[d.deck]] ? GENERICA[d.deck] : null);
+export const tieneLectura = (d) => !!d && !!pintadaDe(d);   // tocarla agranda la letra (ModalCarta: el dedo «Toca la carta»)
 // «imagen»: varias cartas pueden compartir una misma pintura (las cartas de un mismo sheij usan la de su tumba).
 const imgDe = (k) => PINTADAS[k].imagen || k;
 
@@ -84,7 +86,7 @@ export default function Carta({ datos, tam = 'completa', children, className = '
       <div className="carta-caja">
         <article className={`carta terminada${leyendo ? ' leyendo' : ''} ${className}`} {...lectura} data-carta-completa data-deck={datos.deck} data-id={datos.id} aria-label={`${et}: ${datos.titulo}. ${datos.texto || ''}`}>
           <img className="terminada-img" src={`/arte/cartas/${imgDe(pintada)}.webp`} alt="" draggable="false" />
-          {datos.texto && <div className="t-lectura" aria-hidden="true"><p className="c-texto">{datos.texto}</p></div>}
+          {datos.texto && <div className="t-lectura" aria-hidden="true"><p className="c-texto">{conSaltos(datos.texto)}</p></div>}
           {children}
         </article>
       </div>
@@ -101,12 +103,12 @@ export default function Carta({ datos, tam = 'completa', children, className = '
       <figure className="c-arte">{pintada ? <Arte clave={'cartas/' + imgDe(pintada)} /> : datos.arte ? <Arte clave={datos.arte} /> : <Adorno />}</figure>
       <div className="c-pill"><span>{et}</span><span className="ar">{ar}</span></div>
       <div className="c-cuerpo">
-        <p className="c-texto">{datos.texto}</p>
+        <p className="c-texto">{conSaltos(datos.texto)}</p>   {/* cada frase en su renglón (Jorge, 27 nov) */}
         {datos.ghul && <p className="c-nota"><i>{datos.ghul}</i></p>}   {/* cartas de sheij: renglón aparte (Jorge, 21 de noviembre) */}
-        {datos.limite && <p className="c-nota"><b>Límite:</b> {datos.limite}</p>}
-        {datos.costo && <p className="c-nota"><b>Costo:</b> {datos.costo}</p>}
+        {datos.limite && <p className="c-nota"><b>Límite:</b> {conSaltos(datos.limite)}</p>}
+        {datos.costo && <p className="c-nota"><b>Costo:</b> {conSaltos(datos.costo)}</p>}
         {datos.deck === 'cuento' && <p className="c-nota c-premio">{datos.premioEtiqueta}.</p>}
-        {datos.gancho && datos.deck === 'mesa' && <p className="c-nota"><b>Cómo se comprueba:</b> {datos.gancho}</p>}
+        {datos.gancho && datos.deck === 'mesa' && <p className="c-nota"><b>Cómo se comprueba:</b> {conSaltos(datos.gancho)}</p>}
         {children}
       </div>
       {(datos.humor || datos.cita) && <p className="c-cita">{datos.humor || datos.cita}</p>}
