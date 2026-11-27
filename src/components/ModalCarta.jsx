@@ -25,6 +25,7 @@ const sinMovimiento = () => !!window.matchMedia?.('(prefers-reduced-motion: redu
 // «Última carta» e historial vuelven a dibujar la carta desde esos datos (modo consulta, sin temporizador).
 export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudades }) {
   const vistos = useRef(null);
+  const recienEncolada = useRef(false);   // hay cartas nuevas que todavía no llegan a la cola (setCola es asíncrono)
   const botonCerrar = useRef(null), puedeCerrarRef = useRef(false);
   const [cola, setCola] = useState([]);
   const [abierto, setAbierto] = useState(0);
@@ -37,7 +38,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
     // Al montar (inicio de partida o recarga) solo se dan por leídas las cartas antiguas; la del arranque (evento de la ronda 1) sí se muestra.
     if (!vistos.current) vistos.current = new Set(s.historial.filter((h) => s.ahora - h.t > 15000).map((h) => h.nro));
     const nuevos = s.historial.filter((h) => !vistos.current.has(h.nro) && (!h.para || h.para.includes(s.yo)));
-    if (nuevos.length) { nuevos.forEach((h) => vistos.current.add(h.nro)); setCola((c) => [...c, ...nuevos.map((h) => h.nro)]); }
+    if (nuevos.length) { nuevos.forEach((h) => vistos.current.add(h.nro)); recienEncolada.current = true; setCola((c) => [...c, ...nuevos.map((h) => h.nro)]); }
   }, [s.historial, s.yo]);
 
   // Si alguien se movió, las cartas que se estaban leyendo se cierran (siguen en el Historial); las que hay que responder y las de la llegada, no.
@@ -52,12 +53,16 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   }, [huellaCiudades, s.historial]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   // Avisa al servidor hasta qué carta cerró este jugador (Yafar NPC espera a que todos cierren sus cartas).
+  // Jorge (27 de noviembre): las consecuencias van HASTA que se cierran todas las cartas. Una carta recién llegada ya está en «vistos»
+  // pero la cola aún no se actualiza en este mismo render: sin esta espera se avisaba «leída» antes de mostrarla (el posadero que ronca
+  // cobraba las 5 noches antes de que saliera su carta).
   const avisado = useRef(0);
   useEffect(() => {
+    if (recienEncolada.current) { recienEncolada.current = false; return; }   // la cola cambia en el siguiente render y este efecto vuelve a correr
     if (cola.length || !vistos.current) return;
     const max = Math.max(0, ...vistos.current);
     if (max > avisado.current) { avisado.current = max; enviar({ t: 'leido', nro: max }); }
-  }, [cola.length, s.historial]);
+  }, [cola, s.historial]);
 
   const consultaObj = consulta && typeof consulta === 'object' ? consulta : null;
   // Una carta nueva espera a que se cierren los dados en pantalla (p. ej. el Botín tras ganar una pelea no tapa el resultado).

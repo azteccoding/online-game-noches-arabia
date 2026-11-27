@@ -24,3 +24,10 @@ export function decisionVisible({ leyendo, porLeer, dados, yo }) {
 export function alertaVisible({ leyendo, porLeer, id }) {
   return !((leyendo != null && leyendo < id) || (porLeer != null && porLeer < id));
 }
+// Carta que explica una tirada según su motivo: los eventos y las históricas usan su id en minúsculas ('e11', 'h12'); las EJ, 'ej:EJ26'; los retos, 'reto:R3'.
+export function cartaDelMotivo(motivo) {
+  const m = String(motivo || '');
+  if (/^[eh]\d+$/i.test(m)) return m.toUpperCase();
+  const k = m.match(/^(?:ej|reto):([A-Z]+\d+)$/);
+  return k ? k[1] : null;
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
+import { cartaDelMotivo } from '../game/orden.js';
 import { escenaActual, enCola } from '../game/escena3d.js';
 
 // Dados rojos con puntos blancos, 100 % SVG (caras) sobre un cubo CSS 3D. El servidor decide los valores; el cliente solo anima.
@@ -145,8 +146,12 @@ export default function Dados({ s }) {
         <div className="dados-resultado panel">
           <p className="quien">{(d.grupos?.[0]?.etq) || (por?.nombre || 'Banco')}</p>
           {(() => {                                                       // contexto: la carta que provoca esta tirada
-            const cerca = s.historial.filter((h) => h.nro < d.id && d.id - h.nro < 12 && h.deck !== 'cuento' && h.deck !== 'trivia');
-            const c = (d.contexto && cerca.filter((h) => h.titulo === d.contexto).pop()) || cerca.pop();
+            // Jorge (27 de noviembre): el texto debe ser el de la carta que provoca la tirada, nunca «la última carta que salió» (la
+            // emboscada en el camino mostraba la Caravana de oro del rey de Mali). Se busca por el título que manda el servidor o por el
+            // motivo de la tirada (e11 → E11, ej:EJ26 → EJ26); si ninguna carta la explica, no se pone texto de carta.
+            const antes = s.historial.filter((h) => h.nro < d.id);
+            const idMotivo = cartaDelMotivo(d.motivo);
+            const c = (d.contexto && antes.filter((h) => h.titulo === d.contexto).pop()) || (idMotivo && antes.filter((h) => h.id === idMotivo).pop()) || null;
             if (d.titulo) return <p className="dados-contexto">{d.titulo}</p>;      // peleas: no las explica ninguna carta
             return c ? <p className="dados-contexto">Por la carta «{c.titulo}»: {c.texto}</p> : d.contexto ? <p className="dados-contexto">Por «{d.contexto}».</p> : null;
           })()}

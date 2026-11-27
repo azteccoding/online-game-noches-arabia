@@ -29,3 +29,9 @@ assert.equal(cartaEspera({ cola0: 12, dados: null, votoPendiente: true }), true,
   assert.equal(estadoDeseo({ pend, en3d: false, ifritFuera: false, deseoAbierto: false }), null, 'en el 2D, como siempre');
   assert.equal(estadoDeseo({ pend: { tipo: 'trato', mia: true }, en3d: true, ifritFuera: false, deseoAbierto: false }), null, 'otras decisiones no cambian');
 }
+// Texto de la ventana de los dados (Jorge, 27 de noviembre): la carta sale del motivo, nunca de «la última que salió»
+{
+  const { cartaDelMotivo } = await import('../src/game/orden.js');
+  assert.equal(cartaDelMotivo('e11'), 'E11'); assert.equal(cartaDelMotivo('h12'), 'H12'); assert.equal(cartaDelMotivo('ej:EJ26'), 'EJ26');
+  assert.equal(cartaDelMotivo('reto:R3'), 'R3'); assert.equal(cartaDelMotivo('pelea'), null); assert.equal(cartaDelMotivo('jorasan'), null); assert.equal(cartaDelMotivo(undefined), null);
+}
