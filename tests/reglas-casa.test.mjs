@@ -5777,3 +5777,16 @@ console.log('Sherezada: los dados antes que la muerte OK');
   darItem(f, X, 'jambiya'); assert.ok(bonosCombate(data, f, x, 'atk').partes.some((t) => /2 esclavos de pelea armados \+6/.test(t)), 'caso 2: con 3 armas, 2 esclavos +6');
   console.log('esclavos OK');
 }
+
+// Jorge (27 nov): en las caravanas cada esclavo de pelea paga su pasaje; los de carga nunca pagan.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  turnoDe(e, a, 'Damasco'); A.ciudad = 'Damasco'; e.turno.fase = 'mov'; A.dinares = 100; A.herido = false;
+  const t = BASE.tarifa(data, e, A, 'Damasco', 'Aleppo'); assert.ok(t > 0);
+  darItem(e, A, 'esclavoCarga'); darItem(e, A, 'esclavoPelea'); darItem(e, A, 'esclavoPelea');
+  assert.equal(vistaDe(e, a).acciones.find((x) => x.k === 'viajar' && x.destino === 'Aleppo').precio, 3 * t, 'tú y tus 2 esclavos de pelea; el de carga no');
+  const r = g.act(a, { t: 'viajar', destino: 'Aleppo' }); assert.ok(r.ok, r.error);
+  assert.equal(A.dinares, 100 - 3 * t);
+  console.log('pasaje de esclavos de pelea OK');
+}

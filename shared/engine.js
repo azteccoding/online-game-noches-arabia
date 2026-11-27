@@ -8,7 +8,7 @@ import {
   VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, AUTOCIERRE_DADOS_MS, rnd, dado, dados, suma, barajar, clone, ok, err, ciudadDe, pjDe, objDe, activos, humanosVivos, enCiudad, nombre, log,
   cartaDatos, itemDatos, publicarCarta, robar, siguienteDados, bloqueado, responderPend, vencerPend, tieneItem, tieneEsp, uid, darItem, quitarCarta, recortarMano, pagar, patrimonio,
   eliminar, HOOK, tarifa, ITEMS, mostrarDados, esLibro, valorLibro, valorVino, mostrarDados as _md, CONT, registrar, pedir,
-textoBuscado,
+textoBuscado, nEsclavos,
 motivoNoSalir,
 apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, huidaCuentaViaje, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
 import { atacar, perfil, validarAtaque } from './pelea.js';
@@ -1030,14 +1030,15 @@ export function viajar(data, e, pid, a) {
   if (j.extra.viajeZein && precio > 0) { precio = 0; gratis = true; j.extra.usaViajeZein = true; }               // Zein en apuros: un tramo gratis
   let palacio = false;
   if (palacioGratis(j, destino) && precio > 0) { precio = 0; gratis = true; palacio = true; }                       // Zubayda: palacios del Califa
-  const args = { destino, precio, servicios: false, hilo: false, palacio };
+  const args = { destino, precio, servicios: false, hilo: false, palacio, esclavos: pasajeEsclavos(data, e, j, destino) };
   const conDadiva = precio > 0 && tieneItem(j, 'dadivaEmir');   // Dádiva del Emir: paga este pasaje
   // Jorge (19 de noviembre): Zubayda ya no paga cualquier caravana con servicios («es demasiada ventaja»): paga como todos.
   {
     if (a.hilo) { const c = OBJ.hiloDe(j); if (!c || precio > 15) return err('Necesitas un Hilo de alfombra y un tramo de tarifa 15 o menos.'); args.hilo = true; args.precio = 0; }
     else if (a.califa) { if (!j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.'); if (destino === 'Samarcanda') return err('No a Samarcanda.'); args.precio = 0; args.califa = true; }
     if (!args.hilo && !args.califa && conDadiva) { args.dadiva = true; args.precio = 0; }
-    if (!args.hilo && !args.califa && !args.dadiva && precio > 0 && !puedeDinares(j, precio - devolucionSeda(e, j))) return err(`No te alcanzan los dinares (${precio}).`);
+    if (!args.hilo && !args.califa && !args.dadiva && precio > 0 && !puedeDinares(j, precio + args.esclavos - devolucionSeda(e, j))) return err(`No te alcanzan los dinares (${precio + args.esclavos}).`);
+    if (args.esclavos > 0 && !puedeDinares(j, (args.precio || 0) + args.esclavos)) return err(`No te alcanzan los dinares: tus esclavos de pelea pagan su pasaje (${args.esclavos}).`);
   }
   if (a.califa && !j.extra.viajeCalifa) return err('No tienes viaje gratis del Califa.');
   if (e.mods.huir?.[pid]) { /* la huida se resuelve en eventos: aquí no */ }
@@ -1045,6 +1046,8 @@ export function viajar(data, e, pid, a) {
   return partir(data, e, pid, args);
 }
 const puedeDinares = (j, p) => j.dinares >= p;
+// Jorge (27 de noviembre): en las caravanas cada esclavo de pelea paga su pasaje (la tarifa normal del tramo); los de carga nunca pagan.
+export const pasajeEsclavos = (data, e, j, destino) => nEsclavos(j, 'esclavoPelea') * (tarifa(data, e, j, j.ciudad, destino) || 0);
 
 export function partir(data, e, pid, args) {
   const t = e.turno, j = e.jugadores[pid];
@@ -1052,6 +1055,7 @@ export function partir(data, e, pid, args) {
   { const dev = devolucionSeda(e, j);      // sale de Isfahán en el mismo turno en que llegó de Bagdad: iba de paso
     if (dev > 0) { j.dinares += dev; t.pagos[t.pagos.length - 1].precio = SEDA_PASO; log(e, `${j.nombre} solo va de paso por Isfahán: con la gran caravana de la Seda, el tramo de Bagdad a Isfahán le cuesta ${SEDA_PASO} dinares (recupera ${dev}).`, { pid }); } }
   if (args.precio > 0) { if (j.dinares < args.precio) { log(e, `${j.nombre} ya no puede pagar el viaje.`); return err('No te alcanzan los dinares.'); } j.dinares -= args.precio; }
+  if (args.esclavos > 0) { j.dinares -= args.esclavos; log(e, `${j.nombre} paga ${args.esclavos} dinares de pasaje por sus esclavos de pelea.`, { pid }); }   // Jorge (27 nov): los de carga nunca pagan
   if (args.hilo) OBJ.gastarHilo(data, e, pid);
   if (args.califa) { j.extra.viajeCalifa = false; }
   if (args.dadiva) { quitarPrimero(j, 'item', 'dadivaEmir'); log(e, `${j.nombre} paga su pasaje con la Dádiva del Emir.`, { pid }); }
@@ -1508,7 +1512,7 @@ export function acciones(data, e, pid) {
   if (!t.ccActual && t.tramos < tramosMax(data, t, j) && !j.transito) {
     const destinos = motivoNoSalir(e, j) ? [] : Object.keys(data.rutas.tarifas).filter((k) => k.startsWith(j.ciudad + '>')).map((k) => k.split('>')[1])
       .filter((d) => tarifa(data, e, j, j.ciudad, d) !== null && !(d === 'Bagdad' && j.extra.noBagdad > j.turnos) && !(j.herido && esRutaMar(j.ciudad, d)));   // herido no te embarcas
-    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifaTurno(data, e, j, d) });   // sin preguntar por los cítricos (Jorge, 27 de noviembre)
+    for (const d of destinos) r.push({ k: 'viajar', destino: d, precio: (j.extra.viajeZein || tieneItem(j, 'dadivaEmir') || palacioGratis(j, d) ? 0 : tarifaTurno(data, e, j, d)) + pasajeEsclavos(data, e, j, d) });   // sin preguntar por los cítricos (Jorge, 27 de noviembre)
   }
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
