@@ -5790,3 +5790,19 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.equal(A.dinares, 100 - 3 * t);
   console.log('pasaje de esclavos de pelea OK');
 }
+
+// Jorge (27 nov): «si en una pelea pelea el esclavo, lo matan a él, no al amo»
+{
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  for (const J of [A, B]) { J.ciudad = 'Damasco'; J.mano = J.mano.filter((x) => !['alfanje', 'cimitarra', 'jambiya', 'arco', 'OB04', 'OB01', 'K1'].includes(x.ref)); }
+  darItem(e, B, 'alfanje'); darItem(e, B, 'esclavoPelea'); B.herido = true; B.destreza = false;
+  duelo(data, e, a, b);
+  assert.ok(!B.eliminado, 'el amo sigue vivo'); assert.ok(!B.mano.some((x) => x.ref === 'esclavoPelea'), 'murió su esclavo de pelea');
+  assert.ok(e.anuncios.some((x) => x.para.includes(b) && /murió en tu lugar/.test(x.texto)));
+  duelo(data, e, a, b); assert.ok(B.eliminado, 'sin esclavo armado, muere él');
+  // un esclavo de pelea sin arma para él no muere en su lugar
+  const C = e.jugadores[c]; C.ciudad = 'Damasco'; C.mano = C.mano.filter((x) => !['alfanje', 'cimitarra', 'jambiya', 'arco'].includes(x.ref)); darItem(e, C, 'esclavoPelea'); C.herido = true;
+  duelo(data, e, a, c); assert.ok(C.eliminado, 'sin arma el esclavo no pelea');
+  console.log('el esclavo muere en lugar del amo OK');
+}

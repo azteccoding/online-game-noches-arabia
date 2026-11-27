@@ -5,7 +5,7 @@ import { protegidaPorPoetas, MSJ_POETAS } from './eventosJugador.js';
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE, huidaCuentaViaje, nEsclavos } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE, huidaCuentaViaje, nEsclavos, alertaRoja } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
@@ -581,6 +581,7 @@ function escudoContraGolpe(data, e, P, atk, def, titulo) {
 }
 function resolverNuevo(data, e) {
   const P = e.pelea; if (!P) return;
+  marcarEsclavos(data, e, P);
   const atk = P.atk, def = P.ayudante || P.def, nA = nombre(e, atk), nD = nombre(e, def);
   const titulo = `${P.tipo === 'robo' ? 'Asalto' : 'Ataque a muerte'}: ${nA} contra ${nombre(e, P.def)}`;
   const modA = {}, modD = {};
@@ -612,12 +613,16 @@ function resolverNuevo(data, e) {
 // Regla de la casa «Golpe de gracia» (ataques a muerte): matas solo si ganas por 3 o más; por 1 o 2 el perdedor queda herido;
 // el empate deja heridos a los dos. Sin armas, si el defensor falla su número, el atacante lanza: 4 a 6 mata, 1 a 3 solo hiere.
 export const GOLPE_DE_GRACIA = 3;
+// Quien muere en el texto de la pelea: si peleaba con esclavos de pelea armados, muere uno de ellos (Jorge, 27 de noviembre; ver morir).
+const muereQuien = (e, P, pid) => (P.conEsclavo?.[pid] ? `El esclavo de pelea de ${nombre(e, pid)}` : nombre(e, pid));
+const nota = (P, pid) => (P.conEsclavo?.[pid] ? ' (su amo sigue vivo)' : '');
+const marcarEsclavos = (data, e, P) => { P.conEsclavo = Object.fromEntries([P.atk, P.def].filter(Boolean).map((x) => [x, perfil(data, e, x).esclavos.armados > 0])); };
 function textoGolpe(e, P, g) {
   const nA = nombre(e, P.atk), nD = nombre(e, P.def);
   if (g.r === 'ambos') return `Empate: ambos heridos. ${nA} y ${nD} quedan heridos.`;
   const gan = g.r === 'mata' || g.r === 'hiereDef' ? nA : nD, per = gan === nA ? nD : nA;
   const por = g.margen != null ? `${gan} gana por ${g.margen}: ` : '';
-  return g.r === 'mata' || g.r === 'muereAtk' ? `${por}golpe de gracia. ${per} muere${g.r === 'muereAtk' ? ' en el intento' : ` a manos de ${nA}`}.` : `${por}solo herido. ${per} queda herido.`;
+  return g.r === 'mata' || g.r === 'muereAtk' ? `${por}golpe de gracia. ${muereQuien(e, P, g.r === 'mata' ? P.def : P.atk)} muere${g.r === 'muereAtk' ? ' en el intento' : ` a manos de ${nA}`}${nota(P, g.r === 'mata' ? P.def : P.atk)}.` : `${por}solo herido. ${per} queda herido.`;
 }
 function golpe(ganaAtk, margen, empate) {
   if (empate) return { r: 'ambos', margen: 0 };
@@ -627,13 +632,14 @@ function golpe(ganaAtk, margen, empate) {
 function consecuencia(e, P, ganaAtk, numeroOk, cat) {
   const nA = nombre(e, P.atk), nD = nombre(e, P.def);
   if (P.tipo === 'robo') return ganaAtk ? `${nA} le roba a ${nD} sus dinares y sus cartas.` : `${nA} no se lleva nada y queda herido.`;   // Jorge (17 de noviembre): quien roba y no gana queda herido
-  if (P.tipo === 'matar') return ganaAtk ? `${nD} muere a manos de ${nA}.` : numeroOk ? `${nD} se salva a pedradas y ${nA} queda herido.` : `${nA} muere en el intento.`;
+  if (P.tipo === 'matar') return ganaAtk ? `${muereQuien(e, P, P.def)} muere a manos de ${nA}${nota(P, P.def)}.` : numeroOk ? `${nD} se salva a pedradas y ${nA} queda herido.` : `${muereQuien(e, P, P.atk)} muere en el intento${nota(P, P.atk)}.`;
   const perd = e.jugadores[ganaAtk ? P.def : P.atk];
-  return perd.herido ? `${perd.nombre} pierde el duelo estando herido: muere.` : `${perd.nombre} pierde el duelo: entrega la mitad de sus dinares y 30 noches y queda herido.`;
+  return perd.herido ? `${perd.nombre} pierde el duelo estando herido: ${P.conEsclavo?.[perd.id] ? `muere su esclavo de pelea en su lugar` : 'muere'}.` : `${perd.nombre} pierde el duelo: entrega la mitad de sus dinares y 30 noches y queda herido.`;
 }
 function resolver(data, e, { numeros }) {
   const P = e.pelea; if (!P) return;
   const atk = P.atk, def = P.ayudante || P.def;
+  marcarEsclavos(data, e, P);
   const pA = perfil(data, e, atk), pD = perfil(data, e, def);
   const cat = P.cat || pD.cat;
   let ganaAtk, numeroOk = null;
@@ -681,6 +687,19 @@ function resolver(data, e, { numeros }) {
   aplicar(data, e, { ganaAtk, numeroOk, cat });
 }
 
+// Jorge (27 de noviembre): «si en una pelea pelea el esclavo, lo matan a él, no al amo». Si quien muere peleaba con esclavos de pelea
+// armados (11.3), muere uno de sus esclavos de pelea y él sigue vivo.
+export function morir(data, e, pid, opts) {
+  const j = e.jugadores[pid];
+  if (j && perfil(data, e, pid).esclavos.armados > 0) {
+    quitarPrimero(j, 'item', 'esclavoPelea');
+    const quien = opts.por ? e.jugadores[opts.por]?.nombre : null;
+    log(e, `Muere el esclavo de pelea de ${j.nombre}${quien ? ` a manos de ${quien}` : ''}: peleaba por su amo, que sigue vivo.`, { pid, aviso: true });
+    alertaRoja(e, pid, 'Tu esclavo de pelea murió en tu lugar: peleaba por ti y lo mataron a él, no a ti.');
+    return false;
+  }
+  eliminar(data, e, pid, opts); return true;
+}
 function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
   const P = e.pelea, A = e.jugadores[P.atk], D = e.jugadores[P.def];
   if (P.tipo === 'robo') {
@@ -698,7 +717,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
   } else if (P.tipo === 'matar') {
     if (ganaAtk) {
       const enmascarado = tieneObj(A, 'OB45');
-      eliminar(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre });
+      if (!morir(data, e, P.def, { por: P.atk, causa: 'asesinado por ' + A.nombre })) { terminarPelea(data, e, { ganaAtk }); return; }   // murió su esclavo: no hay asesinato del amo
       if (enmascarado) { quitarPrimero(A, 'objeto', 'OB45'); devolverObjeto(data, e, 'OB45'); log(e, `${A.nombre} usa la Máscara del zoco: nadie sabe quién fue; no queda Buscado.`, { pid: P.atk }); }
       else { marcarBuscado(data, e, A, { tipo: 'matar', victima: D.nombre }); log(e, `${A.nombre} queda Buscado durante ${data.config.buscadoRondas} rondas: quien lo mate gana ${data.config.recompensaBuscadoDinares ?? 100} dinares y ${data.config.recompensaBuscado} noches.`, { pid: P.atk, aviso: true }); }
       if (A.pj === '3' && D.pj === '4') {   // Jorge (8 de noviembre): si Anís mata a Jamil, cada uno de los demás le paga 8 dinares (quien no los tenga queda endeudado con el banco) y gana 60 noches
@@ -709,7 +728,7 @@ function aplicar(data, e, { ganaAtk, numeroOk, cat }) {
       A.herido = true; log(e, `${D.nombre} se salva a pedradas; ${A.nombre} queda herido.`, { pid: P.def });
     } else {
       // R 11.5 y regla de la casa: el atacante muere; el defensor se queda con su botín y NO queda Buscado
-      eliminar(data, e, P.atk, { por: P.def, causa: 'murió atacando a ' + D.nombre });
+      morir(data, e, P.atk, { por: P.def, causa: 'murió atacando a ' + D.nombre });
     }
   } else {
     duelo(data, e, ganaAtk ? P.atk : P.def, ganaAtk ? P.def : P.atk, P);
@@ -722,7 +741,7 @@ export function duelo(data, e, ganador, perdedor, P = {}) {
   const G = e.jugadores[ganador], L = e.jugadores[perdedor];
   if (L.herido) {                                                             // regla de la casa: quien pierde un duelo estando herido, muere
     log(e, `${L.nombre} ya estaba herido y pierde el duelo: muere a manos de ${G.nombre}.`, { pid: ganador, aviso: true });
-    eliminar(data, e, perdedor, { por: ganador, causa: 'murió en duelo estando herido' });
+    morir(data, e, perdedor, { por: ganador, causa: 'murió en duelo estando herido' });
     return;
   }
   const nur = P.nur || (['1'].includes(G.pj) || L.pj === '1') && ['El Cairo', 'Damasco', 'Aleppo'].includes(G.ciudad);
