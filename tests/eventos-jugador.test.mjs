@@ -240,4 +240,24 @@ const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nr
   const j = e.jugadores[t.pid];
   assert.equal(j.perdido, true); assert.equal(j.ciudad, 'Jorasán'); assert.ok(!j.mano.some((c) => c.ref === 'vino'));
 }
+{
+  // Alojamiento cada turno (Jorge, 27 de noviembre): sin dinares duermes en la calle y pierdes 5 noches, aunque quedes en negativo
+  const g = partida(['4', '7', '5']); const { e, act } = g;
+  for (let k = 0; k < 5 && e.dados; k++) act(e.dados.por, { t: 'cerrarDados' }); despejar(g);
+  const pid = e.turno.pid, j = e.jugadores[pid];
+  assert.ok(act(pid, { t: 'tirarDados' }).ok); act(pid, { t: 'cerrarDados' }); despejar(g);
+  e.mods = {}; e.evento.actual = null;
+  j.ciudad = 'Damasco'; j.dinares = 3; j.noches = 2; j.mano = j.mano.filter((c) => c.ref !== 'OB22');
+  assert.ok(act(pid, { t: 'terminarTurno' }).ok);
+  assert.equal(j.dinares, 3, 'no paga nada'); assert.equal(j.noches, -3, 'pierde 5 noches aunque quede en negativo');
+  assert.ok([e.pend, ...(e.colaPend || [])].some((p) => p && p.titulo === 'Duermes en la calle' && p.para[0] === pid), 'se le avisa');
+  // con dinares paga el alojamiento nuevo de Damasco (4) aunque haya llegado ese turno
+  despejar(g);
+  for (let k = 0; k < 5 && e.turno.pid !== pid; k++) turnoQuieto(g);
+  for (let k = 0; k < 5 && e.dados; k++) act(e.dados.por, { t: 'cerrarDados' }); despejar(g);
+  assert.ok(act(pid, { t: 'tirarDados' }).ok); act(pid, { t: 'cerrarDados' }); despejar(g);
+  e.mods = {}; e.evento.actual = null; j.ciudad = 'Damasco'; j.dinares = 30; j.noches = 10; e.turno.movio = true;
+  assert.ok(act(pid, { t: 'terminarTurno' }).ok);
+  assert.equal(j.dinares, 26, 'paga 4 en Damasco aunque llegó este turno');
+}
 console.log('eventos-jugador.test.mjs OK');

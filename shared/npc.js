@@ -264,7 +264,11 @@ function cierre(data, e, pid) {
   if (!j || j.eliminado) { if (t) t.fin = true; return; }
   comprarArmasNPC(data, e, pid);
   if (!j.eliminado) comprasNPC(data, e, pid);   // animal de carga y transporte
-  if (!j.perdido && !j.transito) { const c = ciudadDe(data, j.ciudad); pagar(data, e, pid, c.alojamiento * 2); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }   // cada turno, aunque haya viajado (Jorge, 27 de noviembre)
+  if (!j.perdido && !j.transito) {   // cada turno, aunque haya viajado (Jorge, 27 de noviembre); sin dinares duerme en la calle y pierde 5 noches
+    const costo = ciudadDe(data, j.ciudad).alojamiento * 2;
+    if (j.dinares < costo) { j.noches -= 5; log(e, `Yafar NPC no tiene para el alojamiento de ${j.ciudad}: duerme en la calle y pierde 5 noches.`, { pid }); }
+    else { pagar(data, e, pid, costo); log(e, 'Yafar NPC paga el doble de alojamiento.', { pid }); }
+  }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   t.fin = true;
 }

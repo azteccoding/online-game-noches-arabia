@@ -4058,7 +4058,7 @@ console.log('reglas de la casa OK');
   assert.ok(e.votoLaud, 'falta un voto: no se cuenta todavía'); assert.equal(J.noches, 41);
   { const w = vistaDe(e, adi).votoLaud; assert.equal(w.votaron, 2); assert.equal(w.miVoto, true); }
   assert.ok(g.act(zub, { t: 'callarJamil', si: false }).ok, 'Zubayda vota que siga');
-  assert.ok(!e.votoLaud, 'ya votaron todos: se cuenta'); assert.equal(J.noches, 41, 'conserva solo lo que ganó al tocar'); assert.equal(J.dinares <= 4, true);
+  assert.ok(!e.votoLaud, 'ya votaron todos: se cuenta'); assert.equal(J.noches, 41 - 5, 'conserva solo lo que ganó al tocar; con 4 dinares no le alcanza la posada de Bagdad y duerme en la calle (-5)'); assert.equal(J.dinares <= 4, true);
   assert.ok(aviso(n0, /Callaron a .+ \(2 de 3 lo pidieron\): deja de tocar y termina su turno/)); assert.ok(e.turno.pid !== jamil || e.turno.fin, 'su turno terminó');
   assert.ok(!g.act(nur, { t: 'callarJamil' }).ok, 'ya no hay votación'); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, true, 'la capa 3D sabe que lo callaron: deja de tocar ya');
   // 2b) si todos votan que siga, se cuenta en cuanto vota el último
@@ -4071,7 +4071,7 @@ console.log('reglas de la casa OK');
   g.tickear(40500); assert.equal(J.noches, 46);
   e.jugadores[adi].conectado = true; n0 = tocar(); assert.equal(vista3d(data, e).jugadores[jamil].laud.callado, false, 'al volver a tocar ya no cuenta la callada anterior'); g.tickear(40500); assert.ok(aviso(n0, /Dejaron tocar a .+ \(nadie quiso callarlo\): gana 5 noches y 5 dinares/));
   // 4) un solo votante decide; y sin nadie más conectado no hay votación ni premio
-  e.jugadores[zub].conectado = false; n0 = tocar(); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!e.votoLaud); assert.equal(J.noches, 41); assert.ok(aviso(n0, /Callaron a .+ \(1 de 1 lo pidió\)/));
+  e.jugadores[zub].conectado = false; n0 = tocar(); assert.ok(g.act(adi, { t: 'callarJamil' }).ok); assert.ok(!e.votoLaud); assert.equal(J.noches, 41 - 5, 'callado, su turno termina y duerme en la calle'); assert.ok(aviso(n0, /Callaron a .+ \(1 de 1 lo pidió\)/));
   e.jugadores[adi].conectado = false; n0 = tocar(); assert.ok(!e.votoLaud, 'sin público no se vota'); g.tickear(41000); assert.equal(J.noches, 41);
   assert.ok(g.act(jamil, { t: 'terminarTurno' }).ok);
   console.log('«Que se calle Jamil» OK');

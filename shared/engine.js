@@ -1239,6 +1239,7 @@ function resolverMesa(data, e, pid, a) {
 }
 
 // ---------------------------------------------------------------- fin de turno
+export const CALLE_NOCHES = 5;   // dormir en la calle por no tener para el alojamiento (Jorge, 27 de noviembre)
 function terminarTurno(data, e, pid) {
   const t = e.turno, j = e.jugadores[pid];
   if (e.fase !== 'juego' || !t || t.pid !== pid) return err('No es tu turno.');
@@ -1253,9 +1254,16 @@ function terminarTurno(data, e, pid) {
       const c = ciudadDe(data, j.ciudad); let costo = c.alojamiento * (j.pj === 'B' ? 2 : 1);
       if (e.mods.alojDoble?.includes(j.ciudad)) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);
       if (j.ciudad === 'El Cairo' && e.mods.niloAloj) costo = c.alojamiento * 2 * (j.pj === 'B' ? 2 : 1);   // inundación del Nilo: el doble
-      costo = OBJ.sopa(data, e, pid, costo);
-      pagar(data, e, pid, costo); t.alojPagado = costo;
-      log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad}.`, { pid });
+      const conSopa = costo > 0 && j.mano.some((x) => x.tipo === 'objeto' && x.ref === 'OB22') ? Math.ceil(costo / 2) : costo;
+      if (costo > 0 && j.dinares < conSopa) {                                // Jorge (27 de noviembre): sin dinares duermes en la calle y pierdes 5 noches, aunque quedes en negativo
+        j.noches -= CALLE_NOCHES;
+        log(e, `${j.nombre} no tiene para el alojamiento de ${j.ciudad} (${conSopa} dinares): duerme en la calle y pierde ${CALLE_NOCHES} noches.`, { pid });
+        info(e, pid, 'Duermes en la calle', `No te alcanza para el alojamiento de ${j.ciudad} (${conSopa} dinares): duermes en la calle y pierdes ${CALLE_NOCHES} noches.`);
+      } else {
+        costo = OBJ.sopa(data, e, pid, costo);
+        pagar(data, e, pid, costo); t.alojPagado = costo;
+        log(e, `${j.nombre} paga ${costo} dinares de alojamiento en ${j.ciudad}.`, { pid });
+      }
     }
   }
   for (const m of j.mensajes.filter((x) => x.turnoLimite != null && e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
