@@ -5658,3 +5658,18 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.deepEqual(hist().slice(h0), ['H9'], 'ronda 21: la del mazo, una sola');
   console.log('una carta histórica por ronda OK');
 }
+
+// Jorge (27 de noviembre): un solo evento por ronda; la carrera de «Dos noches» de su ronda es el evento de esa ronda.
+{
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e;
+  const ev = () => e.historial.filter((h) => h.deck === 'evento').map((h) => h.id);
+  e.turno = null; e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  e.ronda = 4; e.carreras = { E13: 9, E14: 5, E15: 11 }; e.mazos.eventos = ['E2', 'E3', 'E4'];
+  let h0 = ev().length; empezarRondaS1(data, e);
+  assert.deepEqual(ev().slice(h0), ['E14'], 'ronda 5: solo la carrera de Aleppo');
+  assert.deepEqual(e.mazos.eventos, ['E2', 'E3', 'E4'], 'no se robó otro evento del mazo');
+  e.turno = null; e.pend = null; e.colaPend = []; h0 = ev().length; empezarRondaS1(data, e);
+  assert.deepEqual(ev().slice(h0), ['E2'], 'ronda 6: el del mazo, uno solo');
+  console.log('un evento por ronda (las carreras cuentan) OK');
+}

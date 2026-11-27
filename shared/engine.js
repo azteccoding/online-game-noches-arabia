@@ -278,7 +278,10 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };
   const act = enPartida(e);
-  let evId = robar(e, 'eventos');
+  // Jorge (27 de noviembre): sale un solo evento por ronda. Si a esta ronda le toca su carrera de «Dos noches», esa es el evento de la ronda
+  // y no se roba otro del mazo.
+  const hayCarrera = Object.values(e.carreras || {}).includes(e.ronda);
+  let evId = hayCarrera ? null : robar(e, 'eventos');
   // R 13.4: E1 no sale antes de la ronda 3. Regla de la casa: tampoco antes de que algún jugador (que no sea Yafar) haya ido a Samarcanda.
   const conocen = (x) => Object.values(e.jugadores).some((j) => j.pj && j.pj !== 'B' && !j.npc && (j.visitadas || []).includes('Samarcanda'));
   if (evId === 'E1' && e.ronda >= 3 && !e.asesinos.actuaron && !conocen()) log(e, 'Los Asesinos aún no conocen a nadie: hasta que un jugador vaya a Samarcanda no ofrecerán sus servicios. La carta vuelve al mazo.', { aviso: true });
