@@ -19,6 +19,7 @@ import * as EVE from './eventos.js';
 import * as NPC from './npc.js';
 import * as PJ from './personajes.js';
 import * as EJ from './eventosJugador.js';
+import * as ESC from './esclavos.js';
 import { vista3d } from './vista3d.js';
 
 export { VERSION_ESTADO, MIN_LECTURA_MS, MIN_DADOS_MS, cartaDatos, clone };
@@ -454,6 +455,7 @@ function iniciarTurno(data, e, id, idx) {
   const esclavas = j.mano.filter((c) => c.tipo === 'item' && c.ref === 'esclava');
   for (const c of esclavas) { if (j.dinares >= 1) j.dinares -= 1; j.noches += 5; }
   OBJ.animalesInicioTurno(data, e, id);                                                                   // albéitar y comida de los animales
+  ESC.inicioTurno(data, e, id);                                                                           // la paga de los esclavos y su amarre (Jorge, 27 de noviembre)
   TES.llegaMapaJorasan(data, e, id);                                                                      // mapa del Jorasán que le mandaron con los piratas
   firmanYafarTurno(data, e, j);
   log(e, `Turno de ${j.nombre}: cobra ${ing} dinares.`, { pid: id });
@@ -856,6 +858,7 @@ function despachar(data, e, pid, j, a, ahora) {
     case 'tirar': return OBJ.tirar(data, e, pid, a);
     case 'usar': return OBJ.usar(data, e, pid, a);
     case 'lazo': return OBJ.accionLazo(data, e, pid, a);   // camello amarrado (Jorge, 19 de noviembre)
+    case 'esclavo': return ESC.accion(data, e, pid, a);   // esclavos (Jorge, 27 de noviembre)
     case 'datiles': return OBJ.comerDatiles(data, e, pid);
     case 'proponerTrato': return proponerTrato(data, e, pid, a);
     case 'responderTrato': return responderTrato(data, e, pid, a);
@@ -1521,6 +1524,7 @@ export function acciones(data, e, pid) {
   { const x = opcionSinDinares(data, e, pid); if (x) r.push(x); }
   for (const x of OBJ.disponibles(data, e, pid)) r.push(x);
   for (const x of OBJ.opcionesLazo(data, e, pid)) r.push(x);   // amarrar o recuperar el camello
+  for (const x of ESC.opciones(data, e, pid)) r.push(x);   // dejar, tomar, amarrar o recuperar esclavos (Jorge, 27 de noviembre)
   for (const x of TES.opcionesMapaJorasan(data, e, pid)) r.push(x);   // en Yemen: mandar el mapa del Jorasán con los piratas
   if (j.pj === 'B' && j.ciudad === 'Bagdad' && firmanDeYafar(j)) r.push({ k: 'venderFirmanYafar', titulo: `Vender tu Firmán al Califa (${ventaFirmanYafar(e)} dinares)`, texto: 'Queda a la venta como un Firmán normal y ya no pagas su costo por turno.' });
   r.push({ k: 'terminarTurno', titulo: 'Terminar el turno' });

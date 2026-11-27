@@ -92,6 +92,9 @@ export const ITEMS = {
   brujula: { nombre: 'Brújula', texto: 'Al buscar un tesoro tienes 1 intento extra en ese mismo turno.' },
   astrolabio: { nombre: 'Astrolabio', texto: 'Una brújula con esteroides: al buscar un tesoro tienes 2 intentos extra en ese mismo turno (la brújula da 1; si tienes los dos, vale el astrolabio). El botín se reparte normal con tus socios.' },
   pergamino: { nombre: 'Pergamino', texto: 'En Damasco se cobra por 30 dinares.' },
+  // Esclavos (Jorge, 27 de noviembre, solo en el 3D; ver esclavos.js y ESCLAVOS abajo)
+  esclavoCarga: { nombre: 'Esclavo de carga', texto: 'Se compra en Estambul o El Cairo por 15 dinares. No pesa y carga 7 objetos más. Su paga es 1 dinar por turno: si no te alcanza, se va y desaparece, pero te deja tus cosas (puedes quedar sobrecargado). Puedes dejarlo en una ciudad, donde cualquiera lo toma gratis y desde entonces le paga él, o amarrarlo con el Lazo de camellero en el mercado (5 dinares por turno; lo recuperas gratis). No se vende al mercado; un ladrón que te gane se lo lleva.' },
+  esclavoPelea: { nombre: 'Esclavo de pelea y carga', texto: 'Se compra en Estambul o El Cairo por 30 dinares. Pelea y carga: no pesa y carga 7 objetos más. Su paga es 3 dinares por turno: si no te alcanza, se va y desaparece, pero te deja tus cosas (puedes quedar sobrecargado). En combate (11.3) pelea con destreza si tiene un arma para él (una tuya de más): con tu arma y tu destreza, +3 por cada esclavo armado; si tú no tienes destreza, peleas como categoría D gracias a él y +2 por cada esclavo armado más. También te defiende si te roban. Puedes dejarlo en una ciudad, donde cualquiera lo toma gratis y desde entonces le paga él, o amarrarlo con el Lazo de camellero en el mercado (5 dinares por turno; lo recuperas gratis). No se vende al mercado; un ladrón que te gane se lo lleva.' },
   esclavoSamarra: { nombre: 'Esclavo para Samarra', texto: 'Del reto R67: comprado en Basra para llevarlo a Bagdad (de ahí sale a construir Samarra). No pesa: camina. No produce noches ni cobra mantenimiento. Si no lo entregas a tiempo, lo pierdes.' },
   esclava: { nombre: 'Esclavas abisinias', texto: 'Dan +5 noches por turno; mantenimiento 1 dinar por turno.' },
   papiro: { nombre: 'Papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
@@ -299,7 +302,12 @@ export function gastarVeloSiAlfombra(e, j, card, letra) {
   quitarPrimero(j, 'item', 'velo');
   log(e, `${j.nombre} pide la alfombra mágica gracias a su velo quemado: el velo se gasta.`, { pid: j.id });
 }
-export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS + (tieneItem(j, 'alforja') ? ALFORJA.guarda : 0));   // con alforja, 9 (Jorge, 19 de noviembre)
+// Esclavos (Jorge, 27 de noviembre, solo en el 3D): de carga (15 dinares, paga 1 por turno) o de pelea y carga (30, paga 3), en Estambul y
+// El Cairo. No pesan y cada uno carga 7 objetos más. Ver esclavos.js.
+export const ESCLAVOS = { ciudades: ['Estambul', 'El Cairo'], tipos: { esclavoCarga: { precio: 15, paga: 1 }, esclavoPelea: { precio: 30, paga: 3 } }, carga: 7, amarre: 5 };
+export const esEsclavo = (c) => c?.tipo === 'item' && !!ESCLAVOS.tipos[c.ref];
+export const nEsclavos = (j, ref = null) => j.mano.filter((c) => esEsclavo(c) && (!ref || c.ref === ref)).length;
+export const limiteCarga = (e, j) => (j.npc ? (e?.opciones?.dificultad === 'dificil' ? Infinity : LIMITE_NPC) : LIMITE_OBJETOS + (tieneItem(j, 'alforja') ? ALFORJA.guarda : 0) + ESCLAVOS.carga * nEsclavos(j));   // con alforja, 9 (Jorge, 19 de noviembre)
 // Jorge (10 de noviembre): cuentan los objetos del mazo y además el alfanje, la cimitarra y cada botella de vino. No cuentan animales,
 // mapas y papeles amate, arco, jambiya, flechas, dados, Firmán, Kanmakán ni premios de retos.
 // Jorge (11 de noviembre): la alfombra mágica también cuenta como objeto (pesa), aunque no carga nada: no es animal de carga.

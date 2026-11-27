@@ -1,9 +1,10 @@
 // Objetos (R 15): tienda y mercado, venta, reventa y uso de los objetos del mazo, objetos originales (R 15.1), transporte y cartas de Ifrit.
+import * as ESC from './esclavos.js';
 import {
   ok, err, dado, dados, suma, log, nombre, ciudadDe, objDe, activos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, recortarMano, pagar, devolverObjeto,
   publicarCarta, cartaDatos, robar, robarBotin, ITEMS, TESOROS, HOOK, esLibro, valorLibro, valorVino, mostrarDados, consumirObj, info, puedePrincipal, nObjetos, pedir, registrar, eliminar, tarifa, vivos,
 motivoNoSalir, pesoFlechas, ALFORJA, LAMPARA, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, ciudadCerrada, motivoCerrada, deseosIfrit, alfombraPorVelo, DESEO_VELO, TEXTO_DESEO_VELO,
-ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO } from './base.js';
+ALFOMBRAS, alfombrasEn, precioAlfombraVenta, precioAlfombraCompra, moverAlfombras, apurosZein, tieneCarga, LIMITE_OBJETOS, MOTIVO_CARGA, MSJ_COMPRA_LLENO, cargaExcedida, sobrecarga, limiteCarga, CARGA_ITEMS, nCarga, existencia, sacarExistencia, POR_CIUDAD, MAPA_JORASAN, TINTA, CALAMO_MAX, DATILES, pesaCarta, BURROS, burrosEn, SHATRANJ, shatranjEnIndia , PISTACHES , VINO, ESCLAVOS, esEsclavo } from './base.js';
 // Yeguas de la estepa y caballos mongoles (Jorge, 12 de noviembre). Reto R50 en Samarcanda: de 1 a 3 yeguas a 70 cada una. El mercado de
 // Estambul paga 150 por yegua y cada yegua que llega pone a la venta un caballo mongol (32 dinares) en Estambul. El caballo mongol te lleva
 // a cualquier ciudad, incluida India (Jorge, 21 de noviembre; antes solo entre 5 ciudades y fuera de ellas moría), no termina el turno,
@@ -141,6 +142,7 @@ export function comprar(data, e, pid, a) {
   const enTurno = a.ref === 'firman';
   if (enTurno) { if (!puedeTienda(e, pid)) return err('El Firmán se compra en tu turno.'); if (e.turno.fase === 'ingreso') return err('Primero tira el dado de ingreso.'); }
   else { const no = puedeMercado(e, pid); if (no) return err(no); }
+  if (ESCLAVOS.tipos[a.ref]) return ESC.comprar(e, pid, a.ref, dobleCairo(e, j.ciudad));   // esclavos (Jorge, 27 de noviembre)
   if (a.ref === 'lampara') {                                                                             // Jorge (20 de noviembre)
     const n = lamparasEn(e, j.ciudad);
     if (n <= 0) return err('No hay lámpara de aceite a la venta aquí.');
@@ -407,6 +409,7 @@ const MSJ_UNA_VENTA = 'Ya vendiste de estos en este turno: podrás vender más e
 const yaVendioEnTurno = (e, pid, c) => !!c && c.tipo === 'item' && UNA_VENTA_POR_TURNO.includes(c.ref) && e.turno?.pid === pid && !!e.turno.ventaUnica?.[c.ref];
 export function vender(data, e, pid, a) {
   const c = e.jugadores[pid]?.mano.find((x) => x.uid === a.uid);
+  if (esEsclavo(c)) return err(MSJ_ESCLAVO_VENTA);
   if (yaVendioEnTurno(e, pid, c)) return err(MSJ_UNA_VENTA);
   const r = vender0(data, e, pid, a);
   if (r.ok && c && c.tipo === 'item' && UNA_VENTA_POR_TURNO.includes(c.ref) && e.turno?.pid === pid) (e.turno.ventaUnica ||= {})[c.ref] = true;
@@ -656,6 +659,7 @@ export function tienda(data, e, pid) {
       // Jorge (10 de noviembre): si no se puede comprar, el botón dice por qué
       motivo: !(existencia(e, o.id, j.ciudad) > 0) ? 'Agotado' : lleno ? MSJ_COMPRA_LLENO : j.dinares < precio ? 'No te alcanza' : undefined });
   }
+  for (const x of ESC.enTienda(e, j, cai)) r.push(x);   // esclavos en Estambul y El Cairo (Jorge, 27 de noviembre)
   for (const x of r) { const d = dondeSeVende(data, x); if (d) x.donde = d; }   // Jorge (19 de noviembre): dónde se vende lo que no hay en todos los mercados
   return r;
 }
@@ -697,6 +701,7 @@ export function estimarVenta(data, e, pid, c) {
 
 // Dónde se vende cada carta y a cuánto (o para qué sirve si no se vende), para que «no se vende aquí» nunca quede sin explicación.
 const MITAD = { esclava: 10, sal: 2, cesta: 1 };
+const MSJ_ESCLAVO_VENTA = 'Los esclavos no se venden al mercado: puedes dejarlo en una ciudad (cualquiera lo toma gratis) o amarrarlo con el Lazo de camellero (desde Acciones), o pasarlo a otro jugador en un trato.';
 const USO = {
   idolo: 'Destrúyelo en cualquier ciudad (100 noches) o véndelo en Estambul a los mercaderes venecianos (100 dinares, con riesgo de herejía). Sirve para: reto R41 (Andalucía).',
   caballo: 'Es tu transporte: úsalo para viajar.', camello: 'Es tu transporte: úsalo para viajar.', burro: 'Es tu transporte: úsalo para viajar.', alfombra: 'Es tu transporte: úsala para viajar.',
@@ -723,6 +728,7 @@ export function dondeVender(data, e, pid, c) {
   }
   if (c.tipo === 'especial') return c.ref === 'F1' ? 'El Firmán no se vende: se queda contigo (vuelve al banco si mueres).' : 'Carta especial: no se vende.';
   if (c.tipo !== 'item') return null;
+  if (esEsclavo(c)) return MSJ_ESCLAVO_VENTA;
   if (esLibro(c) && c.extra?.transcrito) return MSJ_TRANSCRITOS;
   if (esLibro(c)) return 'Solo la biblioteca de Bagdad compra libros y papiros (mitad de su valor; precio completo con «Casa de la Sabiduría»).';
   if (c.ref === 'vino') return 'En cualquier mercado, a su valor actual menos el impuesto; la botella se esfuma.';

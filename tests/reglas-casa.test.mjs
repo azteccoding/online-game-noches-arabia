@@ -5726,3 +5726,54 @@ console.log('Sherezada: los dados antes que la muerte OK');
   const d0 = A.dinares; { const r = g.act(a, { t: 'decidir', id: p.id, opcion: 'alistar' }); assert.ok(r.ok, r.error); } assert.equal(A.dinares, d0 + 30, 'cobra los 30 dinares');
   console.log('leva del sultán con destreza y herido OK');
 }
+
+// Esclavos (Jorge, 27 nov, solo 3D): Estambul y El Cairo; de carga 15 (paga 1) y de pelea 30 (paga 3); no pesan y cargan 7 más;
+// sin paga se van y te dejan tus cosas; se dejan en una ciudad (otro los toma gratis y les paga él); con lazo se amarran a 5 por turno.
+{
+  const ESC = await import('../shared/esclavos.js');
+  const { perfil, bonosCombate } = await import('../shared/pelea.js');
+  const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones'; A.ciudad = 'Basra'; A.dinares = 100;   // se compra mientras juegan los demás
+  assert.ok(!tienda(data, e, a).some((x) => x.ref === 'esclavoCarga'), 'en Basra no se venden');
+  assert.match(g.act(a, { t: 'comprar', ref: 'esclavoCarga' }).error || '', /Estambul y El Cairo/);
+  A.ciudad = 'Estambul';
+  assert.deepEqual(tienda(data, e, a).filter((x) => /^esclavo(Carga|Pelea)$/.test(x.ref)).map((x) => x.precio), [15, 30]);
+  const lim0 = BASE.limiteCarga(e, A);
+  assert.ok(g.act(a, { t: 'comprar', ref: 'esclavoCarga' }).ok); assert.equal(A.dinares, 85);
+  assert.ok(g.act(a, { t: 'comprar', ref: 'esclavoPelea' }).ok); assert.equal(A.dinares, 55);
+  assert.equal(BASE.limiteCarga(e, A), lim0 + 14, 'cada esclavo carga 7 más'); assert.equal(BASE.nCarga(A), BASE.nCarga({ ...A, mano: A.mano.filter((c) => !BASE.esEsclavo(c)) }), 'no pesan');
+  const esc = A.mano.find((c) => c.ref === 'esclavoCarga');
+  assert.match(g.act(a, { t: 'vender', uid: esc.uid }).error || '', /no se venden/);
+  turnoDe(e, a, 'Estambul'); e.turno.fase = 'acciones';
+  // paga: 1 + 3
+  A.dinares = 10; ESC.inicioTurno(data, e, a); assert.equal(A.dinares, 6, 'paga 1 + 3');
+  // sin paga se va el de pelea (3) y se queda el de carga; te deja tus cosas
+  A.dinares = 2; const mano0 = A.mano.length; ESC.inicioTurno(data, e, a);
+  assert.equal(A.dinares, 1); assert.ok(!A.mano.some((c) => c.ref === 'esclavoPelea'), 'el de pelea se va'); assert.equal(A.mano.length, mano0 - 1, 'solo se va él');
+  assert.ok(e.anuncios.some((x) => x.para.includes(a) && /se fue y desapareció/.test(x.texto)), 'alerta roja');
+  // dejarlo: otro lo toma gratis y le paga él
+  e.turno.fase = 'acciones'; A.dinares = 50;
+  assert.ok(g.act(a, { t: 'esclavo', sub: 'dejar', uid: esc.uid }).ok); assert.ok(!A.mano.some((c) => c.uid === esc.uid));
+  B.ciudad = 'Estambul'; turnoDe(e, b, 'Estambul'); e.turno.fase = 'acciones'; B.dinares = 5;
+  assert.ok(vistaDe(e, b).acciones.some((x) => x.k === 'esclavo' && x.sub === 'tomar'), 'B ve la opción de tomarlo');
+  assert.ok(g.act(b, { t: 'esclavo', sub: 'tomar', uid: esc.uid }).ok); assert.equal(B.dinares, 5, 'gratis'); assert.ok(B.mano.some((c) => c.uid === esc.uid));
+  ESC.inicioTurno(data, e, b); assert.equal(B.dinares, 4, 'ahora le paga B');
+  // amarrarlo con el lazo: 5 por turno en vez de su paga; se recupera gratis; sin dinero se va
+  assert.match(g.act(b, { t: 'esclavo', sub: 'amarrar', uid: esc.uid }).error || '', /Lazo de camellero/);
+  B.mano.push({ uid: 'lazoB', tipo: 'objeto', ref: 'OB05' }); assert.ok(g.act(b, { t: 'esclavo', sub: 'amarrar', uid: esc.uid }).ok);
+  B.dinares = 12; ESC.inicioTurno(data, e, b); assert.equal(B.dinares, 7, 'amarre 5');
+  assert.ok(g.act(b, { t: 'esclavo', sub: 'recuperar', uid: esc.uid }).ok); assert.equal(B.dinares, 7, 'recuperar gratis'); assert.ok(B.mano.some((c) => c.uid === esc.uid));
+  assert.ok(g.act(b, { t: 'esclavo', sub: 'amarrar', uid: esc.uid }).ok); B.dinares = 3; ESC.inicioTurno(data, e, b);
+  assert.equal(B.dinares, 3); assert.equal(ESC.amarradosDe(e, b).length, 0, 'sin los 5 del amarre, se va');
+  // 11.3 en combate
+  const P = partida(['4', '7']); assert.ok(P.iniciar().ok);
+  const f = P.e, [x] = P.ids, X = f.jugadores[x]; X.ciudad = 'Damasco'; X.destreza = false; X.extra.entrenado = {}; X.mano = X.mano.filter((c) => !['alfanje', 'cimitarra', 'jambiya', 'arco', 'OB04', 'OB01', 'K1'].includes(c.ref));
+  darItem(f, X, 'esclavoPelea'); assert.equal(perfil(data, f, x).cat, 'A', 'sin armas, el esclavo no pelea');
+  darItem(f, X, 'alfanje'); assert.equal(perfil(data, f, x).cat, 'D', 'caso 1: con un arma, el esclavo pelea por ti como D');
+  darItem(f, X, 'esclavoPelea'); darItem(f, X, 'cimitarra'); assert.ok(bonosCombate(data, f, x, 'atk').partes.some((t) => /\+2/.test(t) && /esclavo/.test(t)), 'caso 1: +2 por el segundo esclavo armado');
+  X.destreza = true; const bc = bonosCombate(data, f, x, 'atk');
+  assert.ok(bc.partes.some((t) => /esclavo de pelea armado \+3/.test(t)), 'caso 2: con 2 armas y tu destreza, 1 esclavo armado +3: ' + bc.partes.join(' | '));
+  darItem(f, X, 'jambiya'); assert.ok(bonosCombate(data, f, x, 'atk').partes.some((t) => /2 esclavos de pelea armados \+6/.test(t)), 'caso 2: con 3 armas, 2 esclavos +6');
+  console.log('esclavos OK');
+}

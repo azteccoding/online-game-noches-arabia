@@ -44,6 +44,7 @@ export const ACCIONES = {
   asesinos: () => ({ t: 'asesinos' }),
   venderFirmanYafar: () => ({ t: 'venderFirmanYafar' }),
   lazo: (sub, uid) => ({ t: 'lazo', sub, uid }),   // amarrar o recuperar el camello (Jorge, 19 de noviembre)
+  esclavo: (sub, uid) => ({ t: 'esclavo', sub, uid }),   // dejar, tomar, amarrar o recuperar un esclavo (Jorge, 27 de noviembre)
   pj: (sub, extra = {}) => ({ t: 'pj', sub, ...extra }),
   reclamarAnfitrion: (pin) => ({ t: 'reclamarAnfitrion', pin }),
   votarReinicio: (si) => ({ t: 'votarReinicio', si: !!si }),

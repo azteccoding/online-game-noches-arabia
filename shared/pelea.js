@@ -5,7 +5,7 @@ import { protegidaPorPoetas, MSJ_POETAS } from './eventosJugador.js';
 import {
   ok, err, dado, dados, suma, par, log, nombre, pedir, registrar, CONT, mostrarDados, eliminar, ciudadDe, pjDe, objDe, enCiudad,
   tieneItem, tieneObj, tieneEsp, quitarPrimero, devolverObjeto, recortarMano, activos, darObjeto, devolverPrincipal,
-marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE, huidaCuentaViaje } from './base.js';
+marcarBuscado, PAPELES_ITEM, PAPELES_OBJ, destrezaCon, publicarCarta, info, jambiyaEscondida, jambiyaALaMano, NO_VUELVE, huidaCuentaViaje, nEsclavos } from './base.js';
 
 const ARMAS = ['arco', 'alfanje', 'cimitarra', 'jambiya'];
 // Jorge (19 de noviembre): el arco no cuenta como arma para los ataques (robo, ataque a muerte, duelo) ni para «llevar armas»;
@@ -50,9 +50,23 @@ export function perfil(data, e, pid, ciudad) {
   const general = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
   // Jorge (21 de noviembre): entrenar un arma (R18, R19, R42, R54, deseo f) es tener destreza en ella: si peleas con un arma
   // entrenada, peleas con destreza (categoría D, y puedes atacar a muerte). El +1 de la destreza general (R25) es aparte.
-  const destreza = general || armas.some((r) => !!j.extra?.entrenado?.[r]);
+  const propia = general || armas.some((r) => !!j.extra?.entrenado?.[r]);
+  const esc = esclavosArmados(j, armas, propia);
+  const destreza = propia || esc.armados > 0;   // 11.3, caso 1: sin destreza, tus esclavos de pelea armados pelean por ti como categoría D
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
-  return { pid, armas, destreza, general, cat };
+  return { pid, armas, destreza, general, cat, esclavos: esc };
+}
+// Esclavos de pelea en combate (Jorge, 27 de noviembre: «revisa el reglamento extendido», 11.3). Cada esclavo de pelea ya sabe pelear
+// (trae destreza), pero necesita un arma de ataque para él: pelean tantos como armas te sobren.
+//  - Caso 2: tú tienes arma y destreza: cada esclavo armado (una arma más que tú) suma +3.
+//  - Caso 1: tú tienes armas pero no destreza: el primer esclavo armado pelea por ti como categoría D y cada esclavo armado más suma +2.
+export const ESCLAVO_BONO = { conDestreza: 3, sinDestreza: 2 };
+export function esclavosArmados(j, armas, propia) {
+  const n = nEsclavos(j, 'esclavoPelea'), A = armas.filter((r) => ARMAS_ATAQUE.includes(r)).length;
+  if (!n || !A) return { armados: 0, bono: 0, texto: '' };
+  if (propia) { const k = Math.min(n, A - 1); return { armados: k, bono: k * ESCLAVO_BONO.conDestreza, texto: k ? `${k === 1 ? 'esclavo de pelea armado' : k + ' esclavos de pelea armados'} +${k * ESCLAVO_BONO.conDestreza}` : '' }; }
+  const k = Math.min(n, A), b = (k - 1) * ESCLAVO_BONO.sinDestreza;
+  return { armados: k, bono: b, texto: `tu esclavo pelea por ti (categoría D)${b ? `; ${k - 1 === 1 ? 'otro esclavo armado' : k - 1 + ' esclavos armados más'} +${b}` : ''}` };
 }
 
 // Objeto de tipo Arma del mazo: máximo 1 por bando en cada pelea (R 15.2). Elige el mejor para ese bando.
@@ -90,6 +104,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duel
       const x = data.config.armas?.cimitarra?.extraAtacante ?? 2; total += x; partes.push(`cimitarra al atacar +${x}`);
     }
   }
+  if (perf.esclavos?.texto) { total += perf.esclavos.bono; partes.push(perf.esclavos.texto); }   // esclavos de pelea (11.3)
   if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
   const ob = objetoDeCombate(data, e, pid, rol, { contraNPC, duelo });
@@ -505,6 +520,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (dz && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
   if (dz && mods.sinDestreza) partes.push('destreza perdida por la flecha');
   if (rol === 'def' && tieneObj(j, 'OB04')) { partes.push('escudo +1'); total += 1; }
+  { const pf = perfil(data, e, pid, ciudad); if (pf.esclavos.texto) { partes.push(pf.esclavos.texto); total += pf.esclavos.bono; } }   // esclavos de pelea (11.3)
   if (mods.golpeEscudo) { partes.push('el escudo del rival paró el golpe −1'); total -= 1; }
   if (j.herido) { partes.push('herido −1'); total -= 1; }
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
