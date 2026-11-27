@@ -17,7 +17,7 @@ import {
 
 export const EJ_TIEMPO_MS = 90000;   // si nunca cierra la carta, se aplica igual (como el mahr y el harén)
 const PJ = { nur: '1', zein: '2', anis: '3', jamil: '4', ruyan: '5', zubayda: '6', adi: '7', yafar: 'B' };
-const SUB = 'Se lee a toda la mesa · al pagar alojamiento';
+const SUB = 'Se lee a toda la mesa · al iniciar tu turno';   // sale al iniciar tu turno (Jorge, 27 de noviembre)
 const SUB_JORASAN = 'Se lee a toda la mesa · si no logras salir del Jorasán';
 
 const cartas = (data) => data.ej?.cartas || [];

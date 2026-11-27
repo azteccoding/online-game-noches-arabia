@@ -50,7 +50,7 @@ const esc = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
 function frente(c, arte) {
   return `<div class="carta">${'<div class="m1"></div><div class="m2"></div>' + esquinas()}
   <div class="titulo" id="tit">${esc(c.titulo || 'Evento de jugador')}</div>
-  <div class="sub">${esc(c.sub || 'Se lee a toda la mesa · al pagar alojamiento')}</div>
+  <div class="sub">${esc(c.sub || 'Se lee a toda la mesa · se saca en tu turno')}</div>
   <div class="marco-img"><div class="img">${arte ? `<img src="${arte}" style="object-position:${c.pos || '50% 55%'}">` : '<div class="pend">(aquí va la pintura EJ.png)</div>'}</div></div>
   <div class="num"${c.jorasan ? ' style="background:#7a2a1c;box-shadow:0 3px 8px rgba(0,0,0,.35),inset 0 0 0 3px #7a2a1c,inset 0 0 0 5px #d9c98f"' : ''}><b>EJ</b><span>${c.n}</span></div>
   <div class="ico">${ICONO(62,'#2f2b6e')}</div>
