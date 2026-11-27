@@ -274,6 +274,7 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
   e.ronda++;
   if (e.ronda === e.traicionRonda && !e.traicion) traicionJerusalen(data, e);
   OBJ.reponerMapasJorasan(e);   // Jorge (12 de noviembre): los escribas de Bagdad terminan un mapa del Jorasán
+  for (const id of enPartida(e)) RET.recibirDestreza(data, e, id);   // entrenamientos de jambiya, cimitarra y alfanje: al iniciar la ronda siguiente (Jorge, 27 de noviembre)
   reponerMercado(data, e);
   e.mods = {}; e.sinCaravanasBagdad = false;
   e.evento = { actual: null, historico: null, buscadoE7: e.evento?.buscadoE7 && e.evento.rondaE7 === e.ronda - 1 ? null : null };

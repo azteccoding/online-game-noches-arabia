@@ -690,6 +690,7 @@ function cartaEnCiudad(c, base, aqui) {
 }
 export const ENTRENAMIENTOS = { R18: { arma: 'cimitarra', costo: 25 }, R19: { arma: 'jambiya', costo: 20 }, R42: { arma: 'alfanje', costo: 20 }, R43: { arma: 'arco', costo: 20 } };
 const ARTE_ARMA = Object.fromEntries(Object.entries(ENTRENAMIENTOS).map(([id, x]) => [x.arma, id]));   // por si la destreza pendiente no trae su carta (partidas guardadas antes)
+const ENTRENO_SIG_RONDA = ['jambiya', 'cimitarra', 'alfanje'];
 const entrenado = (j, arma) => !!j.extra.entrenado?.[arma] || (j.extra.destrezaPend || []).some((q) => q.arma === arma);
 // Jorge (19 de noviembre, más tarde): la destreza y los entrenamientos (R25, R18, R19, R42, R43, R51 y el de R54) gastan la acción
 // principal y terminan el turno. Jorge (21 de noviembre): se reciben al TERMINAR ese turno, no durante él (antes, al iniciar el
@@ -703,13 +704,13 @@ function aplazarDestreza(e, pid, q) {
 export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   const j = e.jugadores[pid], qs = j?.extra?.destrezaPend;
   if (!qs?.length || j.eliminado) return;
-  const listas = qs.filter((q) => q.turno == null || (inicio ? j.turnos > q.turno : j.turnos >= q.turno));   // R25: llega al terminar el segundo turno (Jorge, 21 de noviembre)
+  const listas = qs.filter((q) => (q.ronda == null || e.ronda >= q.ronda) && (q.turno == null || (inicio ? j.turnos > q.turno : j.turnos >= q.turno)));   // R25: llega al terminar el segundo turno (Jorge, 21 de noviembre)
   if (!listas.length) return;
   j.extra.destrezaPend = qs.filter((q) => !listas.includes(q));
   for (const q of listas) {
     let texto;
     if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
-    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco (con 3 o 4 en tu flecha el rival pelea con −1).' : `Terminó tu turno de entrenamiento: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco (con 3 o 4 en tu flecha el rival pelea con −1).' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
     log(e, `${j.nombre}: ${texto}`, { pid, aviso: true });
@@ -719,7 +720,9 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
 HOOK.recibirDestreza = recibirDestreza;
 function entrenarArma(e, pid, id) {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
-  j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, { t: 'arma', arma, de: id });
+  // Jorge (27 de noviembre): el entrenamiento con jambiya, cimitarra o alfanje se recibe al iniciar la ronda siguiente, no al terminar el turno
+  const q = { t: 'arma', arma, de: id, ...(ENTRENO_SIG_RONDA.includes(arma) && !j.npc ? { ronda: e.ronda + 1 } : {}) };
+  j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, q);
   log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina y al terminar queda entrenado${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : `, con destreza en ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
@@ -1373,7 +1376,17 @@ export function ofrecer5(data, e, pid, a) {
   if (e.fase !== 'juego' || !e.turno || e.turno.pid !== pid) return err('Solo en tu turno.');
   if (!k || k.eliminado || k.npc || a.a === pid || k.ciudad !== j.ciudad) return err('Debe haber otro jugador en tu ciudad.');
   if (j.dinares < 5) return err('No tienes 5 dinares.');
-  j.dinares -= 5; k.dinares += 5; log(e, `${j.nombre} ofrece 5 dinares a ${k.nombre}.`, { pid });
-  mensajes(data, e, pid, 'ofrecer', {});
+  if (e.pend) return err('Espera a que se resuelva la decisión pendiente.');
+  // Jorge (27 de noviembre): el otro jugador decide si acepta los 5 dinares; si los rechaza, no hay pago y el encargo del sheij no se cumple.
+  log(e, `${j.nombre} ofrece 5 dinares a ${k.nombre}.`, { pid });
+  pedir(e, { tipo: 'trato', para: [a.a], titulo: `${j.nombre} te ofrece 5 dinares`, texto: `${j.nombre} te ofrece 5 dinares, sin pedirte nada a cambio. ¿Los aceptas?`,
+    opciones: [{ id: 'si', texto: 'Aceptar los 5 dinares' }, { id: 'no', texto: 'Rechazarlos' }], porDefecto: 'no', limiteMs: 60000, cont: { fn: 'reto.ofrecer5', args: { de: pid } } });
   return ok();
 }
+registrar('reto.ofrecer5', (data, e, args, resp) => {
+  const j = e.jugadores[args.de], k = e.jugadores[resp.pid]; if (!j || !k) return;
+  if (resp.opcion !== 'si') { log(e, `${k.nombre} rechaza los 5 dinares de ${j.nombre}.`, { pid: args.de, aviso: true }); info(e, args.de, 'Rechazó tus 5 dinares', `${k.nombre} no aceptó tus 5 dinares: no pagas nada y el encargo del sheij sigue pendiente.`); return; }
+  if (j.dinares < 5) { log(e, `${j.nombre} ya no tiene 5 dinares para ${k.nombre}.`, { pid: args.de }); return; }
+  j.dinares -= 5; k.dinares += 5; log(e, `${k.nombre} acepta los 5 dinares de ${j.nombre}.`, { pid: args.de, aviso: true });
+  mensajes(data, e, args.de, 'ofrecer', {});
+});

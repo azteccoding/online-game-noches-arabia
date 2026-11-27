@@ -673,7 +673,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   j.misiones = []; turnoDe(e, a, 'Damasco'); j.ciudad = 'Damasco'; j.dinares = 100; j.mano = []; j.destreza = false;
   assert.ok(disponibles(data, e, a).find((r) => r.id === 'R42').bloqueado, 'sin alfanje no entrena');
   darItem(e, j, 'alfanje'); const b0 = bonosCombate(data, e, a, 'atk', 'Damasco').total;
-  assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.ok(e.turno?.pid !== a || e.turno.fin, 'entrenar termina el turno'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, e.turno?.pid === a ? b0 : b0 + 1, 'llega al terminar el turno, no durante él (Jorge, 21 de noviembre)'); recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
+  assert.ok(g.act(a, { t: 'reto', id: 'R42' }).ok); assert.ok(e.turno?.pid !== a || e.turno.fin, 'entrenar termina el turno'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0, 'llega al iniciar la ronda siguiente (Jorge, 27 de noviembre)'); recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0, 'tampoco al terminar el turno'); e.ronda++; recibirDestreza(data, e, a); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, b0 + 1, 'alfanje entrenado +1');
   turnoDe(e, a, 'Estambul'); j.ciudad = 'Estambul'; assert.ok(g.act(a, { t: 'reto', id: 'R25' }).ok); assert.ok(!j.destreza && (e.turno?.pid !== a || e.turno.fin), 'la destreza de Estambul tarda 2 turnos'); assert.equal(j.pierdeTurno, 1, 'pierde el siguiente turno entrenando'); j.pierdeTurno = 0; recibirDestreza(data, e, a); assert.ok(!j.destreza, 'todavía no'); j.turnos++; recibirDestreza(data, e, a); assert.ok(j.destreza); assert.equal(j.dinares, 100 - 20 - 50);
   // jambiya escondida: no cuenta ni se la roban
   darItem(e, j, 'jambiya'); const conJ = bonosCombate(data, e, a, 'atk', 'Damasco').total;
@@ -1214,7 +1214,7 @@ for (let k = 0; k < 6; k++) {
   turnoDe(e, n, 'Estambul'); N.ciudad = 'Estambul'; e.turno.fase = 'acciones';
   assert.ok(g.act(n, { t: 'reto', id: 'R25' }).ok, 'la destreza la aprende en Estambul'); N.turnos++; recibirDestreza(data, e, n); N.pierdeTurno = 0; assert.ok(N.destreza);
   darItem(e, N, 'alfanje'); turnoDe(e, n, 'Aleppo'); N.ciudad = 'Aleppo'; e.turno.fase = 'acciones';
-  assert.ok(g.act(n, { t: 'reto', id: 'R42' }).ok, 'el alfanje lo entrena normal'); recibirDestreza(data, e, n); assert.ok(N.extra.entrenado.alfanje);
+  assert.ok(g.act(n, { t: 'reto', id: 'R42' }).ok, 'el alfanje lo entrena normal'); e.ronda++; recibirDestreza(data, e, n); assert.ok(N.extra.entrenado.alfanje);
   // por ser guerrero, Nur al Din puede atacar a muerte sin destreza; los demás no
   const h = partida(['1', '4', '7']); assert.ok(h.iniciar().ok);
   const f = h.e, [nur, jam, adi] = h.ids;
@@ -4390,7 +4390,7 @@ console.log('reglas de la casa OK');
     Z.ciudad = 'Isfahán'; turnoDe(e, z, 'Isfahán'); e.turno.fase = 'acciones';
     assert.match(g.act(z, { t: 'reto', id: 'R18' }).error || '', /salvo con la jambiya/, `${pj}: no entrena cimitarra`);
     Z.ciudad = 'Yemen'; turnoDe(e, z, 'Yemen'); e.turno.fase = 'acciones';
-    { const r = g.act(z, { t: 'reto', id: 'R19' }); assert.ok(r.ok, r.error); recibirDestreza(data, e, z); } assert.ok(Z.extra.entrenado?.jambiya, `${pj}: entrena jambiya`);
+    { const r = g.act(z, { t: 'reto', id: 'R19' }); assert.ok(r.ok, r.error); recibirDestreza(data, e, z); assert.ok(!Z.extra.entrenado?.jambiya, `${pj}: la jambiya llega hasta la siguiente ronda`); e.ronda++; recibirDestreza(data, e, z); } assert.ok(Z.extra.entrenado?.jambiya, `${pj}: entrena jambiya`);
     // R54 con par: no entrena la cimitarra
     Z.extra.entrenado = {}; Z.ciudad = 'Estambul'; Z.herido = false; Z.mano = Z.mano.filter((c) => c.ref !== 'jambiya'); turnoDe(e, z, 'Estambul'); e.turno.fase = 'acciones'; forzar(e, 2, 1);
     { const r = g.act(z, { t: 'reto', id: 'R54' }); assert.ok(r.ok, r.error); } assert.ok(!e.pend && !Z.extra.entrenado?.cimitarra, `${pj}: R54 no entrena cimitarra`);
@@ -5379,7 +5379,10 @@ console.log('R67 y deudas OK');
   const b0 = bonosCombate(data, e, z, 'def', 'Samarcanda').total;
   assert.ok(g.act(z, { t: 'reto', id: 'R18' }).ok);
   assert.notEqual(e.turno?.pid, z, 'entrenar termina el turno');
-  assert.ok(Z.extra.entrenado?.cimitarra, 'al terminar el turno ya está entrenado');
+  // Jorge (27 nov): el entrenamiento de jambiya, cimitarra y alfanje llega al empezar la siguiente ronda
+  if (e.ronda < (Z.extra.destrezaPend || []).find((q) => q.arma === 'cimitarra')?.ronda) assert.ok(!Z.extra.entrenado?.cimitarra, 'al terminar el turno aún no está entrenado');
+  e.ronda++; recibirDestreza(data, e, z);
+  assert.ok(Z.extra.entrenado?.cimitarra, 'al empezar la siguiente ronda ya está entrenado');
   assert.ok(e.historial.some((h) => h.id === 'entreno:arma:cimitarra' && h.para?.includes(z)) || e.log.some((l) => /ya tienes destreza con la cimitarra/.test(l.texto)), 'con su carta');
   Z.ciudad = 'Samarcanda';
   const pf = perfil(data, e, z, 'Samarcanda');
@@ -5672,4 +5675,38 @@ console.log('Sherezada: los dados antes que la muerte OK');
   e.turno = null; e.pend = null; e.colaPend = []; h0 = ev().length; empezarRondaS1(data, e);
   assert.deepEqual(ev().slice(h0), ['E2'], 'ronda 6: el del mazo, uno solo');
   console.log('un evento por ronda (las carreras cuentan) OK');
+}
+
+// Jorge (27 de noviembre): cálamos de Kufa, pescado y especias se venden una vez por turno
+{
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'El Cairo'; turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones'; A.mano = [];
+  for (let k = 0; k < 6; k++) darItem(e, A, 'buza');
+  darItem(e, A, 'pescado'); darItem(e, A, 'pescado');
+  const uid = (ref) => A.mano.find((c) => c.ref === ref).uid;
+  forzar(e, 1); let r = g.act(a, { t: 'vender', uid: uid('buza') }); assert.ok(r.ok, r.error); e.dados = null; e.colaDados = [];
+  assert.equal(A.mano.filter((c) => c.ref === 'buza').length, 5, 'con un 1 te compran uno');
+  assert.match(g.act(a, { t: 'vender', uid: uid('buza') }).error || '', /Ya vendiste/, 'en el mismo turno ya no');
+  const vb = vistaDe(e, a).mano.find((c) => c.ref === 'buza'); assert.equal(vb.venta, null, 'sin botón de vender'); assert.match(vb.donde, /siguiente turno/);
+  assert.ok(g.act(a, { t: 'vender', uid: uid('pescado') }).ok, 'otro artículo sí');
+  assert.match(g.act(a, { t: 'vender', uid: uid('pescado') }).error || '', /Ya vendiste/, 'el segundo pescado, en otro turno');
+  turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
+  forzar(e, 2); assert.ok(g.act(a, { t: 'vender', uid: uid('buza') }).ok, 'en el siguiente turno, otra vez');
+  console.log('una venta por turno de cálamos, pescado y especias OK');
+}
+
+// Jorge (27 de noviembre): «ofrecer 5 dinares» (encargo de sheij) depende de que el otro acepte
+{
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.ciudad = B.ciudad = 'Damasco'; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; A.dinares = 20; B.dinares = 0; e.pend = null; e.colaPend = [];
+  assert.ok(g.act(a, { t: 'ofrecer5', a: b }).ok);
+  assert.equal(A.dinares, 20, 'no se paga antes de que acepte'); assert.ok(e.pend && e.pend.para[0] === b);
+  assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'no' }).ok);
+  assert.equal(A.dinares, 20); assert.equal(B.dinares, 0, 'rechazado: nadie paga');
+  while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: 'ok' });
+  assert.ok(g.act(a, { t: 'ofrecer5', a: b }).ok); assert.ok(g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+  assert.equal(A.dinares, 15); assert.equal(B.dinares, 5, 'aceptado: pasan los 5');
+  console.log('ofrecer 5 dinares con aceptación OK');
 }

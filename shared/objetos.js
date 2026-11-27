@@ -400,7 +400,19 @@ export function tirar(data, e, pid, a) {
   log(e, `${j.nombre} tira ${nom}: sale del juego.`, { pid });
   return ok();
 }
+// Jorge (27 de noviembre): los cálamos de Kufa (que se venden tirando un dado), el pescado y las especias se venden una sola vez por
+// turno; en tu siguiente turno puedes volver a intentarlo.
+export const UNA_VENTA_POR_TURNO = ['buza', 'pescado', 'especias'];
+const MSJ_UNA_VENTA = 'Ya vendiste de estos en este turno: podrás vender más en tu siguiente turno.';
+const yaVendioEnTurno = (e, pid, c) => !!c && c.tipo === 'item' && UNA_VENTA_POR_TURNO.includes(c.ref) && e.turno?.pid === pid && !!e.turno.ventaUnica?.[c.ref];
 export function vender(data, e, pid, a) {
+  const c = e.jugadores[pid]?.mano.find((x) => x.uid === a.uid);
+  if (yaVendioEnTurno(e, pid, c)) return err(MSJ_UNA_VENTA);
+  const r = vender0(data, e, pid, a);
+  if (r.ok && c && c.tipo === 'item' && UNA_VENTA_POR_TURNO.includes(c.ref) && e.turno?.pid === pid) (e.turno.ventaUnica ||= {})[c.ref] = true;
+  return r;
+}
+function vender0(data, e, pid, a) {
   const j = e.jugadores[pid];
   if (j?.perdido) return err(MSJ_PERDIDO_VENDER);   // Jorge (19 de noviembre): en el Jorasán no se vende nada
   if (!puedeTienda(e, pid)) return err('Solo puedes vender en tu turno.');
@@ -650,6 +662,7 @@ export function tienda(data, e, pid) {
 export function estimarVenta(data, e, pid, c) {
   const j = e.jugadores[pid], ciudad = j?.ciudad;
   if (!j || j.perdido) return null;   // perdido en el Jorasán: no hay botón de vender
+  if (yaVendioEnTurno(e, pid, c)) return null;   // una venta por turno: el botón se apaga y sale el motivo (dondeVender)
   try {
     if (c.tipo === 'objeto' && LIBROS_SUBASTA.includes(c.ref) && ciudad === 'Bagdad') return 100;   // subasta: 100 o 150
     if (c.tipo === 'objeto') {
@@ -694,6 +707,7 @@ const USO = {
 };
 export function dondeVender(data, e, pid, c) {
   const j = e.jugadores[pid]; if (!j) return null;
+  if (yaVendioEnTurno(e, pid, c)) return MSJ_UNA_VENTA;
   const m = (j.misiones || []).find((x) => (x.carga || []).some((k) => k.uid === c.uid));
   if (m) return `No se vende: es la carga del reto ${m.id}${m.destino ? `; entrégala en ${m.destino}` : ''}.`;
   const lista = (o) => Object.entries(o).map(([k, v]) => `${k} ${v}`).join(', ');
