@@ -1,6 +1,6 @@
 // Reglas de la casa del juego en línea: node tests/reglas-casa.test.mjs
 import assert from 'node:assert/strict';
-import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion, puedeUnirse, unirTarde } from '../shared/engine.js';
+import { nuevoJuego, unir, reducir, tick, llegada, vista, robarCC, carreraFinTurno, conexion, puedeUnirse, unirTarde, empezarRonda as empezarRondaS1 } from '../shared/engine.js';
 const vistaDe = (e, pid) => vista(data, e, pid);
 import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/base.js';
 import * as BASE from '../shared/base.js';
@@ -443,7 +443,8 @@ function avanzarHasta(g, cond, pasos = 400) {
   }
 }
 
-// Carta S1 «Te presentan ante Saladino»: una vez, al quedar visitadas Aleppo y Damasco; 10 dinares y 50 noches a cada jugador vivo, no a Yafar NPC
+// Carta S1 «Te presentan ante Saladino»: una vez, al quedar visitadas Aleppo y Damasco; 10 dinares y 50 noches a cada jugador vivo, no a Yafar NPC.
+// Jorge (27 de noviembre): es carta histórica y sale al inicio de la ronda siguiente, como la única histórica de esa ronda.
 {
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a, b] = g.ids, npc = e.jugadores.npc;
@@ -456,11 +457,16 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.ok(!e.saladino, 'con solo Aleppo no sale');
   turnoDe(e, b, 'Damasco'); e.jugadores[b].ciudad = 'Damasco'; e.jugadores[b].visitadas = e.jugadores[b].visitadas.filter((c) => c !== 'Damasco');
   const nb = e.jugadores[b].noches; llegada(data, e, b, 'Aleppo');
-  assert.ok(e.saladino && e.historial.some((h) => h.id === 'S1' && !h.para), 'sale a la vista de todos al visitar Damasco (otro jugador)');
-  const da = e.jugadores[a].dinares - antes[a][0]; assert.ok(da >= 10 && da <= 15, '10 dinares a cada jugador (más lo que dé su carta de Cuentos): ' + da);
+  assert.ok(e.saladinoListo && !e.saladino && !e.historial.some((h) => h.id === 'S1'), 'al visitar las dos queda lista, pero aún no sale');
+  const da0 = e.jugadores[a].dinares, hist0 = e.historial.length; e.mazos.historicos = ['H9', 'H10']; e.turno = null;
+  empezarRondaS1(data, e);
+  const nuevas = e.historial.slice(hist0).filter((h) => h.deck === 'historico');
+  assert.ok(e.saladino && nuevas.length === 1 && nuevas[0].id === 'S1' && !nuevas[0].para, 'sale al iniciar la ronda, a la vista de todos, como la única histórica');
+  assert.deepEqual(e.mazos.historicos, ['H9', 'H10'], 'esa ronda no se roba otra histórica');
+  assert.equal(e.jugadores[a].dinares - da0, 10, '10 dinares a cada jugador');
   assert.equal(npc.dinares, antes.npc[0], 'Yafar NPC no recibe nada'); assert.equal(npc.noches, antes.npc[1]);
-  const n2 = e.jugadores[a].noches; llegada(data, e, a, 'Aleppo'); assert.equal(e.historial.filter((h) => h.id === 'S1').length, 1, 'sale una sola vez');
-  void nb; void n2;
+  empezarRondaS1(data, e); turnoDe(e, a, 'Damasco'); llegada(data, e, a, 'Aleppo'); assert.equal(e.historial.filter((h) => h.id === 'S1').length, 1, 'sale una sola vez');
+  void nb;
 }
 
 // Tope de 1,001 noches: nadie pasa de la meta, y el libro de saldos anota el valor ya topado
@@ -1427,6 +1433,7 @@ for (let k = 0; k < 6; k++) {
     assert.ok(g.act(y, { t: 'comprar', ref: 'burro' }).ok, 'Yafar jugador sí compra burro');
     const n0 = Y.noches; e.saladino = null; for (const id of g.ids) e.jugadores[id].visitadas.push('Aleppo', 'Damasco');
     turnoDe(e, a, 'Damasco'); A.visitadas = A.visitadas.filter((c) => c !== 'Aleppo'); A.ciudad = 'Aleppo'; llegada(data, e, a, 'Damasco');
+    { const t0 = e.turno; e.turno = null; empezarRondaS1(data, e); e.turno = t0; }
     assert.ok(e.saladino && Y.noches >= n0 + 50, 'Saladino sí premia a Yafar jugador');
     e.mods.ladrones = true; Y.noches = 200; Y.dinares = 30; Y.ciudad = 'Damasco'; turnoDe(e, y, 'Damasco'); e.turno.movio = false; Y.mano = Y.mano.filter((c) => c.ref !== 'arco');
     finTurno(data, e, y);
@@ -5627,4 +5634,25 @@ console.log('Sherezada: los dados antes que la muerte OK');
   e.jugadores[o].sacado = true;
   const v = g.act(r, { t: 'comprar', ref: 'jambiya' }); assert.ok(v.ok, v.error);
   console.log('comprar solo tras sacar a un jugador OK');
+}
+
+// Jorge (27 de noviembre): una sola carta histórica por ronda. Si coinciden el fin de la Cruzada, Yusuf tras Toledo y la Reconquista,
+// sale una por ronda (en ese orden) y la del mazo no sale mientras haya una obligada.
+{
+  const EV = await import('../shared/eventos.js');
+  const g = partida(['1', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e;
+  const hist = () => e.historial.filter((h) => h.deck === 'historico').map((h) => h.id);
+  e.turno = null; e.pend = null; e.colaPend = []; e.dados = null; e.colaDados = [];
+  e.ronda = 17; e.cruzada = { ronda: 17 - EV.CRUZADA_MAX }; e.toledo = { ronda: 16 }; e.mazos.historicos = ['H9', 'H10', 'H13'];
+  let h0 = hist().length; empezarRondaS1(data, e);
+  assert.deepEqual(hist().slice(h0), ['H22'], 'ronda 18: solo el fin de la Cruzada');
+  e.turno = null; e.pend = null; e.colaPend = []; h0 = hist().length; empezarRondaS1(data, e);
+  assert.deepEqual(hist().slice(h0), ['H23'], 'ronda 19: solo Yusuf');
+  e.turno = null; e.pend = null; e.colaPend = []; h0 = hist().length; empezarRondaS1(data, e);
+  assert.deepEqual(hist().slice(h0), ['reconquista'], 'ronda 20: la Reconquista que esperaba');
+  assert.deepEqual(e.mazos.historicos, ['H9', 'H10', 'H13'], 'mientras, no se robó ninguna del mazo');
+  e.turno = null; e.pend = null; e.colaPend = []; h0 = hist().length; empezarRondaS1(data, e);
+  assert.deepEqual(hist().slice(h0), ['H9'], 'ronda 21: la del mazo, una sola');
+  console.log('una carta histórica por ronda OK');
 }

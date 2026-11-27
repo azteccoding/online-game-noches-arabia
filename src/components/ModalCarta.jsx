@@ -97,7 +97,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
 
   // Juego 3D: la carta suena al girar el dorso y, si su tema lo pide (tormenta, mar, acero…), al mostrarse el anverso; nunca antes.
   // Mientras la carta está oculta (anima una pelea o el genio aún no sale) no suena: espera a que se vea.
-  const esperaGenio = modoLectura && carta?.deck === 'ifrit' && s.pend?.tipo === 'ifrit' && !!escenaActual() && !ifritFuera;
+  const esperaGenio = modoLectura && !!carta && s.pend?.tipo === 'ifrit' && !!escenaActual() && !ifritFuera;
   useEffect(() => {
     if (!modoLectura || !carta || esperaGenio || (fase !== 'dorso' && fase !== 'frente')) return undefined;
     const clave = fase === 'dorso' ? 'carta-voltear' : sonidoDeCarta(carta);
@@ -127,7 +127,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   }, [hayCarta]);
   if (!carta) return null;
   if (modoLectura && fase === 'espera') return null;
-  if (modoLectura && carta.deck === 'ifrit' && s.pend?.tipo === 'ifrit' && escenaActual() && !ifritFuera) return null;   // primero sale el genio; luego se presenta su carta
+  if (modoLectura && s.pend?.tipo === 'ifrit' && escenaActual() && !ifritFuera) return null;   // primero sale el genio, sin ninguna carta encima (Jorge, 27 de noviembre); luego su carta
   if (modoLectura && fase === 'dorso') {
     return (
       <div className="modal-fondo" role="dialog" aria-modal="true" aria-label={carta.titulo}>

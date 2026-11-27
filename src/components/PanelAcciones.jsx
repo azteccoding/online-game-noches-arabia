@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { enviar, avisar, useJuego } from '../game/store.js';
+import { enviar, avisar, useJuego, abrirDeseo } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { nombreCorto } from '../game/data.js';
 import Sprite from './Sprite.jsx';
@@ -7,7 +7,8 @@ import Dinares from './Dinares.jsx';
 import { cartaSinCerrar, saldoVisible } from '../game/lectura.js';
 import { contadoresCarrera } from '../game/carrera.js';
 import { textoEquipo } from '../game/equipo.js';
-import { turnoVisible } from '../game/escena3d.js';
+import { turnoVisible, escenaActual } from '../game/escena3d.js';
+import { decisionVisible, estadoDeseo } from '../game/orden.js';
 
 const FASE = { ingreso: 'Ingreso: tira el dado', mov: 'Movimiento y acciones', accion: 'Acción principal' };
 
@@ -41,8 +42,11 @@ export default function PanelAcciones({ s, abrir, panel }) {
     : s.pend ? { texto: `Esperando a ${s.pend.faltan.map((x) => s.jugadores[x]?.nombre || x).join(', ')}: «${s.pend.titulo}»` }
     : s.dados ? { texto: dadosTexto(s, enPantalla) }
     : cc ? { texto: `Primero responde: «${cc.titulo}»`, carta: cc.nro } : null;
-  const intentar = (fn) => () => { if (!bloqueo) return fn(); avisar('⚠ ' + bloqueo.texto); if (bloqueo.carta != null) abrir('carta:' + bloqueo.carta); };
+  const intentar = (fn) => () => { if (!bloqueo) return fn(); avisar('⚠ ' + bloqueo.texto); if (bloqueo.carta != null) abrir('carta:' + bloqueo.carta); if (botonDeseo) abrirDeseo(); };
   const ccPendiente = cc && enPantalla !== cc.nro;
+  // Jorge (27 de noviembre): «Pedir un deseo» sale cuando el genio ya está fuera y su carta se cerró; abre la ventana de los deseos
+  const porLeer = useJuego((x) => x.cartaPorLeer), ifritFuera = useJuego((x) => x.ifritFuera), deseoAbierto = useJuego((x) => x.deseoAbierto);
+  const botonDeseo = estadoDeseo({ pend: s.pend, en3d: !!escenaActual(), ifritFuera, deseoAbierto }) === 'boton' && decisionVisible({ leyendo: enPantalla, porLeer, dados: s.dados, yo: s.yo });
   return (
     <footer className="acciones">
       <div className="acc-info">
@@ -63,6 +67,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>
+      {botonDeseo && <div className="acc-responde"><button className="btn responde" onClick={abrirDeseo} title="El genio te concede un deseo: elige cuál">Pedir un deseo</button></div>}
       {ccPendiente && <div className="acc-responde"><button className="btn responde" onClick={() => abrir('carta:' + cc.nro)} title={`Falta responder «${cc.titulo}»`}>¡Responde! <small>{cc.titulo}</small></button></div>}
       <div className="acc-botones">
         {/* Jorge (19 de noviembre): con 1,001 noches y tras «Seguir jugando», terminas la partida cuando quieras (también fuera de tu turno) */}

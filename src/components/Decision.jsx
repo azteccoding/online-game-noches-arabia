@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
-import { decisionVisible } from '../game/orden.js';
+import { decisionVisible, estadoDeseo } from '../game/orden.js';
+import { escenaActual } from '../game/escena3d.js';
 
 // Decisión pendiente (pend del motor): defensa en una pelea, trato, elegir objetos, contratos, etc. Solo la ve quien debe decidir;
 // los demás ven un aviso «esperando a…». Si se agota el tiempo el servidor decide por la opción por defecto.
@@ -21,10 +22,14 @@ export default function Decision({ s }) {
   const resta = useRestante(s);
   const leyendo = useJuego((x) => x.cartaEnPantalla);
   const porLeer = useJuego((x) => x.cartaPorLeer);
+  const ifritFuera = useJuego((x) => x.ifritFuera);
+  const deseoAbierto = useJuego((x) => x.deseoAbierto);
   const [sel, setSel] = useState([]);
   const [num, setNum] = useState(0);
   useEffect(() => { setSel([]); setNum(p?.min ?? 0); }, [p?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (!p) return null;
+  const genio = estadoDeseo({ pend: p, en3d: !!escenaActual(), ifritFuera, deseoAbierto });
+  if (genio === 'genio' || genio === 'boton') return null;   // el genio sale con la pantalla despejada; la ventana, solo con «Pedir un deseo»
   const nombres = (ids) => ids.map((x) => s.jugadores[x]?.nombre || x).join(', ');
   if (!p.mia || p.respondiste) {
     return <div className="espera-pend" role="status">{p.respondiste ? 'Respuesta enviada. ' : ''}Esperando a {nombres(p.faltan)} · {p.titulo}{p.subasta ? ` · puja más alta: ${p.subasta.mejor || 'ninguna'} · quedan ${resta} s` : ''}</div>;
@@ -38,7 +43,7 @@ export default function Decision({ s }) {
   const pct = Math.min(100, Math.max(0, (resta / (p.limiteMs / 1000)) * 100));
   const nMin = p.min ?? 0, nMax = p.max ?? 6;
   return (
-    <div className="modal-fondo decision-fondo" role="dialog" aria-modal="true" aria-label={p.titulo}>
+    <div className={`modal-fondo decision-fondo${genio === 'ventana' ? ' decision-genio' : ''}`} role="dialog" aria-modal="true" aria-label={p.titulo}>
       <div className="panel decision">
         <h2>{p.titulo}</h2>
         {p.texto && <p className="decision-texto">{p.texto}</p>}

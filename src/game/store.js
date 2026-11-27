@@ -16,7 +16,10 @@ export function marcarCartaEnPantalla(nro) { if (S.cartaEnPantalla !== nro) pone
 // Primera carta de la cola de lectura, se esté mostrando o no (Jorge, 19 de noviembre): ningún dado ni decisión posterior sale antes que ella.
 export function marcarCartaPorLeer(nro) { if (S.cartaPorLeer !== nro) poner({ cartaPorLeer: nro }); }
 // Juego 3D: la carta del Ifrit se presenta cuando el genio ya salió de la lámpara (Tablero3D lo marca).
-export function marcarIfrit(fuera) { if (!!S.ifritFuera !== !!fuera) poner({ ifritFuera: !!fuera }); }
+export function marcarIfrit(fuera) { if (!!S.ifritFuera !== !!fuera) poner({ ifritFuera: !!fuera, deseoAbierto: false }); }
+// Jorge (27 de noviembre): la ventana de los deseos del genio solo se abre al tocar «Pedir un deseo» (PanelAcciones); sigue abierta
+// para las preguntas que vengan después del deseo mientras el genio siga fuera.
+export function abrirDeseo() { if (!S.deseoAbierto) poner({ deseoAbierto: true }); }
 // Jorge (21 de noviembre): todas las alertas duran 5 segundos (y se cierran antes al tocarlas o deslizarlas: components/Alerta.jsx).
 // Jorge (23 de noviembre): ahora 3 segundos.
 const DURA_MS = 3000;

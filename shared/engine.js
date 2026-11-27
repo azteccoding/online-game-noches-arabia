@@ -300,20 +300,25 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
   }
   const conHist = act.length <= 3 || e.ronda % 2 === 0;                                                   // R 6.1 (los NPC cuentan como jugadores)
   let hId = null;
+  // Jorge (27 de noviembre): sale una sola carta histórica por ronda. Las obligadas van primero (fin de la Cruzada, Yusuf tras Toledo,
+  // Reconquista), luego «Te presentan ante Saladino» (S1, ya es carta histórica) y, si no salió ninguna, la del mazo. La que no cabe
+  // espera a la ronda siguiente: sus condiciones siguen cumplidas.
+  let hayHist = false;
   // La Casa de la Sabiduría (H8, Jorge, 19 de noviembre): dura 3 rondas (la de su aparición y las dos siguientes), aunque salgan otros eventos.
   if (e.cruzada && !e.cruzada.fin && e.ronda >= e.cruzada.ronda + EVE.CRUZADA_MAX) {   // «La reconquista de Saladino» sale a fuerzas (Jorge, 19 de noviembre)
     publicarCarta(e, cartaDatos(data, 'historico', 'H22'), null); e.mazos.descarte.historicos.push('H22');
-    EVE.saladinoLevante(data, e);
+    EVE.saladinoLevante(data, e); hayHist = true;
   }
-  if (e.toledo && !e.toledo.fin && e.ronda > e.toledo.ronda) {   // «Yusuf ibn Tashfín derrota a los infieles» sale al inicio de la ronda siguiente a Toledo (Jorge, 19 de noviembre)
-    publicarCarta(e, cartaDatos(data, 'historico', 'H23'), null); EVE.yusufAndalucia(data, e);
+  if (!hayHist && e.toledo && !e.toledo.fin && e.ronda > e.toledo.ronda) {   // «Yusuf ibn Tashfín derrota a los infieles» sale al inicio de la ronda siguiente a Toledo (Jorge, 19 de noviembre)
+    publicarCarta(e, cartaDatos(data, 'historico', 'H23'), null); EVE.yusufAndalucia(data, e); hayHist = true;
   }
-  if (e.ronda === RECONQUISTA.ronda && !e.reconquista && !(e.ganadores || []).length) reconquista(data, e);
+  if (!hayHist && e.ronda >= RECONQUISTA.ronda && !e.reconquista && !(e.ganadores || []).length) { reconquista(data, e); hayHist = true; }
+  if (!hayHist && e.saladinoListo && !e.saladino) hayHist = saladino(data, e);
   if (e.sabiduria) {
     if (e.ronda <= e.sabiduria.hasta) { e.mods.sabiduria = true; const q = e.sabiduria.hasta - e.ronda + 1; log(e, `La Casa de la Sabiduría sigue abierta: la biblioteca de Bagdad paga los libros a su valor completo (${q === 1 ? 'última ronda' : `quedan ${q} rondas`}).`, { aviso: true }); }
     else { log(e, 'La Casa de la Sabiduría cierra: la biblioteca de Bagdad vuelve a pagar los libros a la mitad.', { aviso: true }); e.sabiduria = null; }
   }
-  if (conHist) {
+  if (conHist && !hayHist) {
     hId = robar(e, 'historicos');
     // y no puede salir antes de la ronda 3: como E1, vuelve al mazo barajada y sale otra en su lugar
     if (hId === 'H21' && e.cruzada) { e.mazos.descarte.historicos.push(hId); hId = robar(e, 'historicos'); }   // la Cruzada, una sola vez por partida
@@ -500,18 +505,24 @@ export function hazanasFinTurno(data, e) {
     else if (j.extra.hazanaBloq?.[k] && !h.par.includes(j.ciudad) && !j.transito) delete j.extra.hazanaBloq[k];   // un turno entero terminado fuera del par la libera
   }
 }
-// Carta especial S1, «Te presentan ante Saladino» (regla de la casa): una vez por partida, en cuanto Aleppo y Damasco ya fueron
+// Carta S1, «Te presentan ante Saladino» (regla de la casa): una vez por partida, en cuanto Aleppo y Damasco ya fueron
 // visitadas por jugadores humanos (las visitas de Yafar NPC no cuentan; las de Yafar jugador, sí). Se muestra a toda la mesa y cada jugador vivo recibe 10 dinares y 50 noches; Yafar NPC no.
+// Jorge (27 de noviembre): es una carta histórica; al cumplirse la condición queda lista y sale al inicio de la ronda siguiente, como la
+// histórica de esa ronda (empezarRonda), porque solo sale una histórica por ronda.
+function saladinoListo(e) {
+  if (e.saladino || e.saladinoListo) return;
+  if (['Aleppo', 'Damasco'].every((c) => Object.values(e.jugadores).some((x) => !x.npc && x.visitadas.includes(c)))) e.saladinoListo = { ronda: e.ronda };
+}
 function saladino(data, e) {
-  if (e.saladino) return;
-  if (!['Aleppo', 'Damasco'].every((c) => Object.values(e.jugadores).some((x) => !x.npc && x.visitadas.includes(c)))) return;
+  if (e.saladino) return false;
   const s = data.objetos.especiales.find((x) => x.id === 'S1');
-  if (!s) return;
+  if (!s) return false;
   e.saladino = { ronda: e.ronda };
-  publicarCarta(e, { id: 'S1', deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
+  publicarCarta(e, { id: 'S1', deck: 'historico', titulo: s.nombre, sub: 'Evento histórico', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null);
   const quienes = enPartida(e).filter((id) => !e.jugadores[id].npc);   // Jorge (punto 3): Saladino no beneficia a Yafar NPC
   for (const id of quienes) { e.jugadores[id].dinares += 10; e.jugadores[id].noches += 50; }
   log(e, `Te presentan ante Saladino: ${quienes.map((id) => e.jugadores[id].nombre).join(', ')} ${quienes.length === 1 ? 'recibe' : 'reciben'} 10 dinares y 50 noches.`, { aviso: true });
+  return true;
 }
 // Cartas especiales S2 y S3 (Jorge, 7 de noviembre), una vez por partida cada una:
 // S2 «Mansa Musa despertó generoso»: con dos jugadores distintos que ya visitaron el Magreb (Yafar NPC no cuenta). Dura el resto de la ronda
@@ -1118,7 +1129,7 @@ export function llegada(data, e, pid, origen) {
     j.extra.viajeGratisBagdad = true;                                                                       // R 7.2: primer visitante, un viaje gratis a Bagdad
   }
   if (e.evento.actual === 'E4' && nadieAntes) j.extra.e4 = true;
-  if (primera) { saladino(data, e); if (j.ciudad === 'Magreb') mansaMusa(data, e); }
+  if (primera) { saladinoListo(e); if (j.ciudad === 'Magreb') mansaMusa(data, e); }
   if (t && [origen, j.ciudad].sort().join() === 'Andalucía,Magreb') hazana(data, e, pid, 'tariq');                 // cruzar el estrecho, con cualquier medio
   if (!t.llegadas.includes(j.ciudad) && j.ciudad !== j.ciudadPrevia) {                                      // R 8.2: no se ganan al volver a la ciudad que dejaste
     t.llegadas.push(j.ciudad);

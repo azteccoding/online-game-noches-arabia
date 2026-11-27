@@ -18,3 +18,14 @@ assert.equal(cartaEspera({ cola0: 12, dados: null, votoPendiente: true }), true,
   assert.equal(alertaVisible({ leyendo: null, porLeer: null, id: 20 }), true, 'cerrada la carta, sale el desenlace');
   assert.equal(alertaVisible({ leyendo: 25, porLeer: 25, id: 20 }), true, 'una carta posterior no la tapa');
 }
+// El genio en el 3D (Jorge, 27 de noviembre): mientras sale, nada; luego su carta; luego el botón «Pedir un deseo»; la ventana solo al tocarlo
+{
+  const { estadoDeseo } = await import('../src/game/orden.js');
+  const pend = { tipo: 'ifrit', mia: true, respondiste: false };
+  assert.equal(estadoDeseo({ pend, en3d: true, ifritFuera: false, deseoAbierto: false }), 'genio', 'mientras sale el genio, pantalla despejada');
+  assert.equal(estadoDeseo({ pend, en3d: true, ifritFuera: true, deseoAbierto: false }), 'boton', 'ya fuera: el botón, no la ventana');
+  assert.equal(estadoDeseo({ pend, en3d: true, ifritFuera: true, deseoAbierto: true }), 'ventana', 'al tocar el botón, la ventana');
+  assert.equal(estadoDeseo({ pend: { ...pend, mia: false }, en3d: true, ifritFuera: true, deseoAbierto: false }), null, 'los demás ven la espera de siempre');
+  assert.equal(estadoDeseo({ pend, en3d: false, ifritFuera: false, deseoAbierto: false }), null, 'en el 2D, como siempre');
+  assert.equal(estadoDeseo({ pend: { tipo: 'trato', mia: true }, en3d: true, ifritFuera: false, deseoAbierto: false }), null, 'otras decisiones no cambian');
+}
