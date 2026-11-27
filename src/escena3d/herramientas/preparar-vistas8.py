@@ -26,10 +26,11 @@ EJES = {'6': [190, 198, 190, 205, 190, 195, 140, 170],      # Zubayda V5-Z (24 n
         '1': [235, 195, 130, 183, 218, 205, 120, 205],      # Nur al Din: entre la punta del yelmo y el centro de los pies
         '4': [189, 155, 134, 167, 169, 152, 116, 169],      # Jamil (24 nov): entre el centro del turbante y el centro de los pies; el laúd a la espalda queda fuera del eje
         '4t': [198, 147, 102, 167, 214, 252, 268, 252],     # Jamil sentado tocando el laúd: el centro del turbante (el tronco va derecho bajo la cabeza)
-        'B': [185, 155, 140, 170, 171, 160, 120, 190]}      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
+        'B': [185, 155, 140, 170, 171, 160, 120, 190],      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
+        'EP': [221, 191, 174, 213, 221, 194, 130, 213]}     # esclavo peleador abisinio (27 nov): entre el centro del yelmo y el centro de los pies
 # Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': [0.116, 0.506], '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
+MANO = {'6': [0.116, 0.506], '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53], 'EP': [0.078, 0.533]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
 # fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
 RELLENO_ARRIBA = {'1': 0.14}
 # Figuras que no van de pie (Jamil sentado tocando, 24 nov): (alto de la tesela, alto de la figura) en píxeles, a la misma escala
@@ -40,6 +41,10 @@ FRANJA_SOMBRA = {'4t': 0.975}
 # Filas del atlas: las teselas anchas (el sentado, con el laúd atravesado) no caben en una sola fila de 4096 píxeles, que es
 # la textura más grande que aceptan muchos teléfonos. figuras8.js lee «filas» de los datos.
 FILAS = {'4t': 2}
+# Papel que quedó dentro del contorno (esclavo peleador, 27 nov): entre los mechones de la cimera y en los rotos de la malla
+# del rostro se ve el gris del papel, y como son huecos angostos el recorte los deja dentro. En esa fracción de arriba de la
+# figura, lo que es del color del papel, está cerca del contorno y no es una mota suelta se hace transparente.
+PAPEL_DENTRO = {'EP': 0.2}
 # Cenitales pintadas con sombra gris en el suelo: se les quita (la de Yafar no la trae y se queda como está)
 SOMBRA_CENITAL = {'6'}
 # Altura a la que se acuesta la cenital, en fracción del alto de la figura (figuras8.js: 0.97 si no se dice). A media altura
@@ -116,6 +121,14 @@ def main():
         M = M & ~(pie & (sat < 0.2)); M = ndi.binary_opening(M, iterations=1) | (M & ~pie)
         huecos = ndi.binary_fill_holes(M) & ~M; lab, n = ndi.label(huecos)      # cierra los poros sueltos; los huecos de verdad (entre brazo y cuerpo) se quedan
         if n: tam = ndi.sum(huecos, lab, range(1, n + 1)); M = M | np.isin(lab, [q + 1 for q, t in enumerate(tam) if t < 60])
+        if pid in PAPEL_DENTRO:
+            fuera = ~ndi.binary_dilation(M, iterations=3); fuera[:oy] = False; fuera[:, :ox] = False; fuera[:, ox + r.shape[1]:] = False
+            papel = np.median(cf[fuera], axis=0); arriba = np.zeros_like(M); arriba[:oy + int(ALTO * PAPEL_DENTRO[pid])] = True
+            q = M & arriba & (np.sqrt(((cf - papel) ** 2).sum(2)) < 32); lab, n = ndi.label(q)
+            orilla = ndi.binary_dilation(~M, iterations=10)      # solo cerca del contorno: los brillos grises del yelmo y de las cadenas se quedan
+            if n: tam = ndi.sum(q, lab, range(1, n + 1)); toca = ndi.maximum(orilla, lab, range(1, n + 1)); M = M & ~np.isin(lab, [k + 1 for k in range(n) if tam[k] >= 5 and toca[k]])
+            lab, n = ndi.label(M)      # y los hilos de la cimera que al quitar el papel quedaron sueltos
+            if n > 1: tam = ndi.sum(M, lab, range(1, n + 1)); M = np.isin(lab, [k + 1 for k, t in enumerate(tam) if t >= 40])
         if pid in RELLENO_ARRIBA:
             tope = oy + int(ALTO * RELLENO_ARRIBA[pid]); arriba = np.zeros_like(M); arriba[:tope] = True
             M = M | (ndi.binary_fill_holes(M | ~arriba) & arriba)

@@ -18,6 +18,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
   return Object.values(jugadores).filter((j) => j.pj && !j.eliminado && !j.sacado).map((j) => ({
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
+    esclavo: !!e3d?.jugadores?.[j.id]?.esclavo,      // lo acompaña el monito del esclavo peleador (27 de noviembre)
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
     laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado, laudPieza: e3d?.jugadores?.[j.id]?.laud?.pieza || 1,
   }));
@@ -78,7 +79,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       const a = antes[f.id];
       if (!a) { viajeDe(f.id, (e) => e.actualizarJugador(f.id, limpio(f))); continue; }
       const cambios = {};
-      for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
+      for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'esclavo', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
       if (Object.keys(cambios).length) viajeDe(f.id, (e) => e.actualizarJugador(f.id, cambios));
       if (a.ciudad !== f.ciudad) {
         const medio = f.viajeN !== a.viajeN ? f.medio : null;                   // con su animal o su alfombra; si no, a pie (o en dhow por mar)
@@ -135,8 +136,8 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     if (!dadoPelea) { if (!P.viva && !dados) peleaHecha.current = P.n; return; }                  // terminó sin pelear
     if (dados.por !== P.atk && dados.por !== P.def) return;
     peleaHecha.current = P.n;
-    const arma = (id) => e3d.jugadores?.[id]?.armaPelea || '';
-    enCola(async (e) => { await quietos(P.atk, P.def); return e.formarPelea(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def) }); });
+    const arma = (id) => e3d.jugadores?.[id]?.armaPelea || '', esclavo = (id) => e3d.jugadores?.[id]?.esclavoArma || '';      // el esclavo que pelea por su amo se planta junto a él
+    enCola(async (e) => { await quietos(P.atk, P.def); return e.formarPelea(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def), esclavoAtacante: esclavo(P.atk), esclavoDefensor: esclavo(P.def) }); });
   }, [lista, P?.n, P?.viva, dadoPelea, dados?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (lista) escenaActual()?.ponerFichaPropia?.(miId); }, [lista, miId]);   // solo tu monito gira
 

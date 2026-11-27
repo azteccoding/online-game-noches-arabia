@@ -303,7 +303,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     ponerJugadores(lista) { const p = fichas.ponerTodos(lista).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     actualizarJugador(id, cambios) { ficha(id); const p = Promise.resolve(fichas.poner({ ...cambios, id })).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     quitarJugador(id) { fichas.quitar(ficha(id)); pedirCuadro(); },
-    jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, turno: f.turno })); },
+    jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, esclavo: !!f.conEsclavo, turno: f.turno })); },
     // Jorge (23 de noviembre): solo tu monito gira, al tocarlo o con el acercamiento máximo. id: tu jugador (null = nadie).
     ponerFichaPropia(id) { estado.propia = id ?? null; },
     seleccionarFicha(id) { for (const f of fichas.fichas) f.elegida = f.id === id; },
@@ -339,7 +339,9 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // Jorge (23 de noviembre): la pelea va en tres tiempos. formarPelea: se plantan uno frente al otro y esperan (ahí se tiran los dados
     // y, si hay arcos, dispararFlecha sale desde la formación); pelear: el choque de armas, y vuelven a su sitio; deshacerPelea: vuelven
     // sin pelear. Sin formación previa, pelear y dispararFlecha hacen todo de corrido, como antes.
-    formarPelea(idAtacante, idDefensor, { armaAtacante, armaDefensor } = {}) {
+    // esclavoAtacante / esclavoDefensor (27 de noviembre): el arma con la que su esclavo peleador pelea por él ('cimitarra',
+    // 'alfanje' o 'jambiya'); el esclavo se planta al frente junto a su amo. Sin eso (o si no lleva esclavo), se queda en su sitio.
+    formarPelea(idAtacante, idDefensor, { armaAtacante, armaDefensor, esclavoAtacante, esclavoDefensor } = {}) {
       return new Promise((ok, mal) => {
         const A = ficha(idAtacante), B = ficha(idDefensor);
         if (pelea.activa) return pelea.formada && pelea.quienes[0] === idAtacante && pelea.quienes[1] === idDefensor ? ok() : mal(new Error('Ya hay una pelea en curso.'));
@@ -348,7 +350,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
           alDia(); const antes = [A.arma, B.arma];
           if (armaAtacante !== undefined) A.arma = armaAtacante || ''; if (armaDefensor !== undefined) B.arma = armaDefensor || '';
           formacion = { A, B, antes };
-          if (!pelea.iniciar(A.indice, B.indice, null, { formar: true })) { A.arma = antes[0]; B.arma = antes[1]; formacion = null; return mal(new Error('No se pudo formar la pelea.')); }
+          if (!pelea.iniciar(A.indice, B.indice, null, { formar: true, esclavos: [esclavoAtacante, esclavoDefensor] })) { A.arma = antes[0]; B.arma = antes[1]; formacion = null; return mal(new Error('No se pudo formar la pelea.')); }
           clearTimeout(relojVuelta); previaDados = null; pedirCuadro(); setTimeout(ok, 950);
         }, mal);
       });
@@ -360,7 +362,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
         pedirCuadro();
       });
     },
-    pelear(idAtacante, idDefensor, { armaAtacante, armaDefensor, disparoArco = false } = {}) {
+    pelear(idAtacante, idDefensor, { armaAtacante, armaDefensor, esclavoAtacante, esclavoDefensor, disparoArco = false } = {}) {
       return new Promise((ok, mal) => {
         const A = ficha(idAtacante), B = ficha(idDefensor);
         if (pelea.formada && formacion && formacion.A === A && formacion.B === B) {      // ya están formados: solo el choque, y a su sitio
@@ -373,7 +375,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
           alDia(); const antes = [A.arma, B.arma];
           if (armaAtacante !== undefined) A.arma = armaAtacante || ''; if (armaDefensor !== undefined) B.arma = armaDefensor || '';
           const fin = () => { A.arma = antes[0]; B.arma = antes[1]; ok(); };
-          const cuerpo = () => { if (!pelea.iniciar(A.indice, B.indice, fin)) { A.arma = antes[0]; B.arma = antes[1]; mal(new Error('No se pudo iniciar la pelea.')); } };
+          const cuerpo = () => { if (!pelea.iniciar(A.indice, B.indice, fin, { esclavos: [esclavoAtacante, esclavoDefensor] })) { A.arma = antes[0]; B.arma = antes[1]; mal(new Error('No se pudo iniciar la pelea.')); } };
           // el arco no es cuerpo a cuerpo: si se pide, el atacante dispara primero y después viene el combate
           if (disparoArco && A.arma !== 'arco') { const arma = A.arma; A.arma = 'arco'; if (!pelea.iniciar(A.indice, B.indice, () => { A.arma = arma; cuerpo(); }, { replica: false })) { A.arma = arma; cuerpo(); } } else cuerpo();
           clearTimeout(relojVuelta); previaDados = null; pedirCuadro();

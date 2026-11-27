@@ -107,6 +107,44 @@ assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 n
     assert.equal(vista3d(data, e).jugadores[nur].armaPelea, '', 'en Bagdad, sin Firmán, se pelea sin armas');
   } else assert.fail('no se pudo armar el duelo de prueba: ' + (r.error || ''));
 }
+// Esclavo peleador (Jorge, 27 de noviembre): quien lleva un esclavo de pelea tiene su monito al lado; los de carga no llevan monito.
+// esclavoArma dice con qué arma pelea por su amo (11.3), o '' si no pelea: es lo que la capa 3D necesita para plantarlo al frente.
+{
+  const g = partida(['1', '4', '7']); const { e, ids } = g; g.asentar();
+  const [nur, jamil, adi] = ids;
+  for (const id of ids) e.jugadores[id].ciudad = 'Damasco';
+  const v0 = vista3d(data, e);
+  for (const id of ids) { assert.equal(v0.jugadores[id].esclavo, false, 'nadie empieza con esclavo'); assert.equal(v0.jugadores[id].esclavoArma, ''); }
+  // de carga: sin monito
+  darItem(e, e.jugadores[jamil], 'esclavoCarga');
+  assert.equal(vista3d(data, e).jugadores[jamil].esclavo, false, 'el esclavo de carga no lleva monito');
+  // de pelea, sin armas: lo acompaña pero no pelea
+  darItem(e, e.jugadores[jamil], 'esclavoPelea');
+  let J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.esclavo, true, 'el esclavo de pelea se ve junto a su amo'); assert.equal(J.esclavoArma, '', 'sin un arma para él, no pelea');
+  assert.equal(vista(data, e, adi).e3d.jugadores[jamil].esclavo, true, 'los demás también lo ven: es público');
+  // su amo no tiene destreza y solo hay un arma: el esclavo pelea por él con esa (11.3, caso 1)
+  darItem(e, e.jugadores[jamil], 'alfanje');
+  J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.armaPelea, 'alfanje'); assert.equal(J.esclavoArma, 'alfanje', 'pelea por su amo con la única arma');
+  // dos esclavos siguen siendo un solo monito (el dato es sí o no)
+  darItem(e, e.jugadores[jamil], 'esclavoPelea');
+  assert.equal(vista3d(data, e).jugadores[jamil].esclavo, true);
+  // Nur al Din tiene destreza con su cimitarra: el esclavo solo pelea si hay un arma de más, y pelea con esa (caso 2)
+  darItem(e, e.jugadores[nur], 'esclavoPelea');
+  let N = vista3d(data, e).jugadores[nur];
+  assert.equal(N.esclavo, true); assert.equal(N.esclavoArma, '', 'con una sola arma, la usa su amo');
+  darItem(e, e.jugadores[nur], 'alfanje');
+  N = vista3d(data, e).jugadores[nur];
+  assert.equal(N.armaPelea, 'cimitarra'); assert.equal(N.esclavoArma, 'alfanje', 'el esclavo toma el arma que sobra');
+  // en Bagdad, sin Firmán, nadie pelea con armas: tampoco el esclavo; pero sigue al lado de su amo
+  e.jugadores[nur].ciudad = 'Bagdad'; if (e.mods) e.mods.armasBagdad = false;
+  N = vista3d(data, e).jugadores[nur];
+  assert.equal(N.esclavo, true); assert.equal(N.esclavoArma, '', 'en Bagdad no hay arma para el esclavo');
+  // lo pierde (se va, lo roban, muere en su lugar, lo deja o lo amarra): la carta sale de su mano y el monito desaparece
+  e.jugadores[nur].mano = e.jugadores[nur].mano.filter((c) => c.ref !== 'esclavoPelea');
+  assert.equal(vista3d(data, e).jugadores[nur].esclavo, false, 'sin la carta, sin monito');
+}
 // Luz por turnos (Jorge, 23 de noviembre): el día dura la ronda entera y se reparte entre los jugadores.
 {
   const { tramoDeTurno, ALBA, OCASO, NOCHE } = await import('../src/escena3d/ronda.js');

@@ -107,7 +107,7 @@ export default function Dados({ s }) {
       const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha || choque ? 16000 : 9000));   // por si la animación no avisara
       enCola(async (e) => { if (!vivo) return; await e.lanzarDados({ grupos: gs });   // si estos dados ya se cerraron mientras esperaban su turno en la cola, no se animan tarde
         if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {});
-        if (choque) { const arma = (id) => s.e3d.jugadores?.[id]?.armaPelea || ''; await Promise.resolve(e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def) })).catch(() => {}); } })
+        if (choque) { const arma = (id) => s.e3d.jugadores?.[id]?.armaPelea || '', esclavo = (id) => s.e3d.jugadores?.[id]?.esclavoArma || ''; await Promise.resolve(e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def), esclavoAtacante: esclavo(P.atk), esclavoDefensor: esclavo(P.def) })).catch(() => {}); } })
         .then(() => { if (vivo) { clearTimeout(reloj); setEn3d(false); } });
       return () => { vivo = false; clearTimeout(reloj); };
     }

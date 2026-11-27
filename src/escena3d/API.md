@@ -36,7 +36,7 @@ los avisos `al…` de abajo.
 
 | Función | Qué hace |
 | --- | --- |
-| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, escudo, transporte, turno }` (`escudo: true` le pone al brazo el escudo de cuero pintado). Devuelve una promesa (figuras cargadas). |
+| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, escudo, transporte, esclavo, turno }` (`escudo: true` le pone al brazo el escudo de cuero pintado; `esclavo: true` le pone al lado el monito del esclavo peleador). Devuelve una promesa (figuras cargadas). |
 | `actualizarJugador(id, cambios)` | Cambia campos de un jugador. Con `ciudad` lo coloca ahí sin animación. |
 | `quitarJugador(id)` | Quita la ficha. |
 | `jugadores()` | Estado actual de cada ficha. |
@@ -44,6 +44,11 @@ los avisos `al…` de abajo.
 
 `arma`: `'cimitarra'`, `'jambiya'`, `'alfanje'`, `'arco'` o `''`. `transporte`: `'burro'`, `'caballo'`, `'camello'`,
 `'caballoMongol'`, `'alfombra'` o `null` (a pie). El animal espera junto a la ficha; la alfombra va guardada.
+
+`esclavo` (27 de noviembre): el esclavo peleador (figura `EP` de `datos/figuras.json`; no es personaje ni jugador) se queda un
+paso detrás de su amo y hacia fuera de la ciudad, y va tras él en cada viaje: a pie, corriendo detrás de su montura, en la
+cubierta del dhow o sentado detrás en la alfombra. Aparece y desaparece creciendo en su sitio; si el cambio llega con el amo de
+viaje, se aplica al llegar, y durante una pelea no cambia. No se puede tocar ni gira.
 
 ## Viajes
 
@@ -88,7 +93,7 @@ son los mismos en los dos casos. En el banco de pruebas, `#bandeja` en la direcc
 
 | Función | Qué hace |
 | --- | --- |
-| `pelear(idAtacante, idDefensor, { armaAtacante, armaDefensor, disparoArco })` | Choque según el arma de cada uno (sin arma: puños). `disparoArco: true` añade antes un disparo del atacante. Unos 5 s. |
+| `pelear(idAtacante, idDefensor, { armaAtacante, armaDefensor, esclavoAtacante, esclavoDefensor, disparoArco })` | Choque según el arma de cada uno (sin arma: puños). `disparoArco: true` añade antes un disparo del atacante. `esclavoAtacante` / `esclavoDefensor`: el arma (`'cimitarra'`, `'alfanje'` o `'jambiya'`) con la que su esclavo peleador pelea por él: se planta al frente junto a su amo y repite sus golpes; sin eso se queda en su sitio. `formarPelea` acepta las mismas dos opciones. Unos 5 s. |
 | `dispararFlecha(idTirador, idBlanco, { acierta })` | Solo el disparo. `acierta: true`: la flecha da y el blanco acusa el golpe; `false`: la esquiva o la desvía. Se cumple con `{ acierta }`, en unos 3 s. |
 | `aparecerIfrit(idJugador | ciudad)` | Aparece la lámpara, tiembla y sale el genio. Se cumple con el genio fuera (unos 2,8 s) y ahí se queda. |
 | `esconderIfrit()` | La lámpara absorbe al genio y desaparece (unos 1,8 s). |

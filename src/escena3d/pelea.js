@@ -36,7 +36,9 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
   // replica: el segundo responde · acierta: la flecha del primero da en el blanco (solo animación) · ritmo: velocidad de la secuencia
   // formar: solo se plantan uno frente al otro, en guardia, y esperan (Jorge, 23 de noviembre: la pelea va después de los dados);
   // los golpes llegan con golpear() y la formación se deshace con soltar().
-  function iniciar(iA, iB, alTerminar, { replica = true, acierta = false, ritmo = 1, formar = false } = {}) {
+  // esclavos: [arma, arma] — el arma con la que pelea el esclavo peleador de cada uno ('' o nada: no pelea). Se planta al frente junto
+  // a su amo, un paso hacia el fondo, y repite sus golpes un instante después (27 de noviembre). Solo animación.
+  function iniciar(iA, iB, alTerminar, { replica = true, acierta = false, ritmo = 1, formar = false, esclavos = null } = {}) {
     if (P) return false;
     const A = fichas.fichas[iA], B = fichas.fichas[iB];
     if (!A || !B || A === B || A.viaje || B.viaje || A.ciudad !== B.ciudad) return false;
@@ -49,6 +51,10 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
       puesto: new THREE.Vector3(cx + lado[q] * sep, 0, cz), casa: new THREE.Vector3(), estela: null,
     }));
     for (const F of L) {
+      const tipoE = esHoja(esclavos?.[F.q]) ? esclavos[F.q] : '', E = tipoE ? fichas.esclavoDe(F.f) : null;
+      F.esc = !E ? null : { E, q: F.q, tipo: tipoE, arma: fichas.armaEsclavo(F.f, tipoE), guardia: GUARDIA(tipoE), sinTiro: true, giro0: E.giro, casa: E.nodo.position.clone(),
+        puesto: new THREE.Vector3(F.puesto.x - lado[F.q] * 0.2, 0, F.puesto.z - 0.62) };
+      if (F.esc) { E.enPelea = true; F.esc.arma.grupo.visible = true; F.esc.arma.grupo.scale.setScalar(0.001); }
       if (F.arma) { F.arma.grupo.visible = true; F.arma.grupo.scale.setScalar(0.001); if (esHoja(F.tipo)) F.estela = (F.arma.estela ||= efectos.crearEstela(F.tipo === 'alfanje' ? 0xffe0b0 : 0xf4fbff, 18, F.tipo === 'jambiya' ? 0.13 : 0.2)); }
       if (F.f.accesorio) F.f.accesorio.visible = F.tipo !== 'cimitarra';
       F.f.control = () => {}; F.f.elegida = false;
@@ -117,6 +123,7 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
     const conHoja = esHoja(F.tipo);
     for (const g of P.golpes) {
       const s = g.lado;
+      if (F.sinTiro && g.tipo === 'tiro') continue;      // el esclavo no dispara ni es el blanco de la flecha
       if (g.quien === F.q) {
         const p = (t - g.t0) / g.dur;
         if (g.tipo === 'tiro') {      // el arquero toma distancia de un salto, dispara y vuelve
@@ -230,6 +237,27 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
       if (F.estela && o.estela) { f.nodo.updateMatrixWorld(true); F.estela.muestra(F.arma.grupo.localToWorld(v1.copy(F.arma.base).lerp(F.arma.punta, 0.5)), F.arma.grupo.localToWorld(v2.copy(F.arma.punta)), atraso); }      // solo la mitad de la punta deja estela
     }
   }
+  // El esclavo peleador de un luchador: va de su sitio a su puesto (junto a su amo, hacia el fondo y medio paso adelante) y hace
+  // lo mismo que él con un instante de retraso y menos vuelo. Sin estela ni chispas: los golpes que cuentan son los de su amo.
+  function colocarEsclavo(F, t, s) {
+    const X = F.esc, E = X.E, o = postura(X, t - 0.14);
+    const entra = paso(0.1, T_ENTRA + 0.1, t), sale = P.tSale === Infinity ? 0 : paso(P.tSale, P.tFin, t), enDuelo = entra * (1 - sale), saca = t < P.tSale ? rebote(paso(0.4, 0.8, t)) : 1 - paso(P.tSale, P.tSale + 0.3, t);
+    const x = mix(X.casa.x, X.puesto.x, enDuelo) + F.fx * o.av * 0.8 * enDuelo, z = mix(X.casa.z, X.puesto.z, enDuelo) - F.fx * o.lat * enDuelo;
+    E.nodo.position.set(x, tablero.altura(x, z), z);
+    E.cuerpo.position.y = (o.y * enDuelo + 0.3 * (Math.sin(Math.PI * entra) + Math.sin(Math.PI * sale))) * s;
+    let dg = F.giroDuelo - X.giro0; dg = Math.atan2(Math.sin(dg), Math.cos(dg));
+    E.giro = X.giro0 + dg * enDuelo + o.giro * 0.8 * enDuelo;
+    E.cuerpo.rotation.set(o.cab * enDuelo, E.giro, o.lad * enDuelo, 'YXZ');
+    E.cuerpo.scale.set(mix(1, o.ex, enDuelo) * s, mix(1, o.ey, enDuelo) * s, mix(1, o.ex, enDuelo) * s);
+    const k = Math.min(1, Math.max(0, saca)) * enDuelo;
+    E.brazo.rotation.x = o.bx * k; E.mano.rotation.x = (o.fil - o.bx) * k; E.fig.alzar(Math.min(1, Math.max(0, (-o.bx * k) / 2.4)));
+    X.arma.grupo.scale.setScalar(Math.max(0.001, saca));
+  }
+  function soltarEsclavo(F) {
+    const X = F.esc; if (!X) return; F.esc = null;
+    X.E.enPelea = false; X.arma.grupo.visible = false;
+    if (X.E.fig) { X.E.brazo.rotation.set(0, 0, 0); X.E.mano.rotation.set(0, 0, 0); X.E.fig.alzar(0); }
+  }
 
   function actualizar(dt, s = 1) {
     for (const fl of flechas) moverFlecha(fl, dt);
@@ -239,6 +267,7 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
     // Con pocas imágenes por segundo la hoja recorre mucho entre un cuadro y el siguiente: se toman muestras intermedias para la estela.
     const pasos = Math.max(1, Math.min(6, Math.ceil(dt / 0.011)));
     for (let k = 1; k <= pasos; k++) { const tt = t - dt + (dt * k) / pasos; for (const F of P.L) if (k === pasos || F.estela) colocar(F, tt, s, t - tt); }
+    for (const F of P.L) if (F.esc) { if (F.esc.E.fig && F.f.esclavo === F.esc.E) colocarEsclavo(F, t, s); else soltarEsclavo(F); }
     for (const g of P.golpes) {
       const p = (t - g.t0) / g.dur, At = P.L[g.quien];
       if (!g.silbo && SILBIDO[g.tipo] != null && p >= SILBIDO[g.tipo]) { g.silbo = true; sonido?.tocar('pelea-' + At.tipo, g.fuerza); }
@@ -256,6 +285,7 @@ export function crearPelea({ escena, tablero, fichas, camara, efectos, sonido, m
     const p = P; P = null;
     for (const F of p.L) {
       if (F.propia) cambiarArma(F, '', false);
+      soltarEsclavo(F);
       const f = F.f; f.control = null; f.brazo.rotation.set(0, 0, 0); f.mano.rotation.set(0, 0, 0); f.rebote = 0.7;
       if (F.arma) { F.arma.grupo.visible = false; F.arma.tensar?.(0, false); F.estela?.cortar(); }
       if (f.accesorio) f.accesorio.visible = true;
