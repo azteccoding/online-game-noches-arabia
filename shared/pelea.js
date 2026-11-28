@@ -30,7 +30,7 @@ function avisoBagdadYafar(data, e, P) {
   publicarCarta(e, { id: 'sinArmasBagdad', deck: 'especial', titulo: 'Sin Firmán en Bagdad', sub: 'Pelea', texto: textoBagdadYafar(Y, armasY, ARMAS.some((r) => tieneItem(o, r))), arte: 'es', causa: true }, otro, [otro]);
 }
 function avisoUltimaFlecha(e, pid) { const j = e.jugadores[pid]; if (j && !j.npc && tieneItem(j, 'arco') && !tieneItem(j, 'flechas')) alertaRoja(e, pid, MSJ_ULTIMA_FLECHA); }   // aviso rojo, sin ventana (Jorge, 28 de noviembre)
-const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
+const BONO = { arco: 1, alfanje: 2, cimitarra: 3 };   // Jorge, 28 nov 15:40: alfanje +2, cimitarra +3, jambiya +1
 const bonoArma = (data, ref) => data.config.armas?.[ref]?.bono ?? BONO[ref];
 
 // ---------------------------------------------------------------- perfil de combate (R 11.1 y 11.2)
@@ -579,10 +579,10 @@ function resolverD(data, e) {
 }
 
 // ---------------------------------------------------------------- bonos de la categoría D (regla de la casa, sistema de 2 dados)
-// Cada bando lanza 2 dados con su botón y suma: armas de cuerpo a cuerpo sumadas (alfanje +1, cimitarra +2, jambiya +1; entrenada +1;
+// Cada bando lanza 2 dados con su botón y suma: armas de cuerpo a cuerpo sumadas (alfanje +2, cimitarra +3, jambiya +1; entrenada +1;
 // tope +4), destreza +1, herido −1 y los objetos de combate. El arco no suma en el choque: antes se dispara una flecha (5–6 el rival
 // queda tocado: −1 y pierde su destreza; 3–4 con el arco entrenado, −1; 1–2 falla; un escudo la para).
-export const BONO_MELEE = { alfanje: 1, cimitarra: 2, jambiya: 1 }, TOPE_ARMAS = 4;
+export const BONO_MELEE = { alfanje: 2, cimitarra: 3, jambiya: 1 }, TOPE_ARMAS = 4;
 export const conArco = (data, e, pid, ciudad) => armasUsables(data, e, e.jugadores[pid], ciudad).includes('arco');
 export function bonosCombate(data, e, pid, rol, ciudad, mods = {}, P = null) {
   mods = mods || {};

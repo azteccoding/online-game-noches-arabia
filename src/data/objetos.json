@@ -791,17 +791,17 @@
   },
   {
    "nombre": "Alfanje",
-   "efecto": "+1 punto en cualquier pelea o duelo, al atacar o al defenderte. No se puede usar en Bagdad",
+   "efecto": "+2 puntos en cualquier pelea o duelo, al atacar o al defenderte; sin destreza en él, solo si sale par su dado de destreza. No se puede usar en Bagdad",
    "precio": "25 dinares"
   },
   {
    "nombre": "Cimitarra",
-   "efecto": "+2 puntos en cualquier pelea o duelo, al atacar o al defenderte. No se puede usar en Bagdad",
+   "efecto": "+3 puntos en cualquier pelea o duelo, al atacar o al defenderte; sin destreza en ella, solo si sale par su dado de destreza. No se puede usar en Bagdad",
    "precio": "35 dinares"
   },
   {
    "nombre": "Jambiya",
-   "efecto": "+3 puntos si el dado de sorpresa favorece (par); ninguno si no. Lo tira quien la lleva, ataque o se defienda. En Bagdad solo con Firmán",
+   "efecto": "+1 punto en cualquier pelea o duelo, al atacar o al defenderte; sin destreza en ella, solo si sale par su dado de destreza. En Bagdad solo con Firmán",
    "precio": "15 dinares"
   },
   {
@@ -876,7 +876,7 @@
   },
   {
    "nombre": "Alfanje",
-   "efecto": "Arma: +1 punto a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; no se puede usar en Bagdad. Cuesta 25 dinares.",
+   "efecto": "Arma: +2 puntos a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte (sin destreza en él, solo si sale par su dado de destreza); no se puede usar en Bagdad. Cuesta 25 dinares.",
    "precio": "11.1, 15.1"
   },
   {
@@ -896,12 +896,12 @@
   },
   {
    "nombre": "Cimitarra",
-   "efecto": "Arma: +2 puntos a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte; no se usa en Bagdad; cuesta 35 dinares.",
+   "efecto": "Arma: +3 puntos a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte (sin destreza en ella, solo si sale par su dado de destreza); no se usa en Bagdad; cuesta 35 dinares.",
    "precio": "11.1, 15.1"
   },
   {
    "nombre": "Jambiya",
-   "efecto": "Daga: +3 si el dado de sorpresa (que tira quien la lleva, ataque o se defienda) cae par; en Bagdad solo con Firmán.",
+   "efecto": "Daga: +1 punto a tu puntaje final en cualquier pelea o duelo, al atacar o defenderte (sin destreza en ella, solo si sale par su dado de destreza); en Bagdad solo con Firmán.",
    "precio": "11.1, 15.1"
   }
  ],

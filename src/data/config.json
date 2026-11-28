@@ -92,12 +92,12 @@
  },
  "armas": {
   "cimitarra": {
-   "bono": 2,
+   "bono": 3,
    "extraAtacante": 2,
    "precio": 35
   },
   "alfanje": {
-   "bono": 1,
+   "bono": 2,
    "precio": 25
   },
   "arco": {

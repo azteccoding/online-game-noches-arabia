@@ -176,7 +176,7 @@ function forzar(e, ...valores) {
   assert.ok(!ds.some((d) => /Levantar el escudo|levanta su Escudo/.test(JSON.stringify(d))), 'el escudo ya no tira dado');
   const tj = ds.find((d) => d.por === jamil && /2 dados/.test(d.grupos[0].etq)).resumen.join(' ');
   assert.match(tj, /escudo de .* −1/, 'con destreza también resta solo 1 (Jorge, 28 nov, 10:16)');
-  assert.match(tj, /cimitarra \+2/, 'las armas se suman');
+  assert.match(tj, /cimitarra \+3/, 'las armas se suman');
   ({ g, e, jamil, adi, A } = prep()); A.extra.entrenado = {};
   A.mano.push({ uid: 9012, tipo: 'objeto', ref: 'OB04' });
   const PEL = await import('../shared/pelea.js');
@@ -538,12 +538,12 @@ function avanzarHasta(g, cond, pasos = 400) {
   const e = g.e, [a] = g.ids, j = e.jugadores[a]; j.ciudad = 'Damasco'; j.destreza = false; j.herido = false; j.mano = [];
   darItem(e, j, 'alfanje'); const conAlf = bonosCombate(data, e, a, 'atk', 'Damasco').total;
   j.mano = []; darItem(e, j, 'cimitarra'); const conCim = bonosCombate(data, e, a, 'atk', 'Damasco').total;
-  assert.equal(conAlf, 1); assert.equal(conCim, 2, 'cimitarra +2');
+  assert.equal(conAlf, 2, 'alfanje +2'); assert.equal(conCim, 3, 'cimitarra +3');
   darItem(e, j, 'alfanje'); darItem(e, j, 'jambiya'); assert.equal(bonosCombate(data, e, a, 'atk', 'Damasco').total, 4, 'tope de +4');
-  assert.match(bonosCombate(data, e, a, 'atk', 'Damasco').partes.join(' '), /cimitarra \+2/, 'el desglose lo muestra');
+  assert.match(bonosCombate(data, e, a, 'atk', 'Damasco').partes.join(' '), /cimitarra \+3/, 'el desglose lo muestra');
   j.ciudad = 'El Cairo'; j.dinares = 100; turnoDe(e, g.ids[1], 'El Cairo');   // la cimitarra solo en Andalucía y El Cairo (Jorge, 10 de noviembre)
   const t = tienda(data, e, a); const cim = t.find((x) => x.ref === 'cimitarra');
-  assert.ok(cim && /\+2 al pelear/.test(cim.nombre), 'la tienda dice «Cimitarra · +2 al pelear»');
+  assert.ok(cim && /\+3 al pelear/.test(cim.nombre), 'la tienda dice «Cimitarra · +3 al pelear»');
 }
 
 // R41: las duas del sheij cuentan aunque el Mensaje del sheij no sea el primero de la lista
@@ -851,7 +851,7 @@ for (let k = 0; k < 6; k++) {
   assert.ok(cola.some((d) => d.por === a) && cola.some((d) => d.por === b), 'atacante y defensor lanzan cada uno');
   for (const d of cola) assert.ok(d.grupos.every((gr) => gr.etq.startsWith(e.jugadores[d.por].nombre)), 'cada quien lanza solo sus dados');
   const fin = cola.at(-1).resumen.join(' ');
-  assert.match(fin, /cimitarra \+\d/); assert.match(fin, /alfanje \+1/); assert.match(fin, /total \d+/); assert.match(fin, /ganó por \d+|gana por \d+|heridos|MAL HERIDO/);
+  assert.match(fin, /cimitarra \+\d/); assert.match(fin, /alfanje \+2/); assert.match(fin, /total \d+/); assert.match(fin, /ganó por \d+|gana por \d+|heridos|MAL HERIDO/);
   assert.equal(g.act(b, { t: 'lanzarDados' }).ok, false, 'el defensor no puede lanzar los dados del atacante');
 }
 
@@ -5951,12 +5951,12 @@ console.log('Sherezada: los dados antes que la muerte OK');
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['cimitarra', 'alfanje', 'arco', 'jambiya'].includes(c.ref)); darItem(e, A, 'alfanje');
   A.destreza = false;
-  assert.equal(bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true }).total, 1, 'sin destreza: solo el alfanje');
+  assert.equal(bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true }).total, 2, 'sin destreza: solo el alfanje (+2)');
   A.destreza = true;
   const b = bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true });
-  assert.equal(b.total, 2, 'alfanje +1 y destreza +1'); assert.ok(b.partes.includes('destreza +1'));
+  assert.equal(b.total, 3, 'alfanje +2 y destreza +1'); assert.ok(b.partes.includes('destreza +1'));
   const c = bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true, sinDestreza: true });
-  assert.equal(c.total, 1, 'la flecha le quita la destreza'); assert.ok(c.partes.includes('destreza perdida por la flecha'));
+  assert.equal(c.total, 2, 'la flecha le quita la destreza (queda el alfanje +2)'); assert.ok(c.partes.includes('destreza perdida por la flecha'));
   console.log('destreza en duelos OK');
 }
 // Jorge (28 de noviembre): «en difícil Yafar paga normal»: Yafar NPC en difícil paga el alojamiento normal; en fácil y normal, el doble
