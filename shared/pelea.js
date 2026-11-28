@@ -66,6 +66,25 @@ export function perfil(data, e, pid, ciudad) {
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
   return { pid, armas, destreza, general, cat, esclavos: esc };
 }
+// Una sola arma (Jorge, 28 de noviembre, 15:55): «ya no peleas con todas tus armas, eliges cuál usar y con esa peleas. Las únicas que
+// suman aparte son jambiya y daga de manga». La destreza ya no da punto: con destreza en el arma que usas, esa arma siempre cuenta y
+// peleas en D; sin destreza, en C (su dado de destreza: par cuenta). La jambiya va aparte: +1 si tienes destreza en ella, si te
+// defiendes o si ganaste el dado de ventaja. Solo se elige cuando llevas alfanje y cimitarra; con una de ellas y jambiya, peleas con
+// la otra y la jambiya va aparte; con solo jambiya, peleas con ella.
+export const destrezaEnArma = (j, r) => destrezaCon(j, [r]) || !!j.extra?.entrenado?.[r];
+export const armasCuerpo = (data, e, j, ciudad) => armasUsables(data, e, j, ciudad || j.ciudad).filter((r) => BONO_MELEE[r]);
+const valorArma = (j, r) => BONO_MELEE[r] * (destrezaEnArma(j, r) ? 1 : 0.5);
+export function mejorArma(data, e, j, ciudad) {
+  const xs = armasCuerpo(data, e, j, ciudad), sinJ = xs.filter((r) => r !== 'jambiya');
+  if (!sinJ.length) return xs.length ? 'jambiya' : null;
+  return sinJ.sort((a, b) => valorArma(j, b) - valorArma(j, a) || BONO_MELEE[b] - BONO_MELEE[a])[0];
+}
+export function armaPrincipal(data, e, P, pid) {
+  const j = e.jugadores[pid]; if (!j) return null;
+  const xs = armasCuerpo(data, e, j, P?.ciudad), elegida = P?.armaElegida?.[pid];
+  return elegida && xs.includes(elegida) ? elegida : mejorArma(data, e, j, P?.ciudad);
+}
+const jambiyaAparte = (data, e, j, ciudad, principal) => !!principal && principal !== 'jambiya' && armasCuerpo(data, e, j, ciudad).includes('jambiya');
 // Esclavos de pelea en combate (Jorge, 28 de noviembre, 11.3): «simplemente son como tú, pero ya vienen con destreza en alfanje».
 // Si llevas uno, pelea él en tu lugar con tus armas: con alfanje pelea con destreza (D); sin alfanje, como pelearías tú (C, B o A).
 // Pelea uno solo (los demás ya no suman) y muere siempre que pierde; tú no mueres ni quedas herido, pero pagas lo demás.
@@ -79,7 +98,7 @@ export function esclavosPelea(j, armas) {
 function objetoDeCombate(data, e, pid, rol, { contraNPC = false, duelo = false } = {}) {
   const j = e.jugadores[pid];
   const opciones = [];
-  if (tieneObj(j, 'OB01') && !duelo) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1 (se gasta)', gasta: true });   // no cuenta en duelos (12 de noviembre); se gasta y se esfuma al usarla (19 de noviembre)
+  // La Daga de manga ya no suma puntos (Jorge, 28 nov, 15:55): deja herido al rival en las peleas entre jugadores (usarDaga).
   if (contraNPC && tieneObj(j, 'OB02')) opciones.push({ id: 'OB02', bono: 2, texto: 'Honda de pastor +2', gasta: true });
   if (rol === 'def' && tieneObj(j, 'OB03') && !j.extra.usaPolvo) opciones.push({ id: 'OB03', bono: 2, texto: 'Polvo de pimienta (el atacante resta 2)', gasta: true });
   opciones.sort((a, b) => b.bono - a.bono || (a.gasta ? 1 : 0) - (b.gasta ? 1 : 0));
@@ -98,19 +117,12 @@ export function consumir(data, e, pid, id) {
 export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false, conDestreza = false, sinDestreza = false } = {}) {
   const j = e.jugadores[pid];
   let total = 0; const partes = [];
-  // Jorge (28 de noviembre): «la destreza aplica también en duelos»: la destreza general (R25, o la jambiya de Zein y Ruyán) suma +1,
-  // como en robos y ataques a muerte; una flecha de 5 o 6 se la quita en esa pelea.
-  if (conDestreza && perf.general) { if (sinDestreza) partes.push('destreza perdida por la flecha'); else { total += 1; partes.push('destreza +1'); } }
-  for (const ref of perf.armas) {
-    if (ref === 'arco') continue;                                            // el arco no suma fijo: dispara una flecha antes de la pelea
-    if (ref === 'jambiya') {
-      const d = dado(e);
-      const ej = j.extra?.entrenado?.jambiya ? 1 : 0;
-      if (par(d)) { total += 3 + ej; partes.push(`jambiya +${3 + ej} (dado de sorpresa ${d}${ej ? ', entrenado' : ''})`); } else { total += ej; partes.push(`jambiya +${ej} (dado de sorpresa ${d}${ej ? ', entrenado' : ''})`); }
-    } else { const b = bonoArma(data, ref) + (j.extra?.entrenado?.[ref] ? 1 : 0); total += b; partes.push(`${ITEM_NOMBRE[ref]} +${b}${j.extra?.entrenado?.[ref] ? ' (entrenado)' : ''}`); }
-    if (ref === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) {
-      const x = data.config.armas?.cimitarra?.extraAtacante ?? 2; total += x; partes.push(`cimitarra al atacar +${x}`);
-    }
+  // Jorge (28 nov, 15:55): una sola arma y la jambiya aparte; la destreza ya no suma (solo hace que el arma cuente siempre).
+  const m = mejorArma(data, e, j);
+  if (m) { total += BONO_MELEE[m]; partes.push(`${ITEM_NOMBRE[m]} +${BONO_MELEE[m]}`); }
+  let jambiyaVent = 0;
+  if (jambiyaAparte(data, e, j, j.ciudad, m)) {
+    if (contraNPC || rol === 'def' || destrezaEnArma(j, 'jambiya')) { total += 1; partes.push('jambiya +1'); } else jambiyaVent = 1;
   }
   if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
@@ -120,7 +132,7 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duel
     if (ob.gasta) consumir(data, e, pid, ob.id);
   }
   if (lineas) lineas.push(`${nombre(e, pid)}: ${partes.length ? partes.join(', ') : 'sin bonos de arma'}.`);
-  return { total, resta, partes };
+  return { total, resta, partes, jambiyaVent };
 }
 const ITEM_NOMBRE = { arco: 'arco', alfanje: 'alfanje', cimitarra: 'cimitarra', jambiya: 'jambiya' };
 
@@ -130,16 +142,18 @@ const ITEM_NOMBRE = { arco: 'arco', alfanje: 'alfanje', cimitarra: 'cimitarra', 
 function luchaD(data, e, A, B, bA, bB, extra = { A: 0, B: 0 }) {
   const vA = dado(e), vB = dado(e), ventA = vA > vB ? 1 : 0, ventB = 1 - ventA;
   const rA = dados(e, 2), rB = dados(e, 2);
-  const tA = suma(rA) + bA.total + ventA + extra.A - bB.resta, tB = suma(rB) + bB.total + ventB + extra.B - bA.resta;
-  return { vA, vB, rA, rB, ventA, ventB, extraA: extra.A, extraB: extra.B, tA, tB, ganaA: tA > tB, empate: tA === tB, margen: Math.abs(tA - tB) };
+  const jamA = bA.jambiyaVent ? ventA : null, jamB = bB.jambiyaVent ? ventB : null;   // jambiya sin destreza del agresor: solo con la ventaja
+  const tA = suma(rA) + bA.total + ventA + (jamA || 0) + extra.A - bB.resta, tB = suma(rB) + bB.total + ventB + (jamB || 0) + extra.B - bA.resta;
+  return { vA, vB, rA, rB, ventA, ventB, jamA, jamB, extraA: extra.A, extraB: extra.B, tA, tB, ganaA: tA > tB, empate: tA === tB, margen: Math.abs(tA - tB) };
 }
 const esNPC = (e, pid) => !!e.jugadores[pid]?.npc;
 // Nombre de quien pelea por un bando: si lleva esclavo de pelea, pelea él (11.3).
 const nPel = (e, P, pid) => nombre(e, pid) + (P?.conEsclavo?.[pid] ? ' (pelea su esclavo)' : '');
 // Desglose de un bando: dados, cada bono por separado, ventaja y total.
-function partesBando(r, b, rival, vent, extra, agresor) {
+function partesBando(r, b, rival, vent, extra, agresor, jam = null) {
   const partes = [`dados ${r.join(' + ')} = ${suma(r)}`, ...b.partes.filter((x) => !/^Polvo/.test(x))];
   if (vent) partes.push(`${agresor ? 'ventaja del agresor' : 'dado de ventaja'} +${vent}`);
+  if (jam != null) partes.push(jam ? 'jambiya +1 (ganó la ventaja)' : 'jambiya +0 (sin destreza en ella, sin ventaja)');
   if (extra) partes.push(`+${extra}`);
   if (rival.resta) partes.push(`polvo de pimienta del rival −${rival.resta}`);
   return partes;
@@ -155,8 +169,8 @@ function mostrarPelea(data, e, { atk, def, bA, bD, rondas, inicio = [], cierre =
     const pre = [...(k === 0 ? inicio : []), ...(x.previa ? [x.previa] : [])];
     mostrarDados(e, { por: atk, npc: esNPC(e, atk), motivo: 'pelea', titulo, grupos: [{ etq: `${nA}: dado de ventaja. Quien saque más suma +1 al final; si empatan, es de quien se defiende`, valores: [x.vA] }], resumen: [...pre, `${nA} saca ${x.vA} en su dado de ventaja.`] });
     mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD}: dado de ventaja (${nA} sacó ${x.vA})`, valores: [x.vB] }], resumen: [x.vA === x.vB ? `${nD} saca ${x.vB}: empatan, y la ventaja (+1) es de quien se defiende, ${nD}.` : `${nD} saca ${x.vB}: la ventaja (+1) es para ${x.ventA ? nA : nD}.`] });
-    mostrarDados(e, { por: atk, npc: esNPC(e, atk), motivo: 'pelea', titulo, grupos: [{ etq: `${nA}: 2 dados, más sus bonos (${listaBonos(bA)})`, valores: x.rA }], resumen: [`${nA}: ${partesBando(x.rA, bA, bD, x.ventA, x.extraA, false).join(' · ')} → total ${x.tA}.`] });
-    const res = [`${nD}: ${partesBando(x.rB, bD, bA, x.ventB, x.extraB, false).join(' · ')} → total ${x.tB}.`];
+    mostrarDados(e, { por: atk, npc: esNPC(e, atk), motivo: 'pelea', titulo, grupos: [{ etq: `${nA}: 2 dados, más sus bonos (${listaBonos(bA)})`, valores: x.rA }], resumen: [`${nA}: ${partesBando(x.rA, bA, bD, x.ventA, x.extraA, false, x.jamA).join(' · ')} → total ${x.tA}.`] });
+    const res = [`${nD}: ${partesBando(x.rB, bD, bA, x.ventB, x.extraB, false, x.jamB).join(' · ')} → total ${x.tB}.`];
     if (final) res.push(...final(x)); else if (x.tA !== x.tB) res.push(`Gana ${x.tA > x.tB ? nA : nD}, ${Math.max(x.tA, x.tB)} a ${Math.min(x.tA, x.tB)}.`); else res.push(`Empate a ${x.tA}: gana quien se defiende, ${nD}.`);
     if (ultimo) res.push(...cierre);
     mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD}: 2 dados, más sus bonos (${listaBonos(bD)}). ${nA} lleva ${x.tA}`, valores: x.rB }], resumen: res });
@@ -306,7 +320,7 @@ function seguirAtaque(data, e) {
   if (d.npc) { elegirDefensa(data, e, { opcion: a.tipo === 'duelo' && yafarNPCRechaza(data, e, P.def, P.atk) ? 'rechazar' : 'luchar' }); return ok(); }
   const op = [{ id: 'luchar', texto: 'Defenderme' }];
   if (a.tipo === 'robo' && tieneObj(d, 'OB23')) op.push({ id: 'amuleto', texto: 'Usar Amuleto de turquesa (cancela el robo)' });
-  if (a.tipo !== 'robo' && tieneObj(d, 'OB25')) op.push({ id: 'cortina', texto: 'Usar Cortina de humo (huyes sin pelear)' });
+  if (tieneObj(d, 'OB25')) op.push({ id: 'cortina', texto: 'Usar Cortina de humo (huyes sin pelear)' });   // también de un robo (Jorge, 28 nov, 15:57)
   if (tieneObj(d, 'OB03')) op.push({ id: 'polvo', texto: 'Defenderme con Polvo de pimienta (el atacante resta 2)' });
   if (a.tipo === 'duelo' && d.pj !== 'B' && !a.noRechazable) {
     const costo = pedirNur ? `${pedirNur.dinares} dinares y ${pedirNur.noches} noches` : `${data.config.duelo.rechazo} dinares`;
@@ -322,11 +336,9 @@ function seguirAtaque(data, e) {
 // herido (si pierde, muere) o el retador tiene más bonos de pelea visibles que él (armas, entrenamiento, destreza, escudo).
 export function fuerzaVisible(data, e, pid, rol) {
   const j = e.jugadores[pid], p = perfil(data, e, pid);
-  let f = p.general ? 1 : 0;   // el entrenado ya suma abajo con su arma
-  for (const r of p.armas) {
-    f += (r === 'jambiya' ? 1.5 : bonoArma(data, r)) + (j.extra?.entrenado?.[r] ? 1 : 0);   // jambiya: +3 con el dado de sorpresa par (media 1.5)
-    if (r === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) f += data.config.armas?.cimitarra?.extraAtacante ?? 2;
-  }
+  const m = mejorArma(data, e, j);   // una sola arma; la jambiya aparte (Jorge, 28 nov, 15:55)
+  let f = m ? valorArma(j, m) : 0;
+  if (jambiyaAparte(data, e, j, j.ciudad, m)) f += rol === 'def' || destrezaEnArma(j, 'jambiya') ? 1 : 0.5;
   if (rol === 'def' && tieneObj(j, 'OB04')) f += 1;   // el escudo le resta 1 al atacante, siempre (Jorge, 28 nov, 10:16)
   return f;
 }
@@ -409,12 +421,55 @@ const QUE_SE_JUEGA = {
   matar: 'quien pierda por 3 o más muere y el otro se queda con todo; por menos, queda mal herido; si empatan, los dos quedan heridos; quien ya estaba herido y pierde o empata, muere',
 };
 export const GOLPE_DE_GRACIA = 3;
-function pasoAyuda(data, e) { return pasoCategoria(data, e); }
-registrar('pelea.ayuda', (data, e) => { if (e.pelea) pasoCategoria(data, e); });   // partidas guardadas a media pregunta de ayuda
+function pasoAyuda(data, e) { return elegirArmas(data, e); }
+registrar('pelea.ayuda', (data, e) => { if (e.pelea) elegirArmas(data, e); });   // partidas guardadas a media pregunta de ayuda
+// Antes de la categoría, quien lleva alfanje y cimitarra elige con cuál pelea (primero el agresor, luego quien se defiende).
+function elegirArmas(data, e) {
+  const P = e.pelea; if (!P) return ok();
+  marcarEsclavos(data, e, P);
+  P.armaElegida ||= {};
+  for (const pid of [P.atk, P.def]) {
+    if (P.armaElegida[pid] || P.conEsclavo?.[pid]) continue;
+    const j = e.jugadores[pid], xs = armasCuerpo(data, e, j, P.ciudad).filter((r) => r !== 'jambiya');
+    if (xs.length < 2) continue;
+    const mejor = mejorArma(data, e, j, P.ciudad);
+    if (esNPC(e, pid)) { P.armaElegida[pid] = mejor; continue; }
+    const jam = armasCuerpo(data, e, j, P.ciudad).includes('jambiya');
+    pedir(e, { tipo: 'arma', para: [pid], titulo: '¿Con qué arma peleas?', texto: `Ya no se pelea con todas las armas: eliges una y con ella peleas.${jam ? ' Tu jambiya suma aparte (+1 si tienes destreza en ella, si te defiendes o si ganas el dado de ventaja).' : ''} Con destreza en el arma, siempre cuenta; sin destreza, tiras su dado de destreza y solo cuenta con par.`,
+      opciones: xs.map((r) => ({ id: r, texto: `${ITEMS[r]?.nombre || r} +${BONO_MELEE[r]}${destrezaEnArma(j, r) ? ' (tienes destreza: siempre cuenta)' : ' (sin destreza: cuenta con par)'}` })), porDefecto: mejor, cont: { fn: 'pelea.arma', args: { pid } } });
+    return ok();
+  }
+  return pasoCategoria(data, e);
+}
+registrar('pelea.arma', (data, e, args, resp) => { const P = e.pelea; if (!P) return; (P.armaElegida ||= {})[args.pid] = resp.opcion; elegirArmas(data, e); });
+// Daga de manga (Jorge, 28 nov, 15:55): «sirve al que la tenga, defensor o atacante, para dejarlo herido, siempre. Si ya estaba herido
+// muere. Se gasta al usarla y se usa a la primera pelea automáticamente». Se usa en robos y ataques a muerte entre jugadores que pelean
+// en persona; en los duelos no cuenta (15:58).
+function usarDaga(data, e, P) {
+  P.daga = [];
+  if (P.tipo === 'duelo') return;   // en los duelos no cuenta (Jorge, 28 nov, 15:58)
+  P.heridoAntes = Object.fromEntries([P.atk, P.def].map((x) => [x, !!e.jugadores[x]?.herido]));
+  for (const [x, y] of [[P.atk, P.def], [P.def, P.atk]]) {
+    if (P.conEsclavo?.[x] || P.conEsclavo?.[y] || !tieneObj(e.jugadores[x], 'OB01')) continue;
+    consumir(data, e, x, 'OB01'); P.daga.push(x);
+    P.inicio.push(`${nombre(e, x)} saca su Daga de manga: al terminar la pelea, ${nombre(e, y)} quedará herido${P.heridoAntes[y] ? ' y, como ya está herido, morirá' : ' (si ya estuviera herido, moriría)'}. La daga se esfuma.`);
+  }
+}
+function heridaDeDaga(data, e, P) {
+  for (const x of P?.daga || []) {
+    const y = x === P.atk ? P.def : P.atk, Y = e.jugadores[y];
+    if (!Y || Y.eliminado) continue;
+    if (P.heridoAntes?.[y]) { log(e, `La Daga de manga de ${nombre(e, x)} alcanza a ${Y.nombre}, que ya estaba herido: muere.`, { pid: y, aviso: true }); eliminar(data, e, y, { por: x, causa: 'la Daga de manga de ' + nombre(e, x) }); }
+    else { herir(e, y); log(e, `La Daga de manga de ${nombre(e, x)} deja herido a ${Y.nombre}.`, { pid: y, aviso: true }); }
+  }
+}
 // El esclavo de pelea (11.3) pelea como tú, pero ya viene con destreza en alfanje: solo puede llevar alfanje (el de su amo) o nada.
 // Con alfanje pelea con armas y destreza (D); sin él, con destreza y sin armas (B). Pelea uno solo, por más esclavos que tengas.
 export function perfilPelea(data, e, P, pid) {
-  if (!P?.conEsclavo?.[pid]) return perfil(data, e, pid, P?.ciudad);
+  if (!P?.conEsclavo?.[pid]) {
+    const pf = perfil(data, e, pid, P?.ciudad), m = armaPrincipal(data, e, P, pid);
+    return { ...pf, arma: m, cat: m ? (destrezaEnArma(e.jugadores[pid], m) ? 'D' : 'C') : pf.cat };
+  }
   const alf = armasUsables(data, e, e.jugadores[pid], P.ciudad).includes('alfanje');
   return { pid, armas: alf ? ['alfanje'] : [], destreza: true, general: false, cat: alf ? 'D' : 'B', esclavo: true };
 }
@@ -432,9 +487,8 @@ export function penaEscudo(data, e, P) {
 // y Ruyán) cubre todas las armas; un arma entrenada tiene destreza; el esclavo de pelea ya trae destreza en alfanje.
 export function armasSinDestreza(data, e, P, pid) {
   if (!pid || P?.conEsclavo?.[pid]) return [];
-  const j = e.jugadores[pid], todas = armasUsables(data, e, j, P?.ciudad || j.ciudad);
-  if (destrezaCon(j, todas)) return [];
-  return todas.filter((r) => BONO_MELEE[r] && !j.extra?.entrenado?.[r]);
+  const j = e.jugadores[pid], m = armaPrincipal(data, e, P, pid);   // solo el arma con la que pelea (Jorge, 28 nov, 15:55)
+  return m && !destrezaEnArma(j, m) ? [m] : [];
 }
 const NOMBRE_ARMA = { alfanje: 'alfanje', cimitarra: 'cimitarra', jambiya: 'jambiya' };
 const listaY = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
@@ -470,6 +524,7 @@ function pasoCategoria(data, e) {
   const pd = perfilPelea(data, e, P, def);
   let cat = pd.cat;
   P.inicio = [`La categoría de la pelea la pone quien se defiende; ${QUE_SE_JUEGA[P.tipo]}.`];
+  usarDaga(data, e, P);
   const mdP = (o) => mostrarDados(e, { titulo: P.titulo, ...o });
   if (cat === 'C') {                                                          // con armas sin destreza: un dado por arma (par cuenta); si ninguna cuenta, A
     const cuentan = dadosPorArma(data, e, P, def, mdP, P.inicio, true) || [];
@@ -487,16 +542,22 @@ function pasoCategoria(data, e) {
   }
   P.cat = cat;
   if (cat === 'A') {
+    const dos = numerosEscudo(e, P, def);
     if (!esNPC(e, def)) {
-      pedir(e, { tipo: 'numeros', para: [def], titulo: 'Di tu número', texto: 'No tienes armas ni destreza: tomas piedras, vidrios y palos del suelo. Elige un número del 1 al 6 y luego tira un dado: si sale tu número, ganas la pelea; si no, la gana tu rival. En un ataque a muerte, el golpe de gracia es que el dado caiga a 3 o más de tu número.',
-        modo: 'multi', min: 1, max: 1, opciones: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), texto: String(n) })), porDefecto: ['3'], cont: { fn: 'pelea.numeros', args: {} } });
+      pedir(e, { tipo: 'numeros', para: [def], titulo: dos > 1 ? 'Di tus dos números' : 'Di tu número', texto: `No tienes armas ni destreza: tomas piedras, vidrios y palos del suelo. ${dos > 1 ? 'Como llevas tu escudo de cuero, eliges DOS números del 1 al 6' : 'Elige un número del 1 al 6'} y luego tira un dado: si sale ${dos > 1 ? 'uno de tus números' : 'tu número'}, ganas la pelea; si no, la gana tu rival. En un ataque a muerte, el golpe de gracia es que el dado caiga a 3 o más de ${dos > 1 ? 'tu número más cercano' : 'tu número'}.`,
+        modo: 'multi', min: dos, max: dos, opciones: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), texto: String(n) })), porDefecto: dos > 1 ? ['3', '4'] : ['3'], cont: { fn: 'pelea.numeros', args: {} } });
       return ok();
     }
-    return resolverA(data, e, 3);   // Yafar NPC dice siempre el 3
+    return resolverA(data, e, dos > 1 ? [3, 4] : [3]);   // Yafar NPC dice siempre el 3 (y el 4 con escudo)
   }
   return cat === 'B' ? resolverB(data, e) : resolverD(data, e);
 }
-registrar('pelea.numeros', (data, e, args, resp) => resolverA(data, e, Number((resp.valores || [])[0]) || 3));
+registrar('pelea.numeros', (data, e, args, resp) => resolverA(data, e, numerosDe(resp)));
+// Escudo de cuero en la pelea sin armas ni destreza (A): quien se defiende con él elige dos números (Jorge, 28 nov, 15:57).
+// Si por él pelea su esclavo, el esclavo lleva el escudo. En los demás casos el escudo le resta 1 al atacante.
+const numerosEscudo = (e, P, def) => (tieneObj(e.jugadores[def], 'OB04') ? 2 : 1);
+const numerosDe = (resp) => { const xs = [...new Set((resp.valores || []).map(Number).filter((n) => n >= 1 && n <= 6))]; return xs.length ? xs.slice(0, 2) : [3]; };
+const listaNum = (ns) => (ns.length > 1 ? `el ${ns[0]} y el ${ns[1]}` : `el ${ns[0]}`);
 
 // Quién gana con dos totales. Empate: gana quien se defiende, salvo en el duelo (nadie gana) y en el ataque a muerte (los dos heridos).
 function resultado(P, tA, tB) {
@@ -514,14 +575,15 @@ function textoGana(e, P, r, tA, tB) {
 
 // Categoría A (sin armas ni destreza): quien se defiende dice un número y tira un dado; si sale, gana la pelea; si no, gana el agresor.
 // En un ataque a muerte, quien pierda muere (también el agresor), sin golpe de gracia.
-function resolverA(data, e, numero) {
+function resolverA(data, e, numeros) {
   const P = e.pelea; if (!P) return ok();
   const atk = P.atk, def = P.def, nA = nPel(e, P, atk), nD = nPel(e, P, def);
-  // Golpe de gracia en A (Jorge, 09:20: «sí aplica también a esas víctimas»): la diferencia entre el dado y el número dicho; si cae el número, 0.
-  const x = dado(e), ganaDef = x === numero, r = { ganaAtk: !ganaDef, empate: false, margen: Math.abs(x - numero) };
+  const ns = Array.isArray(numeros) ? numeros : [Number(numeros) || 3], numero = listaNum(ns);
+  // Golpe de gracia en A (Jorge, 09:20: «sí aplica también a esas víctimas»): la diferencia entre el dado y el número dicho (el más cercano); si cae, 0.
+  const x = dado(e), ganaDef = ns.includes(x), r = { ganaAtk: !ganaDef, empate: false, margen: Math.min(...ns.map((n) => Math.abs(x - n))) };
   const pre = [...(P.inicio || [])];
   if (P.mods?.[atk]?.flecha || P.mods?.[def]?.flecha) pre.push('En una pelea sin armas ni destreza (A) la flecha ya no cambia nada: solo cuenta el número.');
-  mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'pelea', titulo: P.titulo, grupos: [{ etq: `${nD} no tiene armas ni destreza: toma piedras y palos, dijo el ${numero} y tira un dado. Si sale el ${numero}, gana la pelea; si no, gana ${nA}`, valores: [x] }],
+  mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'pelea', titulo: P.titulo, grupos: [{ etq: `${nD} no tiene armas ni destreza: toma piedras y palos, dijo ${numero}${ns.length > 1 ? ' (con su escudo de cuero)' : ''} y tira un dado. Si sale ${numero}, gana la pelea; si no, gana ${nA}`, valores: [x] }],
     resumen: [...pre, `${nD} dijo ${numero} y sale ${x}: ${ganaDef ? `¡cae su número! Gana ${nD}.` : `no cae su número. Gana ${nA}.`}`, textoConsecuencia(e, P, r)] });
   return aplicar(data, e, r);
 }
@@ -559,14 +621,14 @@ function resolverB(data, e) {
 }
 
 // Categoría D (armas y destreza, o C con par): dos tiradas. 1) Cada uno tira un dado de ventaja: quien saque más suma +1; si empatan,
-// la ventaja es de quien se defiende. 2) Cada uno tira 2 dados y suma sus armas (todas, hasta +4), su destreza (+1) y demás bonos,
+// la ventaja es de quien se defiende. 2) Cada uno tira 2 dados y suma el arma con la que pelea (si cuenta), la jambiya aparte y demás bonos,
 // menos la flecha y el escudo del rival.
 function resolverD(data, e) {
   const P = e.pelea; if (!P) return ok();
   const atk = P.atk, def = P.def, titulo = P.titulo;
   const bA = bonosCombate(data, e, atk, 'atk', P.ciudad, P.mods?.[atk], P), bD = bonosCombate(data, e, def, 'def', P.ciudad, P.mods?.[def], P);
   const pe = penaEscudo(data, e, P); if (pe) { bA.partes.push(`escudo de ${nPel(e, P, def)} −${pe}`); bA.total -= pe; }
-  const inicio = [...(P.inicio || []), 'Pelea con armas y destreza (D): primero cada uno tira un dado de ventaja (quien saque más suma +1; si empatan, es de quien se defiende); luego cada uno tira 2 dados y suma sus armas (las que cuentan, hasta +4), su destreza (+1) y demás bonos.'];
+  const inicio = [...(P.inicio || []), 'Pelea con armas y destreza (D): primero cada uno tira un dado de ventaja (quien saque más suma +1; si empatan, es de quien se defiende); luego cada uno tira 2 dados y suma el arma con la que pelea (si cuenta), la jambiya aparte y demás bonos.'];
   if (P.polvo) { bD.resta = 2; const dj = e.jugadores[def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nombre(e, def)} usa Polvo de pimienta: ${nombre(e, atk)} resta 2.`); }
   const tirar = () => { const x = luchaD(data, e, atk, def, bA, bD); x.r = resultado(P, x.tA, x.tB); return x; };
   const rondas = [tirar()];
@@ -579,8 +641,8 @@ function resolverD(data, e) {
 }
 
 // ---------------------------------------------------------------- bonos de la categoría D (regla de la casa, sistema de 2 dados)
-// Cada bando lanza 2 dados con su botón y suma: armas de cuerpo a cuerpo sumadas (alfanje +2, cimitarra +3, jambiya +1; entrenada +1;
-// tope +4), destreza +1, herido −1 y los objetos de combate. El arco no suma en el choque: antes se dispara una flecha (5–6 el rival
+// Cada bando lanza 2 dados con su botón y suma: el arma con la que pelea (alfanje +2, cimitarra +3 o jambiya +1; sin destreza en ella,
+// solo si sacó par en su dado de destreza), la jambiya aparte (+1), herido −1 y los demás bonos (Jorge, 28 nov, 15:55). El arco no suma en el choque: antes se dispara una flecha (5–6 el rival
 // queda tocado: −1 y pierde su destreza; 3–4 con el arco entrenado, −1; 1–2 falla; un escudo la para).
 export const BONO_MELEE = { alfanje: 2, cimitarra: 3, jambiya: 1 }, TOPE_ARMAS = 4;
 export const conArco = (data, e, pid, ciudad) => armasUsables(data, e, e.jugadores[pid], ciudad).includes('arco');
@@ -593,23 +655,22 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}, P = null) {
     if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
     return { total, resta: 0, partes };
   }
-  const fuera = P?.armasFuera?.[pid] || [];                                    // armas que sacaron impar en su dado de destreza
-  const armas = armasUsables(data, e, j, ciudad).filter((r) => BONO_MELEE[r] && !fuera.includes(r));
-  const partes = []; let total = 0, resta = 0;
-  if (fuera.length) partes.push(`sin ${listaY(fuera)} (impar en su dado de destreza)`);
-  const ent = (r) => (j.extra?.entrenado?.[r] ? 1 : 0);                        // entrenado con esa arma: +1 (regla de la casa)
-  const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r] + ent(r), 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
-  if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r] + ent(r)}${ent(r) ? ' (entrenado)' : ''}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
-  const dz = destrezaCon(j, armasUsables(data, e, j, ciudad));   // Zein y Ruyán: solo con la jambiya
-  if (dz && !mods.sinDestreza) { partes.push('destreza +1'); total += 1; }
-  if (dz && mods.sinDestreza) partes.push('destreza perdida por la flecha');
+  // Jorge (28 nov, 15:55): peleas con una sola arma; la jambiya suma aparte; la destreza ya no da punto (solo hace que el arma cuente).
+  const fuera = P?.armasFuera?.[pid] || [];                                    // el arma que sacó impar en su dado de destreza
+  const m = P ? armaPrincipal(data, e, P, pid) : mejorArma(data, e, j, ciudad);
+  const partes = []; let total = 0, resta = 0, jambiyaVent = 0;
+  if (m && fuera.includes(m)) partes.push(`sin ${m} (impar en su dado de destreza)`);
+  else if (m) { partes.push(`${m} +${BONO_MELEE[m]}${destrezaEnArma(j, m) ? ' (con destreza)' : ''}`); total += BONO_MELEE[m]; }
+  if (jambiyaAparte(data, e, j, ciudad, m)) {
+    if (destrezaEnArma(j, 'jambiya')) { partes.push('jambiya +1 (con destreza)'); total += 1; }
+    else if (rol === 'def') { partes.push('jambiya +1 (se defiende)'); total += 1; }
+    else jambiyaVent = 1;                                                      // sin destreza y atacando: solo si gana el dado de ventaja
+  }
   if (j.herido) { partes.push('herido −1'); total -= 1; }
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
   if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
-  // Daga de manga: se gasta y se esfuma al usarla en cualquier pelea (Jorge, 27 de noviembre, decisión D03; antes no se gastaba en robos ni ataques a muerte).
-  if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1 (se gasta)'); total += 1; consumir(data, e, pid, 'OB01'); }
-  return { total, resta, partes };
+  return { total, resta, partes, jambiyaVent };
 }
 export const textoFlecha = (en) => `con ${en ? '4, 5 o 6 (tienes destreza en el arco)' : '5 o 6'} le da y pelea con −${ARCO_MENOS}; si no, falla; si lleva escudo, el escudo la para`;
 // El escudo para las flechas: aguanta 3; al tercero se destruye al terminar la pelea y vuelve al Bazar (Jorge, 28 de noviembre).
@@ -783,6 +844,7 @@ function terminarPelea(data, e, res) {
   const P = e.pelea;
   e.pelea = null;
   for (const x of P?.escudosRotos || []) romperEscudo(data, e, x.pid, x.uid);   // el tercer flechazo rompe el escudo
+  if (!res.cancelada) heridaDeDaga(data, e, P);
   if (P?.foto) {                                                               // lo que cambió la pelea, por si hay que deshacerla
     const L = (e.deshacer ||= {}); L[P.id] = { antes: P.foto, despues: fotoPelea(e, P) };
     for (const k of Object.keys(L).map(Number).sort((a, b) => a - b).slice(0, -4)) delete L[k];   // solo las últimas
@@ -854,7 +916,7 @@ export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
 // La línea del registro con peleaNPC le dice a la capa 3D quién pelea con quién, y sus dados llevan el mismo número (peleaNPC).
 export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
-  const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
+  const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });   // su mejor arma y la jambiya aparte
   const esc = tieneObj(e.jugadores[pid], 'OB04') ? 1 : 0;   // escudo de cuero: al rival −1, siempre (Jorge, 28 nov, 10:16)
   const n0 = nombre(e, pid);
   if (npc.figura) log(e, `${npc.etq} se planta frente a ${n0} para pelear.`, { pid, peleaNPC: npc.figura, etq: npc.etq, ...(npc.arma ? { armaNPC: npc.arma } : {}), ...(npc.desde ? { desde: npc.desde } : {}) });
@@ -871,7 +933,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
     let bn = (npc.bono || 0) - (arco?.acierta ? ARCO_MENOS : 0) - esc, jd = null;
     if (npc.jambiya) { jd = dado(e); if (par(jd)) bn += 3; }
-    const dest = p.general ? 1 : 0;   // destreza general; el +1 del arma entrenada ya viene en los bonos
+    const dest = 0;   // la destreza ya no da punto (Jorge, 28 nov, 15:55)
     const tj = suma(r) + b.total + dest, tn = suma(n) + bn - b.resta;
     marca(mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] }));
     primero = false;
@@ -926,23 +988,25 @@ export function peleaRayhan(data, e, { por = null, victima, cont, nLog = null })
     md({ por: victima, npc: npcV, motivo: 'categoria', grupos: [{ etq: `${nD} tiene destreza pero ningún arma: tira un dado. Par, toma piedras y vidrios y Rayhán suma 1 punto de ventaja; impar, Rayhán suma 2`, valores: [x] }], resumen: [...inicio.splice(0), `Sale ${x}: Rayhán sumará ${P.ventajaB} de ventaja.`] });
   }
   P.cat = cat; P.inicio = inicio; P.npcR = npcR; P.npcV = npcV;
+  const dos = numerosEscudo(e, P, victima);
   if (cat === 'A' && !npcV) {
-    pedir(e, { tipo: 'numeros', para: [victima], titulo: 'Di tu número', texto: 'Rayhán te ataca a muerte y no tienes armas ni destreza: tomas piedras y palos. Elige un número del 1 al 6 y luego tira un dado: si sale tu número, ganas; si no, gana Rayhán, y si el dado cae a 3 o más de tu número, mueres (si no, quedas mal herido).',
-      modo: 'multi', min: 1, max: 1, opciones: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), texto: String(n) })), porDefecto: ['3'], cont: { fn: 'rayhan.numero', args: {} } });
+    pedir(e, { tipo: 'numeros', para: [victima], titulo: dos > 1 ? 'Di tus dos números' : 'Di tu número', texto: `Rayhán te ataca a muerte y no tienes armas ni destreza: tomas piedras y palos. ${dos > 1 ? 'Como llevas tu escudo de cuero, eliges DOS números del 1 al 6' : 'Elige un número del 1 al 6'} y luego tira un dado: si sale ${dos > 1 ? 'uno de ellos' : 'tu número'}, ganas; si no, gana Rayhán, y si el dado cae a 3 o más de ${dos > 1 ? 'tu número más cercano' : 'tu número'}, mueres (si no, quedas mal herido).`,
+      modo: 'multi', min: dos, max: dos, opciones: [1, 2, 3, 4, 5, 6].map((n) => ({ id: String(n), texto: String(n) })), porDefecto: dos > 1 ? ['3', '4'] : ['3'], cont: { fn: 'rayhan.numero', args: {} } });
     return;
   }
-  return rayhanDados(data, e, 3);
+  return rayhanDados(data, e, dos > 1 ? [3, 4] : [3]);
 }
-registrar('rayhan.numero', (data, e, args, resp) => rayhanDados(data, e, Number((resp.valores || [])[0]) || 3));
-function rayhanDados(data, e, numero) {
+registrar('rayhan.numero', (data, e, args, resp) => rayhanDados(data, e, numerosDe(resp)));
+function rayhanDados(data, e, numeros) {
   const P = e.peleaRayhan; if (!P) return;
+  const ns = Array.isArray(numeros) ? numeros : [Number(numeros) || 3], numero = listaNum(ns);
   const victima = P.def, nD = nPel(e, P, victima), md = (o) => { const d = mostrarDados(e, { titulo: P.titulo, ...o }); if (d && P.nLog) d.peleaNPC = P.nLog; return d; };
   const pe = penaEscudo(data, e, P), menos = P.rayhanMenos + pe;
   const partesR = [`alfanje +${RAYHAN_PELEA.bono} (con destreza)`, ...(P.rayhanMenos ? [`flecha −${P.rayhanMenos}`] : []), ...(pe ? [`escudo de ${nD} −${pe}`] : [])];
   let r, dadoV;
   if (P.cat === 'A') {
-    const x = dado(e); dadoV = x; r = { ganaAtk: x !== numero, empate: false, margen: Math.abs(x - numero) };
-    md({ por: victima, npc: P.npcV, motivo: 'pelea', grupos: [{ etq: `${nD} dijo el ${numero} y tira un dado: si sale, gana; si no, gana Rayhán`, valores: [x] }], resumen: [...P.inicio, x === numero ? `¡Sale ${x}! Gana ${nD}.` : `Sale ${x}: gana Rayhán.`] });
+    const x = dado(e); dadoV = x; r = { ganaAtk: !ns.includes(x), empate: false, margen: Math.min(...ns.map((n) => Math.abs(x - n))) };
+    md({ por: victima, npc: P.npcV, motivo: 'pelea', grupos: [{ etq: `${nD} dijo ${numero} y tira un dado: si sale, gana; si no, gana Rayhán`, valores: [x] }], resumen: [...P.inicio, ns.includes(x) ? `¡Sale ${x}! Gana ${nD}.` : `Sale ${x}: gana Rayhán.`] });
   } else if (P.cat === 'B') {
     const v = P.ventajaB || 1, dA = dado(e), dB = dado(e), tA = dA + v - P.rayhanMenos - pe, tB = dB; dadoV = dB;
     r = resultado(P, tA, tB);
@@ -954,8 +1018,8 @@ function rayhanDados(data, e, numero) {
     const nR = P.por ? `${nombre(e, P.por)} (por Rayhán)` : 'Rayhán';
     md({ por: P.por || victima, npc: P.npcR, motivo: 'pelea', grupos: [{ etq: `${nR}: dado de ventaja. Quien saque más suma +1; si empatan, es de ${nD}`, valores: [x.vA] }], resumen: [...P.inicio, `Rayhán saca ${x.vA} en su dado de ventaja.`] });
     md({ por: victima, npc: P.npcV, motivo: 'pelea', grupos: [{ etq: `${nD}: dado de ventaja (Rayhán sacó ${x.vA})`, valores: [x.vB] }], resumen: [`${nD} saca ${x.vB}: la ventaja (+1) es para ${x.ventA ? 'Rayhán' : nD}.`] });
-    md({ por: P.por || victima, npc: P.npcR, motivo: 'pelea', grupos: [{ etq: `${nR}: 2 dados, más ${partesR.join(', ')}`, valores: x.rA }], resumen: [`Rayhán: ${partesBando(x.rA, bR, bV, x.ventA, 0, false).join(' · ')} → total ${x.tA}.`] });
-    md({ por: victima, npc: P.npcV, motivo: 'pelea', grupos: [{ etq: `${nD}: 2 dados, más sus bonos (${listaBonos(bV)}). Rayhán lleva ${x.tA}`, valores: x.rB }], resumen: [`${nD}: ${partesBando(x.rB, bV, bR, x.ventB, 0, false).join(' · ')} → total ${x.tB}.`, textoGanaR(r, nD, x.tA, x.tB)] });
+    md({ por: P.por || victima, npc: P.npcR, motivo: 'pelea', grupos: [{ etq: `${nR}: 2 dados, más ${partesR.join(', ')}`, valores: x.rA }], resumen: [`Rayhán: ${partesBando(x.rA, bR, bV, x.ventA, 0, false, x.jamA).join(' · ')} → total ${x.tA}.`] });
+    md({ por: victima, npc: P.npcV, motivo: 'pelea', grupos: [{ etq: `${nD}: 2 dados, más sus bonos (${listaBonos(bV)}). Rayhán lleva ${x.tA}`, valores: x.rB }], resumen: [`${nD}: ${partesBando(x.rB, bV, bR, x.ventB, 0, false, x.jamB).join(' · ')} → total ${x.tB}.`, textoGanaR(r, nD, x.tA, x.tB)] });
   }
   P.r = r; P.dado = dadoV;
   return aplicarRayhan(data, e);

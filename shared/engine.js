@@ -1208,7 +1208,9 @@ export function llegada(data, e, pid, origen) {
   RET.mensajes(data, e, pid, 'llegada', { primera, origen });
   EVE.alLlegar(data, e, pid, origen, primera);
   const mazo = ['Bagdad', 'Isfahán', 'Aleppo', 'Damasco', 'Basra', 'El Cairo'].includes(j.ciudad) ? j.ciudad : c.mazoCC;
-  if (!j.npc && t.cc < data.config.maxCCPorTurno && !j.eliminado) robarCC(data, e, pid, mazo);
+  // 3D (Jorge, 28 nov, 16:01): «la trivia solo sale por viajar a dos ciudades; si viajas solo a una no sale». Sale una, al llegar a la segunda.
+  if (t && t.pid === pid) t.llegadasN = (t.llegadasN || 0) + 1;
+  if (!j.npc && t && t.pid === pid && t.llegadasN === 2 && t.cc < data.config.maxCCPorTurno && !j.eliminado) robarCC(data, e, pid, mazo);
   return ok();
 }
 

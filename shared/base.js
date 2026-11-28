@@ -59,9 +59,9 @@ export function cartaDatos(data, tipo, id, deseos = null) {   // deseos: los 3 q
 // Objetos de la tabla original (R 15.1): se dibujan con el marco de «objeto».
 export const ITEMS = {
   arco: { nombre: 'Arco', arma: 1, precio: 15, ventaja: 'una flecha antes de pelear', texto: 'Antes de cualquier pelea (robo, ataque a muerte o duelo) disparas una flecha con tu botón: con 5 o 6 le das y el rival pelea con −2; con destreza en el arco (R43, Andalucía), de 4 a 6; si no, falla. Campeón de Murcia: siempre aciertas, sin dado. Contra un escudo no hace nada. Cada disparo gasta 1 flecha; sin flechas el arco no sirve. En Bagdad solo con Firmán. No cuenta como arma: solo sirve para este disparo.' },
-  alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos. Sin destreza en el alfanje tiras su dado de destreza: con par cuenta, con impar no. Las armas se suman (hasta +4). No se usa en Bagdad.' },
-  cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+3 al pelear', texto: '+3 en robos, ataques a muerte y duelos. Sin destreza en la cimitarra tiras su dado de destreza: con par cuenta, con impar no. Las armas se suman (hasta +4). No se usa en Bagdad.' },
-  jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear', texto: '+1 en robos, ataques a muerte y duelos. Sin destreza en la jambiya tiras su dado de destreza: con par cuenta, con impar no. Las armas se suman (hasta +4). En Bagdad solo con Firmán.' },
+  alfanje: { nombre: 'Alfanje', arma: 1, precio: 25, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos. Peleas con una sola arma (si llevas alfanje y cimitarra, eliges); la jambiya suma aparte. Con destreza en el alfanje siempre cuenta (D); sin destreza, tiras su dado de destreza: con par cuenta, con impar no. No se usa en Bagdad.' },
+  cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+3 al pelear', texto: '+3 en robos, ataques a muerte y duelos. Peleas con una sola arma (si llevas alfanje y cimitarra, eliges); la jambiya suma aparte. Con destreza en la cimitarra siempre cuenta (D); sin destreza, tiras su dado de destreza: con par cuenta, con impar no. No se usa en Bagdad.' },
+  jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear', texto: '+1 en robos, ataques a muerte y duelos. Si peleas con otra arma, la jambiya suma aparte: con destreza en ella, siempre; sin destreza, solo si te defiendes o ganas el dado de ventaja. Si es tu única arma, peleas con ella (sin destreza, su dado de destreza: con par cuenta). Escondida no cuenta en la pelea, pero tampoco la pierdes si pierdes. En Bagdad solo con Firmán.' },
   flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco: cada disparo gasta 1 flecha. Se compran aparte, en cualquier ciudad. Pesan en pares: 1 flecha no pesa, 2 o 3 pesan 1, 4 o 5 pesan 2.' },
   caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde Isfahán, Basra, Damasco o Aleppo); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },
@@ -201,7 +201,7 @@ export function responderPend(data, e, pid, a) {
   if (p.resp[pid]) return err('Ya respondiste.');
   let r;
   if (p.modo === 'multi') {
-    const v = [...new Set((a.valores || (a.opcion != null ? [a.opcion] : [])).map(String))].filter((x) => p.opciones.some((o) => o.id === x && !o.desactivada));
+    const v = [...new Set((a.valores || (a.opcion != null ? [].concat(a.opcion) : [])).map(String))].filter((x) => p.opciones.some((o) => o.id === x && !o.desactivada));
     if (p.max != null && v.length > p.max) return err(`Elige como máximo ${p.max}.`);
     if (p.min != null && v.length < p.min) return err(`Elige al menos ${p.min}.`);
     r = { valores: v };

@@ -55,13 +55,13 @@ export default function Decision({ s }) {
               {p.opciones.map((o) => (
                 <li key={o.id}>
                   <label className={`chk-opc${sel.includes(o.id) ? ' on' : ''}${o.desactivada ? ' off' : ''}`}>
-                    <input type="checkbox" disabled={o.desactivada} checked={sel.includes(o.id)} onChange={(e) => setSel((a) => (e.target.checked ? (p.max === 1 ? [o.id] : p.max != null && a.length >= p.max ? a : [...a, o.id]) : a.filter((x) => x !== o.id)))} />
+                    <input type="checkbox" disabled={o.desactivada} checked={sel.includes(o.id)} onChange={(e) => setSel((a) => (e.target.checked ? (p.max === 1 ? [o.id] : p.max != null && a.length >= p.max ? (p.tipo === 'numeros' ? [...a.slice(1), o.id] : a) : [...a, o.id]) : a.filter((x) => x !== o.id)))} />
                     <span>{o.texto}</span>
                   </label>
                 </li>
               ))}
             </ul>
-            <p className="it">{p.min === 1 && p.max === 1 ? 'Elige uno (si tocas otro, cambia).' : <>{p.min ? `Elige al menos ${p.min}` : 'Elige los que quieras'}{p.max != null ? ` (máximo ${p.max})` : ''}.}</>}</p>
+            <p className="it">{p.min === 1 && p.max === 1 ? 'Elige uno (si tocas otro, cambia).' : p.tipo === 'numeros' && p.min === p.max ? `Elige ${p.max} (si tocas otro, se quita el primero que elegiste).` : <>{p.min ? `Elige al menos ${p.min}` : 'Elige los que quieras'}{p.max != null ? ` (máximo ${p.max})` : ''}.}</>}</p>
             <button className="btn" disabled={sel.length < nMin} onClick={() => responder({ valores: sel })}>Confirmar{sel.length ? ` (${sel.length})` : ' sin elegir'}</button>
           </>
         ) : p.modo === 'numero' ? (

@@ -494,7 +494,7 @@ export function deseo(data, e, pid, letra, { alTerminar = null }) {
       pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'El genio te pregunta', texto: '¿Quién pierde 50 noches? Pasan a ti.', opciones: op, porDefecto: op[0]?.id, cont: { fn: 'tes.J', args: { alTerminar } } }); return;
     }
     case 'e': j.ventajaCombate = (j.ventajaCombate || 0) + 1; break;   // +4 en la próxima pelea (pelea.js)
-    case 'f': pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Un arma y destreza en ella', texto: 'Elige el arma: la recibes ya y quedas entrenado con ella (+1 con ella en las peleas; con el arco, además, un 3 o 4 en tu flecha deja al rival con −1).',
+    case 'f': pedir(e, { tipo: 'ifrit', para: [pid], titulo: 'Un arma y destreza en ella', texto: 'Elige el arma: la recibes ya y quedas entrenado con ella (cuando peleas con ella siempre cuenta y peleas en D; con el arco, tu flecha le da de 4 a 6).',
       opciones: ARMAS_DESEO.map((x) => ({ id: x, texto: ITEMS[x].nombre + (puedeEntrenarArma(j, x) ? '' : ' (sin destreza: Zein y el Sabio Ruyán solo la consiguen con la jambiya)') })), porDefecto: 'cimitarra', cont: { fn: 'tes.E', args: { alTerminar } } }); return;
     default: break;
   }

@@ -715,11 +715,11 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   for (const q of listas) {
     let texto;
     if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
-    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Ya tienes destreza en el arco: tu flecha le da con 4, 5 o 6 y el rival pelea con −2.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Ya tienes destreza en el arco: tu flecha le da con 4, 5 o 6 y el rival pelea con −2.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, siempre cuenta y peleas con destreza (D).`; }
     else if (q.t === 'armasR54') {
       for (const r of q.armas) (j.extra.entrenado ||= {})[r] = true;
       const l = q.armas.map((r) => (r === 'alfanje' ? 'el alfanje' : 'la ' + r)); const t = l.length > 1 ? l.slice(0, -1).join(', ') + ' y ' + l.at(-1) : l[0];
-      texto = `Terminó tu turno con el ejército del sultán: ya tienes destreza con ${t}. Cuando pelees con ${q.armas.length > 1 ? 'cada una' : (q.armas[0] === 'alfanje' ? 'él' : 'ella')}, peleas con destreza y sumas +1.`;
+      texto = `Terminó tu turno con el ejército del sultán: ya tienes destreza con ${t}. Cuando pelees con ${q.armas.length > 1 ? 'cada una' : (q.armas[0] === 'alfanje' ? 'él' : 'ella')}, siempre cuenta y peleas con destreza (D).`;
     }
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
@@ -733,7 +733,7 @@ function entrenarArma(e, pid, id) {
   // Jorge (27 de noviembre): el entrenamiento con jambiya, cimitarra o alfanje se recibe al iniciar la ronda siguiente, no al terminar el turno
   const q = { t: 'arma', arma, de: id, ...(ENTRENO_SIG_RONDA.includes(arma) && !j.npc ? { ronda: e.ronda + 1 } : {}) };
   j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, q);
-  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina${arma === 'arco' ? ' y al terminar queda entrenado: su flecha le dará con 4, 5 o 6 (el rival pelea con −2)' : ` y al empezar la siguiente ronda tendrá destreza con ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
+  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina${arma === 'arco' ? ' y al terminar queda entrenado: su flecha le dará con 4, 5 o 6 (el rival pelea con −2)' : ` y al empezar la siguiente ronda tendrá destreza con ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (cuando pelee con ${arma === 'alfanje' ? 'él' : 'ella'}, siempre cuenta)`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
@@ -1155,7 +1155,7 @@ function combateR54(e, pid, ctx) {
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
     if (nuevas.length) aplazarDestreza(e, pid, { t: 'armasR54', armas: nuevas, de: 'R54' });   // llega al terminar el turno
-    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${nuevas.length ? `; al terminar tu turno tendrás destreza con ${texto}, las armas que llevas (+1 cuando peleas con cada una)` : ' (ya tenías destreza con las armas que llevas)'}.`);
+    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${nuevas.length ? `; al terminar tu turno tendrás destreza con ${texto}, las armas que llevas (cada una siempre cuenta cuando peleas con ella)` : ' (ya tenías destreza con las armas que llevas)'}.`);
   }
   if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }
   else ctx.say(`${y}: terminas tu servicio; el siguiente turno estás libre.`);

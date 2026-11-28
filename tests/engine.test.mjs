@@ -232,16 +232,13 @@ const sinMensaje = (j) => { j.mensajes = []; };
   assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores, [g.ids[0]], 'regla de la casa (tope de 1,001): si ambos llegan en la misma ronda quedan empatados en 1,001 y el empate es de los jugadores');
 }
 
-// ---------------------------------------------------------------- cimitarra: +3 de arma y +2 propio (cimitarra +3 desde el 28 nov) al atacar (decisión pro-jugador de Jorge)
+// ---------------------------------------------------------------- cimitarra: +3, al atacar y al defender (Jorge, 28 nov, 15:40: ya no hay +2 extra al atacar)
 {
   const g = partida(['4', '7', '5']); const { e, ids } = g; g.listos();
   const j = e.jugadores[ids[0]]; darItem(e, j, 'cimitarra');
   const atk = bonos(data, e, ids[0], { armas: ['cimitarra'] }, 'atk', null);
   const def = bonos(data, e, ids[0], { armas: ['cimitarra'] }, 'def', null);
-  assert.equal(atk.total, 5, 'cimitarra al atacar: +3 de arma +2 propio'); assert.equal(def.total, 3, 'cimitarra al defender: +3');
-  data.config.reglasCasa.cimitarraExtraAlAtacar = false;
-  assert.equal(bonos(data, e, ids[0], { armas: ['cimitarra'] }, 'atk', null).total, 3, 'la bandera de config lo desactiva');
-  data.config.reglasCasa.cimitarraExtraAlAtacar = true;
+  assert.equal(atk.total, 3, 'cimitarra al atacar: +3'); assert.equal(def.total, 3, 'cimitarra al defender: +3');
 }
 
 // ---------------------------------------------------------------- veneno, antídoto y velo de viajero (R 15.1)
