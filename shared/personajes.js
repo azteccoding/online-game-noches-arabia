@@ -15,11 +15,7 @@ export function inicioTurno(data, e, pid) {
     const c = Math.min(eq.yafarComisionMax ?? 15, (eq.yafarComisionPorJugador ?? 5) * n);   // equilibrio: config.json
     if (c) { j.dinares += c; log(e, `${j.nombre} cobra ${c} dinares de comisión de bolsillo.`, { pid }); }
   }
-  const d = j.extra.deudaAsesinos;
-  if (d) {                                                                                     // R 10.7: Zubayda debe el resto del contrato máximo 2 turnos
-    if (puedePagar(data, j, d.monto)) { pagar(data, e, pid, d.monto); delete j.extra.deudaAsesinos; log(e, `${j.nombre} salda su deuda con los Asesinos.`, { pid }); }
-    else if (--d.turnos < 0) { log(e, `${j.nombre} no paga a los Asesinos a tiempo y es asesinada.`, { pid }); eliminar(data, e, pid, { causa: 'deuda con los Asesinos' }); }
-  }
+  // Zubayda ya no puede deberles a los Asesinos (Jorge, 27 de noviembre, decisión D02: se quita la regla del juego y del Word).
 }
 export function tras() {}
 

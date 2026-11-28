@@ -467,9 +467,19 @@ export function eventoAsesinos(data, e) {
   const lanza = e.orden.find((x) => viv.includes(x) && !e.jugadores[x].npc) || viv[0];
   const sortear = (extra = []) => {
     const tabla = viv.map((x, k) => `${k + 1} = ${nombre(e, x)}`).join(', ');
+    if (viv.length > 6) {
+      // Jorge (27 de noviembre, decisión D08): con 7 u 8 jugadores se tiran dos dados. El primero elige el grupo (1 a 3 = jugadores 1 a 4;
+      // 4 a 6 = jugadores 5 a 8) y el segundo, al jugador dentro del grupo; si cae un número sin jugador, se repite el segundo.
+      const g = dado(e), base = g <= 3 ? 0 : 4, tam = Math.min(4, viv.length - base), seg = []; let d2;
+      for (let k = 0; k < 30; k++) { d2 = dado(e); seg.push(d2); if (d2 <= tam) break; }
+      const v = viv[base + d2 - 1];
+      mostrarDados(e, { por: lanza, npc: !!e.jugadores[lanza].npc, motivo: 'asesinos', titulo: 'Los Asesinos llegan a la ciudad', grupos: [{ etq: `${nombre(e, lanza)}: primer dado, el grupo (1 a 3 = jugadores 1 a 4; 4 a 6 = jugadores 5 a ${viv.length})`, valores: [g] }, { etq: `${nombre(e, lanza)}: segundo dado, el jugador del grupo`, valores: seg }],
+        resumen: [...extra, `Números: ${tabla}.`, `Primer dado ${g}: grupo de los jugadores ${base + 1} a ${base + tam}.${seg.length > 1 ? ' Los números sin jugador se repiten.' : ''}`, `Segundo dado ${d2}: si nadie compra el contrato, irán a buscar a ${nombre(e, v)}.`] });
+      return v;
+    }
     const tiradas = []; let d;
-    for (let g = 0; g < 30; g++) { d = dado(e); tiradas.push(d); if (viv.length >= 6 || d <= viv.length) break; }
-    const v = viv[(d - 1) % viv.length];
+    for (let g = 0; g < 30; g++) { d = dado(e); tiradas.push(d); if (d <= viv.length) break; }
+    const v = viv[d - 1];
     mostrarDados(e, { por: lanza, npc: !!e.jugadores[lanza].npc, motivo: 'asesinos', titulo: 'Los Asesinos llegan a la ciudad', grupos: [{ etq: `${nombre(e, lanza)}: sorteo de a quién irán a buscar si nadie compra el contrato`, valores: tiradas }],
       resumen: [...extra, `Números: ${tabla}.${tiradas.length > 1 ? ' Los números sin jugador se repiten.' : ''}`, `Sale ${d}: si nadie compra el contrato, irán a buscar a ${nombre(e, v)}.`] });
     return v;
@@ -484,14 +494,15 @@ export function eventoAsesinos(data, e) {
   const para = hum.filter((x) => e.jugadores[x].dinares >= min);
   e.asesinos.evento = { probable };
   if (!para.length) return sinPuja(data, e, probable);
-  pedir(e, { tipo: 'subasta', para, modo: 'todos', titulo: 'Los Asesinos ofrecen sus servicios', texto: `¿Quieres pagar para mandarlos contra alguien? Gana la puja más alta (mínimo ${min} dinares), elige a la víctima y paga su puja + 30 por cada punto del dado de la víctima (si no le alcanza, paga todo lo que tenga). Los Asesinos no fallan; quien gane queda Buscado y toda la mesa lo sabrá. Si nadie puja, irán a buscar a ${nombre(e, probable)}, que podrá escapar herido con 3 a 6.`,
-    opciones: [{ id: '0', texto: 'No pujar' }, ...Array.from({ length: 6 }, (_, k) => ({ id: String(min + 20 * k), texto: `Pujar ${min + 20 * k} dinares` }))], porDefecto: '0', limiteMs: 60000, cont: { fn: 'npc.subasta', args: { probable, min } } });
+  pedir(e, { tipo: 'subasta', para, todos: true, titulo: 'Los Asesinos ofrecen sus servicios', texto: `¿Quieres pagar para mandarlos contra alguien? Gana la puja más alta (mínimo ${min} dinares), elige a la víctima y paga su puja + 30 por cada punto del dado de la víctima (si no le alcanza, paga todo lo que tenga). Los Asesinos no fallan; quien gane queda Buscado y toda la mesa lo sabrá. Si nadie puja, irán a buscar a ${nombre(e, probable)}, que podrá escapar herido con 3 a 6.`,
+    // Jorge (27 de noviembre, decisión D08): la puja es libre en dinares (R 13.4), sin niveles. 0 = no pujar.
+    modo: 'numero', min: 0, max: Math.max(...para.map((x) => e.jugadores[x].dinares)), porDefecto: 0, nota: `Escribe cuántos dinares pujas: 0 para no pujar, o ${min} o más (no más de lo que tienes).`, limiteMs: 60000, cont: { fn: 'npc.subasta', args: { probable, min } } });
 }
 registrar('npc.subasta', (data, e, args, resp) => {
   let ganador = null, mejor = 0;
   for (const x of e.orden) {
     const o = resp[x]; if (!o) continue;
-    const b = Number(o.opcion || 0), j = e.jugadores[x];
+    const b = Math.floor(Number(o.numero ?? o.opcion ?? 0)) || 0, j = e.jugadores[x];
     if (b >= args.min && b > mejor && j && !j.eliminado && j.dinares >= b) { ganador = x; mejor = b; }
   }
   if (!ganador) return sinPuja(data, e, args.probable);

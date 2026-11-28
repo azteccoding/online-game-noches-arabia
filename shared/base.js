@@ -64,13 +64,13 @@ export const ITEMS = {
   cimitarra: { nombre: 'Cimitarra', arma: 2, precio: 35, ventaja: '+2 al pelear', texto: '+2 en robos, ataques a muerte y duelos, y en duelo +2 más cuando eres tú quien ataca. Las armas se suman (hasta +4 en robos y ataques a muerte). No se usa en Bagdad.' },
   jambiya: { nombre: 'Jambiya', arma: 3, precio: 15, ventaja: '+1 al pelear (duelo: +3 con par)', texto: '+1 en robos y ataques a muerte (se suma a las demás armas). En duelo, +3 si el dado de sorpresa (lo tira quien la lleva) sale par. En Bagdad solo con Firmán.' },
   flechas: { nombre: 'Flechas', precio: 5, texto: 'Necesarias para usar el arco: cada disparo gasta 1 flecha. Se compran aparte, en cualquier ciudad. Pesan en pares: 1 flecha no pesa, 2 o 3 pesan 1, 4 o 5 pesan 2.' },
-  caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde Isfahán o Basra); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R1.' },
+  caballo: { nombre: 'Caballo', transporte: 1, texto: 'Transporte propio para viajes largos: llegas en el mismo turno, sin tarifa, a cualquier ciudad menos Samarcanda, el Magreb, India y Bagdad (a Bagdad solo te lleva el burro, desde Isfahán, Basra, Damasco o Aleppo); tampoco sirve para salir de India. Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos.' },
   camello: { nombre: 'Camello', transporte: 2, texto: 'Transporte propio del desierto: te lleva al Magreb, a Samarcanda o a Yemen en el mismo turno, sin tarifa (no sirve para salir de India). Termina tu turno. Cada turno pagas 3 dinares de albéitar y comida; muere a los 5 turnos y puedes volver a hacer R5.' },
   idolo: { nombre: 'Ídolo de Toledo', texto: 'Ídolo cubierto de oro y pedrería robado en Toledo. Destrúyelo en cualquier ciudad (acción libre): ganas 100 noches. O véndelo en Estambul a los mercaderes venecianos: 100 dinares, pero con 1 o 2 en el dado te acusan de herejía y acabas herido en el Jorasán sin dinares. Se puede robar e intercambiar.' },
-  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra por 25 dinares y al comprarlo recibes 20 noches; vive 2 turnos. Hay 2 en el mercado de Basra; cuando se venden los dos, aparece uno en Aleppo y otro en Damasco. Transporte propio solo para viajes cortos por tierra, ida y vuelta: Estambul–Aleppo, El Cairo–Damasco (visitar al-Quds: +40 noches, máximo 2 veces), Damasco–Aleppo, Isfahán–Bagdad, Basra–Bagdad, Damasco–Bagdad y Aleppo–Bagdad, sin tarifa. No gasta tu acción principal, pero solo lo puedes usar una vez por turno (luego está cansado). Si lo llevas a otra ciudad no muere, pero ahí no te mueve. Cada turno pagas 1 dinar de albéitar y comida; al morir ya no hay más (no se repone). Se vende al mercado de cualquier ciudad por 15 dinares (por desnutrido) y ahí se revende a 25 con sus 2 turnos de vida. Puedes tener varios animales a la vez, también del mismo tipo. Yafar NPC nunca monta burros: en fácil no los compra; en normal compra los de su ciudad para que nadie más pueda; en difícil los compra todos y los deja morir.' },
+  burro: { nombre: 'Burro', transporte: 3, texto: 'Se compra por 25 dinares y al comprarlo recibes 20 noches; vive 2 turnos. Hay 2 en el mercado de Basra; cuando se venden los dos, aparece uno en Aleppo y otro en Damasco. Transporte propio solo para viajes cortos por tierra, ida y vuelta: Estambul–Aleppo, El Cairo–Damasco (visitar al-Quds: +40 noches, una vez por partida), Damasco–Aleppo, Isfahán–Bagdad, Basra–Bagdad, Damasco–Bagdad y Aleppo–Bagdad, sin tarifa. No gasta tu acción principal, pero solo lo puedes usar una vez por turno (luego está cansado). Si lo llevas a otra ciudad no muere, pero ahí no te mueve. Cada turno pagas 1 dinar de albéitar y comida; al morir ya no hay más (no se repone). Se vende al mercado de cualquier ciudad por 15 dinares (por desnutrido) y ahí se revende a 25 con sus 2 turnos de vida. Puedes tener varios animales a la vez, también del mismo tipo. Yafar NPC nunca monta burros: en fácil no los compra; en normal compra los de su ciudad para que nadie más pueda; en difícil los compra todos y los deja morir.' },
   citricos: { nombre: 'Cítricos', precio: 5, texto: 'Se venden en el mercado de cualquier ciudad a 5 dinares. Te protegen del escorbuto en un viaje por mar y se gastan en el primero que hagas: El Cairo–Andalucía, El Cairo–Yemen, Magreb–Andalucía (ida o vuelta), el cruce a Abisinia, los piratas de Yemen al Jorasán y el barco que te regresa a Basra desde India (Sindbad o el monzón). Sin cítricos, cada viaje por mar te deja herido por escorbuto, y herido no puedes embarcarte.' },
   alfombra: { nombre: 'Alfombra mágica', transporte: 1, texto: 'Viajes gratis, en el mismo turno, a cualquier ciudad menos Bagdad; con las caravanas, es la única forma de llegar a India. No se gasta ni cuesta mantenerla. Termina tu turno.' },
-  libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
+  libro: { nombre: 'Libro o papiro', texto: 'Gana 2 dinares de valor por ronda. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   vino: { nombre: 'Botella de vino', precio: 20, texto: 'Se compra a 20 dinares en Basra (hay 2) y en Andalucía (hay 4). Gana 2 dinares de valor por ronda. Cualquier mercado la compra a su valor actual (menos el impuesto) y la botella se esfuma: cuando se acaban las 6, ya no hay vino. Pesa; la tinta de pulpo no le afecta.' },
   buza: { nombre: 'Cálamo de Kufa', precio: 1, texto: 'Pluma de caña cortada al estilo de Kufa, la de los copistas de la caligrafía cúfica. Hay 12 en total: 6 a la venta en Damasco y 6 en Basra (1 dinar; máximo 6 en tu mano) y se vende en El Cairo (4 cada uno) o en Bagdad (3): tiras un dado y te compran tantos como salga; los demás los puedes vender en otro turno. Cuando ya se vendieron los 12, vuelve a haber 6 en Damasco y 6 en Basra.' },   // Jorge (17 de noviembre): antes «Buza»; mismo precio
   lampara: { nombre: 'Lámpara de aceite', texto: 'Pesa. Con una Lámpara de aceite, un papel amate y un cálamo de Kufa, al iniciar el reto de aprender persa (R46), aprender árabe (R47) o investigar el fuego griego (R55) terminas el estudio en tu siguiente turno: tuviste mecenas que pagaron tus útiles y estudios. Los tres se gastan y se esfuman.' },
@@ -80,7 +80,7 @@ export const ITEMS = {
   shatranj: { nombre: 'Shatranj (ajedrez)', precio: 12, texto: 'El juego de los reyes que llegó de India: un tablero con sus piezas de marfil. Solo lo vende el mercado de India, por 12 dinares, y solo hay 5 en todo el juego. Se vende en Isfahán por 25, en Bagdad por 30 o en Andalucía por 35, y al venderlo deja de existir. Pesa: cuenta para el límite de 7 objetos. La tinta de pulpo lo estropea.' },   // Jorge (19 de noviembre)
   amate: { nombre: 'Papel amate', precio: 2, texto: 'Hace falta para esconder dinares: en él anotas la ciudad y cuánto dejaste. Ese papel se puede vender a otro jugador.' },
   alfombraIsfahan: { nombre: 'Alfombra de Isfahán', precio: 30, texto: 'Mercancía de Isfahán: el mercado de Isfahán la vende a 30 y la recompra a 15; los demás mercados la compran a 35 (Andalucía a 40) y la revenden 3 dinares más cara. La tinta de pulpo la destruye. Pesa y ocupa las manos: no puedes huir con un objeto.' },
-  costalPistaches: { nombre: 'Costal de pistaches', precio: 2, texto: 'Mercancía: se compra en Isfahán a 2 dinares (hasta 10 costales a la vez). Pesa. Al llegar a Bagdad se entregan solos y cobras 6 dinares por costal; el primero en la partida que los entrega gana además 50 noches (reto R56) y desde entonces se venden los Pasteles de pistaches.' },
+  costalPistaches: { nombre: 'Costal de pistaches', precio: 2, texto: 'Mercancía: se compra en Isfahán a 2 dinares (hasta 10 costales a la vez). Pesa. Al llegar a Bagdad se entregan solos y cobras 6 dinares por costal; el primero en la partida que los entrega gana además 60 noches (reto R56) y desde entonces se venden los Pasteles de pistaches.' },
   almudDatiles: { nombre: 'Almud de dátiles', precio: 2, texto: 'Mercancía: se compra en Yemen y Basra a 2 dinares y el mercado de Bagdad la compra a 4. Pesa. La primera vez que vendes dátiles en Bagdad cumples el reto R53 y ganas 20 noches.' },
   cesta: { nombre: 'Cesta de manzanas', precio: 5, texto: 'Para R24 o para contratar a Rayhán.' },
   sal: { nombre: 'Sacos de sal', precio: 15, texto: 'Carga de R23 (3 sacos).' },
@@ -95,9 +95,9 @@ export const ITEMS = {
   // Esclavos (Jorge, 27 de noviembre, solo en el 3D; ver esclavos.js y ESCLAVOS abajo)
   esclavoCarga: { nombre: 'Esclavo de carga', texto: 'Se compra en Estambul o El Cairo por 15 dinares. No pesa y carga 7 objetos más. En las caravanas no paga pasaje. Su paga es 1 dinar por turno: si no te alcanza, se va y desaparece, pero te deja tus cosas (puedes quedar sobrecargado). Puedes dejarlo en una ciudad, donde cualquiera lo toma gratis y desde entonces le paga él, o amarrarlo con el Lazo de camellero en el mercado (5 dinares por turno; lo recuperas gratis). No se vende al mercado; un ladrón que te gane se lo lleva.' },
   esclavoPelea: { nombre: 'Esclavo de pelea y carga', texto: 'Se compra en Estambul o El Cairo por 30 dinares. Pelea y carga: no pesa y carga 7 objetos más. Su paga es 3 dinares por turno: si no te alcanza, se va y desaparece, pero te deja tus cosas (puedes quedar sobrecargado). En combate (11.3) pelea con destreza si tiene un arma para él (una tuya de más): con tu arma y tu destreza, +3 por cada esclavo armado; si tú no tienes destreza, peleas como categoría D gracias a él y +2 por cada esclavo armado más. También te defiende si te roban. Si pierdes una pelea a muerte (o un duelo estando herido) mientras él pelea por ti, lo matan a él y tú sigues vivo. En las caravanas paga su pasaje (la tarifa del tramo). Puedes dejarlo en una ciudad, donde cualquiera lo toma gratis y desde entonces le paga él, o amarrarlo con el Lazo de camellero en el mercado (5 dinares por turno; lo recuperas gratis). No se vende al mercado; un ladrón que te gane se lo lleva.' },
-  esclavoSamarra: { nombre: 'Esclavo para Samarra', texto: 'Del reto R67: comprado en Basra para llevarlo a Bagdad (de ahí sale a construir Samarra). No pesa: camina. No produce noches ni cobra mantenimiento. Si no lo entregas a tiempo, lo pierdes.' },
+  esclavoSamarra: { nombre: 'Esclavo para Samarra', texto: 'Del reto R67, que se contrata en Basra con tu acción principal: lo compras en Basra a 15 dinares y lo llevas a Bagdad (de ahí sale a construir Samarra). No pesa: camina. No produce noches ni cobra mantenimiento. Si no lo entregas a tiempo, lo pierdes.' },
   esclava: { nombre: 'Esclavas abisinias', texto: 'Dan +5 noches por turno; mantenimiento 1 dinar por turno.' },
-  papiro: { nombre: 'Papiro', texto: 'Gana 2 dinares de valor por turno. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
+  papiro: { nombre: 'Papiro', texto: 'Gana 2 dinares de valor por ronda. La biblioteca de Bagdad lo compra a la mitad de su valor actual.' },
   pergaminoSellado: { nombre: 'Pergamino sellado', texto: 'Carga de R30: entrégalo en Bagdad.' },
   cartaUrgente: { nombre: 'Carta urgente', texto: 'Debe entregarse en la ciudad indicada antes de que venza el plazo.' },
   especias: { nombre: 'Especias', texto: 'Mercancía de comercio: se vende en la ciudad que las pida.' },
@@ -187,7 +187,7 @@ function valorPorDefecto(p) {
   return { opcion: p.porDefecto ?? p.opciones[p.opciones.length - 1]?.id ?? null };
 }
 function completar(data, e, p) {
-  const resp = p.modo === 'todos' || p.para.length > 1 ? p.resp : { pid: Object.keys(p.resp)[0], ...p.resp[Object.keys(p.resp)[0]] };
+  const resp = p.modo === 'todos' || p.todos || p.para.length > 1 ? p.resp : { pid: Object.keys(p.resp)[0], ...p.resp[Object.keys(p.resp)[0]] };
   e.pend = (e.colaPend || []).shift() || null;
   if (e.pend) e.pend.t0 = e.ahora;
   const fn = CONT[p.cont?.fn];
@@ -207,6 +207,8 @@ export function responderPend(data, e, pid, a) {
   } else if (p.modo === 'numero') {
     const n = Math.floor(Number(a.numero));
     if (!(n >= (p.min ?? 0) && n <= (p.max ?? 6))) return err('Número fuera de rango.');
+    if (p.tipo === 'subasta' && n > 0 && n < (p.cont?.args?.min ?? 0)) return err(`La puja mínima es de ${p.cont.args.min} dinares (0 para no pujar).`);
+    if (p.tipo === 'subasta' && n > (e.jugadores[pid]?.dinares ?? 0)) return err('No puedes pujar más de lo que tienes.');
     r = { numero: n };
   } else {
     const o = p.opciones.find((x) => x.id === String(a.opcion));
@@ -215,7 +217,7 @@ export function responderPend(data, e, pid, a) {
   }
   p.resp[pid] = r;
   const faltan = p.para.filter((x) => !p.resp[x]);
-  if ((p.modo === 'todos' || p.para.length > 1) && faltan.length) return ok();
+  if ((p.modo === 'todos' || p.todos || p.para.length > 1) && faltan.length) return ok();
   completar(data, e, p);
   return ok();
 }
@@ -337,7 +339,7 @@ export const DATILES = { compra: 2, venta: 4, ciudades: ['Yemen', 'Basra'], ciud
 // Pistaches (Jorge, 19 de noviembre): reto R56 «Llevar cosecha de pistaches». En Isfahán compras costales a 2 dinares (hasta 10 a la vez;
 // pesan). Al llegar a Bagdad se entregan solos y cobras 6 dinares por costal. El primero en la partida gana además 60 noches y desde
 // entonces se venden los Pasteles de pistaches (3 en cada mercado de El Cairo, Bagdad y Damasco); los siguientes solo cobran los dinares.
-export const PISTACHES = { compra: 2, venta: 6, ciudadCompra: 'Isfahán', ciudadVenta: 'Bagdad', reto: 'R56', noches: 50,   /* Jorge (20 de noviembre): 50 (antes 60) */ max: 10, obj: 'OB21' };
+export const PISTACHES = { compra: 2, venta: 6, ciudadCompra: 'Isfahán', ciudadVenta: 'Bagdad', reto: 'R56', noches: 60,   /* Jorge (27 de noviembre, C05): 60, como dice la carta (del 20 al 27 de noviembre, 50) */ max: 10, obj: 'OB21' };
 // Burros (Jorge, 19 de noviembre): 2 en el mercado de Basra desde el principio; cuando se compran los dos, aparece uno en Aleppo y otro en
 // Damasco (anuncio para todos). Un burro que muere ya no vuelve («si el burro muere ya no hay más»); el de un jugador eliminado sí vuelve
 // al mercado de donde salió.

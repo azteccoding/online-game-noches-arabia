@@ -407,7 +407,9 @@ function cierreRonda(data, e) {
     if (npcId && Math.max(...hum.map((id) => e.jugadores[id].noches)) < e.jugadores[npcId].noches) {                  // R 2.4: si ambos llegan, gana quien tenga más noches; empate: ganan los jugadores
       e.fase = 'fin'; e.ganadores = []; e.derrota = 'npc'; e.turno = null; log(e, 'Yafar NPC llega a las 1,001 noches con más noches que los jugadores: los jugadores pierden.'); return ok();
     }
-    const g = hum.slice().sort((x, y) => (e.llegoMil?.[x] ?? Infinity) - (e.llegoMil?.[y] ?? Infinity)).slice(0, 1);   // punto 15: gana el primero que llegó
+    // Jorge (27 de noviembre, decisión D14; antes, punto 15 del 19 de noviembre: solo el primero): R 2.3 y 2.4, ganan juntos todos los que
+    // llegan a las 1,001 noches en la misma ronda (en el orden en que llegaron).
+    const g = hum.slice().sort((x, y) => (e.llegoMil?.[x] ?? Infinity) - (e.llegoMil?.[y] ?? Infinity));
     e.fase = 'fin'; e.ganadores = g; e.turno = null; e.finTurno = null;   // si puede volver a la partida, empieza una ronda nueva
     log(e, 'Fin de la partida: ' + g.map((i) => e.jugadores[i].nombre).join(', ') + (g.length > 1 ? ' alcanzan' : ' alcanza') + ' las 1,001 noches.');
     return ok();
@@ -486,18 +488,20 @@ function iniciarTurno(data, e, id, idx) {
 // Noches extra (regla de la casa, no se multiplican por ronda). Las hazañas valen hasta 2 veces en cada turno del jugador
 // (config.equilibrio.hazanas) y, con el freno, tras cobrar una no vuelve a valer hasta que termine un turno fuera de su par de ciudades.
 const NOCHES_JORASAN = 50;
-export const HAZANAS = { quds: { nombre: 'Visitar al-Quds', noches: 40, par: ['El Cairo', 'Damasco'] }, tariq: { nombre: 'Hazaña de Tariq ibn Ziyad', noches: 60, par: ['Magreb', 'Andalucía'] } };
+// Visitar al-Quds: una sola vez por jugador en toda la partida (Jorge, 27 de noviembre, C02). Tariq sigue con el tope de config.hazanas.
+export const HAZANAS = { quds: { nombre: 'Visitar al-Quds', noches: 40, par: ['El Cairo', 'Damasco'], unaVez: true }, tariq: { nombre: 'Hazaña de Tariq ibn Ziyad', noches: 60, par: ['Magreb', 'Andalucía'] } };
 const confHazanas = (data) => ({ max: 2, por: 'turno', freno: true, ...(data.config.equilibrio?.hazanas || {}) });
 const cuentaHazanas = (data, e, j) => (confHazanas(data).por === 'turno' ? (e.turno?.pid === j.id ? e.turno.hazanas || {} : {}) : j.extra.hazanas || {});
 // Para la vista: cuántas le quedan este turno y si está bloqueada por el freno.
 export function hazanasEstado(data, e, j) {
   const c = confHazanas(data), cuenta = cuentaHazanas(data, e, j);
-  return Object.fromEntries(Object.entries(HAZANAS).map(([k, h]) => [k, { nombre: h.nombre, noches: h.noches, par: h.par, quedan: Math.max(0, c.max - (cuenta[k] || 0)), bloqueada: !!(c.freno && j.extra.hazanaBloq?.[k]) }]));
+  return Object.fromEntries(Object.entries(HAZANAS).map(([k, h]) => [k, { nombre: h.nombre, noches: h.noches, par: h.par, unaVez: !!h.unaVez, quedan: h.unaVez ? (j.extra.hazanaHecha?.[k] ? 0 : 1) : Math.max(0, c.max - (cuenta[k] || 0)), bloqueada: !h.unaVez && !!(c.freno && j.extra.hazanaBloq?.[k]) }]));
 }
 function hazana(data, e, pid, k) {
   const j = e.jugadores[pid], h = HAZANAS[k], c = confHazanas(data), st = hazanasEstado(data, e, j)[k];
   if (st.bloqueada) { log(e, `«${h.nombre}» no vale todavía para ${j.nombre}. Para volver a ganar estas noches, muévete a otra ciudad (fuera de ${h.par.join(' y ')}).`, { pid }); return; }
-  if (st.quedan <= 0) { log(e, `${j.nombre} ya cobró ${c.max} veces «${h.nombre}»${c.por === 'turno' ? ' este turno' : ''}: no recibe más noches.`, { pid }); return; }
+  if (st.quedan <= 0) { log(e, h.unaVez ? `${j.nombre} ya cobró «${h.nombre}» en esta partida: solo vale una vez.` : `${j.nombre} ya cobró ${c.max} veces «${h.nombre}»${c.por === 'turno' ? ' este turno' : ''}: no recibe más noches.`, { pid }); return; }
+  if (h.unaVez) (j.extra.hazanaHecha ||= {})[k] = true;
   const cuenta = c.por === 'turno' ? (e.turno.hazanas ||= {}) : (j.extra.hazanas ||= {});
   cuenta[k] = (cuenta[k] || 0) + 1; j.noches += h.noches;
   log(e, `${j.nombre}: «${h.nombre}», +${h.noches} noches.`, { pid });
@@ -1610,7 +1614,7 @@ export function vista(data, e, pid) {
   const ver = p && (!p.privado || p.para.includes(pid));                     // los avisos privados (Masrur, contratos) no viajan a los demás
   const pend = p && { id: p.id, tipo: p.tipo, titulo: ver ? p.titulo : 'Decisión privada', texto: ver ? p.texto : '', nota: ver ? p.nota : undefined, modo: p.modo, para: p.para, min: p.min, max: p.max, t0: p.t0, limiteMs: p.limiteMs ?? e.opciones?.limitePendMs ?? 90000,
     opciones: p.para.includes(pid) ? p.opciones : [], respondiste: !!p.resp[pid], faltan: p.para.filter((x) => !p.resp[x]), mia: p.para.includes(pid),
-    subasta: p.tipo === 'subasta' ? { mejor: Math.max(0, ...Object.values(p.resp).map((r) => Number(r.opcion || 0))), pujas: Object.values(p.resp).filter((r) => Number(r.opcion) > 0).length, minimo: p.cont?.args?.min } : undefined };
+    subasta: p.tipo === 'subasta' ? { mejor: Math.max(0, ...Object.values(p.resp).map((r) => Number(r.numero ?? r.opcion ?? 0))), pujas: Object.values(p.resp).filter((r) => Number(r.numero ?? r.opcion) > 0).length, minimo: p.cont?.args?.min } : undefined };
   return {
     v: e.v, codigo: e.codigo, yo: pid, fase: e.fase, ronda: e.ronda, ahora: e.ahora, host: e.host, soyHost: esAnf, hostConectado: e.jugadores[e.host]?.conectado ?? false,
     armasCiudades: e.fase === 'juego' ? Object.fromEntries(data.ciudades.ciudades.map((c) => [c.id, OBJ.armasEnCiudad(data, e, c.id)])) : null, armasBagdad: !!e.mods?.armasBagdad,   // ficha de ciudad (Jorge, 12 de noviembre)

@@ -41,7 +41,7 @@ export default function Decision({ s }) {
   if (!decisionVisible({ leyendo, porLeer, dados: s.dados, yo: s.yo })) return null;
   const responder = (r) => enviar(ACCIONES.decidir(p.id, r));
   const pct = Math.min(100, Math.max(0, (resta / (p.limiteMs / 1000)) * 100));
-  const nMin = p.min ?? 0, nMax = p.max ?? 6;
+  const nMin = p.min ?? 0, nMax = p.tipo === 'subasta' ? Math.max(0, Math.min(p.max ?? 0, s.jugadores[s.yo]?.dinares ?? 0)) : (p.max ?? 6);   // subasta: puja libre, hasta lo que tienes
   return (
     <div className={`modal-fondo decision-fondo${genio === 'ventana' ? ' decision-genio' : ''}`} role="dialog" aria-modal="true" aria-label={p.titulo}>
       <div className="panel decision">

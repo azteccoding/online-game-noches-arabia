@@ -42,7 +42,7 @@ function opcionesToledo(data, e, j) {
   }
   return op;
 }
-const HUIDA_ZANJ = 30;
+const HUIDA_ZANJ = 20;   // Jorge (27 de noviembre, decisión D16): 20 dinares fijos (antes 30); si no los tienes, quedas en deuda con el banco
 const LEVA_NOCHES = 30;   // Leva del sultán: 30 noches o 10 dinares (Jorge, 23 de noviembre; antes 15)
 const huidaZanj = (data) => (data.rutas.rutas || []).filter((r) => r.modo === 'tierra' && (r.a === 'Bagdad' || r.b === 'Bagdad')).map((r) => (r.a === 'Bagdad' ? r.b : r.a)).filter((id) => id !== 'Basra');
 const vecinas = (data, ciudad) => Object.entries(data.rutas.tarifas).filter(([k]) => k.startsWith(ciudad + '>')).map(([k, v]) => ({ id: k.split('>')[1], tarifa: v }));
@@ -143,15 +143,15 @@ function cruzada(data, e) {
     j.ciudad = 'Bagdad'; j.transito = null; huidaCuentaViaje(e, j.id);   // la expulsión cuenta como viaje (Jorge, 21 de noviembre)
     log(e, `Los cruzados expulsan a ${j.nombre} de ${de}: paga ${p} dinares de caravana y llega a Bagdad.`, { pid: j.id, aviso: true });
   }
-  log(e, 'Los cruzados conquistan el Levante: nadie puede ir a Damasco, Aleppo ni Estambul durante 2 rondas. Esperemos que Saladino devuelva esas tierras a los musulmanes.', { aviso: true });
+  log(e, 'Los cruzados conquistan el Levante: nadie puede ir a Damasco, Aleppo ni Estambul hasta que salga «La reconquista de Saladino» (a más tardar 3 rondas después). Esperemos que Saladino devuelva esas tierras a los musulmanes.', { aviso: true });
 }
 function aplicarHistorico0(data, e, id) {
   const cola = (ids, fn) => { const ord = ordenadoPorTurno(e, ids.filter((x) => !jug(e, x).npc)); ord.forEach((x, i) => fn(x, i === ord.length - 1)); };
   switch (id) {
     case 'H1': cola(humanosEn(e, ['Bagdad', 'Basra']), (pid) => {
       const j = jug(e, pid);
-      // Jorge (23 de noviembre): solo se huye a ciudades unidas a Bagdad por tierra, a un turno (ni barco ni río), y cuesta 30 dinares en todo caso
-      const op = huidaZanj(data).map((id) => ({ id, texto: `Huir a ${id} (${HUIDA_ZANJ} dinares)${etiquetaBurro(j, id)}` }));
+      // Jorge (23 de noviembre): solo se huye a ciudades unidas a Bagdad por tierra, a un turno (ni barco ni río); cuesta HUIDA_ZANJ en todo caso
+      const op = huidaZanj(data).map((id) => ({ id, texto: `Huir a ${id} (${HUIDA_ZANJ} dinares${j.dinares < HUIDA_ZANJ ? '; no te alcanzan: quedas en deuda' : ''})${etiquetaBurro(j, id)}` }));
       for (const d of destinosBurro(data, j).filter((x) => huidaZanj(data).includes(x))) op.unshift({ id: 'burro:' + d, texto: `Huir en tu burro a ${d} (sin tarifa)` });   // Jorge (10 de noviembre)
       op.push({ id: 'quedar', texto: 'Aguantar: -30 noches y sin ingreso este turno' });
       pedir(e, { tipo: 'historico', para: [pid], titulo: 'Rebelión de los Zanj', texto: 'Huye de Iraq o aguanta.', opciones: op, porDefecto: 'quedar', cont: { fn: 'ev.h1', args: {} } });
@@ -162,7 +162,8 @@ function aplicarHistorico0(data, e, id) {
     case 'H3': e.mods.premioDuelo = 30; break;
     case 'H4': {
       const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Bagdad']).filter((x) => !jug(e, x).npc));
-      if (ids.length) pedir(e, { tipo: 'historico', modo: 'una', para: ids, titulo: 'Revolución abasí', texto: 'Puedes saquear: +40 dinares del banco (el segundo en tu ciudad, 20). Precio: -20 noches y el marcador Buscado (2 rondas).', opciones: [{ id: 'si', texto: 'Saquear' }, { id: 'no', texto: 'No' }], porDefecto: 'no', cont: { fn: 'ev.h4', args: {} } });
+      if (ids.length) pedir(e, { tipo: 'historico', modo: 'una', todos: true, para: ids, titulo: 'Revolución abasí',   // todos: con un solo jugador la respuesta también llega por jugador (antes se perdía y no cobraba el saqueo)
+      texto: 'Puedes saquear: +40 dinares del banco (el segundo en tu ciudad, 20). Precio: -20 noches y el marcador Buscado (2 rondas).', opciones: [{ id: 'si', texto: 'Saquear' }, { id: 'no', texto: 'No' }], porDefecto: 'no', cont: { fn: 'ev.h4', args: {} } });
       break;
     }
     case 'H5': e.mods.almoravides = true; break;
@@ -254,10 +255,12 @@ registrar('ev.h1', (data, e, args, resp) => {
 });
 registrar('ev.h2', (data, e, args, resp) => {
   const pid = resp.pid, j = jug(e, pid);
-  if (resp.opcion === 'quedar') { if (j.dinares < 20) { mover(data, e, pid, 'Magreb', 0, 'no tiene los 20 dinares y es escoltado por un rey cristiano'); return; } pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares y se queda en Andalucía.`, { pid }); return; }
+  // Jorge (27 de noviembre, decisión D06): quien no puede pagar «paga lo que lleve y el rey lo escolta gratis al Magreb» (carta y R 17.2).
+  const escolta = (porque) => { const lleva = Math.max(0, j.dinares); if (lleva) { j.dinares -= lleva; log(e, `${j.nombre} paga al rey cristiano todo lo que lleva: ${lleva} dinares.`, { pid }); } mover(data, e, pid, 'Magreb', 0, porque); };
+  if (resp.opcion === 'quedar') { if (j.dinares < 20) { escolta('no tiene los 20 dinares y es escoltado por un rey cristiano'); return; } pagar(data, e, pid, 20); log(e, `${j.nombre} paga 20 dinares y se queda en Andalucía.`, { pid }); return; }
   const tramos = tramosToledo(data, e, j, resp.opcion);
-  if (!tramos) { mover(data, e, pid, 'Magreb', 0, 'es escoltado al Magreb'); return; }   // nunca un viaje sin tarifa (antes Bagdad salía «(null)» y gratis)
-  if (patrimonio(j) < tramos.reduce((s, x) => s + x.t, 0)) { mover(data, e, pid, 'Magreb', 0, 'es escoltado al Magreb'); return; }
+  if (!tramos) { escolta('es escoltado al Magreb'); return; }   // nunca un viaje sin tarifa (antes Bagdad salía «(null)» y gratis)
+  if (patrimonio(j) < tramos.reduce((s, x) => s + x.t, 0)) { escolta('no le alcanza para el viaje y es escoltado al Magreb'); return; }
   for (const x of tramos) mover(data, e, pid, x.d, x.t, 'abandona al-Ándalus');   // a Bagdad: dos tramos, cada uno cuenta como viaje
 });
 registrar('ev.h4', (data, e, args, resp) => {
@@ -349,7 +352,8 @@ export function salida(data, e, pid, args, paso = 0) {
 registrar('ev.salida', (data, e, args, resp) => {
   const pid = args.pid, j = jug(e, pid);
   if (resp.opcion === 'pagar') { j.dinares -= 10; }
-  else if (peleaNPC(data, e, pid, { etq: 'Patrulla', dados: 2, bono: 0 })) { j.dinares += 20; log(e, `${j.nombre} vence a la Patrulla: +20 dinares.`, { pid }); }
+  else if (peleaNPC(data, e, pid, { etq: 'Patrulla', dados: 2, bono: 1 }))   // R 17.2: la Patrulla tira 2 dados y suma 1 (Jorge, 27 de noviembre, decisión D07)
+  { j.dinares += 20; log(e, `${j.nombre} vence a la Patrulla: +20 dinares.`, { pid }); }
   else { pagar(data, e, pid, 20); j.herido = true; log(e, `${j.nombre} pierde ante la Patrulla: −20 dinares y herido.`, { pid }); }
   if (j.eliminado) return;
   if (salida(data, e, pid, args.args, args.paso)) return;

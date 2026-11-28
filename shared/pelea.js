@@ -69,16 +69,17 @@ export function esclavosArmados(j, armas, propia) {
   return { armados: k, bono: b, texto: `tu esclavo pelea por ti (categoría D)${b ? `; ${k - 1 === 1 ? 'otro esclavo armado' : k - 1 + ' esclavos armados más'} +${b}` : ''}` };
 }
 
-// Objeto de tipo Arma del mazo: máximo 1 por bando en cada pelea (R 15.2). Elige el mejor para ese bando.
-function objetoDeCombate(data, e, pid, rol, { contraNPC = false, duelo = false } = {}) {
+// Objetos de tipo Arma del mazo. Jorge (27 de noviembre, decisión D04: «no hay límite excepto en duelos»): en los duelos, máximo 1 por
+// bando (el mejor); en las demás peleas se suman todos los que sirvan.
+function objetoDeCombate(data, e, pid, rol, { contraNPC = false, duelo = false, escudo = 1 } = {}) {
   const j = e.jugadores[pid];
   const opciones = [];
-  if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: 1, texto: 'Escudo de cuero +1', gasta: false });   // Jorge (10 de noviembre): +1 como defensor en todas las peleas
+  if (rol === 'def' && tieneObj(j, 'OB04')) opciones.push({ id: 'OB04', bono: escudo, texto: `Escudo de cuero +${escudo}`, gasta: false });   // R36: +2 (Jorge, 27 de noviembre, C04)   // Jorge (10 de noviembre): +1 como defensor en todas las peleas
   if (tieneObj(j, 'OB01') && !duelo) opciones.push({ id: 'OB01', bono: 1, texto: 'Daga de manga +1 (se gasta)', gasta: true });   // no cuenta en duelos (12 de noviembre); se gasta y se esfuma al usarla (19 de noviembre)
   if (contraNPC && tieneObj(j, 'OB02')) opciones.push({ id: 'OB02', bono: 2, texto: 'Honda de pastor +2', gasta: true });
   if (rol === 'def' && tieneObj(j, 'OB03') && !j.extra.usaPolvo) opciones.push({ id: 'OB03', bono: 2, texto: 'Polvo de pimienta (el atacante resta 2)', gasta: true });
   opciones.sort((a, b) => b.bono - a.bono || (a.gasta ? 1 : 0) - (b.gasta ? 1 : 0));
-  return opciones[0] || null;
+  return duelo ? opciones.slice(0, 1) : opciones;
 }
 export function consumir(data, e, pid, id) {
   const j = e.jugadores[pid], c = tieneObj(j, id);
@@ -90,7 +91,7 @@ export function consumir(data, e, pid, id) {
 }
 
 // Suma de bonos de un bando. Lanza el dado de sorpresa de la jambiya UNA vez al empezar la pelea (R 11.1). Registra las líneas del desglose.
-export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false } = {}) {
+export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false, escudo = 1 } = {}) {
   const j = e.jugadores[pid];
   let total = 0; const partes = [];
   for (const ref of perf.armas) {
@@ -107,9 +108,8 @@ export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duel
   if (perf.esclavos?.texto) { total += perf.esclavos.bono; partes.push(perf.esclavos.texto); }   // esclavos de pelea (11.3)
   if (tieneEsp(j, 'K1')) { total += 2; partes.push('Ejército de Kanmakán +2'); usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
-  const ob = objetoDeCombate(data, e, pid, rol, { contraNPC, duelo });
   let resta = 0;
-  if (ob) {
+  for (const ob of objetoDeCombate(data, e, pid, rol, { contraNPC, duelo, escudo })) {
     if (ob.id === 'OB03') { resta = 2; partes.push('Polvo de pimienta (rival −2)'); } else { total += ob.bono; partes.push(ob.texto); }
     if (ob.gasta) consumir(data, e, pid, ob.id);
   }
@@ -526,7 +526,8 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}) {
   if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
   if (tieneEsp(j, 'K1')) { partes.push('Ejército de Kanmakán +2'); total += 2; usarKanmakan(e, j); }
   if (j.ventajaCombate > 0) { total += 4; j.ventajaCombate--; partes.push('deseo de ifrit +4'); }   // deseo e: +4 en la próxima pelea (Jorge, 21 de noviembre)
-  if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1'); total += 1; }
+  // Daga de manga: se gasta y se esfuma al usarla en cualquier pelea (Jorge, 27 de noviembre, decisión D03; antes no se gastaba en robos ni ataques a muerte).
+  if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1 (se gasta)'); total += 1; consumir(data, e, pid, 'OB01'); }
   return { total, resta, partes };
 }
 export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en ? '; con 3 o 4 (arco entrenado), con −1' : ''}; si lleva escudo, no le hace nada`;
@@ -798,7 +799,7 @@ export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
 // npc: {etq, dados=2, bono=0, jambiya=false}. El jugador tira 2 dados + bonos de arma (+1 por destreza, como en la Patrulla R 17.2). Empate: se repite.
 export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
-  const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
+  const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true, escudo: npc.escudo ?? 1 });
   const n0 = nombre(e, pid);
   avisoSinFlechas(data, e, pid);
   // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.

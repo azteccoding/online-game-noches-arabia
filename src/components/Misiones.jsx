@@ -11,8 +11,8 @@ export function NochesExtra({ s }) {
       <ul className="lista-merc">
         {hz.map(([k, h]) => (
           <li key={k}><div className="prod"><b>{h.nombre}</b> (+{h.noches} noches, cruzando entre {h.par.join(' y ')}{k === 'quds' ? ' en burro' : ''})
-            <br /><small>{h.bloqueada ? `Bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.` : `Disponible: ${h.quedan} de 2 este turno.`}</small></div>
-            <div className="der"><span className={`chip${h.bloqueada ? ' mal' : ''}`}>{h.bloqueada ? 'bloqueada' : 'disponible'}</span></div></li>
+            <br /><small>{h.unaVez ? (h.quedan ? 'Una sola vez por partida: todavía no la cobras.' : 'Ya la cobraste: solo vale una vez por partida.') : h.bloqueada ? `Bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.` : `Disponible: ${h.quedan} de 2 este turno.`}</small></div>
+            <div className="der"><span className={`chip${h.bloqueada || !h.quedan ? ' mal' : ''}`}>{h.bloqueada ? 'bloqueada' : h.quedan ? 'disponible' : 'cobrada'}</span></div></li>
         ))}
         {animales.map((c) => (
           <li key={c.uid}><div className="prod"><b>{c.datos.titulo}</b><br /><small>Albéitar y comida cada turno; muere al cumplir sus turnos.</small></div>

@@ -397,11 +397,12 @@ function forzar(e, ...valores) {
   if (e.turno.ccActual) g.act(pid, { t: 'omitirCC' });
   assert.ok(e.log.some((l) => /Visitar al-Quds», \+40/.test(l.texto)), 'al-Quds da +40 noches');
   assert.ok(j.noches - n0 >= 40);
-  assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.quedan, 1, 'queda una más este turno');
-  e.jugadores[pid].extra.hazanaBloq = { quds: true };
-  assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.bloqueada, true, 'la vista muestra el bloqueo');
-  hazanasFinTurno(data, e); assert.ok(j.extra.hazanaBloq.quds, 'terminar en Damasco no libera al-Quds');
-  j.ciudad = 'Aleppo'; e.turno.hazanas = {}; hazanasFinTurno(data, e); assert.ok(!j.extra.hazanaBloq.quds, 'terminar fuera del par libera al-Quds');
+  // Jorge (27 de noviembre, C02): al-Quds vale una sola vez por jugador en toda la partida
+  assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.quedan, 0, 'al-Quds ya no queda: una vez por partida');
+  j.extra.hazanaBloq = {}; j.ciudad = 'Damasco'; turnoDe(e, pid, 'Damasco'); e.turno.fase = 'acciones'; n0 = j.noches;
+  { const r = g.act(pid, { t: 'usar', uid: darItem(e, j, 'burro').uid, destino: 'El Cairo' }); assert.ok(r.ok, 'de regreso en burro: ' + r.error); }
+  if (e.turno.ccActual) g.act(pid, { t: 'omitirCC' });
+  assert.ok(e.log.some((l) => /ya cobró «Visitar al-Quds» en esta partida/.test(l.texto)), 'la segunda vez no cobra y se le avisa');
   turnoDe(e, pid, 'Magreb'); j.ciudad = 'Magreb'; n0 = j.noches;
   llegada(data, e, pid, 'Andalucía'); llegada(data, e, pid, 'Magreb'); llegada(data, e, pid, 'Andalucía');
   assert.equal(e.turno.hazanas.tariq, 2, 'Tariq vale como máximo 2 veces por turno');
@@ -5226,7 +5227,7 @@ console.log('reglas de la casa OK');
 {
   const { TIMBUKTU, FORJA } = await import('../shared/retos.js'); const { PISTACHES } = await import('../shared/base.js');
   assert.equal(TIMBUKTU.noches, 20); assert.equal(TIMBUKTU.noches + TIMBUKTU.mansa[6], 60); assert.equal(TIMBUKTU.noches + TIMBUKTU.mansa[4], 40);
-  assert.equal(FORJA.nochesPrimero, 50); assert.equal(FORJA.noches, 10); assert.equal(PISTACHES.noches, 50);
+  assert.equal(FORJA.nochesPrimero, 50); assert.equal(FORJA.noches, 10); assert.equal(PISTACHES.noches, 60);   // Jorge (27 de noviembre, C05): 60, como dice la carta
   const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   turnoDe(e, a, 'Estambul'); A.ciudad = 'Estambul'; A.dinares = 80; e.turno.fase = 'acciones'; const n0 = A.noches;
@@ -5815,4 +5816,103 @@ console.log('Sherezada: los dados antes que la muerte OK');
   const C = e.jugadores[c]; C.ciudad = 'Damasco'; C.mano = C.mano.filter((x) => !['alfanje', 'cimitarra', 'jambiya', 'arco'].includes(x.ref)); darItem(e, C, 'esclavoPelea'); C.herido = true;
   duelo(data, e, a, c); assert.ok(C.eliminado, 'sin arma el esclavo no pelea');
   console.log('el esclavo muere en lugar del amo OK');
+}
+
+// Decisiones de Jorge del 27 de noviembre (reporte de diferencias Word-código)
+{
+  const { aplicarHistorico } = await import('../shared/eventos.js');
+  const { bonosCombate, bonos, perfil } = await import('../shared/pelea.js');
+  const RETOS = await import('../shared/retos.js');
+  const limpio = (e) => { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; };
+  // D03: la Daga de manga se gasta también en robos y ataques a muerte
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.mano.push({ uid: 'dg1', tipo: 'objeto', ref: 'OB01', pub: true });
+    const b = bonosCombate(data, e, a, 'atk', A.ciudad); assert.ok(b.partes.some((x) => /Daga de manga/.test(x)), 'suma la daga');
+    assert.ok(!tieneObj(A, 'OB01'), 'y la daga se gasta');
+  }
+  // D04: contra un NPC se suman todos los objetos de combate; en duelo, solo uno
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    const poner = () => { A.mano = A.mano.filter((c) => !['OB01', 'OB02', 'OB04'].includes(c.ref)); A.mano.push({ uid: 'x1', tipo: 'objeto', ref: 'OB01', pub: true }, { uid: 'x2', tipo: 'objeto', ref: 'OB02', pub: true }, { uid: 'x4', tipo: 'objeto', ref: 'OB04', pub: true }); };
+    poner(); const n = bonos(data, e, a, perfil(data, e, a), 'def', null, { contraNPC: true });
+    assert.ok(['Daga', 'Honda', 'Escudo'].every((k) => n.partes.some((x) => x.includes(k))), 'contra NPC: daga, honda y escudo juntos');
+    poner(); const d = bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true });
+    assert.equal(d.partes.filter((x) => /Daga|Honda|Escudo/.test(x)).length, 1, 'en duelo, un solo objeto');
+    poner(); const r = bonos(data, e, a, perfil(data, e, a), 'def', null, { contraNPC: true, escudo: 2 });
+    assert.ok(r.partes.includes('Escudo de cuero +2'), 'C04: en R36 el escudo da +2');
+  }
+  // D06: Toledo sin los 20 dinares: paga lo que lleve y lo escoltan al Magreb
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Damasco';
+    A.ciudad = 'Andalucía'; A.dinares = 7; limpio(e);
+    aplicarHistorico(data, e, 'H2');
+    while (e.pend && !e.pend.para.includes(a)) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto || e.pend.opciones[0].id });
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'quedar' }).ok);
+    assert.equal(A.ciudad, 'Magreb'); assert.equal(A.dinares, 0, 'paga lo que lleva');
+  }
+  // D16: huir de los Zanj cuesta 20; sin ellos, queda en deuda
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Damasco';
+    A.ciudad = 'Bagdad'; A.mano = A.mano.filter((c) => c.ref !== 'burro'); A.dinares = 5; limpio(e);
+    aplicarHistorico(data, e, 'H1');
+    while (e.pend && !e.pend.para.includes(a)) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto || e.pend.opciones[0].id });
+    const op = e.pend.opciones.find((o) => o.id === 'Damasco'); assert.match(op.texto, /20 dinares; no te alcanzan: quedas en deuda/);
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'Damasco' }).ok);
+    assert.equal(A.ciudad, 'Damasco'); assert.equal(A.dinares, -15, 'queda en deuda');
+  }
+  // H4: con un solo jugador en la ciudad, el saqueo sí paga (antes la respuesta se perdía) y deja Buscado
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Isfahán';
+    A.ciudad = 'Damasco'; limpio(e); const d0 = A.dinares;
+    aplicarHistorico(data, e, 'H4');
+    assert.deepEqual(e.pend.para, [a]);
+    assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    assert.equal(A.dinares, d0 + 40, 'cobra 40'); assert.ok(A.buscado > 0, 'queda Buscado');
+  }
+  // D15: R6 solo con el dado igual al promedio; si no, 1 dinar y 20 noches
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.ciudad = 'Bagdad'; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones'; A.retosHechos = A.retosHechos.filter((x) => x !== 'R6');
+    forzar(e, 3, 3, 3, 4); const d0 = A.dinares, n0 = A.noches;
+    assert.ok(g.act(a, { t: 'reto', id: 'R6' }).ok);
+    assert.equal(A.dinares - d0, 1); assert.equal(A.noches - n0, 20, 'promedio 3 y dado 4: ya no basta con uno más');
+  }
+  // C03: R10 fallado se puede volver a intentar
+  {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
+    A.ciudad = 'El Cairo'; turnoDe(e, a, 'El Cairo'); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'reto', id: 'R10' }).ok); assert.ok(A.retosHechos.includes('R10'));
+    A.turnos += 5; RETOS.inicioTurno(data, e, a);
+    assert.ok(!A.misiones.some((x) => x.id === 'R10') && !A.retosHechos.includes('R10'), 'pierde R10 por el plazo y lo puede volver a intentar');
+  }
+  // D08: con 7 u 8 jugadores el sorteo usa dos dados y cualquiera puede salir; la puja es libre
+  {
+    const g = partida(['1', '2', '3', '4', '5', '6', '7', 'B'], { sinYafar: true }); assert.ok(g.iniciar().ok); const e = g.e;
+    for (const j of Object.values(e.jugadores)) { j.extra.clienteWeb = !j.npc; j.dinares = 500; }
+    limpio(e); e.asesinos.actuaron = false;
+    const vistos = new Set();
+    for (let s = 1; s <= 60 && vistos.size < 8; s++) { e.semilla = s; limpio(e); e.asesinos.actuaron = false; NPC.eventoAsesinos(data, e); vistos.add(e.asesinos.evento?.probable); }
+    assert.equal(vistos.size, 8, 'con 8 jugadores pueden salir los 8');
+    const d = [e.dados, ...e.colaDados].find((x) => x && /primer dado, el grupo/.test(x.grupos[0].etq)); assert.ok(d && d.grupos.length === 2, 'dos dados');
+    assert.equal(e.pend.tipo, 'subasta'); assert.equal(e.pend.modo, 'numero');
+    const [p1, p2] = e.pend.para, min = e.pend.cont.args.min;
+    assert.match(g.act(p1, { t: 'decidir', id: e.pend.id, numero: min - 1 }).error || '', /puja mínima/);
+    assert.ok(g.act(p1, { t: 'decidir', id: e.pend.id, numero: min + 7 }).ok, 'puja libre: cualquier cifra');
+    assert.equal(vistaDe(e, p2).pend.subasta.mejor, min + 7);
+    for (const x of e.pend.para) if (!e.pend.resp[x]) g.act(x, { t: 'decidir', id: e.pend.id, numero: 0 });
+    assert.equal(e.pend?.tipo, 'asesinos', 'gana quien pujó'); assert.deepEqual(e.pend.para, [p1]);
+  }
+  // D14: ganan juntos los que llegan a 1,001 en la misma ronda
+  {
+    const g = partida(['4', '7'], { sinYafar: true }); assert.ok(g.iniciar().ok); const e = g.e, [a, b] = g.ids;
+    e.jugadores[a].noches = 1001; e.jugadores[b].noches = 1001; e.llegoMil = { [a]: 1, [b]: 2 }; e.sigueMil = {}; limpio(e);
+    turnoDe(e, b, e.jugadores[b].ciudad); e.turno.fase = 'acciones'; e.turno.idx = e.orden.length - 1;
+    g.act(b, { t: 'terminarTurno' }); avanzarHasta(g, () => e.fase === 'fin', 200);
+    assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores.slice().sort(), [a, b].sort(), 'ganan los dos juntos');
+  }
+  console.log('decisiones del 27 de noviembre OK');
 }
