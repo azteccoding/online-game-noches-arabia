@@ -3819,14 +3819,20 @@ console.log('reglas de la casa OK');
     assert.ok(A.herido); assert.equal(A.noches, n0 + 25); assert.equal(A.dinares, d0 + 5); assert.ok(!A.extra.entrenado?.jambiya, 'impar: no entrena'); assert.ok(!(A.pierdeTurno > 0), 'con 1 a 3 no pierde el turno');
     assert.ok(A.retosHechos.includes('R54')); e.dados = null; e.colaDados = []; e.turno.principal = false; A.herido = false;
     assert.ok(!g.act(a, { t: 'reto', id: 'R54' }).ok, 'una sola vez'); }
-  // Jorge (21 de noviembre): con par gana la destreza general, en todas las armas (antes, entrenamiento de un arma); llega al terminar el turno
-  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); const n0 = A.noches; forzar(e, 4, 5);
+  // Jorge (28 de noviembre): «Solo las armas que llevabas en ese momento»: con par quedas entrenado con cada arma que llevas (no con
+  // las que consigas después, y no es la destreza general); llega al terminar el turno
+  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); darItem(e, A, 'jambiya'); const n0 = A.noches; forzar(e, 4, 5);
     assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok);
-    assert.ok(!A.herido); recibirDestreza(data, e, a); assert.ok(A.destreza, 'destreza general'); assert.ok(!A.extra.entrenado?.cimitarra, 'no es un entrenamiento de arma'); assert.equal(A.noches, n0 + 10); assert.equal(A.pierdeTurno, 1, 'con 4 a 6 pierde su siguiente turno'); }
+    assert.ok(!A.herido); recibirDestreza(data, e, a);
+    assert.ok(!A.destreza, 'no es la destreza general'); assert.ok(A.extra.entrenado?.cimitarra && A.extra.entrenado?.jambiya, 'las dos que llevaba');
+    assert.ok(!A.extra.entrenado?.alfanje, 'el alfanje no lo llevaba'); assert.equal(A.noches, n0 + 10); assert.equal(A.pierdeTurno, 1, 'con 4 a 6 pierde su siguiente turno');
+    A.mano = A.mano.filter((c) => c.ref !== 'cimitarra' && c.ref !== 'jambiya'); darItem(e, A, 'alfanje'); A.ciudad = 'Damasco';
+    const { perfil: pf } = await import('../shared/pelea.js'); assert.ok(!pf(data, e, a).destreza, 'con un alfanje comprado después pelea sin destreza'); }
   { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); darItem(e, A, 'alfanje'); A.extra.clienteWeb = true; forzar(e, 2, 1);
     assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.ok(!e.pend, 'ya no se elige arma'); }
-  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); A.destreza = true; const n0 = A.noches; forzar(e, 2, 1);
-    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.equal(A.noches, n0 + 10, 'ya con destreza: solo las 10 noches'); }
+  { const { g, e, A, a } = prep(); darItem(e, A, 'cimitarra'); A.extra.entrenado = { cimitarra: true }; const n0 = A.noches; forzar(e, 2, 1);
+    assert.ok(g.act(a, { t: 'reto', id: 'R54' }).ok); assert.equal(A.noches, n0 + 10, 'ya entrenado con su arma: solo las 10 noches');
+    assert.ok(!(A.extra.destrezaPend || []).length, 'nada pendiente'); }
 }
 
 // R55 «Investigar el fuego griego» (Jorge, 19 de noviembre): en Estambul, con árabe y persa; como las clases de idiomas (5 dinares,
@@ -4404,11 +4410,11 @@ console.log('reglas de la casa OK');
     assert.match(g.act(z, { t: 'reto', id: 'R18' }).error || '', /salvo con la jambiya/, `${pj}: no entrena cimitarra`);
     Z.ciudad = 'Yemen'; turnoDe(e, z, 'Yemen'); e.turno.fase = 'acciones';
     { const r = g.act(z, { t: 'reto', id: 'R19' }); assert.ok(r.ok, r.error); recibirDestreza(data, e, z); assert.ok(!Z.extra.entrenado?.jambiya, `${pj}: la jambiya llega hasta la siguiente ronda`); e.ronda++; recibirDestreza(data, e, z); } assert.ok(Z.extra.entrenado?.jambiya, `${pj}: entrena jambiya`);
-    // R54 con par: no entrena la cimitarra
+    // R54 con par: destreza con la cimitarra que lleva
     Z.extra.entrenado = {}; Z.ciudad = 'Estambul'; Z.herido = false; Z.mano = Z.mano.filter((c) => c.ref !== 'jambiya'); turnoDe(e, z, 'Estambul'); e.turno.fase = 'acciones'; forzar(e, 2, 1);
-    { const r = g.act(z, { t: 'reto', id: 'R54' }); assert.ok(r.ok, r.error); } assert.ok(!e.pend && !Z.extra.entrenado?.cimitarra, `${pj}: R54 no entrena cimitarra`);
-    // Jorge (26 nov): «Ponle que ahí sí dan destreza»: con par en R54 también ellos ganan la destreza en todas las armas
-    recibirDestreza(data, e, z); assert.ok(Z.destreza, `${pj}: R54 sí da destreza`); darItem(e, Z, 'cimitarra'); Z.ciudad = 'Damasco';
+    { const r = g.act(z, { t: 'reto', id: 'R54' }); assert.ok(r.ok, r.error); } assert.ok(!e.pend, `${pj}: R54 sin elegir arma`);
+    // Jorge (26 nov): «Ponle que ahí sí dan destreza»: con par en R54 también ellos ganan destreza, con las armas que llevan (28 nov)
+    recibirDestreza(data, e, z); assert.ok(Z.extra.entrenado?.cimitarra, `${pj}: R54 sí da destreza con la cimitarra que lleva`); Z.ciudad = 'Damasco';
     assert.ok(perfil(data, e, z).destreza, `${pj}: tras R54, con cimitarra pelea con destreza`);
   }
   // los demás sí ganan la destreza general
@@ -5927,4 +5933,19 @@ console.log('Sherezada: los dados antes que la muerte OK');
     assert.equal(e.fase, 'fin'); assert.deepEqual(e.ganadores.slice().sort(), [a, b].sort(), 'ganan los dos juntos');
   }
   console.log('decisiones del 27 de noviembre OK');
+}
+// Jorge (28 de noviembre): «la destreza aplica también en duelos»: la destreza general suma +1 en el duelo; una flecha de 5 o 6 se la quita
+{
+  const { bonos, perfil } = await import('../shared/pelea.js');
+  const g = partida(['4', '7']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['cimitarra', 'alfanje', 'arco', 'jambiya'].includes(c.ref)); darItem(e, A, 'alfanje');
+  A.destreza = false;
+  assert.equal(bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true }).total, 1, 'sin destreza: solo el alfanje');
+  A.destreza = true;
+  const b = bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true });
+  assert.equal(b.total, 2, 'alfanje +1 y destreza +1'); assert.ok(b.partes.includes('destreza +1'));
+  const c = bonos(data, e, a, perfil(data, e, a), 'def', null, { duelo: true, conDestreza: true, sinDestreza: true });
+  assert.equal(c.total, 1, 'la flecha le quita la destreza'); assert.ok(c.partes.includes('destreza perdida por la flecha'));
+  console.log('destreza en duelos OK');
 }

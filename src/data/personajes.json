@@ -60,7 +60,7 @@
     "Empieza con destreza en la jambiya (no trae jambiya: la compra en cualquier mercado).",
     "Dados del Cairo: empieza con esta carta, regalo de Zacaría al Ansari. Una vez por ronda, si va a perder una pelea, repite sus dados. La puede vender a otro jugador al precio que quieran o al mercado de la ciudad por 35 dinares (el mercado la revende en 75).",
     "Habla árabe desde el inicio (como si hubiera hecho el reto R47).",
-    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya. La excepción es combatir a los húngaros (R54): ahí sí gana la destreza en todas las armas.",
+    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya. La excepción es combatir a los húngaros (R54): ahí sí gana destreza con todas las armas que lleve en ese momento.",
     "No puede hacer el reto «Acostarse con Zein en la Giralda» (R26).",
     "Sus Dados del Cairo duran 5 turnos; si llega a El Cairo con ellos, le duran 7 en total (contados desde el inicio).",
     "No paga alojamiento en Andalucía.",
@@ -181,7 +181,7 @@
    "destreza": false,
    "habilidades": [
     "Habla árabe desde el inicio (como si hubiera hecho el reto R47).",
-    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya. La excepción es combatir a los húngaros (R54): ahí sí gana la destreza en todas las armas.",
+    "Nunca consigue destreza, salvo con la jambiya: si gana destreza con armas, solo le sirve con la jambiya, y solo puede entrenar la jambiya. La excepción es combatir a los húngaros (R54): ahí sí gana destreza con todas las armas que lleve en ese momento.",
     "Empieza con 200 noches y 5 cartas de respuestas: si falla una trivia, se gasta una y cuenta como correcta (gana el premio).",
     "Quien llega a su ciudad (fuera de Bagdad) le puede comprar 20 noches por 10 dinares, y Ruyán tiene que vender; viaja gratis de Bagdad a El Cairo."
    ],

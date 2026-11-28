@@ -91,9 +91,12 @@ export function consumir(data, e, pid, id) {
 }
 
 // Suma de bonos de un bando. Lanza el dado de sorpresa de la jambiya UNA vez al empezar la pelea (R 11.1). Registra las líneas del desglose.
-export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false, escudo = 1 } = {}) {
+export function bonos(data, e, pid, perf, rol, lineas, { contraNPC = false, duelo = false, escudo = 1, conDestreza = false, sinDestreza = false } = {}) {
   const j = e.jugadores[pid];
   let total = 0; const partes = [];
+  // Jorge (28 de noviembre): «la destreza aplica también en duelos»: la destreza general (R25, o la jambiya de Zein y Ruyán) suma +1,
+  // como en robos y ataques a muerte; una flecha de 5 o 6 se la quita en esa pelea.
+  if (conDestreza && perf.general) { if (sinDestreza) partes.push('destreza perdida por la flecha'); else { total += 1; partes.push('destreza +1'); } }
   for (const ref of perf.armas) {
     if (ref === 'arco') continue;                                            // el arco no suma fijo: dispara una flecha antes de la pelea
     if (ref === 'jambiya') {
@@ -668,7 +671,7 @@ function resolver(data, e, { numeros }) {
       } else mostrarDados(e, { por: P.def, npc: esNPC(e, P.def), motivo: 'pelea', titulo, grupos: [{ etq: `${nD} lanza (dijo ${dicho})`, valores: [x] }], resumen: [...inicio, regla, tirada, consecuencia(e, P, ganaAtk, numeroOk, cat)] });
     }
   } else {
-    const bA = bonos(data, e, atk, pA, 'atk', null, { duelo: P.tipo === 'duelo' }), bD = bonos(data, e, def, pD, 'def', null, { duelo: P.tipo === 'duelo' });
+    const bA = bonos(data, e, atk, pA, 'atk', null, { duelo: P.tipo === 'duelo', conDestreza: true, sinDestreza: !!P.mods?.atk?.sinDestreza }), bD = bonos(data, e, def, pD, 'def', null, { duelo: P.tipo === 'duelo', conDestreza: true, sinDestreza: !!P.mods?.def?.sinDestreza });
     for (const [b, m] of [[bA, P.mods?.atk], [bD, P.mods?.def]]) if (m?.flecha) { b.total -= m.flecha; b.partes.push(`flecha −${m.flecha}`); }
     if (P.polvo && !P.ayudante) { bD.resta = Math.max(bD.resta, 2); const dj = e.jugadores[P.def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nD} usa Polvo de pimienta: el atacante resta 2.`); }
     const matar = P.tipo === 'matar', op = { empateTermina: matar };     // a muerte, el empate no se repite: deja heridos a los dos
@@ -789,7 +792,7 @@ function terminarPelea(data, e, res) {
 // ---------------------------------------------------------------- pelea entre dos jugadores sin números (torneo E5, entrenamiento H7): siempre por dados
 export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
   const pA = perfil(data, e, a), pB = perfil(data, e, b);
-  const bA = bonos(data, e, a, pA, 'atk', null), bB = bonos(data, e, b, pB, 'def', null);
+  const bA = bonos(data, e, a, pA, 'atk', null, { conDestreza: true }), bB = bonos(data, e, b, pB, 'def', null, { conDestreza: true });
   const r = luchaD(data, e, a, b, bA, bB);
   mostrarPelea(data, e, { atk: a, def: b, bA, bD: bB, rondas: [{ intentos: r.intentos }], inicio: [titulo], titulo, cierre: [`Gana ${nombre(e, r.ganaA ? a : b)}.`] });
   return r.ganaA ? a : b;

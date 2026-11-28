@@ -714,6 +714,11 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
     let texto;
     if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
     else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Un 3 o 4 en tu flecha también le pega al rival: pelea con −1.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'armasR54') {
+      for (const r of q.armas) (j.extra.entrenado ||= {})[r] = true;
+      const l = q.armas.map((r) => (r === 'alfanje' ? 'el alfanje' : 'la ' + r)); const t = l.length > 1 ? l.slice(0, -1).join(', ') + ' y ' + l.at(-1) : l[0];
+      texto = `Terminó tu turno con el ejército del sultán: ya tienes destreza con ${t}. Cuando pelees con ${q.armas.length > 1 ? 'cada una' : (q.armas[0] === 'alfanje' ? 'él' : 'ella')}, peleas con destreza y sumas +1.`;
+    }
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
     log(e, `${j.nombre}: ${texto}`, { pid, aviso: true });
@@ -1124,24 +1129,31 @@ export function finForja(data, e, pid) {
   log(e, `${j.nombre} termina de forjar su acero de Damasco: recibe una cimitarra${primero ? ' y gana 50 noches por ser el primero. Desde ahora se venden cimitarras en los mercados' : ' y gana 10 noches'}.`, { pid, aviso: true });
 }
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán
-// otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, 10 noches y la destreza
-// general, en todas las armas, como la de Estambul (Jorge, 21 de noviembre; antes, entrenamiento de un arma), que llega al terminar el
-// turno; si ya la tenías, solo las noches. Segundo dado: 1 a 3, el siguiente turno estás libre; 4 a 6, sigues en batalla y pierdes ese
-// turno. Una sola vez por jugador; gasta la acción principal; herido no te alistas; Yafar NPC no lo hace.
+// otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, 10 noches y destreza
+// con las armas que llevas en ese momento (Jorge, 28 de noviembre: «Solo las armas que llevabas en ese momento»; del 21 al 28 era la
+// destreza general en todas las armas): quedas entrenado con cada una, como en R18, R19 y R42 (+1 con ella y peleas con destreza), no
+// con las que consigas después; llega al terminar el turno. Si ya estabas entrenado con todas, solo las noches. Segundo dado: 1 a 3,
+// el siguiente turno estás libre; 4 a 6, sigues en batalla y pierdes ese turno. Una sola vez por jugador; gasta la acción principal;
+// herido no te alistas; Yafar NPC no lo hace.
 T.R54 = { ciudad: 'Estambul', req: (d, e, pid) => { const j = e.jugadores[pid];
     return j.npc ? 'Yafar NPC no se alista en el ejército del sultán.' : j.herido ? 'Herido no puedes alistarte.' : !tieneArma(d, e, j) ? 'Necesitas llevar un arma (la que sea) para alistarte.' : null; },
   run(data, e, pid, ctx) { hacer(e, pid, 'R54'); combateR54(e, pid, ctx); } };
-// Jorge (26 de noviembre): «Ponle que ahí sí dan destreza»: R54 es la excepción a la regla de Zein y Ruyán; con par también ellos
-// reciben la destreza en todas las armas, no solo con la jambiya.
+// Jorge (26 de noviembre): «Ponle que ahí sí dan destreza»: R54 es la excepción a la regla de Zein y Ruyán: con par también ellos
+// quedan entrenados con las armas que llevan, no solo con la jambiya.
+export const ARMAS_R54 = ['alfanje', 'cimitarra', 'jambiya'];   // el arco no cuenta como arma
 function combateR54(e, pid, ctx) {
-  const j = e.jugadores[pid], ya = !!j.destreza || (j.extra.destrezaPend || []).some((q) => q.t === 'general' && (q.plena || !soloJambiya(j)));
-  const [x] = ctx.t(`${j.nombre}: el combate (impar, herido y 25 noches y 5 dinares; par, ${ya ? '' : 'destreza en todas las armas y '}10 noches)`, 1);
+  const j = e.jugadores[pid];
+  const pend = new Set((j.extra.destrezaPend || []).filter((q) => q.t === 'arma').map((q) => q.arma));
+  const nuevas = ARMAS_R54.filter((r) => tieneItem(j, r) && !j.extra.entrenado?.[r] && !pend.has(r));
+  const lista = nuevas.map((r) => (r === 'alfanje' ? 'el alfanje' : 'la ' + r));
+  const texto = lista.length > 1 ? lista.slice(0, -1).join(', ') + ' y ' + lista.at(-1) : lista[0];
+  const [x] = ctx.t(`${j.nombre}: el combate (impar, herido y 25 noches y 5 dinares; par, ${nuevas.length ? `destreza con ${texto} y ` : ''}10 noches)`, 1);
   const [y] = ctx.t(`${j.nombre}: la batalla (1 a 3, libre el siguiente turno; 4 a 6, sigue en batalla)`, 1);
   ctx.resultado = x % 2 ? 'fallo' : 'logro';   // impar: herido (las noches y dinares son por el servicio); par: destreza
   if (x % 2) { j.herido = true; j.noches += 25; j.dinares += 5; ctx.say('Impar: quedas herido, pero ganas 25 noches y 5 dinares por tu servicio.'); }
   else {
-    if (!ya) aplazarDestreza(e, pid, { t: 'general', de: 'R54', plena: true });   // llega al terminar el turno (Jorge, 21 de noviembre)
-    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${ya ? ' (ya tenías la destreza con armas)' : '; al terminar tu turno tendrás destreza con armas (+1 en todas las peleas)'}.`);
+    if (nuevas.length) aplazarDestreza(e, pid, { t: 'armasR54', armas: nuevas, de: 'R54' });   // llega al terminar el turno
+    j.noches += 10; ctx.say(`Par: sales sin heridas y ganas 10 noches${nuevas.length ? `; al terminar tu turno tendrás destreza con ${texto}, las armas que llevas (+1 cuando peleas con cada una)` : ' (ya tenías destreza con las armas que llevas)'}.`);
   }
   if (y >= 4) { j.pierdeTurno = (j.pierdeTurno || 0) + 1; ctx.say(`${y}: la batalla sigue; tu siguiente turno lo pasas combatiendo y no puedes jugar.`); }
   else ctx.say(`${y}: terminas tu servicio; el siguiente turno estás libre.`);
