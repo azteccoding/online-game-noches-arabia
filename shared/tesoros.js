@@ -147,7 +147,7 @@ export function esconder(data, e, pid, a) {
   const m = Math.floor(a.monto || 0);
   if (!(m > 0 && m <= j.dinares)) return err('Cantidad inválida.');
   let esc = a.nuevo ? null : esconditeAqui(e, j);
-  if (!esc && !tieneItem(j, 'amate')) return err('Necesitas un papel amate para anotar dónde escondes tus dinares (se compra en el mercado de cualquier ciudad).');
+  if (!esc && !tieneItem(j, 'amate')) return err('Necesitas un papel amate para anotar dónde escondes tus dinares (se compra en el bazar de cualquier ciudad).');
   j.dinares -= m;
   if (!esc) {
     quitarPrimero(j, 'item', 'amate'); esc = { id: uid(e), ciudad: j.ciudad, monto: 0 }; escondites(j).push(esc);

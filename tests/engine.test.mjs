@@ -107,9 +107,9 @@ const sinMensaje = (j) => { j.mensajes = []; };
 {
   const g = partida(['1', '2', '3']); const { e, act } = g; g.listos();
   const p = g.turno(); g.entrar(p); sinMensaje(e.jugadores[p]);
-  const q = g.ids.find((x) => x !== p);                                       // regla de la casa: el mercado vende fuera de tu turno
+  const q = g.ids.find((x) => x !== p);                                       // regla de la casa: el bazar vende fuera de tu turno
   e.jugadores[p].dinares = 200; e.jugadores[q].ciudad = e.jugadores[p].ciudad;
-  const rp = act(p, { t: 'comprar', ref: 'alfanje' }); assert.ok(!rp.ok && /juegan los demás/.test(rp.error), 'en tu turno el mercado no te vende');
+  const rp = act(p, { t: 'comprar', ref: 'alfanje' }); assert.ok(!rp.ok && /juegan los demás/.test(rp.error), 'en tu turno el bazar no te vende');
   const j = e.jugadores[q]; j.dinares = 200; j.mano = [];
   assert.ok(!act(q, { t: 'comprar', ref: 'alfanje' }).ok, 'en Bagdad no hay alfanjes (Jorge, 10 de noviembre)');
   j.ciudad = 'Estambul';

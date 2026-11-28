@@ -64,7 +64,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
           {yo.forjando && <span className="chip chip-ev" title="No puedes salir de Damasco hasta que te den tu cimitarra">Forjando acero de Damasco</span>}
           {yo.conEmir && <span className="chip chip-ev" title="Sirves dos turnos; después recibes la Dádiva del Emir y 5 dinares">Al servicio del Emir de {yo.conEmir}</span>}
           {yo.estudiando && <span className="chip chip-ev" title="No puedes salir de la ciudad y tu acción principal se va en las clases">Estudiando {yo.estudiando.idioma}</span>}
-          {yo.herido && <span className="chip mal">Herido</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
+          {yo.herido && <span className="chip mal">{yo.malHerido ? 'Mal herido' : 'Herido'}</span>}{yo.buscadoInfo && <span className="chip mal" title={yo.buscadoInfo}>Buscado</span>}{yo.perdido && <span className="chip mal">Perdido</span>}
         </div>
       </div>
       {botonDeseo && <div className="acc-responde"><button className="btn responde" onClick={abrirDeseo} title="El genio te concede un deseo: elige cuál">Pedir un deseo</button></div>}
@@ -79,7 +79,7 @@ export default function PanelAcciones({ s, abrir, panel }) {
             <button className={`btn${marca('acciones')}`} onClick={() => abrir('acciones')}>Acciones{nAcc ? ` (${nAcc})` : ''}</button>
           </>
         )}
-        <button className={`btn sec${marca('mercado')}${s.tratos.some((x) => x.con === s.yo) ? ' trato-pendiente' : ''}`} onClick={() => abrir(s.tratos.some((x) => x.con === s.yo) ? 'mercado-tratos' : 'mercado')}>Mercado{s.tratos.some((x) => x.con === s.yo) ? ' 🤝' : ''}</button>
+        <button className={`btn sec${marca('mercado')}${s.tratos.some((x) => x.con === s.yo) ? ' trato-pendiente' : ''}`} onClick={() => abrir(s.tratos.some((x) => x.con === s.yo) ? 'mercado-tratos' : 'mercado')}>Bazar{s.tratos.some((x) => x.con === s.yo) ? ' 🤝' : ''}</button>
         <button className={`btn sec${marca('mano')}`} onClick={() => abrir('mano')}>Mano ({mano})</button>
         <button className={`btn sec${marca('misiones')}`} onClick={() => abrir('misiones')}>Retos{s.misiones.length ? ` (${s.misiones.length})` : ''}</button>
         {miTurno && t.fase !== 'ingreso' && <button className={`btn claro${bloqueo ? ' bloq' : ''}`} aria-disabled={!!bloqueo} onClick={intentar(() => enviar(ACCIONES.terminarTurno()))}>Terminar turno</button>}

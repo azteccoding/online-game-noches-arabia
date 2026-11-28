@@ -63,7 +63,7 @@ export function opciones(data, e, pid) {
   const propios = j.mano.filter(esEsclavo), lazo = !!tieneObj(j, 'OB05');
   for (const c of propios) {
     r.push({ k: 'esclavo', sub: 'dejar', uid: c.uid, titulo: `Dejar a tu ${nombreDe(c)} en ${j.ciudad}`, texto: `Cualquiera que esté en ${j.ciudad} lo puede tomar gratis, y desde entonces le paga él. Ya no te carga nada.` });
-    r.push({ k: 'esclavo', sub: 'amarrar', uid: c.uid, titulo: `Amarrar a tu ${nombreDe(c)} en el mercado de ${j.ciudad}`, texto: `Con el Lazo de camellero: pagas ${ESCLAVOS.amarre} dinares por cada turno tuyo en vez de su paga y lo recuperas gratis. Nadie más lo puede tomar. El lazo no se gasta.`, bloqueado: lazo ? undefined : 'Necesitas el Lazo de camellero.' });
+    r.push({ k: 'esclavo', sub: 'amarrar', uid: c.uid, titulo: `Amarrar a tu ${nombreDe(c)} en el bazar de ${j.ciudad}`, texto: `Con el Lazo de camellero: pagas ${ESCLAVOS.amarre} dinares por cada turno tuyo en vez de su paga y lo recuperas gratis. Nadie más lo puede tomar. El lazo no se gasta.`, bloqueado: lazo ? undefined : 'Necesitas el Lazo de camellero.' });
   }
   for (const x of sueltosEn(e, j.ciudad)) r.push({ k: 'esclavo', sub: 'tomar', uid: x.carta.uid, titulo: `Tomar al ${nombreDe(x.carta)} que ${x.de === pid ? 'dejaste' : `dejó ${e.jugadores[x.de]?.nombre || 'alguien'}`} aquí`, texto: `Gratis. Desde ahora le pagas tú: ${ESCLAVOS.tipos[x.carta.ref].paga} dinar${ESCLAVOS.tipos[x.carta.ref].paga === 1 ? '' : 'es'} por turno.` });
   for (const x of amarradosDe(e, pid).filter((q) => q.ciudad === j.ciudad)) r.push({ k: 'esclavo', sub: 'recuperar', uid: x.carta.uid, titulo: `Recuperar a tu ${nombreDe(x.carta)} amarrado`, texto: 'Gratis. Vuelve a cobrar su paga desde tu siguiente turno.' });
@@ -80,7 +80,7 @@ export function accion(data, e, pid, a) {
     if (a.sub === 'amarrar' && !tieneObj(j, 'OB05')) return err('Necesitas el Lazo de camellero.');
     quitarCarta(j, c.uid);
     if (a.sub === 'dejar') { (e.esclavosSueltos ||= []).push({ carta: c, ciudad: j.ciudad, de: pid }); log(e, `${j.nombre} deja a su ${nombreDe(c)} en ${j.ciudad}: quien esté ahí lo puede tomar.`, { pid }); }
-    else { (e.esclavosAmarrados ||= []).push({ carta: c, ciudad: j.ciudad, dueno: pid }); log(e, `${j.nombre} amarra a su ${nombreDe(c)} en el mercado de ${j.ciudad} con su Lazo de camellero.`, { pid }); }
+    else { (e.esclavosAmarrados ||= []).push({ carta: c, ciudad: j.ciudad, dueno: pid }); log(e, `${j.nombre} amarra a su ${nombreDe(c)} en el bazar de ${j.ciudad} con su Lazo de camellero.`, { pid }); }
     if (cargaExcedida(j, e)) info(e, pid, 'Vas sobrecargado', sobrecarga(j, e));
     return ok();
   }

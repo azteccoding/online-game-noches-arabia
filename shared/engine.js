@@ -165,7 +165,7 @@ function reponerMercado(data, e) {
   const n = data.objetos.escasez?.reposicionPorRonda ?? 2;
   const vuelven = (e.reposicion ||= []).splice(0, n);
   for (const id of vuelven) ponerExistencia(e, id);
-  if (vuelven.length) log(e, `Vuelven al mercado: ${vuelven.map((id) => objDe(data, id)?.nombre || id).join(', ')}.`);
+  if (vuelven.length) log(e, `Vuelven al bazar: ${vuelven.map((id) => objDe(data, id)?.nombre || id).join(', ')}.`);
 }
 
 // ---------------------------------------------------------------- partida
@@ -404,6 +404,7 @@ function siguienteTurno(data, e, desde) {
   ejFinTurno(data, e);
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
   if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); OBJ.caducarAlforjas(data, e, e.turno.pid); RET.recibirDestreza(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); RET.finForja(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
+  { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt && e.turno.malHeridoAhora && jt.malHerido) jt.malHerido = false; }   // pasó su turno mal herido: el siguiente, solo herido
   if (e.turno && e.rayhan?.por === e.turno.pid) { RET.rayhanFinTurno(data, e, e.turno.pid); if (e.fase !== 'juego') return ok(); }   // R68: se cobra la deuda con Rayhán
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
   let idx = desde;
@@ -461,7 +462,9 @@ function iniciarTurno(data, e, id, idx) {
   // Regla de Jorge (punto 1, solo Yafar NPC): llega ebrio a su primer turno y lo termina sin hacer nada.
   if (j.pj === 'B' && j.npc && primerTurno) { t.fase = 'mov'; t.principal = true; t.fin = true; t.ebrio = true; log(e, `${j.nombre} llega ebrio de la fiesta del palacio: pierde su primer turno sin hacer nada.`, { pid: id, aviso: true }); return; }
   if (j.extra.bajoTecho) j.extra.bajoTecho = false;
-  if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
+  // Mal herido (Jorge, 28 de noviembre: golpe de gracia fallido): un turno mal herido y el siguiente herido; los dos sin acción principal.
+  if (j.herido && j.malHerido) { t.heridoAhora = true; t.principal = true; t.malHeridoAhora = true; log(e, `${j.nombre} está MAL HERIDO: este turno no tiene acción principal, y el siguiente seguirá herido.`, { pid: id }); }
+  else if (j.herido) { t.heridoAhora = true; t.principal = true; j.herido = false; log(e, `${j.nombre} se recupera de su herida: este turno no tiene acción principal (no puede iniciar retos, robar, desafiar ni buscar tesoros).`, { pid: id }); }
   if (j.extra.sinPrincipal) { t.principal = true; j.extra.sinPrincipal = false; t.sinPrincipalMotivo = true; }
   RET.recibirDestreza(data, e, id, { inicio: true });   // por si quedó alguna pendiente de fuera de su turno (normalmente llega al terminar el turno: Jorge, 21 de noviembre)
   RET.turnoEstudio(data, e, id);   // Jorge (10 de noviembre): estudiando persa o árabe, la acción principal se va en las clases
@@ -1619,7 +1622,7 @@ export function vista(data, e, pid) {
   const jugadores = {};
   for (const id of Object.keys(e.jugadores)) {
     const j = e.jugadores[id];
-    jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, perdido: j.perdido, npc: !!j.npc,
+    jugadores[id] = { id, nombre: j.nombre, pj: j.pj, listo: j.listo, conectado: j.conectado, dinares: j.dinares, noches: j.noches, ciudad: j.ciudad, herido: j.herido, malHerido: !!(j.herido && j.malHerido), perdido: j.perdido, npc: !!j.npc,
       buscado: j.buscado, eliminado: j.eliminado, destreza: j.destreza, destrezaJambiya: !!j.extra?.destrezaJambiya, entrenado: Object.keys(j.extra?.entrenado || {}).filter((k) => j.extra.entrenado[k]), arcoMaximo: !!j.extra?.arcoMaximo, idiomas: j.extra?.idiomas || [], polimata: !!j.extra?.polimata, estudiando: j.extra?.estudio ? { idioma: j.extra.estudio.idioma, hasta: j.extra.estudio.hasta - j.turnos } : null, forjando: !!j.extra?.forja, conEmir: j.extra?.emir?.ciudad || null, nMano: manoPublica(j), tieneMensaje: j.mensajes.length > 0, nMensajes: j.mensajes.length, transito: j.transito ? { faltan: j.transito.faltan } : null,
       kanmakan: !!tieneEsp(j, 'K1'), retosHechos: j.retosHechos.length, bajoTecho: !!j.extra.bajoTecho, escondido: id === pid ? j.escondido : undefined, hazanas: hazanasEstado(data, e, j), buscadoE7: e.evento?.buscadoE7 === id, sacado: !!j.sacado, tarde: !!j.tarde, buscadoInfo: textoBuscado(data, e, j) || null,
       buscadoClave: j.buscado > 0 || e.evento?.buscadoE7 === id ? `${j.extra.buscadoMotivo?.ronda ?? ''}-${j.extra.buscadoMotivo?.tipo ?? ''}-${e.evento?.buscadoE7 === id ? 'E7' + e.ronda : ''}` : null };

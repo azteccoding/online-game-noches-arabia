@@ -121,7 +121,7 @@ function Tesoro({ s, mi, mt }) {
     <>
       {puedeEsc && (
         <div className="accion-fila">
-          <div className="accion-txt"><b>Esconder dinares</b><small>{aqui || tengoAmate ? 'Los dejas en esta ciudad (ya visitada). Cada papel amate es un escondite con su propia carta; puedes tener tantos como papeles. El papel lo puedes vender a otro jugador; un robo no te lo quita.' : 'Necesitas un papel amate para anotar dónde los escondes: se compra en el mercado de cualquier ciudad.'}</small></div>
+          <div className="accion-txt"><b>Esconder dinares</b><small>{aqui || tengoAmate ? 'Los dejas en esta ciudad (ya visitada). Cada papel amate es un escondite con su propia carta; puedes tener tantos como papeles. El papel lo puedes vender a otro jugador; un robo no te lo quita.' : 'Necesitas un papel amate para anotar dónde los escondes: se compra en el bazar de cualquier ciudad.'}</small></div>
           <div className="accion-ctl"><input type="number" min="1" max={mi.dinares} value={monto} onChange={(e) => setMonto(e.target.value)} aria-label="Dinares a esconder" style={{ width: 80 }} />
             {aqui && <button className="btn mini" disabled={bloq} onClick={una(() => esconder(false))}>Agregar a mi escondite</button>}
             <button className="btn mini" disabled={bloq || !tengoAmate} onClick={una(() => esconder(true))}>{aqui ? 'Nuevo escondite (papel amate)' : 'Esconder'}</button></div>
@@ -165,7 +165,7 @@ export default function AccionesTurno({ s, onCerrar }) {
     <div className="hoja-modal panel" role="dialog" aria-label="Acciones del turno">
       <div className="desp-cab"><h2>Acciones</h2>{mt && <span className="chip">{principalUsada ? 'Acción principal usada' : 'Una acción principal por turno'}</span>}<button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo">
-        {!mt && <p className="it">Las acciones se habilitan en tu turno. Mientras tanto puedes mirar el mercado, tu mano y tus misiones.</p>}
+        {!mt && <p className="it">Las acciones se habilitan en tu turno. Mientras tanto puedes mirar el bazar, tu mano y tus misiones.</p>}
         {mt && s.turno.fase === 'ingreso' && <p className="it">Primero tira el dado de ingreso.</p>}
         {mi.buscadoInfo && <p className="aviso-mal">Estás {mi.buscadoInfo}</p>}
         {mt && s.turno.heridoAhora && s.turno.principal && <p className="aviso-mal">Ya no estás herido, pero te estás recuperando: este turno no tienes acción principal, así que no puedes iniciar retos, robar, desafiar ni buscar tesoros. En tu próximo turno, sí.</p>}
@@ -192,7 +192,7 @@ export default function AccionesTurno({ s, onCerrar }) {
             </section>
           );
         })}
-        {mt && s.turno.fase !== 'ingreso' && aqui.length > 0 && <section className="accion-sec"><h3 className="sub-h">Con otros jugadores</h3><OfrecerCinco s={s} ids={aqui} /><p className="it">Para comerciar usa Mercado → Tratos.</p>{!hay('atacar').length && <p className="it aviso-regla">{porQueNoAtacar(s, mi)}</p>}</section>}
+        {mt && s.turno.fase !== 'ingreso' && aqui.length > 0 && <section className="accion-sec"><h3 className="sub-h">Con otros jugadores</h3><OfrecerCinco s={s} ids={aqui} /><p className="it">Para comerciar usa Bazar → Tratos.</p>{!hay('atacar').length && <p className="it aviso-regla">{porQueNoAtacar(s, mi)}</p>}</section>}
         {mt && !lista.some((a) => !['viajar', 'terminarTurno', 'cc', 'tirarDados'].includes(a.k)) && s.turno.fase !== 'ingreso' && <p className="it">No hay acciones especiales disponibles aquí. Puedes viajar, comprar o vender, o terminar el turno.</p>}
       </div>
     </div>

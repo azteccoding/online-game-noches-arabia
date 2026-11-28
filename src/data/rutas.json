@@ -41,12 +41,12 @@
   "India>Isfahán": 22,
   "India>Samarcanda": 22,
   "Bagdad>Magreb": 22,
-  "El Cairo>Magreb": 16,
-  "Magreb>El Cairo": 17,
+  "El Cairo>Magreb": 13,
+  "Magreb>El Cairo": 14,
   "Magreb>Andalucía": 5,
   "Andalucía>Magreb": 6,
-  "Andalucía>El Cairo": 12,
-  "El Cairo>Andalucía": 17
+  "Andalucía>El Cairo": 9,
+  "El Cairo>Andalucía": 14
  },
  "rutas": [
   {

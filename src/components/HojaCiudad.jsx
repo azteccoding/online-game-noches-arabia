@@ -5,7 +5,7 @@ import { ACCIONES } from '../game/protocol.js';
 import { consejosVenta } from '../game/ventas.js';
 
 import { entrenamientosEn } from '../../shared/retos.js';
-import { objetosRaros, REPARA_ESCUDO } from '../../shared/objetos.js';
+import { objetosRaros } from '../../shared/objetos.js';
 import { textoPremio } from '../game/premiosRetos.js';
 import retosData from '../data/retos.json';
 import eventosData from '../data/eventos.json';
@@ -55,7 +55,6 @@ export default function HojaCiudad({ s, id, onCerrar }) {
           return <p><b>Armas:</b> {a.length ? a.map((x) => `${x.nombre} ${x.precio}${x.quedan != null ? ` (${x.quedan === 1 ? 'queda 1' : `quedan ${x.quedan}`})` : ''}`).join(' · ') : 'no vende armas'}</p>;
         })()}
         {c.retos.length > 0 && <div><b>Retos aquí:</b><ul className="retos-ciudad">{c.retos.map((r) => { const d = retosData.retos.find((x) => x.id === r); const p = textoPremio(r); return <li key={r}>{r} {d?.nombre}{p ? ` — ${p}` : ''}</li>; })}</ul></div>}
-        {id === REPARA_ESCUDO.ciudad && <p><b>Reparación de escudos:</b> {REPARA_ESCUDO.costo} dinares (no gasta tu acción principal).</p>}
         {(() => {   // Jorge (12 de noviembre): solo lo que se vende únicamente en esta ciudad (de los mismos datos del mercado), con su precio
           const solo = objetosRaros(DATA, id).filter((x) => x.soloAqui);
           return solo.length > 0 ? <p><b>Solo aquí:</b> {solo.map(rotulo).join(', ')}</p> : null;

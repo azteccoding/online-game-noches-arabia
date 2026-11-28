@@ -35,7 +35,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   const pendMia = !!s.pend && s.pend.mia && !s.pend.respondiste;
   const puedeComprar = s.fase === 'juego' && !!s.turno && (!esMiTurno || solo) && !yo.transito && !yo.perdido && !yo.eliminado && !yo.sacado && !pendMia;   // regla de la casa: fuera de tu turno
   // por qué no se puede comprar ahora (Jorge, 10 de noviembre)
-  const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.sacado ? 'El banco te sacó de la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay mercado.' : pendMia ? 'Primero responde la decisión que tienes pendiente; después puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el mercado no te vende (el Firmán, sí).' : 'Ahora no puedes comprar.';
+  const noCompra = s.fase !== 'juego' || !s.turno ? 'Ahora no puedes comprar: la partida no está en juego.' : yo.eliminado ? 'Ya no estás en la partida.' : yo.sacado ? 'El banco te sacó de la partida.' : yo.transito ? 'Vas de camino: podrás comprar cuando llegues a la ciudad.' : yo.perdido ? 'Estás perdido en el Jorasán: no hay bazar.' : pendMia ? 'Primero responde la decisión que tienes pendiente; después puedes comprar.' : esMiTurno && !solo ? 'Compra mientras juegan los demás: en tu turno el bazar no te vende (el Firmán, sí).' : 'Ahora no puedes comprar.';
   const companeros = Object.values(s.jugadores).filter((j) => j.id !== s.yo && j.ciudad === yo.ciudad && j.pj && !j.eliminado && !j.npc);
   const [con, setCon] = useState('');
   // Jorge (23 de noviembre): en un trato solo se anotan dinares del 0 al 500 y noches del 0 al 900, nunca negativos
@@ -72,15 +72,15 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
   React.useEffect(() => { if (contraDe && !contraHecha.current) { const t = entrantes.find((x) => x.id === contraDe); if (t) { contraHecha.current = true; contraofertar(t); } } });   // desde la alerta de trato
   // Jorge (23 de noviembre): en el Jorasán no hay mercado; solo se avisa, sin desplegar nada.
   if (yo.perdido) return (
-    <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
-      <div className="desp-cab"><h2>Mercado</h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
+    <div className="hoja-modal panel" role="dialog" aria-label="Bazar">
+      <div className="desp-cab"><h2>Bazar</h2><button className="btn mini" onClick={onCerrar}>Cerrar</button></div>
       <div className="desp-cuerpo"><p>Estás en el Jorasán: no hay nada que comprar ni vender.</p></div>
     </div>
   );
   return (
-    <div className="hoja-modal panel" role="dialog" aria-label="Mercado">
+    <div className="hoja-modal panel" role="dialog" aria-label="Bazar">
       <div className="desp-cab">
-        <h2>Mercado de {yo.ciudad}</h2>
+        <h2>Bazar de {yo.ciudad}</h2>
         <div className="tabs" role="tablist">
           <button role="tab" aria-selected={tab === 'comprar'} className={tab === 'comprar' ? 'on' : ''} onClick={() => setTab('comprar')}>Comprar</button>
           <button role="tab" aria-selected={tab === 'vender'} className={tab === 'vender' ? 'on' : ''} onClick={() => setTab('vender')}>Vender</button>
@@ -89,7 +89,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
         <button className="btn mini" onClick={onCerrar}>Cerrar</button>
       </div>
       <div className="desp-cuerpo">
-        <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El mercado te vende mientras juegan los demás.' : noCompra) : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
+        <p className="it">Tienes {yo.dinares} dinares. {tab === 'comprar' ? (puedeComprar ? 'El bazar te vende mientras juegan los demás.' : noCompra) : miTurno ? 'Vendes en tu turno.' : 'Podrás vender en tu turno.'}{s.mods?.feria ? ' Hoy hay feria: sin impuesto.' : ''}</p>
         {tab === 'comprar' && (
           <ul className="lista-merc">
             {s.tienda.map((it) => <Producto key={it.id || it.ref} it={it} puedeActuar={it.ref === 'firman' ? miTurno : puedeComprar} s={s} />)}
@@ -102,7 +102,7 @@ export default function Intercambio({ s, onCerrar, inicial = 'comprar', contraDe
             <ul className="lista-merc">
               {vendibles.map((c) => (
                 <li key={c.uid}><div className="prod"><b>{c.datos?.titulo}</b> <small>{c.datos?.sub}</small>{c.donde && <small className="donde-venta">{c.donde}</small>}</div>
-                  <div className="der">{c.venta === 0 ? <span className="chip">sin precio: se regala al mercado</span> : c.venta != null ? <span className="chip">≈ {c.venta} din. netos</span> : <span className="chip mal">no se vende aquí</span>}
+                  <div className="der">{c.venta === 0 ? <span className="chip">sin precio: se regala al bazar</span> : c.venta != null ? <span className="chip">≈ {c.venta} din. netos</span> : <span className="chip mal">no se vende aquí</span>}
                     <button className="btn mini sec" disabled={!miTurno || c.venta == null} onClick={() => enviar(ACCIONES.vender(c.uid))}>{c.venta === 0 ? 'Regalar' : 'Vender'}</button></div></li>
               ))}
             </ul>

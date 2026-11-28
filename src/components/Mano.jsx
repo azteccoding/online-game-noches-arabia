@@ -22,7 +22,7 @@ export default function Mano({ s, onAbrir, onCerrar }) {
               : <div><p><b>Mensaje en curso</b>: {m.carta.texto}</p><p className="it">Premio {m.carta.premio}. Plazo hasta la ronda {m.turnoLimite}. Se cumple solo cuando haces lo que pide; no hay que marcarlo.</p></div>}
           </div>
         ))}
-        {!mano.length && !msgs.length && <p className="it">No tienes cartas. Compra objetos en el Mercado.</p>}
+        {!mano.length && !msgs.length && <p className="it">No tienes cartas. Compra objetos en el Bazar.</p>}
         <div className="mano-fila">
           {mano.map((c) => (
             <div key={c.uid} className="mano-item">

@@ -23,7 +23,7 @@ export default function HojaPersonaje({ pj, jugador, esYo }) {
           <span className="chip" title="Dinares">{jugador.dinares} dinares</span>
           <span className="chip" title="Noches">{jugador.noches} noches</span>
           <span className="chip">{jugador.ciudad}</span>
-          {jugador.herido && <span className="chip mal">Herido</span>}
+          {jugador.herido && <span className="chip mal">{jugador.malHerido ? 'Mal herido' : 'Herido'}</span>}
           {jugador.perdido && <span className="chip mal">Perdido</span>}
           {(jugador.buscado > 0 || jugador.buscadoE7) && <span className="chip mal" title={jugador.buscadoInfo || ''}>Buscado{jugador.buscado > 0 ? ` (${jugador.buscado})` : ''}</span>}
           {Object.entries(nm).map(([t, n]) => <span className="chip" key={t}>{n} {NOMBRE_TIPO[t] || t}</span>)}

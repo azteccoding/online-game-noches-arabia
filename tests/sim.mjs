@@ -301,7 +301,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         const j = e.jugadores[pid];
         const q = R();
         const ahorra = (x) => metas[x]?.estepa && !(e.jugadores[x].retosHechos || []).includes('R50') && R() < 0.97;   // junta para las yeguas
-        // el mercado vende fuera de tu turno: compra otro jugador (Yafar NPC, en el suyo)
+        // el bazar vende fuera de tu turno: compra otro jugador (Yafar NPC, en el suyo)
         const fuera = ids.filter((x) => x !== pid && !e.jugadores[x].eliminado && !e.jugadores[x].npc);
         const comprador = e.jugadores[pid].npc ? pid : fuera.length ? pick(fuera) : pid;
         if (ahorra(comprador)) { /* no gasta */ } else if (q < 0.4) { const o = pick(data.objetos.mazo); const r0 = act(comprador, { t: 'comprar', id: o.id }); cuenta(stats.acciones, 'comprar:' + (r0.ok ? 'ok' : 'x')); }
@@ -338,7 +338,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
         if (tieneItem(jb, 'lampara') && !tieneItem(jb, 'amate') && jb.dinares >= 4) op.push([{ ref: 'amate' }, 3]);
         if (tieneItem(jb, 'lampara') && !tieneItem(jb, 'buza') && ['Damasco', 'Basra'].includes(c) && jb.dinares >= 4) op.push([{ ref: 'buza' }, 3]);
         if (c === 'Isfahán' && !tieneItem(jb, 'costalPistaches') && jb.dinares >= 12) op.push([{ ref: 'costalPistaches', n: 2 + Math.floor(R() * 4) }, 5]);   // R56
-        if ((c === 'Basra' || c === 'Andalucía') && !tieneItem(jb, 'vino') && jb.dinares >= 30) op.push([{ ref: 'vino' }, 1.5]);   // vino: +2 por ronda, se vende en cualquier mercado
+        if ((c === 'Basra' || c === 'Andalucía') && !tieneItem(jb, 'vino') && jb.dinares >= 30) op.push([{ ref: 'vino' }, 1.5]);   // vino: +2 por ronda, se vende en cualquier bazar
         if (DATILES.ciudades.includes(c) && !hecho(DATILES.reto) && !tieneItem(jb, 'almudDatiles') && jb.dinares >= 6) op.push([{ ref: 'almudDatiles' }, 2]);
         if (c === SHATRANJ.ciudad && !tieneItem(jb, 'shatranj') && jb.dinares >= SHATRANJ.precio + 5) op.push([{ ref: 'shatranj' }, 2]);
         if (c === 'Estambul' && e.mongoles?.habilitado && e.mongoles.stock > 0 && !tieneItem(jb, 'caballoMongol') && jb.dinares >= 40) op.push([{ ref: 'caballoMongol' }, 4]);

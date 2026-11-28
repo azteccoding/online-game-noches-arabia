@@ -8,7 +8,7 @@ const impuestoDe = (id) => (id === 'Bagdad' ? 0 : DATA.ciudades.ciudades.find((c
 export function consejosVenta(id) {
   const imp = impuestoDe(id);
   const r = [];
-  r.push(imp === 0 ? 'Aquí no se paga impuesto de venta: es el mejor lugar para vender casi cualquier objeto al mercado.'
+  r.push(imp === 0 ? 'Aquí no se paga impuesto de venta: es el mejor lugar para vender casi cualquier objeto al bazar.'
     : imp >= 50 ? `Impuesto de venta del ${imp} %: evita vender aquí; mejor vende en Bagdad (sin impuesto).`
       : `Impuesto de venta del ${imp} %. En Bagdad no se paga impuesto: si vas para allá, espera a vender.`);
   // Mercancías de comercio (objetos.json, «reventa»): qué pagan caro aquí y qué conviene comprar aquí para venderlo lejos.
@@ -27,6 +27,6 @@ export function consejosVenta(id) {
   if (id === 'El Cairo') r.push('El cálamo de Kufa se vende aquí a 4 dinares (en Bagdad a 3).');
   if (id === 'Basra') r.push('Aquí puedes comprar la cesta de manzanas que pide el reto R24 (30 dinares al entregarla).'), r.push('El cálamo de Kufa también se compra aquí barato y se vende en El Cairo (4) o en Bagdad (3).');
   if (id === 'Isfahán') r.push('En el reto R17 cada alfombra cuesta 40 dinares.');
-  if (VINO.stock[id]) r.push(`Aquí se compra el vino (${VINO.stock[id]} botellas en toda la partida) a ${VINO.precio} dinares: gana ${VINO.porRonda} dinares de valor por ronda y cualquier mercado lo compra a su valor actual; la botella vendida se esfuma.`);
+  if (VINO.stock[id]) r.push(`Aquí se compra el vino (${VINO.stock[id]} botellas en toda la partida) a ${VINO.precio} dinares: gana ${VINO.porRonda} dinares de valor por ronda y cualquier bazar lo compra a su valor actual; la botella vendida se esfuma.`);
   return r;
 }

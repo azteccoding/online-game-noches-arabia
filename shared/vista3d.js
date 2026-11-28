@@ -1,7 +1,7 @@
 // Datos públicos que la capa 3D necesita para animar lo que YA decidió el motor: qué arma se le ve a cada jugador, qué animal
 // lleva, con qué viajó la última vez y quiénes pelean. No decide nada ni revela nada que no fuera público ya.
 import { tieneItem, tieneObj, jambiyaALaMano, ITEMS, nEsclavos } from './base.js';
-import { armasUsables, ARMAS_ATAQUE, perfil } from './pelea.js';
+import { armasUsables, ARMAS_ATAQUE } from './pelea.js';
 
 const ORDEN_ARMAS = ['cimitarra', 'alfanje', 'jambiya'];
 const ANIMALES = ['caballoMongol', 'caballo', 'camello', 'burro'];
@@ -44,12 +44,12 @@ export function vista3d(data, e) {
     const j = e.jugadores[id]; if (!j?.mano) continue;
     const u = armasUsables(data, e, j, j.ciudad);                                // en Bagdad, sin Firmán, se pelea sin armas
     // Esclavo peleador (Jorge, 27 de noviembre): quien lleva al menos un esclavo de pelea tiene su monito al lado (los esclavos van a
-    // la vista: son cartas públicas). esclavoArma: el arma con la que ese esclavo pelea por su amo en esta ciudad (11.3: una de más,
-    // o la única si su amo no tiene destreza); '' si no pelea. Es solo para animar: la pelea la resuelve pelea.js.
+    // la vista: son cartas públicas). esclavoArma: el arma con la que ese esclavo pelea en lugar de su amo en esta ciudad (11.3);
+    // '' si no tiene ninguna. Es solo para animar: la pelea la resuelve pelea.js.
     // cargador: quien lleva al menos un esclavo de carga tiene también el monito del cargador (el de la cesta); ese nunca pelea.
     const deAtaque = ORDEN_ARMAS.filter((r) => u.includes(r) && ARMAS_ATAQUE.includes(r)), esclavo = nEsclavos(j, 'esclavoPelea') > 0;
     jugadores[id] = { arma: armaVisible(j), armaPelea: deAtaque[0] || '', arco: u.includes('arco'),
-      esclavo, esclavoArma: esclavo && perfil(data, e, id).esclavos.armados > 0 ? deAtaque[1] || deAtaque[0] || '' : '',
+      esclavo, esclavoArma: esclavo && deAtaque.includes('alfanje') ? 'alfanje' : '',   // 11.3 (Jorge, 28 de noviembre): el esclavo lleva alfanje o nada
       cargador: nEsclavos(j, 'esclavoCarga') > 0,
       escudo: !!tieneObj(j, 'OB04'),      // el escudo de cuero va a la vista (Jorge, 12 de noviembre: lo ven su dueño y los demás)
       transporte: ANIMALES.find((r) => tieneItem(j, r)) || null, viaje: viajes[id] || null,
