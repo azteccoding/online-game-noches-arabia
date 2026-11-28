@@ -291,13 +291,13 @@ registrar('pelea.retadorDecide', (data, e, args, resp) => {
 // (R43 o deseo f), de 4 a 6; si no, falla. Campeón de Murcia (R51): siempre acierta, −2, sin dado. Ya no quita la destreza.
 export const ARCO_ACIERTA = 5, ARCO_ACIERTA_DESTREZA = 4, ARCO_MENOS = 2;
 export const umbralArco = (j) => (j?.extra?.entrenado?.arco ? ARCO_ACIERTA_DESTREZA : ARCO_ACIERTA);
-export function tiroDeArco(data, e, pid, ciudad) {
+export function tiroDeArco(data, e, pid, ciudad, { ladrones = false } = {}) {   // ladrones de Alí Babá: como siempre, se tira y 5 o 6 los ahuyenta
   const j = e.jugadores[pid];
   if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
   quitarPrimero(j, 'item', 'flechas'); avisoUltimaFlecha(e, pid);
-  if (j.extra?.arcoMaximo) return { x: null, murcia: true, acierta: true, cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };   // Campeón de Murcia: sin dado
+  if (j.extra?.arcoMaximo && !ladrones) return { x: null, murcia: true, acierta: true, cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };   // Campeón de Murcia: sin dado
   const x = dado(e);
-  return { x, acierta: x >= umbralArco(j), cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
+  return { x, acierta: x >= (ladrones ? ARCO_ACIERTA : umbralArco(j)), cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
 }
 
 function seguirAtaque(data, e) {

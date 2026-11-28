@@ -5,7 +5,7 @@ import {
   pedir, registrar, ofrecerObjetos, HOOK, eliminar, publicarCarta, cartaDatos, ITEMS,
 marcarBuscado,
 enPartida, devolverBurro, viajePorMar, avisoEscorbuto, esRutaMar, rnd, huidaCuentaViaje, } from './base.js';
-import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco, umbralArco } from './pelea.js';
+import { luchaLibre, peleaNPC, perfil, armasUsables, tiroDeArco } from './pelea.js';
 import * as NPC from './npc.js';
 import { burroFueraDeZona, etiquetaBurro, destinosBurro } from './objetos.js';
 
@@ -97,8 +97,8 @@ export function finTurno(data, e, pid) {
   const j = jug(e, pid), t = e.turno;
   if (e.mods.ladrones && t && !t.movio && !j.eliminado) {
     if (tieneObj(j, 'OB23')) { consumirObj(data, e, pid, 'OB23'); log(e, `${j.nombre} espanta a los ladrones con su Amuleto de turquesa.`, { pid }); return; }
-    const arco = tiroDeArco(data, e, pid);   // regla de la casa: el arco (el escudo ya no tira dado: Jorge, 28 de noviembre)
-    if (arco && !arco.murcia) mostrarDados(e, { por: pid, motivo: 'defensa', grupos: [{ etq: `${j.nombre} dispara su arco a los ladrones (${umbralArco(j) === 4 ? '4, 5 o 6' : '5 o 6'})`, valores: [arco.x] }], resumen: [] });
+    const arco = tiroDeArco(data, e, pid, undefined, { ladrones: true });   // regla de la casa: el arco (el escudo ya no tira dado: Jorge, 28 de noviembre)
+    if (arco) mostrarDados(e, { por: pid, motivo: 'defensa', grupos: [{ etq: `${j.nombre} dispara su arco a los ladrones (5 o 6)`, valores: [arco.x] }], resumen: [] });
     if (arco?.acierta) { log(e, `${j.nombre} ahuyenta a los ladrones de Alí Babá con su arco.`, { pid }); return; }
     const p = Math.max(0, Math.min(10, j.dinares)); j.dinares -= p; log(e, `Los ladrones de Alí Babá asaltan a ${j.nombre}: pierde ${p} dinares.`, { pid });
     if (j.pj === 'B' && j.npc) { const q = Math.min(80, Math.max(0, j.noches)); j.noches -= q; log(e, `Con ${j.nombre} se ensañan por ser un político indeseado: además le quitan su dignidad (${q} noches).`, { pid, aviso: true }); }   // Jorge (punto 10)
