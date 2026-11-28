@@ -38,8 +38,8 @@ let nuid = 0;
 const dar = (j, ref, tipo = 'objeto') => j.mano.push({ uid: 'p' + (++nuid), tipo, ref, pub: true });
 // Fuerza la próxima carta: todas las demás ya «salieron».
 const forzar = (e, id) => { const jor = EJ.find((c) => c.id === id).jorasan; e.mazos[jor ? 'ejVistasJor' : 'ejVistas'] = EJ.filter((c) => c.id !== id && !!c.jorasan === jor).map((c) => c.id); };
-// Juega el turno de quien sigue sin moverse (dado de ingreso y terminar). Al terminarlo empieza el turno del siguiente, que saca la
-// carta EJ al iniciar (Jorge, 27 de noviembre). preparar() se aplica a ese siguiente jugador antes. Devuelve { pid: el siguiente, carta }.
+// Juega el turno de quien sigue sin moverse (dado de ingreso y terminar). Al terminarlo saca la carta EJ (Jorge, 28 de noviembre:
+// al terminar el turno, no al inicio). preparar() se aplica a ese jugador antes de terminar. Devuelve { pid: quien terminó, carta }.
 function turnoQuieto(g, preparar = () => {}) {
   const { e, act } = g;
   for (let k = 0; k < 5 && e.dados; k++) act(e.dados.por, { t: 'cerrarDados' });   // dados que quedaron en la mesa (el de la viuda)
@@ -48,11 +48,11 @@ function turnoQuieto(g, preparar = () => {}) {
   const rt = act(pid, { t: 'tirarDados' }); assert.ok(rt.ok, JSON.stringify(rt) + JSON.stringify(e.dados) + e.turno.fase); act(pid, { t: 'cerrarDados' });
   despejar(g);
   e.mods = {}; e.evento.actual = null;
-  const sig = siguiente(e, pid);
-  preparar(e.jugadores[sig]);
+  preparar(e.jugadores[pid]);
   const n0 = e.seq;
   const r = act(pid, { t: 'terminarTurno' }); assert.ok(r.ok, r.error);
-  return { pid: sig, carta: e.historial.find((h) => h.nro > n0 && h.deck === 'ej' && h.quien === sig) || null };
+  despejar(g);   // un aviso al terminar (dormir en la calle) se cierra antes de que pase el turno y salga la carta
+  return { pid, carta: e.historial.find((h) => h.nro > n0 && h.deck === 'ej' && h.quien === pid) || null };
 }
 const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nro }).ok);
 
@@ -68,12 +68,12 @@ const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nr
   assert.equal(e.historial.filter((h) => h.deck === 'cuento').length, 0, 'sin cuentos en el 3D');
   despejar(g);
   const n0 = e.seq; assert.ok(act(p, { t: 'terminarTurno' }).ok);
-  assert.ok(!e.historial.some((h) => h.nro > n0 && h.deck === 'ej' && h.quien === p), 'al terminar el turno no sale');
-  // al iniciar su siguiente turno sí, aunque haya viajado: durmió en Damasco
+  // Jorge (28 de noviembre): sale al terminar el turno, aunque haya viajado (duerme en Damasco), y una sola
+  assert.equal(e.historial.filter((h) => h.nro > n0 && h.deck === 'ej' && h.quien === p).length, 1, 'sale al terminar el turno, una sola');
+  const n1 = e.seq;
   for (let k = 0; k < 5 && e.turno.pid !== p; k++) turnoQuieto(g);
   assert.equal(e.turno.pid, p);
-  assert.ok(e.historial.some((h) => h.nro > n0 && h.deck === 'ej' && h.quien === p), 'sale al iniciar el turno aunque haya viajado');
-  assert.equal(e.historial.filter((h) => h.nro > n0 && h.deck === 'ej' && h.quien === p).length, 1, 'una sola');
+  assert.ok(!e.historial.some((h) => h.nro > n1 && h.deck === 'ej' && h.quien === p), 'al iniciar su turno ya no sale');
 }
 
 {
@@ -131,7 +131,7 @@ const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nr
   const g = partida(['1', '7', '5']); const { e } = g;
   const nur = e.orden.find((i) => e.jugadores[i].pj === '1');
   let t;
-  for (let k = 0; k < 3; k++) { if (siguiente(e, e.turno.pid) === nur) { turnoQuieto(g); continue; } forzar(e, 'EJ17'); t = turnoQuieto(g, (j) => { e.jugadores[nur].ciudad = 'Damasco'; j.ciudad = 'Damasco'; j.dinares = 40; }); break; }
+  for (let k = 0; k < 3; k++) { if (e.turno.pid === nur) { turnoQuieto(g); continue; } forzar(e, 'EJ17'); t = turnoQuieto(g, (j) => { e.jugadores[nur].ciudad = 'Damasco'; j.ciudad = 'Damasco'; j.dinares = 40; }); break; }
   const pagado = e.jugadores[t.pid].extra.ejPend.aloj; assert.ok(pagado > 0, 'pagó alojamiento');
   const d0 = e.jugadores[t.pid].dinares; leer(g, t.pid, t.carta);
   assert.equal(e.jugadores[t.pid].dinares, d0 + pagado, 'le devuelven el alojamiento');
@@ -181,8 +181,8 @@ const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nr
   Object.assign(e.jugadores[anis], { perdido: true, ciudad: 'Jorasán' });
   const m0 = e.seq; assert.ok(act(anis, { t: 'terminarTurno' }).ok);
   assert.ok(!e.historial.some((h) => h.nro > m0 && h.deck === 'ej' && h.quien === anis), 'se perdió en este turno: todavía no');
-  const t1 = turnoQuieto(g);
-  assert.equal(e.turno.pid, anis); assert.equal(t1.carta, null, 'perdido en el Jorasán no saca carta de ciudad al iniciar');
+  const n2 = e.seq; turnoQuieto(g);
+  assert.equal(e.turno.pid, anis); assert.ok(!e.historial.some((h) => h.nro > n2 && h.deck === 'ej' && h.quien === anis), 'perdido en el Jorasán no saca carta de ciudad');
   forzar(e, 'EJ39');
   assert.ok(act(anis, { t: 'tirarDados' }).ok); act(anis, { t: 'cerrarDados' }); despejar(g);
   const n0 = e.seq; assert.ok(act(anis, { t: 'terminarTurno' }).ok);
@@ -257,6 +257,7 @@ const leer = (g, pid, carta) => assert.ok(g.act(pid, { t: 'leido', nro: carta.nr
   for (let k = 0; k < 5 && e.dados; k++) act(e.dados.por, { t: 'cerrarDados' }); despejar(g);
   assert.ok(act(pid, { t: 'tirarDados' }).ok); act(pid, { t: 'cerrarDados' }); despejar(g);
   e.mods = {}; e.evento.actual = null; j.ciudad = 'Damasco'; j.dinares = 30; j.noches = 10; e.turno.movio = true;
+  j.extra.ejPend = null;   // la carta de su turno anterior (sin cerrar) se resolvería al sacar la de este
   assert.ok(act(pid, { t: 'terminarTurno' }).ok);
   assert.equal(j.dinares, 26, 'paga 4 en Damasco aunque llegó este turno');
 }

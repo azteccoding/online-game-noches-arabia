@@ -1,8 +1,8 @@
 // Mazo de eventos de jugador (EJ), solo en el 3D (Jorge, 26 de noviembre de 2026: «Sí, reemplaza los cuentos»).
 // Reemplaza a las Cartas de Cuentos. 48 cartas: 41 de ciudad y 7 del Jorasán (src/data/eventosJugador.json, textos de Jorge tal cual).
 // Reglas del mazo (decisiones de Jorge del 26 de noviembre):
-// - Sale al iniciar tu turno, porque la noche anterior dormiste en una ciudad (Jorge, 27 de noviembre), en cada turno salvo el
-//   primero y si no estás perdido en el Jorasán; como máximo una por turno (R37 da otra aparte).
+// - Sale al terminar tu turno, porque esa noche duermes en una ciudad (Jorge, 28 de noviembre; del 27 al 28 salía al iniciarlo), en
+//   cada turno si no estás perdido en el Jorasán ni en camino; como máximo una por turno (la de R37 cuenta como la de ese turno).
 // - Las del Jorasán salen cuando estás perdido ahí y no logras salir en tu turno (empezaste el turno perdido y lo terminas perdido).
 // - Sale en cualquier ciudad, salvo las cartas que dicen ciudades.
 // - Se lee a toda la mesa; las consecuencias se aplican cuando quien la sacó la cierra (o a los 90 segundos), como toda carta.
@@ -17,7 +17,7 @@ import {
 
 export const EJ_TIEMPO_MS = 90000;   // si nunca cierra la carta, se aplica igual (como el mahr y el harén)
 const PJ = { nur: '1', zein: '2', anis: '3', jamil: '4', ruyan: '5', zubayda: '6', adi: '7', yafar: 'B' };
-const SUB = 'Se lee a toda la mesa · al iniciar tu turno';   // sale al iniciar tu turno (Jorge, 27 de noviembre)
+const SUB = 'Se lee a toda la mesa · al terminar tu turno';   // sale al terminar tu turno (Jorge, 28 de noviembre)
 const SUB_JORASAN = 'Se lee a toda la mesa · si no logras salir del Jorasán';
 
 const cartas = (data) => data.ej?.cartas || [];
@@ -72,7 +72,7 @@ function sacar(data, e, j, jorasan) {
   return c;
 }
 
-// Al iniciar el turno (engine.iniciarTurno): aloj = lo que pagó de alojamiento la noche anterior (para las cartas que lo devuelven).
+// Al terminar el turno (engine.ejFinTurno): aloj = lo que pagó de alojamiento esa noche (para las cartas que lo devuelven).
 export function alDormir(data, e, pid, { aloj = 0 } = {}) {
   const j = jug(e, pid);
   if (!j || j.npc || j.eliminado || j.transito || j.perdido || !cartas(data).length) return null;

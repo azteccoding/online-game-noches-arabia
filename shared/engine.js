@@ -376,7 +376,18 @@ function volver(e, pid) {
   return ok();
 }
 
+// Evento de jugador al TERMINAR tu turno (Jorge, 28 de noviembre: «haz que la carta evento de jugador salga al finalizar el turno del
+// jugador, no al inicio»; del 27 al 28 salía al iniciarlo). Sale en cada turno, termine como termine (con su botón, por un viaje o
+// un entrenamiento que lo cierra), si esa noche duermes en una ciudad: no si estás en camino. Las del Jorasán, si empezaste el turno
+// perdido y lo terminas perdido. Como máximo una por turno (la de R37 cuenta como la de ese turno). Sus consecuencias, al cerrar la carta.
+function ejFinTurno(data, e) {
+  const t = e.turno, j = t && e.jugadores[t.pid];
+  if (!j || t.ejSacada || j.eliminado || j.npc || e.fase !== 'juego') return;
+  if (!j.perdido && !j.transito) { if (EJ.alDormir(data, e, t.pid, { aloj: t.alojPagado || 0 })) t.ejSacada = true; }
+  else if (j.perdido && t.perdidoInicio) { if (EJ.alSeguirPerdido(data, e, t.pid)) t.ejSacada = true; }
+}
 function siguienteTurno(data, e, desde) {
+  ejFinTurno(data, e);
   { const jt = e.turno && e.jugadores[e.turno.pid]; if (jt) jt.extra.enCero = jt.dinares <= 0 ? (jt.extra.enCero || 0) + 1 : 0; }   // turnos seguidos que terminas sin dinares (servicio del Emir)
   if (e.turno) { NPC.revisarEncargo(data, e, e.turno.pid); carreraFinTurno(data, e); OBJ.animalesFinTurno(data, e, e.turno.pid); OBJ.caducarKanmakan(data, e, e.turno.pid); OBJ.caducarDados(data, e, e.turno.pid); OBJ.caducarAlforjas(data, e, e.turno.pid); RET.recibirDestreza(data, e, e.turno.pid); RET.finEstudio(data, e, e.turno.pid); RET.finForja(data, e, e.turno.pid); OBJ.anotarDuenos(e); hazanasFinTurno(data, e); }
   if (e.turno && e.asesinos?.pendiente?.victima === e.turno.pid) { NPC.actuanAsesinos(data, e); if (e.fase !== 'juego') return ok(); }   // los Asesinos actúan al cerrar el turno de su víctima
@@ -429,10 +440,6 @@ function iniciarTurno(data, e, id, idx) {
   j.extra.jugoTurno = true; j.turnos++;
   EJ.alIniciarTurno(data, e, id, t);                                        // eventos de jugador: la viuda de EJ26 y las salidas del Jorasán de EJ39 y EJ44
   t.perdidoInicio = !!j.perdido;
-  // Evento de jugador al iniciar tu turno (Jorge, 27 de noviembre: «debería salirte al iniciar tu turno debido a que el anterior
-  // forzosamente dormiste en alguna ciudad»): sale en cada turno salvo el primero, si no estás perdido en el Jorasán ni en camino.
-  const aloj = j.extra.ejAloj || 0; j.extra.ejAloj = 0;
-  if (!primerTurno && !j.eliminado && !j.perdido && !j.transito && !t.movio) { if (EJ.alDormir(data, e, id, { aloj })) t.ejSacada = true; }
   if (j.extra.huidasPend) { t.huidas = j.extra.huidasPend; j.extra.huidasPend = 0; }   // huida obligada fuera de su turno: un viaje menos (Jorge, 21 de noviembre)
   if (j.extra.viajePalacio && j.turnos > PJ.PALACIOS.turnos) { j.extra.viajePalacio = false; log(e, `${j.nombre} ya no usó su viaje gratis a los palacios del Califa: se pierde.`, { pid: id }); }
   if (j.ciudad === 'Isfahán') j.extra.isfahanTurno = j.turnos;                 // para el Ejército de Kanmakán (punto 7)
@@ -1292,10 +1299,6 @@ function terminarTurno(data, e, pid) {
   for (const m of j.mensajes.filter((x) => x.turnoLimite != null && e.ronda > x.turnoLimite)) { e.mazos.descarte.mensajes.push(m.id); j.mensajes = j.mensajes.filter((x) => x !== m); log(e, `${j.nombre} deja caducar un mensaje.`); }
   j.ciudadPrevia = t.movio ? t.ciudadInicio : j.ciudadPrevia;
   RET.finTurno(data, e, pid);
-  // Eventos de jugador: los de ciudad salen al iniciar el turno (iniciarTurno); los del Jorasán, si empezaste el turno perdido y lo
-  // terminas perdido. Como máximo uno por turno.
-  j.extra.ejAloj = t.alojPagado || 0;                                       // para las cartas que devuelven el alojamiento (salen al iniciar tu siguiente turno)
-  if (!t.ejSacada && !j.eliminado && j.perdido && t.perdidoInicio) { if (EJ.alSeguirPerdido(data, e, pid)) t.ejSacada = true; }
   t.fin = true;
   return ok();
 }
@@ -1759,5 +1762,6 @@ export function migrar(e) {
 
 // ---------------------------------------------------------------- enlaces para los demás módulos
 HOOK.nuevoJugador = nuevoJugador; HOOK.partir = partir; HOOK.llegada = llegada; HOOK.siguienteTurno = (data, e) => siguienteTurno(data, e, e.turno ? e.turno.idx : -1); HOOK.viajarTransporte = viajarTransporte; HOOK.viajarPropio = viajarPropio; HOOK.robarCC = robarCC; HOOK.sacarCuento = sacarCuento;
-HOOK.sacarEJ = (data, e, pid) => EJ.alDormir(data, e, pid);   // R37 da su carta aunque ya haya salido la del inicio del turno
+// R37 da su carta en el momento; cuenta como la de ese turno: al terminarlo ya no sale otra (como el 26 de noviembre)
+HOOK.sacarEJ = (data, e, pid) => { const c = EJ.alDormir(data, e, pid); if (c && e.turno?.pid === pid) e.turno.ejSacada = true; return c; };
 HOOK.darMensaje = darMensaje; HOOK.avanzar = avanzar; HOOK.multiplicador = multiplicadorRonda; HOOK.sacarCuento = sacarCuento;
