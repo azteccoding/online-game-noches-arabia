@@ -197,3 +197,6 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 28 nov | **Escudo de cuero en la pelea sin armas ni destreza (A)**: quien se defiende con escudo elige dos números. En los demás casos, −1 al atacante. | Sin cambio. | 9d3371b |
 | 28 nov | **Cortina de humo**: también saca de un robo. | Solo de un ataque a muerte o un duelo. | 9d3371b |
 | 28 nov | **Carta de Trivias**: solo sale al llegar a la segunda ciudad del turno; con un solo viaje no sale. | Sale en cada llegada (hasta 3 por turno). | 9d3371b |
+| 28 nov | **Daga de manga** (Jorge, 11:34 en México): solo mata a un rival que ya estaba herido o hiere al rival que gana la pelea; si el rival pierde y no estaba herido, no hace nada más. No sirve contra NPC. | +1 en cualquier pelea menos duelos. | b4040ba |
+| 28 nov | **Mejor arma sin preguntar**: contra quien sea peleas con tu mejor arma; ya no sale «¿Con qué arma peleas?» (la mejor cuenta la destreza: cimitarra con destreza, alfanje con destreza, cimitarra sin destreza, alfanje sin destreza). | Se pelea con todas las armas. | b4040ba |
+| 28 nov | **Mensaje M3 de Averroes**: responde bien 2 Cartas de Trivias en tus 2 próximos turnos (plazo 2 turnos), porque ya sale una sola trivia por turno. | 2 trivias en el mismo turno, plazo 3. | b4040ba |
