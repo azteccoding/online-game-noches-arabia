@@ -938,7 +938,7 @@
    "id": "R68",
    "nombre": "Contratar a Rayhán",
    "ciudad": "Bagdad",
-   "tipo": "V",
+   "tipo": "C",
    "requisito": "Haber completado R24 (llevar manzanas a Bagdad): cada entrega te deja contratarlo una vez. Desde la ronda 3. Yafar NPC no lo contrata",
    "resolucion": "Dejas la cesta a orillas del Éufrates y eliges a la víctima: toda la mesa sabe a quién. Al empezar tu próximo turno, Rayhán sale de Bagdad, llega a la ciudad de la víctima y pelean al mejor de 3: en cada encuentro tú lanzas un dado por Rayhán y la víctima lanza el suyo, de uno en uno (empate: se repite el encuentro)",
    "premio": "Si Rayhán gana 2 de 3, la víctima muere y te quedas con sus noches, sus dinares y sus cartas",
