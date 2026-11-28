@@ -713,7 +713,7 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   for (const q of listas) {
     let texto;
     if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
-    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco (con 3 o 4 en tu flecha el rival pelea con −1).' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Un 3 o 4 en tu flecha también le pega al rival: pelea con −1.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
     else if (q.t === 'arcoMaximo') { j.extra.arcoMaximo = true; texto = 'Terminó tu turno: ya tienes la destreza máxima en arco, tus flechas siempre aciertan.'; }
     if (!texto) continue;
     log(e, `${j.nombre}: ${texto}`, { pid, aviso: true });
@@ -726,7 +726,7 @@ function entrenarArma(e, pid, id) {
   // Jorge (27 de noviembre): el entrenamiento con jambiya, cimitarra o alfanje se recibe al iniciar la ronda siguiente, no al terminar el turno
   const q = { t: 'arma', arma, de: id, ...(ENTRENO_SIG_RONDA.includes(arma) && !j.npc ? { ronda: e.ronda + 1 } : {}) };
   j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, q);
-  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina y al terminar queda entrenado${arma === 'arco' ? ' (con 3 o 4 en su flecha el rival también pelea con −1)' : `, con destreza en ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
+  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina${arma === 'arco' ? ' y al terminar queda entrenado: un 3 o 4 en su flecha también le pega al rival (pelea con −1)' : ` y al empezar la siguiente ronda tendrá destreza con ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
