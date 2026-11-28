@@ -43,7 +43,7 @@ export function crearLocal() {
     if (e.historial.length && Date.now() - e.historial[e.historial.length - 1].t < 6500) return;           // deja leer la carta al humano
     const ac = vista(DATA, e, pid).acciones;
     if (t.fase === 'ingreso') return void act(pid, { t: 'tirarDados' });
-    if (t.ccActual) return void act(pid, t.ccActual.tipo === 'trivia' ? { t: 'responderCC', opcion: Math.floor(Math.random() * 3) } : { t: 'resolverMesa', ok: Math.random() < 0.5 });
+    if (t.ccActual) return void act(pid, { t: 'responderCC', opcion: Math.floor(Math.random() * 3) });
     const viajes = ac.filter((x) => x.k === 'viajar' && x.precio <= e.jugadores[pid].dinares);
     if (viajes.length && Math.random() < 0.7 && act(pid, { t: 'viajar', destino: azar(viajes).destino }).ok) return;
     const retosOk = ac.filter((x) => x.k === 'reto' && !x.bloqueado && !x.sub);

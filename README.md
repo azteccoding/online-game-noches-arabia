@@ -152,7 +152,6 @@ En [`src/data/config.json`](src/data/config.json):
 
 | Clave | Valor | Qué hace |
 |---|---|---|
-| `cartasDeMesa` | `false` | Sin cartas «de mesa» (preguntas sobre lo que pasó entre jugadores). Solo salen trivias. |
 | `sinRobarPrimerasRondas` | `true` | Nadie puede **robar** en las 2 primeras rondas. Matar tampoco, como dice el reglamento. Los duelos sí se permiten. |
 | `primerosTurnosSinMatar` | `2` | Número de rondas iniciales protegidas. |
 | `premioTrivia` | `5` | Dinares por trivia acertada (el comercio pesa más que las preguntas). |

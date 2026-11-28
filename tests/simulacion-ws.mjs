@@ -54,7 +54,7 @@ function bot(puerto, nombre, semilla) {
       }
       switch (e.k) {
         case 'tirarDados': return enviar({ t: 'tirarDados' });
-        case 'cc': { const h = s.historial.find((x) => x.nro === s.turno.ccActual?.nro); return s.turno.ccActual?.tipo === 'trivia' ? enviar({ t: 'responderCC', opcion: Math.floor(R() * (h?.opciones?.length || 3)) }) : enviar({ t: 'resolverMesa', ok: R() < 0.5 }); }
+        case 'cc': { const h = s.historial.find((x) => x.nro === s.turno.ccActual?.nro); return enviar({ t: 'responderCC', opcion: Math.floor(R() * (h?.opciones?.length || 3)) }); }
         case 'viajar': return enviar({ t: 'viajar', destino: e.destino });
         case 'atacar': return enviar({ t: 'atacar', tipo: e.tipo, objetivo: pick(e.objetivos), pedirDinares: 5, pedirNoches: 0 });
         case 'reto': return enviar({ t: 'reto', id: e.id, sub: e.sub });

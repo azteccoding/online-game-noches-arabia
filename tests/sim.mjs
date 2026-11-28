@@ -280,7 +280,7 @@ export function simular({ jugadores = 4, semilla = 1, rapido = true, maxPasos = 
       let a = null;
       switch (elegida.k) {
         case 'tirarDados': a = { t: 'tirarDados' }; break;
-        case 'cc': { const cc = t.ccActual; a = cc?.tipo === 'trivia' ? { t: 'responderCC', opcion: Math.floor(R() * (data.trivias.trivias.find((x) => x.id === cc.id)?.opciones.length || 3)) } : { t: 'resolverMesa', ok: R() < 0.5 }; break; }
+        case 'cc': { const cc = t.ccActual; a = { t: 'responderCC', opcion: Math.floor(R() * (data.trivias.trivias.find((x) => x.id === cc.id)?.opciones.length || 3)) }; break; }
         case 'viajar': { a = { t: 'viajar', destino: elegida.destino }; const j = e.jugadores[pid];
           a._por = porViaje(pid, elegida); break; }
         case 'atacar': if (elegida.tipo === 'duelo' && e.jugadores[pid].herido) a = { t: 'terminarTurno' };   // herido, no se arriesga a un duelo

@@ -143,7 +143,7 @@ export function conexion(e, pid, conectado) {
 function prepararMazos(data, e) {
   const cc = {};
   for (const t of data.trivias.trivias) (cc[t.ciudad] ||= []).push({ k: 't', id: t.id });
-  if (data.config.cartasDeMesa !== false) for (const t of data.trivias.deMesa) (cc[t.ciudad] ||= []).push({ k: 'm', id: t.id });
+  // Jorge (27 de noviembre, D18): no hay cartas «De mesa»; se quitaron del juego, del reglamento y del mazo impreso. Solo salen trivias.
   for (const c of Object.keys(cc)) barajar(e, cc[c]);
   const botin = [], guardadas = [];
   e.stock = {};
@@ -861,7 +861,6 @@ function despachar(data, e, pid, j, a, ahora) {
     }
     case 'leido': if (j.extra.ejPend && Number(a.nro) >= j.extra.ejPend.nro) EJ.resolver(data, e, j.id); if (j.extra.cuentoPend && Number(a.nro) >= j.extra.cuentoPend.nro) cobrarCuento(e, j); if (j.extra.mahrPend && Number(a.nro) >= j.extra.mahrPend.nro) cobrarMahr(e, j); if (j.extra.harenPend && Number(a.nro) >= j.extra.harenPend.nro) PJ.cobrarHaren(e, j); if (Number(a.nro) > (j.extra.leidoHasta || 0)) j.extra.leidoHasta = Math.min(Number(a.nro), e.seq); return ok();
     case 'omitirCC': if (!t || t.pid !== pid || !t.ccActual) return err('No hay Carta de Trivias pendiente.'); t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
-    case 'resolverMesa': return resolverMesa(data, e, pid, a);
     case 'atacar': { const r = atacar(data, e, pid, a); if (r.ok) PJ.tras(data, e, pid, 'ataque'); return r; }
     case 'comprar': return OBJ.comprar(data, e, pid, a);
     case 'vender': return OBJ.vender(data, e, pid, a);
@@ -1188,7 +1187,7 @@ export function robarCC(data, e, pid, ciudad) {
   // Regla de la casa: ninguna CC se repite en la partida hasta que hayan salido todas. Se saca del mazo de la ciudad;
   // si ya no le quedan sin salir, de cualquier otro mazo; cuando salieron todas, se rebarajan todas con las ya salidas.
   m.ccVistas ||= [];
-  const nueva = (x) => !m.ccVistas.includes(x.k + x.id);
+  const nueva = (x) => x.k === 't' && !m.ccVistas.includes(x.k + x.id);   // una partida guardada podía traer cartas de mesa ('m'): ya no salen
   let origen = ciudad;
   if (!(m.cc[ciudad] || []).some(nueva)) origen = Object.keys(m.cc).find((k) => m.cc[k].some(nueva));
   if (!origen) {                                                                                             // salieron todas: mazo nuevo
@@ -1203,7 +1202,7 @@ export function robarCC(data, e, pid, ciudad) {
   m.ccVistas.push(c.k + c.id);
   (m.descarte.cc[origen] ||= []).push(c);
   t.cc++;   // 3D (Jorge, 26 de noviembre): ya no salen las Cartas de Cuentos (R 19.7); las reemplaza el mazo de eventos de jugador
-  const tipo = c.k === 't' ? 'trivia' : 'mesa';
+  const tipo = 'trivia';
   const datos = cartaDatos(data, tipo, c.id);
   const ent = publicarCarta(e, datos, pid);
   t.ccActual = { tipo, id: c.id, nro: ent.nro };
@@ -1260,14 +1259,6 @@ function responderCC(data, e, pid, a) {
   if (acierto) RET.mensajes(data, e, pid, 'cc', { n: t.ccBien });
   RET.tras(data, e, pid, 'cc', { acierto });
   return ok();
-}
-function resolverMesa(data, e, pid, a) {
-  const t = e.turno;
-  if (!t || !t.ccActual || t.ccActual.tipo !== 'mesa') return err('No hay carta de mesa pendiente.');
-  if (!esHost(e, pid) && t.pid !== pid) return err('Solo el jugador en turno o el anfitrión.');
-  const j = e.jugadores[t.pid];
-  if (a.ok) { j.dinares += data.config.premioTrivia; log(e, `${j.nombre} cumple la carta de mesa: +${data.config.premioTrivia} dinares.`); t.ccBien++; RET.mensajes(data, e, t.pid, 'cc', { n: t.ccBien }); }
-  t.ccActual = null; if (t.finTrasCC) t.fin = true; return ok();
 }
 
 // ---------------------------------------------------------------- fin de turno

@@ -153,7 +153,7 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
   puedeCerrarRef.current = puedeCerrar;
   const cerrar = () => { if (!puedeCerrar) return; if (modoLectura) setCola((c) => c.slice(1)); else onCerrarConsulta(); };
   const quien = carta.quien ? s.jugadores[carta.quien] : null;
-  const esTrivia = carta.deck === 'trivia', esMesa = carta.deck === 'mesa';
+  const esTrivia = carta.deck === 'trivia';
   const enCurso = s.turno?.ccActual?.nro === carta.nro;
   const soyYo = s.turno?.pid === s.yo;
   const res = carta.resuelto;
@@ -183,12 +183,6 @@ export default function ModalCarta({ s, consulta, onCerrarConsulta, huellaCiudad
               ))}
               {res && <p className="nota-crp">{res.acierto ? '¡Correcto! ' : 'Respuesta correcta: ' + carta.opciones[res.correcta] + '. '}{res.nota}</p>}
               {!res && !(enCurso && soyYo) && <p className="c-nota">Responde {quien?.nombre || 'el jugador en turno'}. La respuesta se revela al contestar.</p>}
-            </div>
-          )}
-          {esMesa && enCurso && (soyYo || s.soyHost) && (
-            <div className="opciones">
-              <button className="opcion" onClick={() => enviar(ACCIONES.resolverMesa(true))}>Se cumplió (+{carta.premio} dinares)</button>
-              <button className="opcion" onClick={() => enviar(ACCIONES.resolverMesa(false))}>No se cumplió</button>
             </div>
           )}
         </Carta>

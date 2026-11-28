@@ -57,9 +57,10 @@ function cargar() {
     console.log('Partida nueva.');
   }
   estado.opciones.azar = 'cripto';                                                   // dados y barajados con azar criptográfico (también en partidas reanudadas)
-  if (data.config.cartasDeMesa === false && estado.mazos) {                          // quita las cartas de mesa que ya estaban en una partida guardada
+  if (estado.mazos) {                                                                // ya no hay cartas de mesa (D18): se quitan de una partida guardada
     const sinMesa = (o) => { for (const c of Object.keys(o || {})) o[c] = o[c].filter((x) => x.k !== 'm'); };
     sinMesa(estado.mazos.cc); sinMesa(estado.mazos.descarte?.cc);
+    if (estado.turno?.ccActual?.tipo === 'mesa') { estado.turno.ccActual = null; if (estado.turno.finTrasCC) estado.turno.fin = true; }
   }
   if (arg('rapido', false)) estado.opciones.rapido = true;
   for (const j of Object.values(estado.jugadores)) j.conectado = false;

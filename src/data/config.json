@@ -62,7 +62,6 @@
  "impuestoVentaPct": 20,
  "maxTramosPorTurno": 2,
  "primerosTurnosSinMatar": 2,
- "cartasDeMesa": false,
  "sinRobarPrimerasRondas": true,
  "duelo": {
   "rechazo": 20,

@@ -108,7 +108,6 @@ export default function Carta({ datos, tam = 'completa', children, className = '
         {datos.limite && <p className="c-nota"><b>Límite:</b> {conSaltos(datos.limite)}</p>}
         {datos.costo && <p className="c-nota"><b>Costo:</b> {conSaltos(datos.costo)}</p>}
         {datos.deck === 'cuento' && <p className="c-nota c-premio">{datos.premioEtiqueta}.</p>}
-        {datos.gancho && datos.deck === 'mesa' && <p className="c-nota"><b>Cómo se comprueba:</b> {conSaltos(datos.gancho)}</p>}
         {children}
       </div>
       {(datos.humor || datos.cita) && <p className="c-cita">{datos.humor || datos.cita}</p>}

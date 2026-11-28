@@ -27,7 +27,6 @@ export const ACCIONES = {
   terminarTurno: () => ({ t: 'terminarTurno' }),
   responderCC: (opcion) => ({ t: 'responderCC', opcion }),
   omitirCC: () => ({ t: 'omitirCC' }),
-  resolverMesa: (ok) => ({ t: 'resolverMesa', ok }),
   atacar: (tipo, objetivo, extra = {}) => ({ t: 'atacar', tipo, objetivo, ...extra }),
   comprar: (item) => ({ t: 'comprar', ...item }),
   vender: (uid) => ({ t: 'vender', uid }),
