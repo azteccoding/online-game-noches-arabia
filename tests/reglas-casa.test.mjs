@@ -1081,7 +1081,7 @@ for (let k = 0; k < 6; k++) {
   turnoDe(e, b, 'Andalucía'); e.jugadores[b].ciudad = 'Andalucía'; e.turno.fase = 'acciones';
   assert.ok(!g.act(b, { t: 'reto', id: 'R41' }).ok, 'solo hay un ídolo');
   turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; const n0 = A.noches;
-  assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 100); assert.ok(!e.turno.principal, 'acción libre');
+  assert.ok(g.act(a, { t: 'usar', uid: c.uid, via: 'destruir' }).ok); assert.equal(A.noches, n0 + 100); assert.ok(!e.turno.principal, 'acción secundaria');
 }
 
 // Libros de la India y de Córdoba: en Bagdad se subastan (par 150, impar 100 cada uno; una tirada para todas las copias)

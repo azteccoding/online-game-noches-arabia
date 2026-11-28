@@ -1024,7 +1024,7 @@ T.R45 = { ciudad: 'India', req: (d, e, pid) => (e.jugadores[pid].npc ? 'Yafar NP
   } };
 // R46 «Aprender persa» (Isfahán) y R47 «Aprender árabe» (Yemen), Jorge (10 de noviembre): pagas 5 dinares y tiras 1 dado (con botón);
 // par: te quedas 1 turno, impar: 2. Esos turnos no puedes salir de la ciudad y tu acción principal se va en las clases (sí cobras
-// ingreso, compras y haces acciones libres). Al terminar, «Habla persa» o «Habla árabe» para siempre. Una vez por jugador.
+// ingreso, compras y haces acciones secundarias). Al terminar, «Habla persa» o «Habla árabe» para siempre. Una vez por jugador.
 // R48 «Enseñar persa» (Estambul o Bagdad) y R49 «Enseñar árabe» (Andalucía): con tu acción principal, 4 dinares por noche; cada turno.
 const IDIOMAS = { R46: { idioma: 'persa', ciudad: 'Isfahán' }, R47: { idioma: 'árabe', ciudad: 'Yemen' } };
 export const hablaIdioma = (j, idioma) => (j.extra?.idiomas || []).includes(idioma);

@@ -704,7 +704,7 @@ function tratosSinCiudad(e) {
 }
 // Punto 15 (Jorge): quien llega a 1,001 noches elige en ese momento «Ganar ya» o «Seguir jugando».
 // Jorge (19 de noviembre): si sigue, la partida continúa sin fin automático para él (lo pueden robar o matar; otros pueden llegar y se les
-// pregunta lo mismo). Mientras tenga 1,001 noches tiene el botón «Ganar ya» (acción libre, también fuera de su turno). Si baja de 1,001,
+// pregunta lo mismo). Mientras tenga 1,001 noches tiene el botón «Ganar ya» (acción secundaria, también fuera de su turno). Si baja de 1,001,
 // pierde el botón, y si vuelve a llegar se le pregunta otra vez.
 function llegarAMil(data, e) {
   if (e.fase !== 'juego' || e.trasFin) return;

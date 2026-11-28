@@ -316,7 +316,7 @@ export function entregarPistaches(e, pid) {
 export const MITAD_VENTA = ['OB05'];   // se venden al mercado a la mitad de su precio (redondeo hacia abajo)
 
 // ---------------------------------------------------------------- camello amarrado (Jorge, 19 de noviembre)
-// Con el Lazo de camellero puedes dejar tu camello amarrado en el mercado de la ciudad donde estás (acción libre, en tu turno).
+// Con el Lazo de camellero puedes dejar tu camello amarrado en el mercado de la ciudad donde estás (acción secundaria, en tu turno).
 // Mientras está amarrado no envejece ni paga albéitar y comida. Cualquier otro jugador lo puede comprar ahí al precio de reventa del
 // mercado (45) y lo recibe con las vidas que tenía; tú cobras ese precio cuando llegas a esa ciudad. Si nadie lo compró, al volver lo
 // recuperas pagando 5 dinares por cada turno tuyo que estuvo amarrado; sin el dinero, no te lo llevas. Un camello amarrado por jugador.
@@ -823,7 +823,7 @@ export function disponibles(data, e, pid) {
       r.push(x);
     }
     if (c.tipo === 'item' && c.ref === 'idolo') {                                                     // R41: destruirlo o venderlo a los venecianos
-      r.push({ k: 'usar', uid: c.uid, titulo: 'Destruir el Ídolo de Toledo (100 noches, acción libre)', via: 'destruir' });
+      r.push({ k: 'usar', uid: c.uid, titulo: 'Destruir el Ídolo de Toledo (100 noches, acción secundaria)', via: 'destruir' });
       if (j.ciudad === 'Estambul') r.push({ k: 'usar', uid: c.uid, titulo: 'Vender el ídolo a los venecianos (100 dinares; con 1–2 te acusan de herejía)', via: 'venecianos' });
     }
     if (c.tipo === 'objeto' && c.ref === 'OB04' && j.ciudad === REPARA_ESCUDO.ciudad) {   // Jorge (12 de noviembre): reparar el escudo en Isfahán

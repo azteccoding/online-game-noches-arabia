@@ -56,7 +56,7 @@ export function inicioTurno(data, e, pid) {
   }
 }
 
-// Opciones en Acciones (sección «Tus esclavos»). Son acciones libres: no gastan la acción principal.
+// Opciones en Acciones (sección «Tus esclavos»). Son acciones secundarias: no gastan la acción principal.
 export function opciones(data, e, pid) {
   const j = e.jugadores[pid], t = e.turno, r = [];
   if (!t || t.pid !== pid || t.fase === 'ingreso' || j.transito || j.perdido || j.npc || SIN_MERCADO.includes(j.ciudad)) return r;
