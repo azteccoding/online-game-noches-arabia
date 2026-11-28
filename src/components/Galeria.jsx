@@ -10,11 +10,11 @@ import { ejDatos } from '../../shared/eventosJugador.js';
 import retos from '../data/retos.json';
 
 const DATA = { ...BASE, eventos, mensajes, trivias, cuentos, ej, retos };
-import { cartaDatos } from '../../shared/engine.js';
+import { cartaDatos, cartaHazana } from '../../shared/engine.js';
 import { itemDatos } from '../../shared/base.js';
 import '../styles/ui.css';
 
-// Herramienta de PRUEBA (solo builds demo): ?galeria=evento|historico|mensaje|objeto|trivia|mesa|personaje|reto dibuja todas las cartas del mazo en rejilla
+// Herramienta de PRUEBA (solo builds demo): ?galeria=evento|historico|mensaje|objeto|trivia|mesa|personaje|reto|hazana dibuja todas las cartas del mazo en rejilla
 // para revisar desbordes de texto. window.__galeria devuelve cuántas cartas desbordan su cuerpo. No forma parte del juego.
 const IDS = {
   evento: () => DATA.eventos.eventos.map((x) => x.id), historico: () => DATA.eventos.historicos.map((x) => x.id), mensaje: () => DATA.mensajes.mensajes.map((x) => x.id),
@@ -22,7 +22,7 @@ const IDS = {
 };
 export default function Galeria({ mazo, ancho = 360 }) {
   // ?galeria=armas: las cartas de objetos armadas con las hojas de vistas (armas, flechas, escudo) y la del genio
-  const lista = mazo === 'ej' ? DATA.ej.cartas.map((c) => ejDatos(DATA, c.id)) : mazo === 'armas' ? [...['cimitarra', 'alfanje', 'jambiya', 'arco', 'flechas', 'burro', 'caballo', 'camello', 'caballoMongol', 'alfombra', 'lampara', 'yegua', 'alfombraIsfahan'].map((r) => itemDatos(DATA, r)), cartaDatos(DATA, 'objeto', 'OB04'), cartaDatos(DATA, 'ifrit', 'I1')] : mazo === 'especial' ? DATA.objetos.especiales.filter((x) => IDS.especial().includes(x.id)).map((x) => ({ id: x.id, deck: 'especial', titulo: x.nombre, sub: 'Carta especial', texto: (x.texto || '') + ' ' + (x.efecto || ''), arte: x.arte })) : (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
+  const lista = mazo === 'ej' ? DATA.ej.cartas.map((c) => ejDatos(DATA, c.id)) : mazo === 'armas' ? [...['cimitarra', 'alfanje', 'jambiya', 'arco', 'flechas', 'burro', 'caballo', 'camello', 'caballoMongol', 'alfombra', 'lampara', 'yegua', 'alfombraIsfahan'].map((r) => itemDatos(DATA, r)), cartaDatos(DATA, 'objeto', 'OB04'), cartaDatos(DATA, 'ifrit', 'I1')] : mazo === 'hazana' ? [cartaHazana('quds')] : mazo === 'especial' ? DATA.objetos.especiales.filter((x) => IDS.especial().includes(x.id)).map((x) => ({ id: x.id, deck: 'especial', titulo: x.nombre, sub: 'Carta especial', texto: (x.texto || '') + ' ' + (x.efecto || ''), arte: x.arte })) : (IDS[mazo] || IDS.evento)().map((id) => cartaDatos(DATA, mazo in IDS ? mazo : 'evento', id));
   React.useEffect(() => {
     const t = setTimeout(() => {
       const malas = [...document.querySelectorAll('.c-cuerpo')].filter((e) => e.scrollHeight > e.clientHeight + 1).map((e) => e.closest('[data-id]')?.getAttribute('data-id'));

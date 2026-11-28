@@ -396,6 +396,7 @@ function forzar(e, ...valores) {
   assert.ok(g.act(pid, { t: 'usar', uid: b.uid, destino: 'Damasco' }).ok, 'el burro va de El Cairo a Damasco');
   if (e.turno.ccActual) g.act(pid, { t: 'omitirCC' });
   assert.ok(e.log.some((l) => /Visitar al-Quds», \+40/.test(l.texto)), 'al-Quds da +40 noches');
+  assert.equal(e.historial.filter((c) => c.id === 'HZ1').length, 1, 'sale la carta pintada HZ1 «Visitar al-Quds» para toda la mesa');
   assert.ok(j.noches - n0 >= 40);
   // Jorge (27 de noviembre, C02): al-Quds vale una sola vez por jugador en toda la partida
   assert.equal(vistaDe(e, pid).jugadores[pid].hazanas.quds.quedan, 0, 'al-Quds ya no queda: una vez por partida');
@@ -403,6 +404,7 @@ function forzar(e, ...valores) {
   { const r = g.act(pid, { t: 'usar', uid: darItem(e, j, 'burro').uid, destino: 'El Cairo' }); assert.ok(r.ok, 'de regreso en burro: ' + r.error); }
   if (e.turno.ccActual) g.act(pid, { t: 'omitirCC' });
   assert.ok(e.log.some((l) => /ya cobró «Visitar al-Quds» en esta partida/.test(l.texto)), 'la segunda vez no cobra y se le avisa');
+  assert.equal(e.historial.filter((c) => c.id === 'HZ1').length, 1, 'la segunda vez ya no sale la carta HZ1');
   turnoDe(e, pid, 'Magreb'); j.ciudad = 'Magreb'; n0 = j.noches;
   llegada(data, e, pid, 'Andalucía'); llegada(data, e, pid, 'Magreb'); llegada(data, e, pid, 'Andalucía');
   assert.equal(e.turno.hazanas.tariq, 2, 'Tariq vale como máximo 2 veces por turno');

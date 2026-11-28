@@ -505,6 +505,12 @@ function hazana(data, e, pid, k) {
   const cuenta = c.por === 'turno' ? (e.turno.hazanas ||= {}) : (j.extra.hazanas ||= {});
   cuenta[k] = (cuenta[k] || 0) + 1; j.noches += h.noches;
   log(e, `${j.nombre}: «${h.nombre}», +${h.noches} noches.`, { pid });
+  if (k === 'quds') publicarCarta(e, { ...cartaHazana('quds'), texto: `${j.nombre} llega en burro a al-Quds, entre El Cairo y Damasco: +${h.noches} noches. Esta hazaña solo vale una vez por partida.` }, pid);
+}
+// Carta HZ1 «Visitar al-Quds» (pintura de Jorge, 27 de noviembre): sale para toda la mesa al cobrar la hazaña del burro, como sale un reto.
+export function cartaHazana(k) {
+  const h = HAZANAS[k];
+  return { id: 'HZ1', deck: 'especial', titulo: h.nombre, sub: 'Hazaña', texto: `Viajar en burro entre ${h.par.join(' y ')}, en cualquier sentido, da +${h.noches} noches. Solo vale una vez por partida.`, arte: 'es' };
 }
 // Al cerrar el turno: la hazaña cobrada queda bloqueada; un turno posterior que termine fuera del par la libera.
 export function hazanasFinTurno(data, e) {
