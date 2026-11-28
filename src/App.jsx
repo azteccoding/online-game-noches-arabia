@@ -126,7 +126,7 @@ function Juego({ lienzo }) {
     setPanel((a) => (a === p ? null : p));
   }, []);
   const cerrar = useCallback(() => setPanel(null), []);
-  // Atajos de teclado (Jorge, 23 de noviembre): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
+  // Atajos de teclado (Jorge, 23 de noviembre; desde el 28 de noviembre b es el Bazar, m la mano, x cierra, p personajes y z el historial de cartas): m mercado, a acciones (en tu turno), n mensajes, c última carta, v la Carta de Trivias por
   // responder, x + espacio termina el turno (Alt + espacio abría el menú de la ventana en Windows), z cierra la carta abierta (si ya se puede cerrar) o la ventana abierta, f pantalla completa, Shift + flecha arriba o abajo recorre el menú de acciones o de mercado y Enter elige. Las flechas y + / − mueven y acercan la cámara (escena3d/camara.js). No actúan al escribir.
   // Jorge (24 de noviembre): e abre las reacciones rápidas (los emojis; Shift + flechas elige y Enter envía), r la ventana de retos, x sola la mano
   // (al soltarla, para no chocar con x + espacio) y Shift + 1 a 6 las cartas de la barra de arriba, entre «Ronda» y «Pantalla completa», en su orden; z las cierra.
@@ -134,7 +134,12 @@ function Juego({ lienzo }) {
   // la cámara, como las flechas circulares de la esquina (| es la tecla a la izquierda del 1 en el teclado latinoamericano).
   useEffect(() => {
     const esBarra = (ev) => ev.key === '|' || ev.code === 'Backquote'; let barraAbajo = false;      // la | sostenida, para | + flecha
-    let xAbajo = false, xUsada = false;      // la x sostenida, para x + espacio; si se suelta sin haber usado el espacio, abre la mano
+    let xAbajo = false, xUsada = false;      // la x sostenida, para x + espacio; si se suelta sin haber usado el espacio, cierra
+    // Cierra las reacciones rápidas si están abiertas; si no, la carta abierta (cuando ya se puede cerrar); si no, la ventana abierta.
+    const cerrarAbierto = () => {
+      const b = document.querySelector('.modal-cerrar:not([disabled])'), r = document.querySelector('.reacciones-lista') && document.querySelector('.reacciones-btn');
+      if (r) r.click(); else if (b) b.click(); else setPanel(null);
+    };
     // Shift + flecha arriba o abajo recorre las filas del menú abierto (acciones o mercado) y Enter elige la marcada (Jorge, 23 de noviembre).
     const marcarFila = (paso) => {
       const filas = filasDeMenu();
@@ -150,7 +155,7 @@ function Juego({ lienzo }) {
       if (ev && !(ev.code === 'KeyX' || String(ev.key || '').toLowerCase() === 'x')) return;
       const sola = !!ev && xAbajo && !xUsada; xAbajo = false; xUsada = false;
       if (!sola || ev.ctrlKey || ev.metaKey || ev.altKey || document.body.classList.contains('viendo-pelea')) return;
-      const e = leer().estado; if (e && e.fase === 'juego' && e.jugadores?.[e.yo]) abrir('mano');   // x sola: la mano
+      cerrarAbierto();   // x sola: cierra (Jorge, 28 de noviembre; antes abría la mano)
     };
     // Jorge (23 de noviembre): el espacio solo tira el dado de ingreso (y x + espacio termina el turno) y, desde el 24, los dados de los retos. Nunca aprieta el botón enfocado,
     // ni cierra cartas, ni hace de Enter: se le quita su efecto de siempre fuera de los campos de texto.
@@ -204,7 +209,10 @@ function Juego({ lienzo }) {
       }
       const k = String(ev.key || '').toLowerCase();
       if (k === 'v') { if (e.turno?.pid === e.yo && e.turno.ccActual) abrir('carta:' + e.turno.ccActual.nro); else return; }   // la Carta de Trivias que falta responder
-      else if (k === 'm') abrir(e.tratos?.some((x) => x.con === e.yo) ? 'mercado-tratos' : 'mercado');
+      // Jorge (28 de noviembre): b el Bazar (o los tratos, si te ofrecieron uno), m la mano, n los mensajes, x cierra, p los personajes y z el historial de cartas.
+      else if (k === 'b') abrir(e.tratos?.some((x) => x.con === e.yo) ? 'mercado-tratos' : 'mercado');
+      else if (k === 'm') { if (e.fase === 'juego' && e.jugadores?.[e.yo]) abrir('mano'); else return; }
+      else if (k === 'p') abrir('personajes');
       else if (k === 'a') { if (e.turno?.pid === e.yo && e.turno.fase !== 'ingreso') abrir('acciones'); else return; }
       else if (k === 'n') { if (e.fase === 'juego') abrir('chat'); else return; }
       else if (k === 'c') abrir('ultima');
@@ -224,10 +232,8 @@ function Juego({ lienzo }) {
         setPanel('ciudad:' + lista[(lista.indexOf(actual) + 1) % lista.length]);
         setTimeout(() => document.querySelector('.hoja-ciudad')?.focus({ preventScroll: true }), 0);
       }
-      else if (k === 'z') {
-        const b = document.querySelector('.modal-cerrar:not([disabled])'), r = document.querySelector('.reacciones-lista') && document.querySelector('.reacciones-btn');
-        if (r) r.click(); else if (b) b.click(); else setPanel(null);
-      } else return;
+      else if (k === 'z') { if (e.fase === 'juego') abrir('historial'); else return; }
+      else return;
       ev.preventDefault();
     };
     const perder = () => soltar();
