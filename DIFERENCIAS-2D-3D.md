@@ -186,4 +186,4 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 28 nov | **«Mercado» se llama «Bazar»** en todo el juego. | Mercado. | 0db8e1b |
 | 28 nov | **Perfume de rosas**: se compra también en Estambul, El Cairo, Andalucía y Yemen (además de Damasco); Bagdad lo sigue pagando a 17. | Solo en Damasco. | 0db8e1b |
 | 28 nov | **Caravanas**: El Cairo–Magreb 13 (regreso 14) y El Cairo–Andalucía 14 (regreso 9): 3 dinares menos cada una. Los números pintados del mapa no cambian. | 16/17 y 17/12. | 0db8e1b |
-| 28 nov | **Teclas nuevas**: b abre el Bazar (o los tratos), m la mano, p los personajes, z el historial de cartas y x sola (al soltarla) cierra la carta o la ventana abierta; x + espacio sigue terminando el turno y n sigue abriendo los mensajes. | Sin atajos de letras. | (este commit) |
+| 28 nov | **Teclas nuevas**: b abre el Bazar (o los tratos), m la mano, p los personajes, z el historial de cartas y x sola (al soltarla) cierra la carta o la ventana abierta; x + espacio sigue terminando el turno y n sigue abriendo los mensajes. | Sin atajos de letras. | 6355376 |
