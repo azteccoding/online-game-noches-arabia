@@ -5949,3 +5949,15 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.equal(c.total, 1, 'la flecha le quita la destreza'); assert.ok(c.partes.includes('destreza perdida por la flecha'));
   console.log('destreza en duelos OK');
 }
+// Jorge (28 de noviembre): «en difícil Yafar paga normal»: Yafar NPC en difícil paga el alojamiento normal; en fácil y normal, el doble
+{
+  const { CONT } = await import('../shared/base.js');
+  for (const [dificultad, esperado] of [['facil', 8], ['normal', 8], ['dificil', 4]]) {
+    const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+    const e = g.e, Y = e.jugadores.npc; e.opciones.dificultad = dificultad;
+    turnoDe(e, 'npc', 'Damasco'); Y.ciudad = 'Damasco'; Y.dinares = 30; Y.perdido = false; Y.transito = null;
+    CONT['npc.cierre'](data, e, { pid: 'npc' });
+    assert.equal(30 - Y.dinares, esperado, `${dificultad}: Damasco cuesta 4`);
+  }
+  console.log('alojamiento de Yafar NPC en difícil OK');
+}
