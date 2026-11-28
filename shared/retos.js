@@ -4,7 +4,7 @@ import { huidaCuentaViaje } from './base.js';
 import {
   ok, err, rnd, dado, dados, suma, par, log, nombre, ciudadDe, objDe, activos, humanosVivos, enCiudad, tieneItem, tieneObj, tieneEsp, quitarCarta, quitarPrimero, uid, darItem, darObjeto, pagar, patrimonio,
   publicarCarta, cartaDatos, robar, eliminar, TESOROS, HOOK, esLibro, valorLibro, mostrarDados, consumirObj, info, pedir, registrar, CONT, ofrecerObjetos, devolverObjeto, recortarMano, robarBotin, ITEMS, puedePrincipal, tarifa,
-itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, HERIDO_BARCO, deudasDe, deudaDe, contraerDeuda, pagarDeuda, } from './base.js';
+itemDatos, soloJambiya, MSJ_SOLO_JAMBIYA, puedeEntrenarArma, tieneDestrezaGeneral, darDestreza, ALFOMBRAS, alfombrasEn, moverAlfombras, tieneCarga, limiteCarga, nCarga, viajePorMar, HERIDO_BARCO, deudasDe, deudaDe, contraerDeuda, pagarDeuda, enPartida, devolverPrincipal, alertaRoja } from './base.js';
 import { peleaNPC, perfil, armasUsables } from './pelea.js';
 
 const m1 = (data, id) => data.retos.retos.find((r) => r.id === id);
@@ -33,7 +33,7 @@ function hacer(e, pid, id) { const j = e.jugadores[pid]; if (!j.retosHechos.incl
 // encargos (libros R4, papiros R10, sacos de sal R23, manzanas R24, comprar alfombras R17, pergamino R30 y posta R39). R7 ya no existe.
 // R8 y R9 se repiten como siempre: cuando sales de El Cairo y vuelves. Aparte siguen igual: los Asesinos (R15), enseñar un idioma
 // (R48, R49), forjar si ya no tienes cimitarra (R52) y reintentar un reto fallado.
-export const REPETIBLES = ['R4', 'R23', 'R24', 'R17', 'R30', 'R39'];   // R10 ya no se repite (Jorge, 19 de noviembre)
+export const REPETIBLES = ['R4', 'R23', 'R24', 'R17', 'R30', 'R39', 'R68'];   // R68: una vez por cada R24 que completes   // R10 ya no se repite (Jorge, 19 de noviembre)
 export const REPITE_AL_VOLVER = ['R8', 'R9'];
 // Jorge (19 de noviembre): Anís puede repetir R26 «Acostarse con Zein en la Giralda» (solo él).
 const repitePorPj = (j, id) => id === 'R26' && j.pj === '3';
@@ -324,6 +324,7 @@ const FALLO = {
 export function inicioTurno(data, e, pid) {
   const j = e.jugadores[pid];
   marcarJugador(e, pid);
+  rayhanInicioTurno(data, e, pid); if (j.eliminado) return;
   for (const c of j.mano.slice()) if (c.tipo === 'item' && c.ref === 'veneno' && j.turnos - (c.extra?.turnos ?? j.turnos) >= 3) quitarCarta(j, c.uid);
   for (const m of j.misiones.slice()) {
     if (m.id === 'R1') { r1Turno(data, e, pid, m); if (j.eliminado) return; continue; }
@@ -368,6 +369,7 @@ function entregar(data, e, pid, m) {
   quitarCarga(e, pid, m); quitarMision(j, m); hacer(e, pid, m.id);
   premio(data, e, pid, pr, `${j.nombre} entrega su encargo (${m.id}):`);
   cerrarReto(data, e, pid, m.id, true);
+  if (m.id === 'R24') abrirRayhan(data, e, pid);
 }
 function completarR3(data, e, pid, m) {
   const j = e.jugadores[pid];
@@ -1406,3 +1408,94 @@ registrar('reto.ofrecer5', (data, e, args, resp) => {
   j.dinares -= 5; k.dinares += 5; log(e, `${k.nombre} acepta los 5 dinares de ${j.nombre}.`, { pid: args.de, aviso: true });
   mensajes(data, e, args.de, 'ofrecer', {});
 });
+
+// ---------------------------------------------------------------- R68 «Contratar a Rayhán» (Jorge, 28 de noviembre; reglamento 12.3, opción 1)
+// Sale al completar R24 en Bagdad: la cesta de manzanas queda a orillas del Éufrates y Rayhán, el esclavo que vive en Bagdad, acepta un
+// encargo. Cada R24 completado te deja contratarlo una vez (acción principal, en Bagdad, desde la ronda 3). El aviso es para toda la
+// mesa y dice quién es la víctima. Al empezar tu siguiente turno, Rayhán sale de Bagdad, llega a la ciudad de la víctima y pelean al mejor
+// de 3: en cada encuentro tú lanzas un dado por Rayhán y la víctima uno suyo, de uno en uno (empate: se repite el encuentro). Si Rayhán gana
+// 2, la víctima muere y te quedas con sus noches, sus dinares y sus cartas. Gane o pierda, después pagas: el pasaje de caravana de Bagdad a
+// la ciudad de la víctima más 6 por el último dado de la víctima (Zubayda, 20 % menos). Si no te alcanza, tienes hasta el final de ese
+// turno; si no pagas, Rayhán te reta a muerte con alfanje. Si la víctima está en el Jorasán o de camino con su animal, no la encuentra
+// y no cobra. Yafar NPC no lo contrata. Un solo encargo a la vez (Rayhán no puede estar en dos lugares).
+export const RAYHAN = { etq: 'Rayhán', figura: 'EP', arma: 'alfanje', desde: 'Bagdad', porPunto: 6, descuentoZubayda: 0.2 };
+export function pasajeDesde(data, a, b) {      // la caravana más barata de a a b con las tarifas del 5.4 (puede ser con escalas)
+  if (a === b) return 0;
+  const dist = { [a]: 0 }, hechos = new Set();
+  for (;;) {
+    let u = null; for (const c of Object.keys(dist)) if (!hechos.has(c) && (u === null || dist[c] < dist[u])) u = c;
+    if (u === null) return null; if (u === b) return dist[u]; hechos.add(u);
+    for (const [k, t] of Object.entries(data.rutas.tarifas)) { const [x, y] = k.split('>'); if (x === u && !(dist[y] <= dist[u] + t)) dist[y] = dist[u] + t; }
+  }
+}
+export const precioRayhan = (data, j, ciudad, ultimo) => { const base = (pasajeDesde(data, RAYHAN.desde, ciudad) ?? 0) + RAYHAN.porPunto * ultimo; return j.pj === '6' ? Math.round(base * (1 - RAYHAN.descuentoZubayda)) : base; };
+const victimasRayhan = (e, pid) => enPartida(e).filter((x) => x !== pid);
+function abrirRayhan(data, e, pid) {
+  const j = e.jugadores[pid]; if (!j || j.npc) return;
+  j.extra.rayhan = (j.extra.rayhan || 0) + 1;
+  publicarCarta(e, { ...cartaDatos(data, 'reto', 'R68'), sub: 'Ya puedes contratar a Rayhán' }, pid, [pid]);
+  log(e, `${j.nombre} dejó la cesta a orillas del Éufrates: ya puede contratar a Rayhán (R68) en Bagdad.`, { pid });
+}
+T.R68 = { ciudad: 'Bagdad', req: (data, e, pid) => {
+  const j = e.jugadores[pid];
+  if (j.npc) return 'Yafar NPC no contrata a Rayhán.';
+  if (!(j.extra.rayhan > 0)) return 'Primero completa R24: lleva una cesta de manzanas a Bagdad.';
+  if (e.ronda <= data.config.primerosTurnosSinMatar) return 'Nadie puede matar en las 2 primeras rondas.';
+  if (e.rayhan) return e.rayhan.por === pid ? 'Rayhán ya tiene tu encargo.' : 'Rayhán ya tiene un encargo de otro jugador.';
+  if (!victimasRayhan(e, pid).length) return 'No hay a quién.';
+  return null;
+}, run(data, e, pid, ctx) {
+  ctx.sinAnuncio = true;
+  const op = victimasRayhan(e, pid).map((x) => ({ id: x, texto: nombre(e, x) }));
+  op.push({ id: 'cancelar', texto: 'No contratarlo' });
+  pedir(e, { tipo: 'reto', para: [pid], titulo: 'R68 · Contratar a Rayhán', texto: 'Elige a la víctima. Toda la mesa sabrá a quién mandaste a Rayhán. Irá por ella al empezar tu próximo turno; pagas después, gane o pierda.', opciones: op, porDefecto: 'cancelar', limiteMs: 60000, cont: { fn: 'r68.victima', args: {} } });
+} };
+registrar('r68.victima', (data, e, args, resp) => {
+  const pid = resp.pid, j = e.jugadores[pid], v = e.jugadores[resp.opcion];
+  if (resp.opcion === 'cancelar' || !v || v.eliminado || e.rayhan || !(j.extra.rayhan > 0)) { devolverPrincipal(e, pid, 'No contrataste a Rayhán'); return; }
+  j.extra.rayhan--; hacer(e, pid, 'R68');
+  e.rayhan = { por: pid, victima: v.id, turno: j.turnos };
+  const texto = `${j.nombre} contrató a Rayhán contra ${v.nombre}. Rayhán saldrá de Bagdad a buscarlo al empezar el próximo turno de ${j.nombre}.`;
+  log(e, texto, { pid, aviso: true }); anunciar(e, pid, texto, 'rojo');
+  anunciarReto(data, e, pid, 'R68', 'curso');
+});
+function rayhanInicioTurno(data, e, pid) {
+  const R = e.rayhan; if (!R || R.por !== pid || R.deuda != null) return;
+  const j = e.jugadores[pid]; if (j.turnos <= R.turno) return;
+  const v = e.jugadores[R.victima];
+  if (!v || v.eliminado || v.sacado) { e.rayhan = null; log(e, 'Rayhán sale de Bagdad, pero su víctima ya no está en la partida. No cobra nada.', { pid, aviso: true }); return cerrarReto(data, e, pid, 'R68', false); }
+  if (v.perdido || v.transito) { e.rayhan = null; log(e, `Rayhán busca a ${v.nombre}, pero no lo encuentra: ${v.perdido ? 'está en el Jorasán' : 'va de camino'}. No cobra nada.`, { pid, aviso: true }); return cerrarReto(data, e, pid, 'R68', false); }
+  log(e, `${RAYHAN.etq} sale de Bagdad y se planta frente a ${v.nombre} en ${v.ciudad} para pelear.`, { pid: v.id, peleaNPC: RAYHAN.figura, etq: RAYHAN.etq, armaNPC: RAYHAN.arma, desde: RAYHAN.desde });
+  const n = e.logN, titulo = `Rayhán contra ${v.nombre}`, marca = (d) => { if (d) d.peleaNPC = n; return d; };
+  let gR = 0, gV = 0, enc = 1, ultimo = 1;
+  for (let k = 0; k < 40 && gR < 2 && gV < 2; k++) {
+    const x = dado(e), y = dado(e); ultimo = y;
+    marca(mostrarDados(e, { por: pid, motivo: 'pelea', titulo, grupos: [{ etq: `Encuentro ${enc}: ${j.nombre} lanza por Rayhán`, valores: [x] }], resumen: [`Rayhán saca ${x}.`] }));
+    const res = [`Encuentro ${enc}: Rayhán ${x} contra ${v.nombre} ${y}.`];
+    if (x === y) res.push('Empate: se repite el encuentro.');
+    else { if (x > y) gR++; else gV++; res.push(`${x > y ? 'Gana Rayhán' : `Gana ${v.nombre}`} el encuentro (Rayhán ${gR}, ${v.nombre} ${gV}).`); enc++; }
+    if (gR >= 2) res.push(`Rayhán gana 2 de 3: ${v.nombre} muere.`); else if (gV >= 2) res.push(`${v.nombre} gana 2 de 3 y se salva.`);
+    marca(mostrarDados(e, { por: v.id, npc: !!v.npc, motivo: 'pelea', titulo, grupos: [{ etq: `${v.nombre} lanza`, valores: [y] }], resumen: res }));
+  }
+  const precio = precioRayhan(data, j, v.ciudad, ultimo), pasaje = pasajeDesde(data, RAYHAN.desde, v.ciudad) ?? 0;
+  const cuenta = `pasaje de Bagdad a ${v.ciudad} ${pasaje} + ${RAYHAN.porPunto} × ${ultimo} del último dado de ${v.nombre}${j.pj === '6' ? ', con 20 % menos por ser Zubayda' : ''}`;
+  if (gR >= 2) { log(e, `${v.nombre} muere a manos de Rayhán.`, { pid: v.id, aviso: true }); eliminar(data, e, v.id, { por: pid, causa: 'Rayhán' }); }
+  else log(e, `${v.nombre} vence a Rayhán y se salva.`, { pid: v.id, aviso: true });
+  if (j.dinares >= precio) { j.dinares -= precio; e.rayhan = null; log(e, `${j.nombre} le paga a Rayhán ${precio} dinares (${cuenta}).`, { pid }); }
+  else {
+    R.deuda = precio;
+    log(e, `${j.nombre} le debe a Rayhán ${precio} dinares (${cuenta}). Si no los paga antes de terminar este turno, Rayhán lo reta a muerte con alfanje.`, { pid, aviso: true });
+    alertaRoja(e, pid, `Le debes a Rayhán ${precio} dinares. Se cobran solos al terminar tu turno si te alcanzan; si no, Rayhán te reta a muerte con alfanje.`);
+  }
+  cerrarReto(data, e, pid, 'R68', gR >= 2);
+}
+// Al terminar el turno de quien le debe: se cobra solo si le alcanza; si no, Rayhán lo reta a muerte con alfanje.
+export function rayhanFinTurno(data, e, pid) {
+  const R = e.rayhan; if (!R || R.por !== pid || R.deuda == null) return;
+  const j = e.jugadores[pid]; if (!j || j.eliminado) { e.rayhan = null; return; }
+  if (j.dinares >= R.deuda) { j.dinares -= R.deuda; log(e, `${j.nombre} le paga a Rayhán los ${R.deuda} dinares que le debía.`, { pid }); e.rayhan = null; return; }
+  e.rayhan = null;
+  log(e, `${j.nombre} no le pagó a Rayhán: Rayhán lo reta a una pelea a muerte con alfanje.`, { pid, aviso: true });
+  if (peleaNPC(data, e, pid, { etq: RAYHAN.etq, dados: 2, bono: 1, figura: RAYHAN.figura, arma: RAYHAN.arma, desde: RAYHAN.desde }, { tituloExtra: 'Rayhán viene a cobrar: pelea a muerte con alfanje.' })) log(e, `${j.nombre} vence a Rayhán: ya no le debe nada.`, { pid, aviso: true });
+  else { log(e, `${j.nombre} muere a manos de Rayhán por no pagarle.`, { pid, aviso: true }); eliminar(data, e, pid, { causa: 'Rayhán' }); }
+}

@@ -293,7 +293,7 @@
    "tipo": "V",
    "requisito": "Cesta de manzanas: si traes una del mercado pagas 5 dinares; si no, pagas 10 y te la dan",
    "resolucion": "Entrega la cesta en Bagdad en 1 turno. Si otro jugador te la roba, pierdes el reto. Se puede repetir",
-   "premio": "30 dinares",
+   "premio": "30 dinares. Al entregarla, puedes contratar a Rayhán (R68)",
    "riesgo": "",
    "objetos": "",
    "refReglamento": "14.4",
@@ -931,6 +931,21 @@
    "objetos": "",
    "humor": "",
    "refReglamento": "14.7",
+   "añadido": true,
+   "arte": "re"
+  },
+  {
+   "id": "R68",
+   "nombre": "Contratar a Rayhán",
+   "ciudad": "Bagdad",
+   "tipo": "V",
+   "requisito": "Haber completado R24 (llevar manzanas a Bagdad): cada entrega te deja contratarlo una vez. Desde la ronda 3. Yafar NPC no lo contrata",
+   "resolucion": "Dejas la cesta a orillas del Éufrates y eliges a la víctima: toda la mesa sabe a quién. Al empezar tu próximo turno, Rayhán sale de Bagdad, llega a la ciudad de la víctima y pelean al mejor de 3: en cada encuentro tú lanzas un dado por Rayhán y la víctima lanza el suyo, de uno en uno (empate: se repite el encuentro)",
+   "premio": "Si Rayhán gana 2 de 3, la víctima muere y te quedas con sus noches, sus dinares y sus cartas",
+   "riesgo": "Gane o pierda, pagas el pasaje de caravana de Bagdad a la ciudad de la víctima más 6 por el último dado de la víctima (Zubayda, 20 % menos). Si no pagas antes de terminar ese turno, Rayhán te reta a muerte con alfanje. Si la víctima está en el Jorasán o de camino, no la encuentra y no cobra",
+   "objetos": "",
+   "humor": "",
+   "refReglamento": "12.3",
    "añadido": true,
    "arte": "re"
   }

@@ -89,12 +89,13 @@ export default function Dados({ s }) {
   // Jorge (28 de noviembre): el aviso de que Yafar NPC va contra alguien sale hasta que su monito ya está en la ciudad de la víctima
   // (antes, con un viaje largo, la pantalla dejaba de esperar a los 20 segundos y el aviso salía con Yafar todavía en camino).
   const [llego, setLlego] = useState(null);
-  const esperaYafar = !!d && !!d.alerta && d.motivo === 'npc:Yafar' && !!escenaActual() && llego !== d.id;
+  // También los dados de una pelea contra un NPC que llega caminando (Rayhán, R68): esperan a que su monito llegue.
+  const esperaYafar = !!d && ((!!d.alerta && d.motivo === 'npc:Yafar') || !!d.peleaNPC) && !!escenaActual() && llego !== d.id;
   useEffect(() => {
     if (!esperaYafar) return undefined;
     let vivo = true; const id = d.id, listo = () => { if (vivo) { clearTimeout(reloj); setLlego(id); } };
     const reloj = setTimeout(listo, ESPERA_YAFAR_MS);   // por si la escena no avisara (pestaña en segundo plano)
-    quietos(...Object.keys(s.jugadores || {})).then(listo, listo);
+    quietos(...Object.keys(s.jugadores || {}), ...(s.e3d?.pelea?.figura ? [s.e3d.pelea.atk] : [])).then(listo, listo);
     return () => { vivo = false; clearTimeout(reloj); };
   }, [esperaYafar, d?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
   if (d && (esperaCarta || esperaYafar)) espero.current = d.id;

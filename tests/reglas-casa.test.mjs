@@ -3351,7 +3351,7 @@ console.log('reglas de la casa OK');
 // y, al salir de la ciudad y volver, R8 y R9. R7 ya no existe.
 {
   const { REPETIBLES } = await import('../shared/retos.js');
-  assert.deepEqual([...REPETIBLES].sort(), ['R17', 'R23', 'R24', 'R30', 'R39', 'R4']);   // R10 ya no (Jorge, 19 de noviembre)
+  assert.deepEqual([...REPETIBLES].sort(), ['R17', 'R23', 'R24', 'R30', 'R39', 'R4', 'R68']);   // R68: una vez por cada R24 (28 de noviembre)   // R10 ya no (Jorge, 19 de noviembre)
   const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
   const e = g.e, [a] = g.ids, A = e.jugadores[a];
   // R9 (pirámides): no se repite sin salir de El Cairo, y sí al salir y volver
@@ -6063,4 +6063,50 @@ console.log('Sherezada: los dados antes que la muerte OK');
   darItem(e, Y, 'alfanje');
   assert.ok(validarAtaque(data, e, 'npc', { tipo: 'robo', objetivo: a }, { npc: true }).ok, 'con arma, sí asalta');
   console.log('Yafar NPC necesita arma para asaltar OK');
+}
+
+// R68 «Contratar a Rayhán» (Jorge, 28 de noviembre): sale al completar R24; Rayhán va por la víctima al empezar tu siguiente turno y pelean
+// al mejor de 3, un dado cada uno por encuentro; pagas el pasaje desde Bagdad más 6 por el último dado de la víctima. Si no pagas, te reta.
+{
+  const RET = await import('../shared/retos.js');
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+  A.ciudad = 'Basra'; A.dinares = 50; A.mano = A.mano.filter((c) => c.ref !== 'cesta');
+  turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R24' }).ok);
+  while (e.pend) assert.ok(g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.opciones?.[0]?.id || 'ok' }).ok);
+  e.dados = null; e.colaDados = [];
+  assert.ok(g.act(a, { t: 'viajar', destino: 'Bagdad' }).ok);
+  assert.equal(A.extra.rayhan, 1, 'completar R24 abre R68');
+  assert.ok(e.historial.some((h) => h.id === 'R68' && h.para?.includes(a)), 'sale la carta del reto');
+  e.ronda = 5; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+  assert.ok(g.act(a, { t: 'reto', id: 'R68' }).ok);
+  assert.ok(e.pend && e.pend.opciones.some((o) => o.id === b));
+  assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: b }).ok);
+  assert.equal(e.rayhan?.victima, b); assert.equal(A.extra.rayhan, 0, 'se gasta la oportunidad');
+  assert.ok(e.log.some((l) => l.aviso && /contrató a Rayhán contra/.test(l.texto)), 'aviso a toda la mesa');
+  assert.match(g.act(a, { t: 'reto', id: 'R68' }).error || '', /acción principal|R24|encargo/);
+  // al empezar su siguiente turno, Rayhán va a Damasco
+  B.ciudad = 'Damasco'; e.dados = null; e.colaDados = []; A.dinares = 500; const d0 = A.dinares, nB = B.noches, dB = Math.max(0, B.dinares);
+  A.turnos++; RET.inicioTurno(data, e, a);
+  const ds = [e.dados, ...e.colaDados].filter(Boolean);
+  assert.ok(ds.length >= 4 && ds.every((d) => d.peleaNPC && d.valores.length === 1), 'dados de uno en uno, marcados como su pelea');
+  const P = vista3d(data, e).pelea;
+  assert.equal(P.figura, 'EP'); assert.equal(P.desde, 'Bagdad'); assert.equal(P.armaNPC, 'alfanje'); assert.equal(P.def, b);
+  const ultimo = ds.filter((d) => d.por === b).at(-1).valores[0];
+  const muere = !!B.eliminado;
+  assert.equal(A.dinares, d0 - (4 + 6 * ultimo) + (muere ? dB : 0), 'paga el pasaje de Bagdad a Damasco (4) + 6 por el último dado; si muere, se queda con sus dinares');
+  if (muere) assert.ok(A.noches >= nB, 'se queda con sus noches');
+  assert.equal(e.rayhan, null);
+  // sin dinero: a deber, y al terminar el turno Rayhán lo reta a muerte
+  const g2 = partida(['4', '7']); assert.ok(g2.iniciar().ok);
+  const e2 = g2.e, [a2, b2] = g2.ids, A2 = e2.jugadores[a2];
+  e2.rayhan = { por: a2, victima: b2, turno: A2.turnos }; e2.jugadores[b2].ciudad = 'Basra'; A2.dinares = 0; e2.dados = null; e2.colaDados = [];
+  A2.turnos++; RET.inicioTurno(data, e2, a2);
+  assert.ok(e2.rayhan?.deuda > 0, 'queda la deuda'); A2.dinares = 0;
+  e2.dados = null; e2.colaDados = []; RET.rayhanFinTurno(data, e2, a2);
+  assert.equal(e2.rayhan, null);
+  assert.ok(e2.log.some((l) => /Rayhán lo reta a una pelea a muerte con alfanje/.test(l.texto)));
+  assert.ok(A2.eliminado || e2.log.some((l) => /vence a Rayhán: ya no le debe/.test(l.texto)));
+  console.log('R68 contratar a Rayhán OK');
 }

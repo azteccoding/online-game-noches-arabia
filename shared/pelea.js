@@ -872,7 +872,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true, escudo: npc.escudo ?? 1 });
   const n0 = nombre(e, pid);
-  if (npc.figura) log(e, `${npc.etq} se planta frente a ${n0} para pelear.`, { pid, peleaNPC: npc.figura, etq: npc.etq });
+  if (npc.figura) log(e, `${npc.etq} se planta frente a ${n0} para pelear.`, { pid, peleaNPC: npc.figura, etq: npc.etq, ...(npc.arma ? { armaNPC: npc.arma } : {}), ...(npc.desde ? { desde: npc.desde } : {}) });
   const nPelea = npc.figura ? e.logN : null, marca = (d) => { if (d && nPelea) d.peleaNPC = nPelea; return d; };
   avisoSinFlechas(data, e, pid);
   // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.

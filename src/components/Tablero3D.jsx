@@ -17,7 +17,7 @@ const IFRIT_MAX_MS = 9000;   // si la animación no terminara, la carta del geni
 function fichasDe(jugadores, e3d, turnoPid) {
   // Jorge (28 de noviembre, BUG5): el esposo de Zein (Ira del cornudo, la Giralda) sale en el tablero mientras duran los dados de su
   // pelea, en la ciudad de quien pelea con él; luego se va (con la cola de animaciones, para no cortar el choque).
-  const P = e3d?.pelea, rival = P?.figura && P.activa && jugadores[P.def] ? [{ id: P.atk, nombre: P.nombre || 'NPC', personaje: P.figura, color: '#7a1e1e', ciudad: P.ciudad || jugadores[P.def].ciudad, arma: P.armaNPC || '', escudo: false, transporte: null, turno: false, esclavo: false, cargador: false, viajeN: 0, medio: null, laudN: 0, laudTexto: '', laudCallado: false, laudPieza: 1 }] : [];
+  const P = e3d?.pelea, rival = P?.figura && P.activa && jugadores[P.def] ? [{ id: P.atk, nombre: P.nombre || 'NPC', personaje: P.figura, color: '#7a1e1e', ciudad: P.ciudad || jugadores[P.def].ciudad, arma: P.armaNPC || '', desde: P.desde || null, escudo: false, transporte: null, turno: false, esclavo: false, cargador: false, viajeN: 0, medio: null, laudN: 0, laudTexto: '', laudCallado: false, laudPieza: 1 }] : [];
   return Object.values(jugadores).filter((j) => j.pj && !j.eliminado && !j.sacado).map((j) => ({
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
@@ -72,7 +72,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     const ahora = fichasDe(jugadores, e3d, turnoPid);
     const antes = previo.current;
     previo.current = Object.fromEntries(ahora.map((f) => [f.id, f]));
-    const limpio = ({ viajeN, medio, laudN, laudTexto, laudCallado, ...f }) => f;
+    const limpio = ({ viajeN, medio, laudN, laudTexto, laudCallado, desde, ...f }) => f;
     if (!antes) { esc.ponerJugadores(ahora.map(limpio)).then(() => { if (previo.current?.[miId]) return esc.enfocar(miId, { duracion: 1.6, distancia: DISTANCIA_INICIO }); }).catch((err) => console.warn('[3D]', err)); return; }
     for (const id of Object.keys(antes)) {
       if (previo.current[id]) continue;
@@ -82,6 +82,8 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     }
     for (const f of ahora) {
       const a = antes[f.id];
+      // Rayhán (R68) sale de Bagdad y camina hasta la ciudad de su víctima; la pelea (y sus dados) esperan a que llegue.
+      if (!a && f.desde && f.desde !== f.ciudad) { viajeDe(f.id, (e) => Promise.resolve(e.ponerJugador({ ...limpio(f), ciudad: f.desde })).then(() => (e.camino(f.desde, f.ciudad)?.length ? e.viajar(f.id, f.ciudad, { llevar: true, seguir: false }) : e.actualizarJugador(f.id, { ciudad: f.ciudad })))); continue; }
       if (!a) { viajeDe(f.id, (e) => e.ponerJugador(limpio(f))); continue; }   // ficha nueva (antes actualizarJugador, que solo cambia una que ya está)
       const cambios = {};
       for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'esclavo', 'cargador', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];

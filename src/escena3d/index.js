@@ -53,6 +53,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   const PJ = Object.fromEntries((Array.isArray(personajes) ? personajes : Object.values(personajes)).map((p) => [p.id, { ...p, arma: Array.isArray(p.arma) ? p.arma[0] || '' : p.arma || '' }]));
   // NPC con monito que no son personajes (Jorge, 28 de noviembre): el esposo de Zein pelea en la Ira del cornudo y en la Giralda (R26).
   if (FIGURAS.CO && !PJ.CO) PJ.CO = { id: 'CO', nombre: 'Esposo de Zein', arma: 'jambiya' };
+  if (FIGURAS.EP && !PJ.EP) PJ.EP = { id: 'EP', nombre: 'Rayhán', arma: 'alfanje' };      // Rayhán (R68): el monito del esclavo de pelea
   const movil = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const menosMovimiento = opciones.menosMovimiento ?? (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const avisar = (txt) => { try { opciones.alProgreso?.(txt); } catch { /* la interfaz es cosa de quien llama */ } };

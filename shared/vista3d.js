@@ -17,7 +17,7 @@ const RE_PELEA = /^(.+?) (grita «¡Esto es un asalto!» contra|ataca a muerte a
 const TIPO_PELEA = { 'grita «¡Esto es un asalto!» contra': 'robo', 'ataca a muerte a': 'matar', 'desafía a duelo a': 'duelo' };
 export function peleaDeLinea(e, l) {
   if (!l?.pid || !e.jugadores?.[l.pid]) return null;
-  if (l.peleaNPC) return { n: l.n, tipo: 'npc', atk: 'npc:' + l.peleaNPC, def: l.pid, figura: l.peleaNPC, armaNPC: l.peleaNPC === 'CO' ? 'jambiya' : '', nombre: l.etq || '', ciudad: e.jugadores[l.pid].ciudad };   // peleaNPC (pelea.js)
+  if (l.peleaNPC) return { n: l.n, tipo: 'npc', atk: 'npc:' + l.peleaNPC, def: l.pid, figura: l.peleaNPC, armaNPC: l.armaNPC || (l.peleaNPC === 'CO' ? 'jambiya' : ''), nombre: l.etq || '', ciudad: e.jugadores[l.pid].ciudad, desde: l.desde || null };   // peleaNPC (pelea.js)
   const m = RE_PELEA.exec(l.texto || ''); if (!m) return null;
   const def = Object.values(e.jugadores).find((x) => x.id !== l.pid && x.nombre === m[3]); if (!def) return null;
   return { n: l.n, tipo: TIPO_PELEA[m[2]], atk: l.pid, def: def.id, ...(l.peleaId ? { id: l.peleaId } : {}) };
