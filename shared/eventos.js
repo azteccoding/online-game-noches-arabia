@@ -163,7 +163,7 @@ function aplicarHistorico0(data, e, id) {
     case 'H4': {
       const ids = ordenadoPorTurno(e, humanosEn(e, ['Damasco', 'Bagdad']).filter((x) => !jug(e, x).npc));
       if (ids.length) pedir(e, { tipo: 'historico', modo: 'una', todos: true, para: ids, titulo: 'Revolución abasí',   // todos: con un solo jugador la respuesta también llega por jugador (antes se perdía y no cobraba el saqueo)
-      texto: 'Puedes saquear: +40 dinares del banco (el segundo en tu ciudad, 20). Precio: -20 noches y el marcador Buscado (2 rondas).', opciones: [{ id: 'si', texto: 'Saquear' }, { id: 'no', texto: 'No' }], porDefecto: 'no', cont: { fn: 'ev.h4', args: {} } });
+      texto: 'Puedes saquear: +40 dinares del banco. Precio: -20 noches y el marcador Buscado (2 rondas). Si no saqueas, no pasa nada.', opciones: [{ id: 'si', texto: 'Saquear' }, { id: 'no', texto: 'No' }], porDefecto: 'no', cont: { fn: 'ev.h4', args: {} } });
       break;
     }
     case 'H5': e.mods.almoravides = true; break;
@@ -263,12 +263,13 @@ registrar('ev.h2', (data, e, args, resp) => {
   if (patrimonio(j) < tramos.reduce((s, x) => s + x.t, 0)) { escolta('no le alcanza para el viaje y es escoltado al Magreb'); return; }
   for (const x of tramos) mover(data, e, pid, x.d, x.t, 'abandona al-Ándalus');   // a Bagdad: dos tramos, cada uno cuenta como viaje
 });
+export const SAQUEO_H4 = 40;
 registrar('ev.h4', (data, e, args, resp) => {
-  const ord = ordenadoPorTurno(e, Object.keys(resp).filter((k) => resp[k].opcion === 'si')), vistos = {};
-  for (const pid of ord) {
-    const j = jug(e, pid), c = j.ciudad; vistos[c] = (vistos[c] || 0) + 1;
-    j.dinares += vistos[c] === 1 ? 40 : 20; j.noches -= 20; marcarBuscado(data, e, j, { tipo: 'saqueo' });
-    log(e, `${j.nombre} saquea durante la revolución: +${vistos[c] === 1 ? 40 : 20} dinares, -20 noches y es Buscado.`, { pid });
+  // Jorge (28 de noviembre): todos los que saquean cobran lo mismo, 40 dinares (antes el segundo en la misma ciudad cobraba 20).
+  for (const pid of ordenadoPorTurno(e, Object.keys(resp).filter((k) => resp[k].opcion === 'si'))) {
+    const j = jug(e, pid);
+    j.dinares += SAQUEO_H4; j.noches -= 20; marcarBuscado(data, e, j, { tipo: 'saqueo' });
+    log(e, `${j.nombre} saquea durante la revolución: +${SAQUEO_H4} dinares, -20 noches y es Buscado.`, { pid });
   }
 });
 registrar('ev.h7', (data, e, args, resp) => {

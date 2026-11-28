@@ -179,7 +179,7 @@
    "nombre": "Revolución abasí",
    "ciudades": "Damasco, Bagdad",
    "efecto": "Los jugadores en Damasco o Bagdad pueden saquear (acción libre, una vez cada uno)",
-   "costo": "Saquear: +40 dinares del banco (el segundo en la misma ciudad cobra solo 20). Precio: pierde 20 noches y recibe el marcador Buscado (2 rondas)",
+   "costo": "Saquear: +40 dinares del banco, igual para todos los que saqueen. Precio: pierde 20 noches y recibe el marcador Buscado (2 rondas). Quien no saquea no gana ni pierde nada",
    "fomenta": "C, P",
    "arte": "hi",
    "refReglamento": "17.2"

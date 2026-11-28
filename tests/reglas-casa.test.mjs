@@ -5875,6 +5875,16 @@ console.log('Sherezada: los dados antes que la muerte OK');
     assert.ok(g.act(a, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
     assert.equal(A.dinares, d0 + 40, 'cobra 40'); assert.ok(A.buscado > 0, 'queda Buscado');
   }
+  // H4 (Jorge, 28 de noviembre): todos los que saquean cobran lo mismo, aunque estén en la misma ciudad
+  {
+    const g = partida(['4', '7', '1']); assert.ok(g.iniciar().ok); const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const id of e.orden) e.jugadores[id].ciudad = 'Isfahán';
+    A.ciudad = 'Bagdad'; B.ciudad = 'Bagdad'; limpio(e); const da = A.dinares, db = B.dinares;
+    aplicarHistorico(data, e, 'H4');
+    assert.deepEqual([...e.pend.para].sort(), [a, b].sort());
+    for (const x of [a, b]) assert.ok(g.act(x, { t: 'decidir', id: e.pend.id, opcion: 'si' }).ok);
+    assert.equal(A.dinares, da + 40); assert.equal(B.dinares, db + 40, 'el segundo en la misma ciudad también cobra 40');
+  }
   // D15: R6 solo con el dado igual al promedio; si no, 1 dinar y 20 noches
   {
     const g = partida(['4', '7']); assert.ok(g.iniciar().ok); const e = g.e, [a] = g.ids, A = e.jugadores[a];
