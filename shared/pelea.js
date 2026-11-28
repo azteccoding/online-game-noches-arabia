@@ -18,6 +18,17 @@ function avisoSinFlechas(data, e, pid, ciudad) {
   if ((ciudad || j.ciudad) === 'Bagdad' && !e.mods?.armasBagdad && !tieneEsp(j, 'F1')) return;   // ahí tampoco podría usarlo con flechas
   publicarCarta(e, { id: 'sinFlechas', deck: 'especial', titulo: 'Sin flechas', sub: 'Arco', texto: MSJ_SIN_FLECHAS, arte: 'es', causa: true }, pid, [pid]);
 }
+// Jorge (28 de noviembre, solo en el 3D): en Bagdad, sin Firmán del Califa, quien pelea contra Yafar (lo rete o Yafar lo rete) recibe
+// una alerta antes de la pelea: él no usa armas y Yafar sí usa las suyas. Solo si Yafar de verdad puede usar alguna ahí.
+export const textoBagdadYafar = (Y, armasY, llevaArmas) => `En Bagdad, sin el Firmán del Califa, ${llevaArmas ? 'no puedes usar tus armas en esta pelea' : 'peleas sin armas'}. ${Y.nombre} sí pelea con ${armasY.length > 1 ? 'sus armas' : 'su arma'} (${armasY.join(' y ')}), porque tiene el Firmán.`;
+function avisoBagdadYafar(data, e, P) {
+  if (P.ciudad !== 'Bagdad' || e.mods?.armasBagdad) return;
+  const y = [P.atk, P.def].find((x) => e.jugadores[x]?.pj === 'B'); if (!y) return;
+  const otro = y === P.atk ? P.def : P.atk, o = e.jugadores[otro], Y = e.jugadores[y];
+  if (o.npc || o.pj === 'B' || tieneEsp(o, 'F1')) return;
+  const armasY = armasUsables(data, e, Y, 'Bagdad'); if (!armasY.length) return;
+  publicarCarta(e, { id: 'sinArmasBagdad', deck: 'especial', titulo: 'Sin Firmán en Bagdad', sub: 'Pelea', texto: textoBagdadYafar(Y, armasY, ARMAS.some((r) => tieneItem(o, r))), arte: 'es', causa: true }, otro, [otro]);
+}
 function avisoUltimaFlecha(e, pid) { const j = e.jugadores[pid]; if (j && !j.npc && tieneItem(j, 'arco') && !tieneItem(j, 'flechas')) info(e, pid, 'Arco', MSJ_ULTIMA_FLECHA); }
 const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
 const bonoArma = (data, ref) => data.config.armas?.[ref]?.bono ?? BONO[ref];
@@ -257,6 +268,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   const pedirNur = j.pj === '1' && nurHonor ? { dinares: Math.max(0, Math.floor(a.pedirDinares || 0)), noches: Math.max(0, Math.floor(a.pedirNoches || 0)) } : null;
   const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [], noRechazable: !!a.noRechazable };
   log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid, peleaId: P.id });
+  avisoBagdadYafar(data, e, P);
   // Jorge (8 de noviembre): si Yafar (NPC o jugador) asalta o ataca a muerte a Zein o a Zubayda y ella no lleva armas a la vista
   // (un arma escondida no cuenta), Yafar queda Buscado, gane o pierda.
   // Jorge (19 de noviembre): quien ataque a Zein o a Zubayda (robo, ataque a muerte o duelo) queda Buscado, gane o pierda. A Zein,

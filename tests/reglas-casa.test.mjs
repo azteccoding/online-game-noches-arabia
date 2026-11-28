@@ -6,7 +6,7 @@ import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/ba
 import * as BASE from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte, recibirDestreza } from '../shared/retos.js';
-import { peleaNPC, duelo } from '../shared/pelea.js';
+import { peleaNPC, duelo, atacar } from '../shared/pelea.js';
 import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
 import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
@@ -6019,4 +6019,31 @@ console.log('Sherezada: los dados antes que la muerte OK');
   assert.ok([e.dados, ...e.colaDados].filter(Boolean).every((d) => d.peleaNPC === P.n), 'sus dados son de esa pelea');
   e.dados = null; e.colaDados = []; assert.ok(!vista3d(data, e).pelea.activa, 'al cerrarse los dados se va');
   console.log('cartas de la barra y monito del cornudo OK');
+}
+
+// Jorge (28 de noviembre): en Bagdad, sin Firmán, quien pelea contra Yafar (lo rete o Yafar lo rete) recibe la alerta de que él no usa
+// armas y Yafar sí. Con Firmán, o si Yafar no tiene armas que usar ahí, no sale.
+{
+  const prep = () => {
+    const g = partida(['4', '5']); assert.ok(g.iniciar().ok);
+    const e = g.e, a = g.ids[0], Y = e.jugadores.npc;
+    for (const id of [a, 'npc']) { e.jugadores[id].ciudad = 'Bagdad'; e.jugadores[id].herido = false; }
+    if (!tieneEsp(Y, 'F1')) Y.mano.push({ uid: 'fY', tipo: 'especial', ref: 'F1', pub: true, extra: { yafar: true } });
+    if (!tieneItem(Y, 'jambiya')) darItem(e, Y, 'jambiya');
+    e.ronda = 5; turnoDe(e, a, 'Bagdad'); e.turno.fase = 'acciones';
+    return { g, e, a, Y };
+  };
+  const aviso = (e, a) => e.historial.find((h) => h.id === 'sinArmasBagdad' && h.para?.includes(a));
+  { const { g, e, a } = prep(); darItem(e, e.jugadores[a], 'cimitarra');
+    const r = g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: 'npc' }); assert.ok(r.ok, r.error);
+    const c = aviso(e, a); assert.ok(c, 'quien reta a Yafar recibe la alerta');
+    assert.match(c.texto, /no puedes usar tus armas/); assert.match(c.texto, /jambiya/); }
+  { const { e, a } = prep(); turnoDe(e, 'npc', 'Bagdad');
+    assert.ok(atacar(data, e, 'npc', { tipo: 'duelo', objetivo: a }, { npc: true }).ok);
+    assert.match(aviso(e, a)?.texto || '', /peleas sin armas/, 'también cuando Yafar lo reta'); }
+  { const { g, e, a } = prep(); e.jugadores[a].mano.push({ uid: 'fA', tipo: 'especial', ref: 'F1', pub: true });
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: 'npc' }).ok); assert.ok(!aviso(e, a), 'con Firmán no sale'); }
+  { const { g, e, a, Y } = prep(); Y.mano = Y.mano.filter((c) => !['jambiya', 'arco', 'cimitarra', 'alfanje'].includes(c.ref));
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: 'npc' }).ok); assert.ok(!aviso(e, a), 'si Yafar no trae armas, no sale'); }
+  console.log('alerta de Bagdad sin Firmán contra Yafar OK');
 }

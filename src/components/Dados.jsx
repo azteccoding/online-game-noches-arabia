@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { cartaDelMotivo } from '../game/orden.js';
-import { escenaActual, enCola, dadosDePelea, armaDePelea } from '../game/escena3d.js';
+import { escenaActual, enCola, quietos, dadosDePelea, armaDePelea } from '../game/escena3d.js';
 
 // Dados rojos con puntos blancos, 100 % SVG (caras) sobre un cubo CSS 3D. El servidor decide los valores; el cliente solo anima.
 // Todos los clientes ven los mismos dados; cualquiera puede cerrar el resultado y entonces desaparecen para todos (estado.dados = null).
@@ -71,6 +71,8 @@ function useFoco(activo, clave) {
   return ref;
 }
 
+const ESPERA_YAFAR_MS = 90000;
+
 export default function Dados({ s }) {
   const d = s.dados;
   const cartaPrevia = useJuego((x) => x.cartaEnPantalla);
@@ -84,9 +86,20 @@ export default function Dados({ s }) {
   // empieza a rodar, desde el principio, cuando la carta se cierra (antes se veía solo el resultado, p. ej. el dado de ingreso).
   const esperaCarta = !!d && ((cartaPrevia != null && cartaPrevia < d.id) || (porLeer != null && porLeer < d.id));
   const espero = useRef(null);
-  if (d && esperaCarta) espero.current = d.id;
+  // Jorge (28 de noviembre): el aviso de que Yafar NPC va contra alguien sale hasta que su monito ya está en la ciudad de la víctima
+  // (antes, con un viaje largo, la pantalla dejaba de esperar a los 20 segundos y el aviso salía con Yafar todavía en camino).
+  const [llego, setLlego] = useState(null);
+  const esperaYafar = !!d && !!d.alerta && d.motivo === 'npc:Yafar' && !!escenaActual() && llego !== d.id;
   useEffect(() => {
-    if (!d || !d.lanzado || esperaCarta) { setFila(-1); setEn3d(false); idVisto.current = null; if (!d) enCola((e) => e.limpiarDados()); return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
+    if (!esperaYafar) return undefined;
+    let vivo = true; const id = d.id, listo = () => { if (vivo) { clearTimeout(reloj); setLlego(id); } };
+    const reloj = setTimeout(listo, ESPERA_YAFAR_MS);   // por si la escena no avisara (pestaña en segundo plano)
+    quietos(...Object.keys(s.jugadores || {})).then(listo, listo);
+    return () => { vivo = false; clearTimeout(reloj); };
+  }, [esperaYafar, d?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (d && (esperaCarta || esperaYafar)) espero.current = d.id;
+  useEffect(() => {
+    if (!d || !d.lanzado || esperaCarta || esperaYafar) { setFila(-1); setEn3d(false); idVisto.current = null; if (!d) enCola((e) => e.limpiarDados()); return undefined; }       // espera a que su dueño pulse «Lanzar dados» (o a que se cierre la carta)
     if (idVisto.current === d.id) return undefined;
     idVisto.current = d.id; setVisto(d.id);
     const transcurrido = espero.current === d.id ? 0 : Math.max(0, s.ahora - d.t0);   // reloj del servidor: quien se une tarde ve el final
@@ -116,7 +129,7 @@ export default function Dados({ s }) {
     setFila(primera);
     for (let k = primera + 1; k <= nFilas; k++) ts.push(setTimeout(() => setFila(k < nFilas ? k : -1), k * RUEDA_MS - transcurrido));
     return () => ts.forEach(clearTimeout);
-  }, [d?.id, d?.lanzado, esperaCarta]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [d?.id, d?.lanzado, esperaCarta, esperaYafar]);   // eslint-disable-line react-hooks/exhaustive-deps
   const rodando = fila >= 0;
   // Jorge (23 de noviembre): la ventana de qué salió en tu dado de ingreso solo se cierra a mano si hay carta de sheij (el 6).
   // Jorge (24 de noviembre): «el dado de sheij se cierra automáticamente (sin necesidad de dar clic en cerrar) si es que no salió 6 a
@@ -131,13 +144,14 @@ export default function Dados({ s }) {
   // el foco queda en el botón de la ventana (lanzar o cerrar), para Enter o espacio
   const ajeno = !!d && d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba');
   const refLanzar = useFoco(!!d && !d.lanzado && !en3d && !esperaCarta && d.por === s.yo, d?.id);
-  const refCerrar = useFoco(!!d && d.lanzado && visto === d.id && !en3d && !rodando && !esperaCarta && !ajeno && !d.cerrados?.includes(s.yo), d?.id);
+  const refCerrar = useFoco(!!d && d.lanzado && visto === d.id && !en3d && !rodando && !esperaCarta && !esperaYafar && !ajeno && !d.cerrados?.includes(s.yo), d?.id);
   if (en3d) return null;                                                // rodando en la bandeja 3D: nada encima
   if (!d) return null;
   const por = s.jugadores[d.por];
   // Jorge (19 de noviembre): orden estricto carta → dados → decisión. Los dados ya no esperan detrás de tu decisión (en R23 elegías
   // ante los bandoleros sin haber lanzado el dado); la decisión espera a que se cierren los dados (Decision.jsx).
   if (esperaCarta) return null;                                         // primero se lee la carta que explica la tirada
+  if (esperaYafar) return null;                                         // Yafar NPC todavía va en camino a la ciudad de su víctima
   if (d.por !== s.yo && (String(d.motivo || '').startsWith('reto:') || d.motivo === 'ingreso' || d.motivo === 'tumba')) return null;   // reto o dado de ingreso ajeno: los demás solo ven el registro y, si acaso, la alerta (Jorge, 19 de noviembre)
   if (!d.lanzado) {
     const mio = d.por === s.yo;
