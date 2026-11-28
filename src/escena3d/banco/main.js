@@ -35,7 +35,7 @@ async function iniciar() {
   });
   if (!escena) return;
   const estado = { elegida: null, rival: null, rotulo: null, apuntada: null, ronda: 1 };
-  const J = Object.fromEntries(JUGADORES.map((j) => [j.id, { ...j, arma: PERSONAJES[j.personaje].arma[0] || '', transporte: null, esclavo: '' }]));
+  const J = Object.fromEntries(JUGADORES.map((j) => [j.id, { ...j, arma: PERSONAJES[j.personaje].arma[0] || '', transporte: null, esclavo: '', cargador: false }]));
 
   // --- Jugadores: retrato, nombre y selectores de personaje, arma y transporte
   const filas = {};
@@ -55,13 +55,16 @@ async function iniciar() {
     opcion(sTr, '', 'A pie'); for (const t of TRANSPORTES) opcion(sTr, t, NOMBRE_TRANSPORTE[t]);
     const sEsc = document.createElement('select'); sEsc.setAttribute('aria-label', `Esclavo de ${j.nombre}`); sEsc.title = 'Esclavo peleador: lo acompaña y pelea por él con esa arma';
     opcion(sEsc, '', 'Sin esclavo'); opcion(sEsc, '-', 'Esclavo (no pelea)'); for (const a of ARMAS.filter((x) => x !== 'arco')) opcion(sEsc, a, `Esclavo: ${NOMBRE_ARMA[a].toLowerCase()}`);
-    sPj.value = j.personaje; sArma.value = J[j.id].arma; sTr.value = ''; sEsc.value = '';
+    const sCar = document.createElement('select'); sCar.setAttribute('aria-label', `Cargador de ${j.nombre}`); sCar.title = 'Esclavo cargador: lo acompaña con su cesta; no pelea';
+    opcion(sCar, '', 'Sin cargador'); opcion(sCar, '1', 'Cargador');
+    sPj.value = j.personaje; sArma.value = J[j.id].arma; sTr.value = ''; sEsc.value = ''; sCar.value = '';
+    sCar.addEventListener('change', () => { J[j.id].cargador = !!sCar.value; escena.actualizarJugador(j.id, { cargador: !!sCar.value }); });
     sEsc.addEventListener('change', () => { J[j.id].esclavo = sEsc.value; escena.actualizarJugador(j.id, { esclavo: !!sEsc.value }); });
     sPj.addEventListener('change', () => { J[j.id].personaje = sPj.value; escena.actualizarJugador(j.id, { personaje: sPj.value }); pintar(j.id); });
     sArma.addEventListener('change', () => { J[j.id].arma = sArma.value; escena.actualizarJugador(j.id, { arma: sArma.value }); });
     sTr.addEventListener('change', () => { J[j.id].transporte = sTr.value || null; escena.actualizarJugador(j.id, { transporte: sTr.value || null }); });
-    sels.append(sPj, sArma, sTr, sEsc); caja.append(b, sels); $('jugadores').appendChild(caja);
-    filas[j.id] = { b, sPj, sArma, sTr, sEsc };
+    sels.append(sPj, sArma, sTr, sEsc, sCar); caja.append(b, sels); $('jugadores').appendChild(caja);
+    filas[j.id] = { b, sPj, sArma, sTr, sEsc, sCar };
   }
   const datosDe = (id) => escena.jugadores().find((x) => x.id === id);
   function pintar(id) {
@@ -73,7 +76,7 @@ async function iniciar() {
     f.b.classList.toggle('elegida', estado.elegida === id); f.b.classList.toggle('rival', estado.rival === id); f.b.setAttribute('aria-pressed', estado.elegida === id ? 'true' : 'false');
   }
   const pintarTodos = () => { for (const id in filas) pintar(id); };
-  await escena.ponerJugadores(Object.values(J).map((j, i) => ({ ...j, esclavo: !!j.esclavo, turno: i === 0 })));
+  await escena.ponerJugadores(Object.values(J).map((j, i) => ({ ...j, esclavo: !!j.esclavo, cargador: !!j.cargador, turno: i === 0 })));
   pintarTodos();
 
   // --- Pista: una línea que cuenta qué está pasando
@@ -174,7 +177,7 @@ async function iniciar() {
   $('hora').addEventListener('change', () => { escena.ponerHora($('hora').value, { duracion: 2.5 }).catch(fallo); });
 
   // --- Pelea (solo animación) e Ifrit
-  const bloquear = (v) => { for (const id in filas) for (const s of [filas[id].sPj, filas[id].sArma, filas[id].sTr, filas[id].sEsc]) s.disabled = v; $('fin-ronda').disabled = v; $('ifrit').disabled = v; $('jorasan').disabled = v; };
+  const bloquear = (v) => { for (const id in filas) for (const s of [filas[id].sPj, filas[id].sArma, filas[id].sTr, filas[id].sEsc, filas[id].sCar]) s.disabled = v; $('fin-ronda').disabled = v; $('ifrit').disabled = v; $('jorasan').disabled = v; };
   $('pelear').addEventListener('click', () => {
     const a = estado.elegida, b = estado.rival; if (!a || !b) return;
     escena.activarSonido(); bloquear(true); $('pelear').disabled = true;

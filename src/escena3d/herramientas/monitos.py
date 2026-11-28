@@ -9,7 +9,8 @@
 # info.json y, si se da, la hoja «-pose-a» de la que salió. Una versión guardada nunca se sobrescribe: para otra, otro nombre.
 # Cuál está puesta de cada personaje queda en src/escena3d/datos/monitos.json.
 # El <id> es el de la figura en datos/figuras.json: el de un personaje ('1' a '7', 'B', '4t') o el de una figura que no es
-# personaje jugable, como 'EP' (el esclavo peleador, 27 de noviembre: solo tiene fig-EP.webp, sin busto ni retrato para elegir).
+# personaje jugable, como 'EP' (el esclavo peleador, 27 de noviembre: solo tiene fig-EP.webp, sin busto ni retrato para elegir)
+# o 'EC' (el esclavo cargador, el de la cesta a la espalda).
 import sys, os, json, shutil, hashlib, datetime, re
 
 AQUI = os.path.dirname(os.path.abspath(__file__))

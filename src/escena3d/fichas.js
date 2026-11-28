@@ -18,7 +18,13 @@ const VEL_ALFOMBRA = 4.0, PASO_ALFOMBRA = 0.8;      // velocidad de crucero de l
 const ESC_ESPERA = 0.8, ESC_MONTADO = 1.2, ESC_CABESTRO = 0.95;      // tamaño del animal mientras espera junto a la figura (pequeño, sin estorbar) y al cabalgar
 // Esclavo peleador (Jorge, 27 de noviembre): el monito que acompaña a quien lleva un esclavo de pelea. Es solo figura: no es
 // jugador ni personaje. De pie junto a su amo, un paso detrás y hacia fuera de la ciudad; de viaje va tras él.
-const ID_ESCLAVO = 'EP', ESC_LADO = 0.5, ESC_ATRAS = 0.3, T_ESCLAVO = 0.4;
+// Esclavo cargador (Jorge, 27 de noviembre): quien lleva un esclavo de carga también lo tiene al lado, con su cesta a la espalda.
+// Va por su cuenta del peleador (un amo puede llevar los dos): en la ciudad ocupa el mismo sitio que el peleador si va solo, y
+// si van los dos se pone un paso más afuera y más atrás (amo, peleador y cargador en abanico); de viaje, del otro costado.
+// No pelea nunca: en las peleas se queda en su sitio.
+const ESC_LADO = 0.5, ESC_ATRAS = 0.3, T_ESCLAVO = 0.4, CARG_LADO = 0.95, CARG_ATRAS = 0.52;
+const PELEADOR = { k: 'esclavo', con: 'conEsclavo', pend: 'esclavoPend', id: 'EP', que: 'esclavo peleador' };
+const CARGADOR = { k: 'cargador', con: 'conCargador', pend: 'cargadorPend', id: 'EC', que: 'esclavo cargador' };
 
 // personajes: { id: { id, nombre, arma, … } } · recursos.figuras: { id: { atlas: URL, datos } } · flota: la de crearFlota (o null)
 // Velocidad de giro del monito propio, en radianes por segundo: la vuelta entera al tocarlo (unos 2 segundos) y las vueltas con el acercamiento máximo (una cada 3 segundos)
@@ -68,7 +74,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     fichas.push(f); return f;
   }
   function quitar(f) {
-    f.fuera = true; if (f.viaje) terminarViaje(f, false); ponerTransporte(f, null); soltarLaud(f); quitarEsclavo(f);
+    f.fuera = true; if (f.viaje) terminarViaje(f, false); ponerTransporte(f, null); soltarLaud(f); quitarEsclavo(f); quitarEsclavo(f, CARGADOR);
     const o = f.ciudad ? tablero.ciudades.get(f.ciudad).ocupantes : null; if (o) { const q = o.indexOf(f.ranura); if (q >= 0) o.splice(q, 1); }
     escena.remove(f.nodo); f.fig?.destruir(); for (const m of [f.sombra, f.aro, f.onda, f.blanco]) m.material.dispose();
     blancos.splice(blancos.indexOf(f.blanco), 1); fichas.splice(fichas.indexOf(f), 1); fichas.forEach((x, i) => { x.indice = i; });
@@ -138,56 +144,66 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
 
   // --- Esclavo peleador: aparece junto a su amo (crece de la nada, con un poco de polvo) y desaparece igual. Si el amo va de
   // viaje, el cambio se aplica al llegar; si está en una pelea, espera a que termine.
-  function ponerEsclavo(f, v) {
-    v = !!v && !!recursos.figuras[ID_ESCLAVO];
-    if (f.viaje && !f.fuera) { f.esclavoPend = v; return; }
-    f.conEsclavo = v; cambios = true;
-    if (!v) { if (f.esclavo) f.esclavo.sale = true; return; }
-    if (f.esclavo) { f.esclavo.sale = false; return; }
+  // A: cuál de los dos acompañantes (PELEADOR, que es lo que se entiende si no se dice, o CARGADOR). Cada uno va en su campo de la
+  // ficha (f.esclavo y f.cargador) y no sabe del otro más que para no encimarse.
+  function ponerEsclavo(f, v, A = PELEADOR) {
+    v = !!v && !!recursos.figuras[A.id];
+    if (f.viaje && !f.fuera) { f[A.pend] = v; return; }
+    f[A.con] = v; cambios = true;
+    if (!v) { if (f[A.k]) f[A.k].sale = true; return; }
+    if (f[A.k]) { f[A.k].sale = false; return; }
     const nodo = new THREE.Group(), cuerpo = new THREE.Group(); nodo.add(cuerpo); nodo.visible = false; escena.add(nodo);
     const sombra = new THREE.Mesh(gPlano, new THREE.MeshBasicMaterial({ map: tex.sombra, transparent: true, opacity: 0.85, depthWrite: false })); sombra.position.y = 0.011; sombra.renderOrder = 7; nodo.add(sombra);
-    const E = f.esclavo = { nodo, cuerpo, sombra, fig: null, armas: {}, giro: 0, fase: 0, andar: 0, pres: 0, sale: false, nuevo: true, enPelea: false, polvo: false,
+    const E = f[A.k] = { nodo, cuerpo, sombra, fig: null, armas: {}, giro: 0, fase: 0, andar: 0, pres: 0, sale: false, nuevo: true, enPelea: false, polvo: false,
       get brazo() { return this.fig?.brazo; }, get mano() { return this.fig?.mano; } };
-    E.lista = texturaDe(ID_ESCLAVO).then((t) => {
-      if (f.esclavo !== E) return;
-      E.fig = crearFigura(recursos.figuras[ID_ESCLAVO].datos, t, { alto: altoDe(ID_ESCLAVO) }); E.fig.grupo.position.y = Y_PIE; cuerpo.add(E.fig.grupo); cambios = true;
-    }).catch((e) => console.warn('[3D] esclavo peleador:', e?.message || e));
+    E.lista = texturaDe(A.id).then((t) => {
+      if (f[A.k] !== E) return;
+      E.fig = crearFigura(recursos.figuras[A.id].datos, t, { alto: altoDe(A.id) }); E.fig.grupo.position.y = Y_PIE; cuerpo.add(E.fig.grupo); cambios = true;
+    }).catch((e) => console.warn(`[3D] ${A.que}:`, e?.message || e));
   }
-  function quitarEsclavo(f) {
-    const E = f.esclavo; if (!E) return; f.esclavo = null;
+  function quitarEsclavo(f, A = PELEADOR) {
+    const E = f[A.k]; if (!E) return; f[A.k] = null;
     escena.remove(E.nodo); E.fig?.destruir(); E.sombra.material.dispose(); cambios = true;
   }
   // Dónde le toca estar (x, z), hacia dónde mira y con qué prisa llega. alto: null = sobre el suelo.
   const sitio = { x: 0, z: 0, y: null, giro: 0, ritmo: 6, montar: 0, cab: 0, lad: 0 };
-  function sitioEsclavo(f, s) {
+  function sitioEsclavo(f, s, A = PELEADOR) {
     const v = f.viaje, n = f.nodo.position, o = sitio; o.y = null; o.montar = 0; o.cab = 0; o.lad = 0;
-    if (!v) {      // en la ciudad: un paso detrás de su amo y hacia fuera (el animal, si hay, queda más afuera)
+    // el cargador: si va solo toma el sitio que tendría el peleador; si van los dos, se lo deja y toma el siguiente
+    const carga = A === CARGADOR, conPeleador = carga && !!f.esclavo && !f.esclavo.sale;
+    if (!v) {      // en la ciudad: un paso detrás de su amo y hacia fuera (el animal, si hay, queda más afuera); el cargador, igual, o más afuera y atrás si ahí está el peleador
       const c = tablero.ciudades.get(f.ciudad), r = c.ranuras[f.ranura], lado = Math.sign(r.x) || 1;
-      o.x = c.pos.x + (r.x + lado * ESC_LADO) * s; o.z = c.pos.z + (r.z - ESC_ATRAS) * s; o.giro = 0; o.ritmo = 5; return o;
+      o.x = c.pos.x + (r.x + lado * (conPeleador ? CARG_LADO : ESC_LADO)) * s; o.z = c.pos.z + (r.z - (conPeleador ? CARG_ATRAS : ESC_ATRAS)) * s; o.giro = 0; o.ritmo = 5; return o;
     }
     const sn = Math.sin(f.giro), cs = Math.cos(f.giro), tr = v.tramos[v.i], lado = -v.lado0;      // de viaje, al lado contrario del animal que va del cabestro
     o.giro = f.giro;
     if (tr?.tipo === 'vuelo' && (f.mont > 0.02 || tr.fase === 'despegar' || tr.fase === 'volar' || tr.fase === 'descender')) {      // en la alfombra: sentado detrás de su amo
-      o.x = n.x - sn * 0.36 * s; o.z = n.z - cs * 0.36 * s; o.y = n.y + f.cuerpo.position.y; o.ritmo = 30; o.montar = f.mont; o.cab = f.cuerpo.rotation.x; o.lad = f.cuerpo.rotation.z; return o;
+      const k = conPeleador ? -0.36 : 0.36;      // el cargador, si atrás ya va el peleador, se sienta delante: los tres en fila sobre la alfombra
+      o.x = n.x - sn * k * s; o.z = n.z - cs * k * s; o.y = n.y + f.cuerpo.position.y; o.ritmo = 30; o.montar = f.mont; o.cab = f.cuerpo.rotation.x; o.lad = f.cuerpo.rotation.z; return o;
     }
     if (tr?.tipo === 'barco' && tr.fase !== 'esperar') {      // en el dhow: en cubierta, detrás de su amo (delante, si atrás va el animal)
-      const k = v.cabestro ? 0.4 : -0.42;
+      // el cargador toma el primer lugar libre: atrás; delante si atrás va el animal o el peleador; y más a proa si van los dos
+      const k = !carga ? (v.cabestro ? 0.4 : -0.42) : v.cabestro && conPeleador ? 0.8 : v.cabestro || conPeleador ? 0.4 : -0.42;
       o.x = n.x + sn * k * s; o.z = n.z + cs * k * s; o.y = n.y + f.cuerpo.position.y; o.ritmo = 16;
       if (v.enBarco) { const b = tr.barco.modelo.grupo.rotation; o.cab = b.x; o.lad = b.z; }
       return o;
     }
+    if (carga) {      // a pie o tras la montura: detrás, del otro costado que el peleador; si de ese lado va el animal del cabestro, a la cola
+      const atras = v.cabestro ? 0.98 : 0.5, alLado = v.cabestro ? 0 : -0.4 * lado;
+      o.x = n.x - sn * atras * s + cs * alLado * s; o.z = n.z - cs * atras * s - sn * alLado * s; o.ritmo = v.cabestro ? 5.5 : 6.5; return o;
+    }
     o.x = n.x - sn * 0.46 * s + cs * 0.4 * s * lado; o.z = n.z - cs * 0.46 * s - sn * 0.4 * s * lado; o.ritmo = 6.5; return o;
   }
-  function situarEsclavo(f, t, s, dt) {
-    const E = f.esclavo, g = E.nodo; if (!E.fig) return;
+  function situarEsclavo(f, t, s, dt, A = PELEADOR) {
+    const E = f[A.k], g = E.nodo; if (!E.fig) return;
     // aparece y desaparece creciendo; durante una pelea no cambia nada
     if (!f.control) {
       const antes = E.pres; E.pres = clamp(E.pres + (E.sale ? -1 : 1) * dt / T_ESCLAVO, 0, 1);
       if (E.pres !== antes) sucio = true;
-      if (E.sale && E.pres <= 0) { quitarEsclavo(f); return; }
+      if (E.sale && E.pres <= 0) { quitarEsclavo(f, A); return; }
     }
     if (!E.enPelea) {
-      const o = sitioEsclavo(f, s), k = E.nuevo ? 1 : 1 - Math.exp(-dt * o.ritmo), ax = g.position.x, az = g.position.z;
+      const o = sitioEsclavo(f, s, A), k = E.nuevo ? 1 : 1 - Math.exp(-dt * o.ritmo), ax = g.position.x, az = g.position.z;
       g.position.x += (o.x - ax) * k; g.position.z += (o.z - az) * k; g.position.y = o.y ?? suelo(g.position.x, g.position.z);
       const dx = g.position.x - ax, dz = g.position.z - az, dist = Math.hypot(dx, dz), andando = !E.nuevo && o.y == null && dist > 0.0015 * s;
       let dif = (andando && dist > 0.006 * s ? Math.atan2(dx, dz) : o.giro) - E.giro; dif = Math.atan2(Math.sin(dif), Math.cos(dif)); E.giro += dif * (E.nuevo ? 1 : 1 - Math.exp(-dt * 8));
@@ -204,7 +220,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     g.visible = E.pres > 0;
     E.fig.ponerAzimut(Math.atan2(ojo.x - g.position.x, ojo.z - g.position.z) - E.giro); if (E.fig.sombraCambio?.()) sucio = true;
   }
-  // El esclavo de una ficha (o null) y el arma con la que pelea por su amo: las usa la pelea.
+  // El esclavo peleador de una ficha (o null) y el arma con la que pelea por su amo: las usa la pelea. El cargador no entra aquí.
   const esclavoDe = (f) => (f.esclavo && f.esclavo.fig && !f.esclavo.sale ? f.esclavo : null);
   function armaEsclavo(f, tipo) {
     const E = esclavoDe(f); if (!E || !tipo) return null;
@@ -219,8 +235,8 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     e.fig = f.fig; e.grupo.position.set(lado * Math.max(Math.abs(b.x), 0.17 * f.fig.alto), 0.56 * f.fig.alto, f.fig.fondo * 0.75 + 0.03 * f.fig.alto); e.grupo.rotation.y = lado * 0.5;
     f.fig.grupo.add(e.grupo); f.escudo = e; cambios = true;
   }
-  // Pone o actualiza un jugador: { id, nombre, personaje, color, ciudad, arma, transporte, esclavo, turno }. Devuelve una promesa (figura lista).
-  // esclavo: true = lo acompaña el monito del esclavo peleador.
+  // Pone o actualiza un jugador: { id, nombre, personaje, color, ciudad, arma, transporte, esclavo, cargador, turno }. Devuelve una promesa (figura lista).
+  // esclavo: true = lo acompaña el monito del esclavo peleador · cargador: true = lo acompaña el del esclavo cargador.
   function poner(j) {
     let f = porId(j.id); const nuevo = !f;
     if (nuevo) f = crear(j); else Object.assign(f.jugador, j);
@@ -231,6 +247,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     if (j.turno !== undefined) f.turno = !!j.turno;
     if (j.transporte !== undefined) ponerTransporte(f, j.transporte);
     if (j.esclavo !== undefined) ponerEsclavo(f, j.esclavo);
+    if (j.cargador !== undefined) ponerEsclavo(f, j.cargador, CARGADOR);
     if (j.ciudad && (nuevo || (j.ciudad !== f.ciudad && !f.viaje))) colocar(f, j.ciudad);
     cambios = true; return p;
   }
@@ -302,6 +319,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     f.viaje = null; f.rebote = 0.6; f.tOnda = 0; f.mont = 0; f.marcha = 0; f.cuerpo.rotation.set(0, f.giro, 0);
     if (f.transportePend !== undefined) { const t = f.transportePend; delete f.transportePend; if (!f.fuera) ponerTransporte(f, t); }
     if (f.esclavoPend !== undefined) { const e = f.esclavoPend; delete f.esclavoPend; if (!f.fuera) ponerEsclavo(f, e); }
+    if (f.cargadorPend !== undefined) { const e = f.cargadorPend; delete f.cargadorPend; if (!f.fuera) ponerEsclavo(f, e, CARGADOR); }
     if (avisar) { sonido?.tocar('ficha-llegada', 0.9); v.alLlegar?.(f, v.destino); }
   }
 
@@ -461,7 +479,8 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
     let hx, hz, lado;
     if (v && v.etapa === 'montar') { hx = v.casa.x; hz = v.casa.z; lado = v.lado0; }
     else { const c = tablero.ciudades.get(f.ciudad), r = c.ranuras[f.ranura]; hx = c.pos.x + r.x * s; hz = c.pos.z + r.z * s; lado = Math.sign(r.x) || 1; }
-    const px = hx + lado * (f.esclavo && !f.esclavo.sale ? 0.98 : 0.5) * s, pz = hz - 0.26 * s;      // con esclavo, el animal espera más afuera
+    const acomp = (f.esclavo && !f.esclavo.sale ? 1 : 0) + (f.cargador && !f.cargador.sale ? 1 : 0);
+    const px = hx + lado * (0.5 + 0.48 * acomp) * s, pz = hz - 0.26 * s;      // con esclavo, el animal espera más afuera (y con los dos, más todavía)
     if (!(v && v.animal)) { const moviendose = seguir(px, pz, null, -lado * 0.55, ESC_ESPERA, 5); M.animar(t, f.faseM, f.marcha); if (moviendose) cambios = true; return; }      // esperando (o yendo a su sitio)
     if (enBarco) g.position.set(n.x, n.y + f.cuerpo.position.y, n.z);
     else { const x = px + (n.x - px) * m, z = pz + (n.z - pz) * m; g.position.set(x, tablero.altura(x, z), z); }
@@ -494,6 +513,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
         f.fig?.animar(t, { fase: t * 9, andar: 0.25, vuelo: 0.9, empuje: 0.25 * Math.sin(t * 5) });
         if (M && !esAlf) situarAnimal(f, t, s, dt);
         if (f.esclavo) situarEsclavo(f, t, s, dt);
+        if (f.cargador) situarEsclavo(f, t, s, dt, CARGADOR);      // el cargador no pelea: se queda en su sitio
         continue;
       }
       let alto = 0, cabeceo = 0, ladeo = 0, estY = 1, estX = 1;
@@ -526,6 +546,7 @@ export function crearFichas({ escena, tablero, mats, personajes, recursos, tex, 
       f.cuerpo.rotation.set(cabeceo, f.giro, ladeo, 'YXZ');
       f.cuerpo.scale.set(estX * s, estY * s, estX * s);
       if (f.esclavo) situarEsclavo(f, t, s, dt);
+      if (f.cargador) situarEsclavo(f, t, s, dt, CARGADOR);
       f.sombra.visible = !f.viaje?.enBarco; f.sombra.scale.setScalar(0.8 * s * (1 - Math.min(0.45, alto * 0.7)));
       f.sombra.material.opacity = 0.85 * (1 - Math.min(0.5, alto * 0.9));
       f.aro.visible = f.nivel > 0.01 && !f.viaje?.enBarco; f.aro.material.opacity = f.nivel * (0.85 + 0.15 * Math.sin(t * 3.2)); f.aro.rotation.y = -t * 0.8; f.aro.scale.setScalar((1.0 + 0.12 * f.nivel) * s);

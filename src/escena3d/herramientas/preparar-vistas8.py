@@ -27,10 +27,11 @@ EJES = {'6': [190, 198, 190, 205, 190, 195, 140, 170],      # Zubayda V5-Z (24 n
         '4': [189, 155, 134, 167, 169, 152, 116, 169],      # Jamil (24 nov): entre el centro del turbante y el centro de los pies; el laúd a la espalda queda fuera del eje
         '4t': [198, 147, 102, 167, 214, 252, 268, 252],     # Jamil sentado tocando el laúd: el centro del turbante (el tronco va derecho bajo la cabeza)
         'B': [185, 155, 140, 170, 171, 160, 120, 190],      # Yafar (24 nov): entre el centro del turbante y el centro de los pies; fila 2 = vistas 5 a 7 rehechas + la 8 de la primera
-        'EP': [221, 191, 174, 213, 221, 194, 130, 213]}     # esclavo peleador abisinio (27 nov): entre el centro del yelmo y el centro de los pies
+        'EP': [221, 191, 174, 213, 221, 194, 130, 213],     # esclavo peleador abisinio (27 nov): entre el centro del yelmo y el centro de los pies
+        'EC': [186, 150, 139, 175, 185, 135, 82, 154]}      # esclavo cargador abisinio (27 nov): entre el centro de la cabeza y el centro de los pies; la cesta de la espalda queda fuera del eje
 # Nur al Din (24 nov): sus hojas de 360° se arman con armar-hojas-360-nur.py (cinco vistas de su hoja técnica y tres de la hoja nueva)
 # mano que empuña (la derecha de la figura) en la vista de frente: fracción del ancho de la tesela y de la altura
-MANO = {'6': [0.116, 0.506], '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53], 'EP': [0.078, 0.533]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
+MANO = {'6': [0.116, 0.506], '1': None, '4': [0.085, 0.545], '4t': [0.5, 0.5], 'B': [0.905, 0.53], 'EP': [0.078, 0.533], 'EC': [0.068, 0.535]}      # Yafar empuña con la izquierda (a la derecha de la imagen); la bolsa va en el cinturón
 # fracción de arriba de la figura donde se rellena todo hueco (el brillo del yelmo de Nur al Din es del gris del papel)
 RELLENO_ARRIBA = {'1': 0.14}
 # Figuras que no van de pie (Jamil sentado tocando, 24 nov): (alto de la tesela, alto de la figura) en píxeles, a la misma escala

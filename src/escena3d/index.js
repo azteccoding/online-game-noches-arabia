@@ -303,7 +303,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     ponerJugadores(lista) { const p = fichas.ponerTodos(lista).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     actualizarJugador(id, cambios) { ficha(id); const p = Promise.resolve(fichas.poner({ ...cambios, id })).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     quitarJugador(id) { fichas.quitar(ficha(id)); pedirCuadro(); },
-    jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, esclavo: !!f.conEsclavo, turno: f.turno })); },
+    jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, esclavo: !!f.conEsclavo, cargador: !!f.conCargador, turno: f.turno })); },
     // Jorge (23 de noviembre): solo tu monito gira, al tocarlo o con el acercamiento máximo. id: tu jugador (null = nadie).
     ponerFichaPropia(id) { estado.propia = id ?? null; },
     seleccionarFicha(id) { for (const f of fichas.fichas) f.elegida = f.id === id; },
@@ -341,6 +341,7 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     // sin pelear. Sin formación previa, pelear y dispararFlecha hacen todo de corrido, como antes.
     // esclavoAtacante / esclavoDefensor (27 de noviembre): el arma con la que su esclavo peleador pelea por él ('cimitarra',
     // 'alfanje' o 'jambiya'); el esclavo se planta al frente junto a su amo. Sin eso (o si no lleva esclavo), se queda en su sitio.
+    // El esclavo cargador no pelea nunca: se queda en su sitio, detrás de donde estaba su amo.
     formarPelea(idAtacante, idDefensor, { armaAtacante, armaDefensor, esclavoAtacante, esclavoDefensor } = {}) {
       return new Promise((ok, mal) => {
         const A = ficha(idAtacante), B = ficha(idDefensor);

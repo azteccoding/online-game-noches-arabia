@@ -107,7 +107,7 @@ assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 n
     assert.equal(vista3d(data, e).jugadores[nur].armaPelea, '', 'en Bagdad, sin Firmán, se pelea sin armas');
   } else assert.fail('no se pudo armar el duelo de prueba: ' + (r.error || ''));
 }
-// Esclavo peleador (Jorge, 27 de noviembre): quien lleva un esclavo de pelea tiene su monito al lado; los de carga no llevan monito.
+// Esclavo peleador (Jorge, 27 de noviembre): quien lleva un esclavo de pelea tiene su monito al lado; el de carga lleva otro, el cargador.
 // esclavoArma dice con qué arma pelea por su amo (11.3), o '' si no pelea: es lo que la capa 3D necesita para plantarlo al frente.
 {
   const g = partida(['1', '4', '7']); const { e, ids } = g; g.asentar();
@@ -115,9 +115,9 @@ assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 n
   for (const id of ids) e.jugadores[id].ciudad = 'Damasco';
   const v0 = vista3d(data, e);
   for (const id of ids) { assert.equal(v0.jugadores[id].esclavo, false, 'nadie empieza con esclavo'); assert.equal(v0.jugadores[id].esclavoArma, ''); }
-  // de carga: sin monito
+  // de carga: su monito es otro (el cargador), no el del peleador
   darItem(e, e.jugadores[jamil], 'esclavoCarga');
-  assert.equal(vista3d(data, e).jugadores[jamil].esclavo, false, 'el esclavo de carga no lleva monito');
+  assert.equal(vista3d(data, e).jugadores[jamil].esclavo, false, 'el esclavo de carga no es el monito peleador');
   // de pelea, sin armas: lo acompaña pero no pelea
   darItem(e, e.jugadores[jamil], 'esclavoPelea');
   let J = vista3d(data, e).jugadores[jamil];
@@ -144,6 +144,50 @@ assert.equal(laudDeLinea({ n: 7, texto: 'Jorge toca el laúd en Bagdad: gana 1 n
   // lo pierde (se va, lo roban, muere en su lugar, lo deja o lo amarra): la carta sale de su mano y el monito desaparece
   e.jugadores[nur].mano = e.jugadores[nur].mano.filter((c) => c.ref !== 'esclavoPelea');
   assert.equal(vista3d(data, e).jugadores[nur].esclavo, false, 'sin la carta, sin monito');
+}
+// Esclavo cargador (Jorge, 27 de noviembre): quien lleva un esclavo de carga tiene al lado el monito del cargador (el de la cesta).
+// Va aparte del peleador (un amo puede llevar los dos) y no pelea: nunca recibe arma ni cambia con qué pelea su amo.
+{
+  const g = partida(['1', '4', '7']); const { e, ids } = g; g.asentar();
+  const [nur, jamil, adi] = ids;
+  for (const id of ids) e.jugadores[id].ciudad = 'Damasco';
+  for (const id of ids) assert.equal(vista3d(data, e).jugadores[id].cargador, false, 'nadie empieza con cargador');
+  darItem(e, e.jugadores[jamil], 'esclavoCarga');
+  let J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.cargador, true, 'el esclavo de carga se ve junto a su amo'); assert.equal(J.esclavo, false, 'y no es el peleador'); assert.equal(J.esclavoArma, '');
+  assert.equal(vista(data, e, adi).e3d.jugadores[jamil].cargador, true, 'los demás también lo ven: es público');
+  assert.equal(vista3d(data, e).jugadores[nur].cargador, false, 'solo su amo lo lleva');
+  // aunque su amo tenga un arma (y hasta una de más), el cargador no pelea: no hay arma para el esclavo si no hay peleador
+  darItem(e, e.jugadores[jamil], 'alfanje');
+  J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.armaPelea, 'alfanje', 'su amo pelea con su arma, como siempre'); assert.equal(J.esclavoArma, '', 'el cargador no pelea');
+  darItem(e, e.jugadores[jamil], 'cimitarra');
+  assert.equal(vista3d(data, e).jugadores[jamil].esclavoArma, '', 'ni con un arma de sobra');
+  // dos cargadores siguen siendo un solo monito (el dato es sí o no)
+  darItem(e, e.jugadores[jamil], 'esclavoCarga');
+  assert.equal(vista3d(data, e).jugadores[jamil].cargador, true);
+  // con los dos esclavos lleva los dos monitos, y el que pelea es el peleador
+  darItem(e, e.jugadores[jamil], 'esclavoPelea');
+  J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.esclavo, true); assert.equal(J.cargador, true, 'peleador y cargador a la vez'); assert.notEqual(J.esclavoArma, '', 'el peleador sí pelea por su amo');
+  // en Bagdad, sin Firmán, no hay armas; el cargador sigue al lado de su amo
+  e.jugadores[jamil].ciudad = 'Bagdad'; if (e.mods) e.mods.armasBagdad = false;
+  J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.cargador, true); assert.equal(J.esclavoArma, '');
+  // pierde a los de carga (se van, se los roban, los deja): las cartas salen de su mano y el cargador desaparece; el peleador se queda
+  e.jugadores[jamil].mano = e.jugadores[jamil].mano.filter((c) => c.ref !== 'esclavoCarga');
+  J = vista3d(data, e).jugadores[jamil];
+  assert.equal(J.cargador, false, 'sin la carta, sin monito'); assert.equal(J.esclavo, true, 'el peleador no se va con él');
+}
+// La figura del cargador existe y es más baja que la del peleador (su pintura incluye la cesta: la estatura se mide por el cuerpo).
+{
+  const { readFileSync } = await import('node:fs');
+  const figuras = JSON.parse(readFileSync(new URL('../src/escena3d/datos/figuras.json', import.meta.url), 'utf8'));
+  const monitos = JSON.parse(readFileSync(new URL('../src/escena3d/datos/monitos.json', import.meta.url), 'utf8'));
+  assert.equal(figuras.EC?.vistas, 8, 'el cargador es un monito de ocho vistas'); assert.ok(figuras.EC.giro8?.length === 8, 'con su giro continuo');
+  assert.equal(monitos.EC, 'esclavo-cargador_v1'); assert.equal(monitos.EP, 'esclavo-peleador_v1', 'el peleador sigue con su versión');
+  const { ESTATURA, altoDe } = await import('../src/escena3d/figuras.js');
+  assert.ok(ESTATURA.EC > 0 && ESTATURA.EC < ESTATURA.EP, 'el cargador no es más alto que el peleador'); assert.ok(altoDe('EC') < altoDe('EP'));
 }
 // Luz por turnos (Jorge, 23 de noviembre): el día dura la ronda entera y se reparte entre los jugadores.
 {

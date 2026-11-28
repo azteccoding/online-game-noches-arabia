@@ -19,6 +19,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
     esclavo: !!e3d?.jugadores?.[j.id]?.esclavo,      // lo acompaña el monito del esclavo peleador (27 de noviembre)
+    cargador: !!e3d?.jugadores?.[j.id]?.cargador,    // y el del esclavo cargador, con su cesta (no pelea)
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
     laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado, laudPieza: e3d?.jugadores?.[j.id]?.laud?.pieza || 1,
   }));
@@ -79,7 +80,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       const a = antes[f.id];
       if (!a) { viajeDe(f.id, (e) => e.actualizarJugador(f.id, limpio(f))); continue; }
       const cambios = {};
-      for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'esclavo', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
+      for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'esclavo', 'cargador', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
       if (Object.keys(cambios).length) viajeDe(f.id, (e) => e.actualizarJugador(f.id, cambios));
       if (a.ciudad !== f.ciudad) {
         const medio = f.viajeN !== a.viajeN ? f.medio : null;                   // con su animal o su alfombra; si no, a pie (o en dhow por mar)

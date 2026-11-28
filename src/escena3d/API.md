@@ -36,7 +36,7 @@ los avisos `al…` de abajo.
 
 | Función | Qué hace |
 | --- | --- |
-| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, escudo, transporte, esclavo, turno }` (`escudo: true` le pone al brazo el escudo de cuero pintado; `esclavo: true` le pone al lado el monito del esclavo peleador). Devuelve una promesa (figuras cargadas). |
+| `ponerJugadores(lista)` | Pone, actualiza o quita fichas para que queden las de la lista. Cada jugador: `{ id, nombre, personaje, color, ciudad, arma, escudo, transporte, esclavo, cargador, turno }` (`escudo: true` le pone al brazo el escudo de cuero pintado; `esclavo: true` le pone al lado el monito del esclavo peleador; `cargador: true`, el del esclavo cargador). Devuelve una promesa (figuras cargadas). |
 | `actualizarJugador(id, cambios)` | Cambia campos de un jugador. Con `ciudad` lo coloca ahí sin animación. |
 | `quitarJugador(id)` | Quita la ficha. |
 | `jugadores()` | Estado actual de cada ficha. |
@@ -49,6 +49,14 @@ los avisos `al…` de abajo.
 paso detrás de su amo y hacia fuera de la ciudad, y va tras él en cada viaje: a pie, corriendo detrás de su montura, en la
 cubierta del dhow o sentado detrás en la alfombra. Aparece y desaparece creciendo en su sitio; si el cambio llega con el amo de
 viaje, se aplica al llegar, y durante una pelea no cambia. No se puede tocar ni gira.
+
+`cargador` (27 de noviembre): el esclavo cargador (figura `EC`: cesta alta a la espalda, mecapal y faja roja) acompaña igual a
+su amo y puede ir junto con el peleador sin encimarse: en la ciudad ocupa el sitio del peleador si va solo y, si van los dos,
+se pone un paso más afuera y más atrás (el animal que espera se corre otro tanto); a pie o tras la montura va detrás, del
+costado contrario al del peleador (a la cola si de ese lado va el animal del cabestro); en el dhow toma el primer lugar libre
+de la cubierta, y en la alfombra se sienta detrás de su amo, o delante si detrás ya va el peleador. No pelea nunca: en
+`formarPelea` y `pelear` se queda en su sitio y no hay opción para armarlo. Aparece, desaparece y espera los viajes igual que
+el peleador.
 
 ## Viajes
 
