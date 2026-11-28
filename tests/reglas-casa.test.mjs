@@ -6,7 +6,7 @@ import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/ba
 import * as BASE from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte, recibirDestreza } from '../shared/retos.js';
-import { peleaNPC, duelo, atacar } from '../shared/pelea.js';
+import { peleaNPC, duelo, atacar, validarAtaque } from '../shared/pelea.js';
 import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
 import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
@@ -4596,16 +4596,19 @@ console.log('reglas de la casa OK');
     return { e, a, b };
   };
   { const { e, a, b } = prep(0);
-    const c = e.historial.find((h) => h.id === 'sinFlechas');
-    assert.ok(c && c.texto === MSJ_SIN_FLECHAS && c.para?.length === 1 && c.para[0] === a, 'aviso solo para quien lleva el arco sin flechas');
+    // Jorge (28 de noviembre): ya no es carta, solo un aviso rojo
+    const c = (e.anuncios || []).find((x) => x.texto === MSJ_SIN_FLECHAS);
+    assert.ok(c && c.tono === 'rojo' && c.para?.length === 1 && c.para[0] === a, 'aviso rojo solo para quien lleva el arco sin flechas');
+    assert.ok(!e.historial.some((h) => h.id === 'sinFlechas'), 'sin carta');
     const ds = [e.dados, ...(e.colaDados || [])].filter(Boolean);
-    assert.ok(ds.length && ds.every((d) => d.id > c.nro) && !c.trasDados, 'sale antes que los dados de la pelea');
+    assert.ok(ds.length && ds.every((d) => d.id > c.id), 'sale antes que los dados de la pelea');
     assert.ok(!ds.some((d) => d.boton === 'Disparar flecha'), 'sin flechas no hay disparo');
     void b; }
   { const { e, a } = prep(1);
     const ps = [e.pend, ...(e.colaPend || [])].filter(Boolean);
-    assert.ok(ps.some((p) => p.tipo === 'info' && p.texto === MSJ_ULTIMA_FLECHA && p.para[0] === a), 'avisa que usó su última flecha');
-    assert.ok(!e.historial.some((h) => h.id === 'sinFlechas'), 'con flecha no sale el aviso de «sin flechas»'); }
+    assert.ok(!ps.some((p) => p.texto === MSJ_ULTIMA_FLECHA), 'sin ventana');
+    assert.ok((e.anuncios || []).some((x) => x.texto === MSJ_ULTIMA_FLECHA && x.tono === 'rojo' && x.para[0] === a), 'avisa en rojo que usó su última flecha');
+    assert.ok(!(e.anuncios || []).some((x) => x.texto === MSJ_SIN_FLECHAS), 'con flecha no sale el aviso de «sin flechas»'); }
 }
 // Jorge (19 de noviembre): el arma que regala el genio se recibe aunque ya la tengas y aunque vayas cargado; repetida cuenta una sola
 // vez en las peleas, pero cada copia pesa.
@@ -6046,4 +6049,18 @@ console.log('Sherezada: los dados antes que la muerte OK');
   { const { g, e, a, Y } = prep(); Y.mano = Y.mano.filter((c) => !['jambiya', 'arco', 'cimitarra', 'alfanje'].includes(c.ref));
     assert.ok(g.act(a, { t: 'atacar', tipo: 'duelo', objetivo: 'npc' }).ok); assert.ok(!aviso(e, a), 'si Yafar no trae armas, no sale'); }
   console.log('alerta de Bagdad sin Firmán contra Yafar OK');
+}
+
+// Jorge (28 de noviembre): «Todos necesitan arma para robar o atacar a muerte», también Yafar NPC.
+{
+  const g = partida(['4', '5']); assert.ok(g.iniciar().ok);
+  const e = g.e, a = g.ids[0], Y = e.jugadores.npc;
+  for (const id of [a, 'npc']) e.jugadores[id].ciudad = 'Damasco';
+  e.ronda = 5; Y.mano = Y.mano.filter((c) => !['jambiya', 'arco', 'cimitarra', 'alfanje'].includes(c.ref));
+  assert.ok(!validarAtaque(data, e, 'npc', { tipo: 'robo', objetivo: a }, { npc: true }).ok, 'sin arma no asalta');
+  assert.ok(!validarAtaque(data, e, 'npc', { tipo: 'matar', objetivo: a }, { npc: true }).ok, 'sin arma no ataca a muerte');
+  assert.ok(validarAtaque(data, e, 'npc', { tipo: 'duelo', objetivo: a }, { npc: true }).ok, 'el duelo sí');
+  darItem(e, Y, 'alfanje');
+  assert.ok(validarAtaque(data, e, 'npc', { tipo: 'robo', objetivo: a }, { npc: true }).ok, 'con arma, sí asalta');
+  console.log('Yafar NPC necesita arma para asaltar OK');
 }

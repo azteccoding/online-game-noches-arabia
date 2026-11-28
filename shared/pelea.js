@@ -16,7 +16,7 @@ export const MSJ_SIN_FLECHAS = 'Llevas arco pero no te quedan flechas: no puedes
 function avisoSinFlechas(data, e, pid, ciudad) {
   const j = e.jugadores[pid]; if (!j || j.npc || !tieneItem(j, 'arco') || tieneItem(j, 'flechas')) return;
   if ((ciudad || j.ciudad) === 'Bagdad' && !e.mods?.armasBagdad && !tieneEsp(j, 'F1')) return;   // ahí tampoco podría usarlo con flechas
-  publicarCarta(e, { id: 'sinFlechas', deck: 'especial', titulo: 'Sin flechas', sub: 'Arco', texto: MSJ_SIN_FLECHAS, arte: 'es', causa: true }, pid, [pid]);
+  alertaRoja(e, pid, MSJ_SIN_FLECHAS);   // Jorge (28 de noviembre): «solo avísalo en rojo, no es necesario poner una carta»
 }
 // Jorge (28 de noviembre, solo en el 3D): en Bagdad, sin Firmán del Califa, quien pelea contra Yafar (lo rete o Yafar lo rete) recibe
 // una alerta antes de la pelea: él no usa armas y Yafar sí usa las suyas. Solo si Yafar de verdad puede usar alguna ahí.
@@ -29,7 +29,7 @@ function avisoBagdadYafar(data, e, P) {
   const armasY = armasUsables(data, e, Y, 'Bagdad'); if (!armasY.length) return;
   publicarCarta(e, { id: 'sinArmasBagdad', deck: 'especial', titulo: 'Sin Firmán en Bagdad', sub: 'Pelea', texto: textoBagdadYafar(Y, armasY, ARMAS.some((r) => tieneItem(o, r))), arte: 'es', causa: true }, otro, [otro]);
 }
-function avisoUltimaFlecha(e, pid) { const j = e.jugadores[pid]; if (j && !j.npc && tieneItem(j, 'arco') && !tieneItem(j, 'flechas')) info(e, pid, 'Arco', MSJ_ULTIMA_FLECHA); }
+function avisoUltimaFlecha(e, pid) { const j = e.jugadores[pid]; if (j && !j.npc && tieneItem(j, 'arco') && !tieneItem(j, 'flechas')) alertaRoja(e, pid, MSJ_ULTIMA_FLECHA); }   // aviso rojo, sin ventana (Jorge, 28 de noviembre)
 const BONO = { arco: 1, alfanje: 1, cimitarra: 2 };
 const bonoArma = (data, ref) => data.config.armas?.[ref]?.bono ?? BONO[ref];
 
@@ -243,10 +243,11 @@ export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
     if (data.config.sinRobarPrimerasRondas && e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede robar en las 2 primeras rondas.');
     if (j.pj === '1') return err('Nur al Din no puede robar.');
     // Jorge (8 de noviembre): a Nur al Din sí le pueden robar como a cualquiera (se defiende con su cimitarra entrenada).
-    if (!pa.armas.length && !npc) return err('Para robar necesitas un arma que puedas usar aquí.');
+    if (!pa.armas.length) return err('Para robar necesitas un arma que puedas usar aquí.');   // Jorge (28 de noviembre): también Yafar NPC
   }
   if (a.tipo === 'matar') {
     if (e.ronda <= data.config.primerosTurnosSinMatar && !libre) return err('Nadie puede matar en las 2 primeras rondas.');
+    if (npc && !pa.armas.length) return err('Para matar necesitas un arma que puedas usar aquí.');   // Jorge (28 de noviembre): todos necesitan arma, también Yafar NPC
     if (!npc && !(pa.armas.length && (pa.destreza || j.pj === '1'))) return err(j.pj === '1' ? 'Para matar necesitas un arma que puedas usar aquí.' : 'Para matar necesitas un arma y destreza (la general de Estambul o un arma entrenada): sin ella solo puedes robar.');   // Nur al Din, guerrero: ataca a muerte sin destreza
   }
   if (a.tipo === 'duelo' && tieneEsp(d, 'K1')) return err('Quien porta el Ejército de Kanmakán no puede ser desafiado a duelo.');
