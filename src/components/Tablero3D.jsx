@@ -1,7 +1,7 @@
 import React, { memo, useEffect, useRef, useState } from 'react';
 import { DATA, tablero, pjDe } from '../game/data.js';
 import { crearEscena } from '../escena3d/index.js';
-import { ponerEscena, escenaActual, enCola, viajeDe, quietos } from '../game/escena3d.js';
+import { ponerEscena, escenaActual, enCola, viajeDe, quietos, dadosDePelea, armaDePelea } from '../game/escena3d.js';
 import { marcarIfrit, avisar } from '../game/store.js';
 import { SONIDOS } from '../escena3d/banco/sonidos.js';
 import { leerAjusteSonido, guardarAjusteSonido } from '../game/sonidos3d.js';
@@ -15,6 +15,9 @@ const DISTANCIA_INICIO = 16;   // la cámara empieza cerca de tu personaje, no e
 const IFRIT_MAX_MS = 9000;   // si la animación no terminara, la carta del genio sale igual
 
 function fichasDe(jugadores, e3d, turnoPid) {
+  // Jorge (28 de noviembre, BUG5): el esposo de Zein (Ira del cornudo, la Giralda) sale en el tablero mientras duran los dados de su
+  // pelea, en la ciudad de quien pelea con él; luego se va (con la cola de animaciones, para no cortar el choque).
+  const P = e3d?.pelea, rival = P?.figura && P.activa && jugadores[P.def] ? [{ id: P.atk, nombre: P.nombre || 'NPC', personaje: P.figura, color: '#7a1e1e', ciudad: P.ciudad || jugadores[P.def].ciudad, arma: P.armaNPC || '', escudo: false, transporte: null, turno: false, esclavo: false, cargador: false, viajeN: 0, medio: null, laudN: 0, laudTexto: '', laudCallado: false, laudPieza: 1 }] : [];
   return Object.values(jugadores).filter((j) => j.pj && !j.eliminado && !j.sacado).map((j) => ({
     id: j.id, nombre: j.nombre, personaje: j.pj, color: COLORES_PJ[j.pj] || '#b3202a', ciudad: j.ciudad,
     arma: e3d?.jugadores?.[j.id]?.arma || '', escudo: !!e3d?.jugadores?.[j.id]?.escudo, transporte: e3d?.jugadores?.[j.id]?.transporte || null, turno: j.id === turnoPid,
@@ -22,7 +25,7 @@ function fichasDe(jugadores, e3d, turnoPid) {
     cargador: !!e3d?.jugadores?.[j.id]?.cargador,    // y el del esclavo cargador, con su cesta (no pelea)
     viajeN: e3d?.jugadores?.[j.id]?.viaje?.n || 0, medio: e3d?.jugadores?.[j.id]?.viaje?.medio || null,
     laudN: e3d?.jugadores?.[j.id]?.laud?.n || 0, laudTexto: e3d?.jugadores?.[j.id]?.laud?.texto || '', laudCallado: !!e3d?.jugadores?.[j.id]?.laud?.callado, laudPieza: e3d?.jugadores?.[j.id]?.laud?.pieza || 1,
-  }));
+  })).concat(rival);
 }
 
 export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemadas, ciudadesAlcance, ciudadActiva, onCiudad, ronda, orden, pend, dados, misDinares }) {
@@ -35,7 +38,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
   const [panelSonido, setPanelSonido] = useState(false);
   const previo = useRef(null);            // fichas tal como las conoce la escena
   const alCiudad = useRef(onCiudad); alCiudad.current = onCiudad;
-  const datos = useRef({ jugadores }); datos.current = { jugadores };
+  const datos = useRef({ jugadores, e3d }); datos.current = { jugadores, e3d };
 
   // --- Crear y destruir la escena
   useEffect(() => {
@@ -49,7 +52,7 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
       if (!vivo) { e.destruir(); return; }
       esc = e; ponerEscena(e); window.__escena3d = e;
       e.alHacerClicCiudad = (id) => alCiudad.current?.(id);
-      const nombreDe = (id) => { const j = datos.current.jugadores[id]; return j ? (j.npc ? j.nombre : `${j.nombre} — ${pjDe(j.pj)?.nombre || ''}`) : null; };
+      const nombreDe = (id) => { if (String(id).startsWith('npc:')) return datos.current.e3d?.pelea?.nombre || null; const j = datos.current.jugadores[id]; return j ? (j.npc ? j.nombre : `${j.nombre} — ${pjDe(j.pj)?.nombre || ''}`) : null; };
       e.alApuntar = (u) => { clearTimeout(relojTip); setTip(u?.tipo === 'ficha' ? nombreDe(u.id) : null); };
       e.alHacerClicFicha = (id) => { clearTimeout(relojTip); setTip(nombreDe(id)); relojTip = setTimeout(() => setTip(null), 2500); };
       // Jorge (23 de noviembre): MIENTRAS HAYA ANIMACIÓN DE PELEA no se ve ninguna ventana ni aviso; lo que venga sale al terminar (ui.css)
@@ -73,12 +76,13 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     if (!antes) { esc.ponerJugadores(ahora.map(limpio)).then(() => { if (previo.current?.[miId]) return esc.enfocar(miId, { duracion: 1.6, distancia: DISTANCIA_INICIO }); }).catch((err) => console.warn('[3D]', err)); return; }
     for (const id of Object.keys(antes)) {
       if (previo.current[id]) continue;
+      if (id.startsWith('npc:')) { enCola((e) => e.quitarJugador(id)); continue; }   // el NPC de una pelea se va cuando termina su animación
       const murio = !!jugadores[id]?.eliminado;    // muerto (asesinado, ghul, duelo…); a quien saca el banco o se va, solo se le quita la ficha
       viajeDe(id, (e) => { if (murio) e.tocar('muerte'); return e.quitarJugador(id); });
     }
     for (const f of ahora) {
       const a = antes[f.id];
-      if (!a) { viajeDe(f.id, (e) => e.actualizarJugador(f.id, limpio(f))); continue; }
+      if (!a) { viajeDe(f.id, (e) => e.ponerJugador(limpio(f))); continue; }   // ficha nueva (antes actualizarJugador, que solo cambia una que ya está)
       const cambios = {};
       for (const k of ['nombre', 'personaje', 'color', 'arma', 'escudo', 'transporte', 'esclavo', 'cargador', 'turno']) if (a[k] !== f[k]) cambios[k] = f[k];
       if (Object.keys(cambios).length) viajeDe(f.id, (e) => e.actualizarJugador(f.id, cambios));
@@ -135,9 +139,9 @@ export default memo(function Tablero3D({ jugadores, e3d, turnoPid, miId, quemada
     if (!dados && (!P || !P.viva)) enCola((e) => e.deshacerPelea?.());          // por si quedaron formados (no hace nada si ya pelearon)
     if (!P || P.n <= peleaHecha.current) return;
     if (!dadoPelea) { if (!P.viva && !dados) peleaHecha.current = P.n; return; }                  // terminó sin pelear
-    if (dados.por !== P.atk && dados.por !== P.def) return;
+    if (!dadosDePelea(dados, P)) return;                                         // dados de otra pelea (BUG5): no se anima esta
     peleaHecha.current = P.n;
-    const arma = (id) => e3d.jugadores?.[id]?.armaPelea || '', esclavo = (id) => e3d.jugadores?.[id]?.esclavoArma || '';      // el esclavo que pelea por su amo se planta junto a él
+    const arma = (id) => armaDePelea(e3d, P, id), esclavo = (id) => e3d.jugadores?.[id]?.esclavoArma || '';      // el esclavo que pelea por su amo se planta junto a él
     enCola(async (e) => { await quietos(P.atk, P.def); return e.formarPelea(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def), esclavoAtacante: esclavo(P.atk), esclavoDefensor: esclavo(P.def) }); });
   }, [lista, P?.n, P?.viva, dadoPelea, dados?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (lista) escenaActual()?.ponerFichaPropia?.(miId); }, [lista, miId]);   // solo tu monito gira

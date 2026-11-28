@@ -17,9 +17,10 @@ const RE_PELEA = /^(.+?) (grita «¡Esto es un asalto!» contra|ataca a muerte a
 const TIPO_PELEA = { 'grita «¡Esto es un asalto!» contra': 'robo', 'ataca a muerte a': 'matar', 'desafía a duelo a': 'duelo' };
 export function peleaDeLinea(e, l) {
   if (!l?.pid || !e.jugadores?.[l.pid]) return null;
+  if (l.peleaNPC) return { n: l.n, tipo: 'npc', atk: 'npc:' + l.peleaNPC, def: l.pid, figura: l.peleaNPC, armaNPC: l.peleaNPC === 'CO' ? 'jambiya' : '', nombre: l.etq || '', ciudad: e.jugadores[l.pid].ciudad };   // peleaNPC (pelea.js)
   const m = RE_PELEA.exec(l.texto || ''); if (!m) return null;
   const def = Object.values(e.jugadores).find((x) => x.id !== l.pid && x.nombre === m[3]); if (!def) return null;
-  return { n: l.n, tipo: TIPO_PELEA[m[2]], atk: l.pid, def: def.id };
+  return { n: l.n, tipo: TIPO_PELEA[m[2]], atk: l.pid, def: def.id, ...(l.peleaId ? { id: l.peleaId } : {}) };
 }
 
 // «X toca el laúd en C: gana…» lo escribe la acción de Jamil (shared/personajes.js, case 'laud'). Con su número de línea, la capa 3D
@@ -57,5 +58,7 @@ export function vista3d(data, e) {
   }
   // viva: la pelea sigue abierta (falta que el retado decida, o faltan dados). La animación empieza con los primeros dados de la pelea.
   if (pelea) pelea.viva = !!e.pelea && e.pelea.atk === pelea.atk && e.pelea.def === pelea.def;
+  // Pelea contra un NPC con monito (el esposo de Zein): activa mientras queden sus dados en la mesa; mientras tanto su monito está en el tablero.
+  if (pelea?.figura) pelea.activa = [e.dados, ...(e.colaDados || [])].some((d) => d && d.peleaNPC === pelea.n);
   return { jugadores, pelea };
 }

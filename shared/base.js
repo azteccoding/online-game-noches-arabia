@@ -153,8 +153,10 @@ export function mostrarDados(e, { por, motivo = 'libre', grupos, resumen = [], n
   const valores = grupos.flatMap((g) => g.valores);
   // Los dados de un jugador con cliente web nunca se lanzan solos: espera a que pulse «Lanzar dados» (el de ingreso ya lo pulsó).
   // Nadie los lanza por él: a los 60 segundos el banco puede sacarlo. (Bots y pruebas, sin cliente web, siguen como antes.)
-  const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc;
-  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo, ...(boton ? { boton } : {}), ...(alerta ? { alerta: true } : {}) };
+  // Al sacado de la partida nadie lo espera (Jorge, 28 de noviembre): sus dados, si quedara alguno, salen ya destapados.
+  const lanzar = !npc && motivo !== 'ingreso' && !!e.jugadores?.[por]?.extra?.clienteWeb && !e.jugadores[por].npc && !e.jugadores[por].sacado;
+  // pelea: la pelea a la que pertenecen estos dados, para anularla si sale de la partida quien tenía que lanzarlos
+  const d = { id: ++e.seq, n: valores.length, valores, grupos, resumen, por, motivo, t0: e.ahora, npc, lanzado: !lanzar, contexto: e.ctxCarta || null, titulo, ...(boton ? { boton } : {}), ...(alerta ? { alerta: true } : {}), ...(e.pelea?.id ? { pelea: e.pelea.id } : {}) };
   // sinRegistro { desde, n }: líneas del resumen que ya están en el registro (el desenlace de un reto) y no se repiten
   const saltar = new Set(); if (sinRegistro) for (let i = sinRegistro.desde; i < sinRegistro.desde + sinRegistro.n; i++) saltar.add(i);
   resumen.forEach((r, i) => { if (r && !saltar.has(i)) log(e, r, { pid: por, deDados: true }); });   // deDados: ya se vio en la ventana de los dados
@@ -224,7 +226,7 @@ export function responderPend(data, e, pid, a) {
 export function vencerPend(data, e, ahora) {
   const p = e.pend;
   if (!p) return false;
-  const todosFuera = p.para.every((x) => !e.jugadores[x] || e.jugadores[x].conectado === false || e.jugadores[x].npc);
+  const todosFuera = p.para.every((x) => !e.jugadores[x] || e.jugadores[x].conectado === false || e.jugadores[x].npc || e.jugadores[x].sacado);
   const limite = p.limiteMs ?? e.opciones?.limitePendMs ?? LIMITE_PEND_MS;
   if (ahora - p.t0 < (todosFuera ? Math.min(limite, 4000) : limite)) return false;
   for (const x of p.para) if (!p.resp[x]) p.resp[x] = valorPorDefecto(p);

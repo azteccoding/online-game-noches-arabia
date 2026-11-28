@@ -11,7 +11,7 @@ import {
 textoBuscado, nEsclavos,
 motivoNoSalir,
 apurosZein, enPartida, POR_CIUDAD, EN_BOTIN, copiasPorCiudad, ponerExistencia, sacarExistencia, quitarPrimero, info, puedePrincipal, BURROS, esRutaMar, viajePorMar, HERIDO_BARCO, jambiyaEscondida, jambiyaALaMano, tramosMax, MSJ_ALFORJA_TRAMO, MSJ_HUIDA_TRAMO, huidaCuentaViaje, ciudadCerrada, motivoCerrada, cobrarDeudasAlLlegar, } from './base.js';
-import { atacar, perfil, validarAtaque } from './pelea.js';
+import { atacar, perfil, validarAtaque, anularPelea, deshacerPelea } from './pelea.js';
 import * as OBJ from './objetos.js';
 import * as RET from './retos.js';
 import * as TES from './tesoros.js';
@@ -134,7 +134,6 @@ export function conexion(e, pid, conectado) {
     log(e, conectado ? `${j.nombre} volvió a la partida.` : `⚠ ${j.nombre} se desconectó${esperando ? ': es su turno y la partida lo está esperando' : ''}.`, { aviso: true, pid });
   }
   if (j) { if (e.fase === 'lobby' && !conectado && j.conectado !== false) j.desconectadoEn = e.ahora; if (conectado) delete j.desconectadoEn; j.conectado = conectado; }
-  if (j && conectado) volver(e, pid);
   bancoDeSala(e);
   if (!conectado && e.host === pid && e.cajaAbierta) { e.cajaAbierta = false; log(e, `Se cerró la caja del banco (${e.jugadores[pid].nombre} se desconectó).`, { caja: true }); }
 }
@@ -337,7 +336,9 @@ export function empezarRonda(data, e) {   // exportada para las pruebas
 }
 
 // Regla de la casa: si un jugador no tira su dado en 60 segundos, el banco decide sacarlo o esperarlo; nunca se tira por él.
-// Sacado, pierde ese turno y no juega hasta que vuelva; entonces su turno pasa al final del orden.
+// Jorge (28 de noviembre): «al sacar a un jugador que tardó mucho, la decisión es final e irrevocable». El sacado queda fuera de la
+// partida para siempre: no vuelve (ni al reconectarse), nadie lo ataca, no se le espera en dados ni decisiones, y la pelea que
+// tenía a medias contra él se anula (nadie gana ni pierde nada en ella). Antes volvía al final del orden al reconectarse.
 const ESPERA_SACAR_MS = 60000;
 export function esperaDado(e) {
   if (e.fase !== 'juego' || e.pend) return null;
@@ -346,34 +347,47 @@ export function esperaDado(e) {
   if (d) return !d.lanzado && !d.npc && !fuera(d.por) ? { pid: d.por, desde: d.t0 } : null;
   return t && t.fase === 'ingreso' && !fuera(t.pid) ? { pid: t.pid, desde: t.t0 ?? e.ahora } : null;
 }
-// Si todos los jugadores con personaje están sacados, la partida no da vueltas sola: se queda esperando a que vuelva quien tiene el turno.
-const esperaVuelta = (e) => (e.fase === 'juego' && e.turno && !e.turno.npc && e.jugadores[e.turno.pid]?.sacado ? e.turno.pid : null);
 const sacable = (e, x = esperaDado(e)) => !!x && (e.jugadores[x.pid]?.conectado === false || e.ahora - x.desde >= ESPERA_SACAR_MS);   // desconectado: de inmediato
 const pierdeSuTurno = (e, id) => {
   const j = e.jugadores[id];
-  if (j.npc || !(j.sacado || j.extra.turnoPerdido === e.ronda)) return false;
+  if (j.sacado) return true;                                                     // sacado: fuera para siempre
+  if (j.npc || j.extra.turnoPerdido !== e.ronda) return false;
   return humanosVivos(e).some((x) => !e.jugadores[x].sacado);                    // si no queda nadie más, la partida no da vueltas sola
 };
+// Humanos vivos que siguen en la partida (sin los sacados).
+const enJuegoHumanos = (e) => humanosVivos(e).filter((x) => !e.jugadores[x].sacado);
 function alFinalDelOrden(e, pid) {
   const t = e.turno, i = e.orden.indexOf(pid);
   e.orden = yafarAlFinal(e, [...e.orden.filter((x) => x !== pid), pid]);
   if (t) t.idx = t.pid === pid ? i - 1 : e.orden.indexOf(t.pid);                 // quien sigue es quien venía después de él
 }
-function sacarDelTurno(e, pid, motivo = 'por no tirar su dado') {
+function sacarDelTurno(data, e, pid, motivo = 'por no tirar su dado') {
   const j = e.jugadores[pid], t = e.turno;
   j.sacado = true; j.extra.turnoPerdido = e.ronda;
-  log(e, `El banco saca a ${j.nombre} ${motivo}: pierde este turno y, cuando vuelva, jugará al final del orden.`, { pid, aviso: true });
+  log(e, `El banco saca a ${j.nombre} ${motivo}: queda fuera de la partida para siempre (la decisión es definitiva).`, { pid, aviso: true });
   if (t?.pid === pid) { e.dados = null; e.colaDados = []; e.pend = null; e.colaPend = []; e.pelea = null; t.fin = true; }
-  else for (const d of [e.dados, ...(e.colaDados || [])]) if (d?.por === pid && !d.lanzado) { d.lanzado = true; d.t0 = e.ahora; }   // estos dados ya estaban decididos: solo se destapan para que la pelea termine
+  else anularPeleasDe(data, e, pid);
   alFinalDelOrden(e, pid);
   return ok();
 }
-function volver(e, pid) {
-  const j = e.jugadores[pid];
-  if (!j?.sacado) return ok();
-  j.sacado = false; alFinalDelOrden(e, pid);
-  log(e, `${j.nombre} vuelve a la partida: su turno pasa al final del orden.`, { pid, aviso: true });
-  return ok();
+// La pelea que el sacado tenía a medias (Jorge, 28 de noviembre: «yafar cobró como si hubiese peleado»): si aún no se resolvía, se
+// cancela; si ya se resolvió y faltaban sus dados, se deshace lo que la pelea cambió (dinares, noches, heridas, Buscado, cartas) y
+// esos dados ya no salen. Los demás dados suyos que ya estaban decididos se destapan solos y nadie lo espera para cerrarlos.
+function anularPeleasDe(data, e, pid) {
+  const suyos = [e.dados, ...(e.colaDados || [])].filter((d) => d && d.por === pid && !d.lanzado);
+  const anuladas = new Set();
+  const P = e.pelea;
+  if (P && [P.atk, P.def, P.ayudante].includes(pid)) { anuladas.add(P.id); anularPelea(data, e, `${e.jugadores[pid].nombre} salió de la partida`); }
+  for (const d of suyos) if (d.pelea && !anuladas.has(d.pelea) && deshacerPelea(e, d.pelea)) {
+    anuladas.add(d.pelea);
+    log(e, `Se anula la pelea en la que faltaban los dados de ${e.jugadores[pid].nombre}: salió de la partida, así que nadie gana ni pierde nada en ella.`, { aviso: true });
+  }
+  if (anuladas.size) {
+    const cur = e.dados;
+    e.colaDados = (e.colaDados || []).filter((d) => !anuladas.has(d.pelea));
+    if (cur && anuladas.has(cur.pelea)) siguienteDados(e);
+  }
+  for (const d of [e.dados, ...(e.colaDados || [])]) if (d?.por === pid && !d.lanzado) { d.lanzado = true; d.t0 = e.ahora; }   // estos dados ya estaban decididos: solo se destapan
 }
 
 // Evento de jugador al TERMINAR tu turno (Jorge, 28 de noviembre: «haz que la carta evento de jugador salga al finalizar el turno del
@@ -502,7 +516,7 @@ const cuentaHazanas = (data, e, j) => (confHazanas(data).por === 'turno' ? (e.tu
 // Para la vista: cuántas le quedan este turno y si está bloqueada por el freno.
 export function hazanasEstado(data, e, j) {
   const c = confHazanas(data), cuenta = cuentaHazanas(data, e, j);
-  return Object.fromEntries(Object.entries(HAZANAS).map(([k, h]) => [k, { nombre: h.nombre, noches: h.noches, par: h.par, unaVez: !!h.unaVez, quedan: h.unaVez ? (j.extra.hazanaHecha?.[k] ? 0 : 1) : Math.max(0, c.max - (cuenta[k] || 0)), bloqueada: !h.unaVez && !!(c.freno && j.extra.hazanaBloq?.[k]) }]));
+  return Object.fromEntries(Object.entries(HAZANAS).map(([k, h]) => [k, { nombre: h.nombre, noches: h.noches, par: h.par, unaVez: !!h.unaVez, quedan: h.unaVez ? (j.extra.hazanaHecha?.[k] ? 0 : 1) : Math.max(0, c.max - (cuenta[k] || 0)), bloqueada: !h.unaVez && !!(c.freno && j.extra.hazanaBloq?.[k]), carta: cartaHazana(k, c) }]));
 }
 function hazana(data, e, pid, k) {
   const j = e.jugadores[pid], h = HAZANAS[k], c = confHazanas(data), st = hazanasEstado(data, e, j)[k];
@@ -515,8 +529,9 @@ function hazana(data, e, pid, k) {
   if (k === 'quds') publicarCarta(e, { ...cartaHazana('quds'), texto: `${j.nombre} llega en burro a al-Quds, entre El Cairo y Damasco: +${h.noches} noches. Esta hazaña solo vale una vez por partida.` }, pid);
 }
 // Carta HZ1 «Visitar al-Quds» (pintura de Jorge, 27 de noviembre): sale para toda la mesa al cobrar la hazaña del burro, como sale un reto.
-export function cartaHazana(k) {
+export function cartaHazana(k, c = { max: 2, freno: true }) {
   const h = HAZANAS[k];
+  if (k === 'tariq') return { id: 'HZ2', deck: 'especial', titulo: h.nombre, sub: 'Hazaña', texto: `Cruzar entre ${h.par.join(' y ')}, en cualquier sentido, da +${h.noches} noches, hasta ${c.max} veces por turno.${c.freno ? ` Cuando la cobras queda bloqueada: para volver a ganar estas noches, termina un turno fuera de ${h.par.join(' y ')}.` : ''}`, arte: 'es' };   // la ficha «Tariq: bloqueada» (Jorge, 28 de noviembre)
   return { id: 'HZ1', deck: 'especial', titulo: h.nombre, sub: 'Hazaña', texto: `Viajar en burro entre ${h.par.join(' y ')}, en cualquier sentido, da +${h.noches} noches. Solo vale una vez por partida.`, arte: 'es' };
 }
 // Al cerrar el turno: la hazaña cobrada queda bloqueada; un turno posterior que termine fuera del par la libera.
@@ -578,11 +593,12 @@ registrar('reconquista.sale', (data, e, args, resp) => {
 // Jorge (19 de noviembre): la Casa de la Sabiduría tiene 4 cartas en el mazo de históricos (antes 1).
 export const COPIAS_EVENTO = { E3: 2 };   // Jorge (20 de noviembre): dos cartas de Tormenta de arena (sin caravanas desde Bagdad)
 export const COPIAS_HISTORICO = { H8: 4, H22: 0, H23: 0 };   // H23 (Yusuf) sale sola al inicio de la ronda siguiente a «Los cristianos toman Toledo»   // H22 (Saladino) solo entra al mazo cuando sale la Cruzada
+const cartaEspecial = (data, id) => { const s = data.objetos.especiales.find((x) => x.id === id); return s ? { id, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento } : null; };
 export const mansaGenerosaActiva = (e) => !!e.mansaGenerosa && e.ronda <= e.mansaGenerosa.hasta;
 function mansaMusa(data, e) {
-  const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado);
+  const humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado && !x.sacado);
   const fueron = humanos.filter((x) => x.visitadas.includes('Magreb'));
-  const carta = (id) => { const s = data.objetos.especiales.find((x) => x.id === id); if (s) publicarCarta(e, { id, deck: 'especial', titulo: s.nombre, sub: 'Carta especial', texto: s.texto + ' ' + s.efecto, arte: s.arte, ref: s.refReglamento }, null); };
+  const carta = (id) => { const c = cartaEspecial(data, id); if (c) publicarCarta(e, c, null); };
   if (!e.mansaGenerosa && fueron.length >= 2) {
     e.mansaGenerosa = { ronda: e.ronda, hasta: e.ronda + MANSA_RONDAS }; carta('S2');
     log(e, `Mansa Musa despertó generoso: hasta el final de la ronda ${e.ronda + MANSA_RONDAS}, quien visite Timbuktú (R44, en el Magreb) tira un dado de premio extra.`, { aviso: true });
@@ -640,7 +656,7 @@ export function avanzar(data, e) {
     if (e.fase !== 'juego') return;
     if (e.pend) {
       const falta = e.pend.para.filter((x) => !e.pend.resp[x]);
-      const ausente = (x) => !e.jugadores[x] || e.jugadores[x].eliminado || e.jugadores[x].npc || (e.pend.tipo === 'subasta' && e.jugadores[x].conectado === false);   // en la subasta, quien está desconectado no puja
+      const ausente = (x) => !e.jugadores[x] || e.jugadores[x].eliminado || e.jugadores[x].npc || e.jugadores[x].sacado || (e.pend.tipo === 'subasta' && e.jugadores[x].conectado === false);   // en la subasta, quien está desconectado no puja
       if (falta.every(ausente)) { vencerPend(data, e, Infinity); continue; }
       return;
     }
@@ -649,6 +665,7 @@ export function avanzar(data, e) {
     if (!conDados && e.trasFin && !humanosVivos(e).length) { e.fase = 'fin'; e.turno = null; log(e, 'No queda ningún jugador con vida: la partida termina.'); return; }   // conserva a los ganadores
     if (!conDados && e.solitario && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; log(e, 'Has muerto: Yafar NPC gana la partida.'); return; }
     if (!conDados && !humanosVivos(e).length) { e.fase = 'fin'; e.ganadores = []; e.derrota = 'muerte'; e.turno = null; return; }
+    if (!enJuegoHumanos(e).length) return;   // todos los que quedan vivos fueron sacados: la partida no da vueltas sola (aún puede entrar alguien tarde o proponerse una nueva)
     const t = e.turno;
     if (e.pelea) return;
     if (!t) { if (e.paso === 'eventos') { e.paso = null; siguienteTurno(data, e, -1); continue; } return; }
@@ -761,9 +778,12 @@ function reducir0(data, e, pid, a, ahora) {
   RET.marcarAccion(e);   // desenlace de los retos que terminen en esta acción (Jorge, 21 de noviembre)
   const j = e.jugadores[pid];
   if (!j) return err('Jugador desconocido.');
+  if (j.sacado && e.fase === 'juego' && !['chat', 'leido', 'cerrarDados'].includes(a.t)) return err('El banco te sacó de la partida: esa decisión es definitiva.');
   if (e.fase === 'fin' && a.t === 'volverPartida') { const r = volverPartida(data, e, pid); if (r && r.ok) avanzar(data, e); return r; }
   if (e.fase === 'fin' && !String(a.t).startsWith('host.')) return err('La partida terminó.');
-  if (e.pend && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Hay una decisión pendiente: respóndela primero.');
+  // Jorge (28 de noviembre, BUG3): la decisión pendiente de otro jugador no te cierra el mercado; solo la tuya, mientras no la respondas.
+  const pendMia = !!e.pend && e.pend.para.includes(pid) && !e.pend.resp[pid];
+  if (e.pend && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.') && !(a.t === 'comprar' && !pendMia)) return err('Hay una decisión pendiente: respóndela primero.');
   // «Que se calle Jamil»: mientras dura la votación Jamil está tocando y no hace otra cosa; si lo callaron, solo le queda terminar el turno
   if (e.votoLaud?.pid === pid && !LIBRES.includes(a.t) && !String(a.t).startsWith('host.')) return err('Estás tocando el laúd: espera a ver si te dejan seguir.');
   if (e.turno?.callado && e.turno.pid === pid && !LIBRES.includes(a.t) && !['terminarTurno', 'responderCC'].includes(a.t) && !String(a.t).startsWith('host.')) return err('Te callaron: solo te queda terminar tu turno.');
@@ -846,8 +866,8 @@ function despachar(data, e, pid, j, a, ahora) {
       // cierra quien tiró (si es una persona conectada) o, si tiró un NPC, cuando lo cerraron todos los conectados (o a los 30 s).
       const d = e.dados, cer = (d.cerrados ||= []);
       if (!cer.includes(pid)) cer.push(pid);
-      const dueno = e.jugadores[d.por], humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado && x.conectado !== false);
-      const listo = dueno && !dueno.npc && dueno.conectado !== false ? cer.includes(d.por) : humanos.every((x) => cer.includes(x.id));
+      const dueno = e.jugadores[d.por], humanos = Object.values(e.jugadores).filter((x) => x.pj && !x.npc && !x.eliminado && !x.sacado && x.conectado !== false);
+      const listo = dueno && !dueno.npc && !dueno.sacado && dueno.conectado !== false ? cer.includes(d.por) : humanos.every((x) => cer.includes(x.id));   // al sacado no se le espera
       if (listo) siguienteDados(e);
       return ok();
     }
@@ -904,18 +924,18 @@ function despachar(data, e, pid, j, a, ahora) {
       const x = esperaDado(e);
       if (!x || x.pid !== a.pid || x.pid === pid) return err('Ese jugador ya no está esperando dados.');
       if (!sacable(e, x)) return err('Todavía no pasan 60 segundos (o el jugador sigue conectado).');
-      return sacarDelTurno(e, x.pid);
+      return sacarDelTurno(data, e, x.pid);
     }
-    case 'volver': return volver(e, pid);
-    // Jorge (10 de noviembre): «Sacar de la partida» en el aviso de desconectados ya no elimina: lo saca del turno y, cuando se
-    // reconecta, vuelve solo al final del orden, con su monito (antes quedaba eliminado y ya nunca le tocaba turno).
+    case 'volver': return err('El banco te sacó de la partida: esa decisión es definitiva.');
+    // «Sacar de la partida» en el aviso de desconectados: desde el 28 de noviembre también es definitivo (Jorge: «la decisión es
+    // final e irrevocable»); del 10 al 28 volvía solo al final del orden al reconectarse.
     case 'host.sacarDesconectado': {
       if (!esHost(e, pid)) return err('Solo el banco.');
       const x = e.jugadores[a.pid];
       if (!x || x.npc || x.eliminado || a.pid === pid) return err('Jugador inexistente.');
       if (x.conectado !== false) return err('Ese jugador está conectado.');
       if (x.sacado) return ok();
-      return sacarDelTurno(e, a.pid, 'porque se desconectó');
+      return sacarDelTurno(data, e, a.pid, 'porque se desconectó');
     }
     case 'host.reiniciar': if (!esHost(e, pid)) return err('Solo el anfitrión (banco) propone una partida nueva.'); return proponerReinicio(data, e, pid);
     case 'votarReinicio': return votarReinicio(data, e, pid, a);
@@ -1620,17 +1640,18 @@ export function vista(data, e, pid) {
     armasCiudades: e.fase === 'juego' ? Object.fromEntries(data.ciudades.ciudades.map((c) => [c.id, OBJ.armasEnCiudad(data, e, c.id)])) : null, armasBagdad: !!e.mods?.armasBagdad,   // ficha de ciudad (Jorge, 12 de noviembre)
     orden: e.orden, mult: e.ronda ? multiplicadorRonda(data, e.ronda, e.orden.length) : 1, jugadores, turno: t, dados: e.dados, enCola: (e.colaDados || []).length, anuncios: (e.anuncios || []).filter((x) => x.para.includes(pid)).map(({ id, t, texto, tono, propio }) => ({ id, t, texto, tono, ...(propio ? { propio: true } : {}) })), ultimaCarta: e.ultimaCarta, historial, log: e.log.slice(-80).map(({ t: tt, texto, pid: p2, n, saldo }) => ({ t: tt, texto, pid: p2, n, saldo: saldo ? 1 : undefined })),
     votoReinicio: vistaVoto(e, pid), votoLaud: PJ.vistaVotoLaud(e, pid), partidaN: e.partidaN || 1, puedeUnirse: puedeUnirse(e), cuenta: e.cuentaInicio ? Math.max(0, Math.ceil((e.cuentaInicio - e.ahora) / 1000)) : null, faltaInicio: e.fase === 'lobby' ? faltaParaIniciar(e) : [], esperarMas: !!e.esperarMas,
-    mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1 } : null,
-    sabiduria: e.sabiduria && e.ronda <= e.sabiduria.hasta ? { quedan: e.sabiduria.hasta - e.ronda + 1 } : null,
+    mansaGenerosa: mansaGenerosaActiva(e) ? { quedan: e.mansaGenerosa.hasta - e.ronda + 1, carta: cartaEspecial(data, 'S2') } : null,
+    sabiduria: e.sabiduria && e.ronda <= e.sabiduria.hasta ? { quedan: e.sabiduria.hasta - e.ronda + 1, carta: cartaDatos(data, 'historico', 'H8') } : null,
+    eventoCarta: e.evento?.actual ? cartaDatos(data, 'evento', e.evento.actual) : null,   // la carta de la ficha de arriba (Jorge, 28 de noviembre: BUG1)
     quemadas: Object.entries(e.cerradas || {}).filter(([, v]) => v === 'cruzada').map(([c]) => c),   // flamas en el mapa durante la Cruzada (Jorge, 19 de noviembre)
     leidoHasta: e.jugadores[pid]?.extra?.leidoHasta ?? null,   // hasta qué carta cerró este jugador (consecuencias después de cerrar)
     chat: (e.chat || []).filter((m) => m.para === pid || m.de === pid).slice(-40),
     publicas: e.fase === 'juego' ? Object.fromEntries(Object.values(e.jugadores).filter((j) => j.id !== pid && !j.npc && !j.eliminado).map((j) => [j.id, j.mano.filter((c) => esPublica(j, c)).map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) }))])) : {},
     miMano: yo ? yo.mano.map((c) => ({ uid: c.uid, titulo: tituloCarta(data, e, c) })) : [],
     sacablesSala: e.fase === 'lobby' && esAnf ? Object.values(e.jugadores).filter((j) => !j.npc && j.id !== pid && j.conectado === false && e.ahora - (j.desconectadoEn ?? e.ahora) >= SACAR_SALA_MS).map((j) => j.id) : [],
-    espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid, esperaVuelta: esperaVuelta(e),
+    espera: (() => { const x = esperaDado(e); return x ? { ...x, sacable: sacable(e, x) } : null; })(), puedoSacar: puedeNPC(e, pid) && sacable(e) && esperaDado(e)?.pid !== pid, sinJugadores: e.fase === 'juego' && humanosVivos(e).length > 0 && !enJuegoHumanos(e).length,
     noSalir: yo && e.fase === 'juego' && e.turno?.pid === pid && e.turno.fase !== 'ingreso' && !e.turno.fin ? motivoNoSalir(e, yo) : null, jambiyaOculta: !!yo && tieneItem(yo, 'jambiya') && !jambiyaALaMano(yo),
-    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, puedeVolver: puedeVolver(e) && (esHost(e, pid) || (e.ganadores || []).includes(pid)), trasFin: !!e.trasFin, puedoGanarYa: puedeGanarYa(data, e, pid), victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
+    caravanas: e.caravanas, ganadores: e.ganadores, derrota: e.derrota, finUltimo: !!e.finUltimo, puedeVolver: puedeVolver(e) && (esHost(e, pid) || (e.ganadores || []).includes(pid)), trasFin: !!e.trasFin, puedoGanarYa: puedeGanarYa(data, e, pid), victoriaYafar: e.victoriaYafar || null, carreras: (e.carrerasActivas || []).map((c) => ({ id: c.id, ciudad: c.ciudad, prog: c.prog, premio: premioCarrera(c.ciudad), carta: cartaDatos(data, 'evento', c.id) })), sinCaravanasBagdad: e.sinCaravanasBagdad, evento: e.evento, mods: publicMods(e), solitario: e.solitario, cajaAbierta: !!e.cajaAbierta, opciones: { dificultad: e.opciones.dificultad, dificultadAsesinos: e.opciones.dificultadAsesinos || 'facil', sinYafar: !!e.opciones.sinYafar },
     pend, acciones: acciones(data, e, pid),
     mano: yo ? yo.mano.map((c) => ({ ...c, oculta: jambiyaEscondida(yo, c) || undefined, datos: datosMano(data, e, c), venta: OBJ.estimarVenta(data, e, pid, c), donde: [yo.perdido && c.tipo !== 'especial' ? OBJ.MSJ_PERDIDO_VENDER : OBJ.dondeVender(data, e, pid, c), RET.sirvePara(data, c)].filter(Boolean).join(' ') })) : [],
     tienda: OBJ.tienda(data, e, pid),

@@ -81,7 +81,7 @@ function aplicarEvento0(data, e, id) {
     case 'E8': {
       const c = act.slice().sort((a, b) => jug(e, b).dinares - jug(e, a).dinares)[0];
       if (!c) break;
-      if (!peleaNPC(data, e, c, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { const j = jug(e, c); j.noches -= 30; log(e, `${j.nombre} pierde ante el esposo de Zein: -30 noches.`, { pid: c }); }
+      if (!peleaNPC(data, e, c, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true, figura: 'CO' })) { const j = jug(e, c); j.noches -= 30; log(e, `${j.nombre} pierde ante el esposo de Zein: -30 noches.`, { pid: c }); }
       break;
     }
     case 'E9': e.mods.sindbad = true; break;

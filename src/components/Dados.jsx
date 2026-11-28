@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { enviar, useJuego } from '../game/store.js';
 import { ACCIONES } from '../game/protocol.js';
 import { cartaDelMotivo } from '../game/orden.js';
-import { escenaActual, enCola } from '../game/escena3d.js';
+import { escenaActual, enCola, dadosDePelea, armaDePelea } from '../game/escena3d.js';
 
 // Dados rojos con puntos blancos, 100 % SVG (caras) sobre un cubo CSS 3D. El servidor decide los valores; el cliente solo anima.
 // Todos los clientes ven los mismos dados; cualquiera puede cerrar el resultado y entonces desaparecen para todos (estado.dados = null).
@@ -101,13 +101,13 @@ export default function Dados({ s }) {
       let vivo = true; setFila(-1); setEn3d(true);
       // La flecha del arco (su dado y su botón van antes de la pelea): primero cae el dado y luego vuela la flecha, que da o falla según ese dado.
       const P = s.e3d?.pelea;
-      const flecha = d.boton === 'Disparar flecha' && P && (d.por === P.atk || d.por === P.def) ? { de: d.por, a: d.por === P.atk ? P.def : P.atk, acierta: /^¡Le da!/.test(d.resumen?.[0] || '') } : null;
+      const flecha = d.boton === 'Disparar flecha' && dadosDePelea(d, P) ? { de: d.por, a: d.por === P.atk ? P.def : P.atk, acierta: /^¡Le da!/.test(d.resumen?.[0] || '') } : null;
       // El choque de armas va después de la última tirada de la pelea (Jorge, 23 de noviembre), y solo entonces sale el conteo.
-      const choque = !flecha && P && !P.viva && !s.enCola && ['pelea', 'categoria'].includes(d.motivo) && (d.por === P.atk || d.por === P.def);
+      const choque = !flecha && P && !P.viva && !s.enCola && ['pelea', 'categoria'].includes(d.motivo) && dadosDePelea(d, P);
       const reloj = setTimeout(() => { if (vivo) setEn3d(false); }, total + (flecha || choque ? 16000 : 9000));   // por si la animación no avisara
       enCola(async (e) => { if (!vivo) return; await e.lanzarDados({ grupos: gs });   // si estos dados ya se cerraron mientras esperaban su turno en la cola, no se animan tarde
         if (flecha) await Promise.resolve(e.dispararFlecha(flecha.de, flecha.a, { acierta: flecha.acierta })).catch(() => {});
-        if (choque) { const arma = (id) => s.e3d.jugadores?.[id]?.armaPelea || '', esclavo = (id) => s.e3d.jugadores?.[id]?.esclavoArma || ''; await Promise.resolve(e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def), esclavoAtacante: esclavo(P.atk), esclavoDefensor: esclavo(P.def) })).catch(() => {}); } })
+        if (choque) { const arma = (id) => armaDePelea(s.e3d, P, id), esclavo = (id) => s.e3d.jugadores?.[id]?.esclavoArma || ''; await Promise.resolve(e.pelear(P.atk, P.def, { armaAtacante: arma(P.atk), armaDefensor: arma(P.def), esclavoAtacante: esclavo(P.atk), esclavoDefensor: esclavo(P.def) })).catch(() => {}); } })
         .then(() => { if (vivo) { clearTimeout(reloj); setEn3d(false); } });
       return () => { vivo = false; clearTimeout(reloj); };
     }

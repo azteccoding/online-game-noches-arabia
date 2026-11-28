@@ -11,7 +11,8 @@ export const ALTO_FIGURA = 1.16;
 // diferencia; dentro de cada grupo, un escalón chico para respetar el orden. Es la proporción sobre ALTO_FIGURA.
 export const ESTATURA = { 3: 1.15, B: 1.135, 1: 1.12, 5: 1.0, 4: 0.99, 6: 0.98, 7: 0.90, 2: 0.845,
   EP: 1.17,        // el esclavo peleador (27 nov): alto y fornido, un poco más que Yafar (su pintura llega hasta la punta de la cimera)
-  EC: 1.10 };      // el esclavo cargador (27 nov): su pintura llega hasta la tinaja que corona la cesta; el cuerpo (hasta el pelo) queda en 1.05, algo menos que el peleador
+  EC: 1.10,
+  CO: 1.12 };      // el esposo de Zein (28 nov): caballero alto, como Nur al Din      // el esclavo cargador (27 nov): su pintura llega hasta la tinaja que corona la cesta; el cuerpo (hasta el pelo) queda en 1.05, algo menos que el peleador
 export const altoDe = (pid) => ALTO_FIGURA * (ESTATURA[pid] ?? 1);
 const paso = (a, b, x) => { const t = Math.min(1, Math.max(0, (x - a) / (b - a))); return t * t * (3 - 2 * t); };
 const b64 = (s) => Uint8Array.from(atob(s), (c) => c.charCodeAt(0));

@@ -30,4 +30,9 @@ export function turnoVisible(s) {
   if (t && d && t.fase === 'ingreso' && d.por !== t.pid && s.jugadores?.[d.por]) return d.por;
   return t?.pid ?? null;
 }
+// Los dados son de esta pelea (Jorge, 28 de noviembre, BUG5: con la Ira del cornudo se animaba la pelea anterior, con Yafar).
+// Las peleas contra un NPC con monito marcan sus dados con peleaNPC (el número de su línea en el registro); las de fichas, con pelea.
+export const dadosDePelea = (d, P) => !!d && !!P && (P.figura ? d.peleaNPC === P.n : !d.peleaNPC && (!d.pelea || !P.id || d.pelea === P.id)) && (d.por === P.atk || d.por === P.def);
+// Arma con la que se planta cada uno: la del NPC viene con la pelea; la de un jugador, de la capa 3D.
+export const armaDePelea = (e3d, P, id) => (P?.figura && id === P.atk ? P.armaNPC || '' : e3d?.jugadores?.[id]?.armaPelea || '');
 export const quietos = (...ids) => Promise.all(ids.map((id) => viajes[id] || Promise.resolve()));

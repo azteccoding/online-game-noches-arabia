@@ -51,6 +51,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
     figuras: Object.fromEntries(Object.keys(FIGURAS).map((id) => [id, { atlas: `${DIR.arte3d}fig-${id}.webp`, datos: FIGURAS[id] }])) };
   if (medidasTablero && (Math.abs(medidasTablero.ancho * U - ANCHO) > 1e-6 || Math.abs(medidasTablero.alto * U - ALTO) > 1e-6)) throw new Error('crearEscena: esta capa 3D está hecha para el tablero de 2970 × 2100.');
   const PJ = Object.fromEntries((Array.isArray(personajes) ? personajes : Object.values(personajes)).map((p) => [p.id, { ...p, arma: Array.isArray(p.arma) ? p.arma[0] || '' : p.arma || '' }]));
+  // NPC con monito que no son personajes (Jorge, 28 de noviembre): el esposo de Zein pelea en la Ira del cornudo y en la Giralda (R26).
+  if (FIGURAS.CO && !PJ.CO) PJ.CO = { id: 'CO', nombre: 'Esposo de Zein', arma: 'jambiya' };
   const movil = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
   const menosMovimiento = opciones.menosMovimiento ?? (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches);
   const avisar = (txt) => { try { opciones.alProgreso?.(txt); } catch { /* la interfaz es cosa de quien llama */ } };
@@ -301,6 +303,8 @@ export async function crearEscena(contenedor, { tablero: medidasTablero, ciudade
   Object.defineProperties(api, Object.getOwnPropertyDescriptors({
     // ----- Jugadores y fichas
     ponerJugadores(lista) { const p = fichas.ponerTodos(lista).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
+    // Pone una ficha nueva (o actualiza la que ya está): quien entra tarde y el NPC de una pelea (28 de noviembre).
+    ponerJugador(j) { const p = Promise.resolve(fichas.poner(j)).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     actualizarJugador(id, cambios) { ficha(id); const p = Promise.resolve(fichas.poner({ ...cambios, id })).then(() => { pedirCuadro(); }); pedirCuadro(); return p; },
     quitarJugador(id) { fichas.quitar(ficha(id)); pedirCuadro(); },
     jugadores() { return fichas.fichas.map((f) => ({ id: f.id, nombre: f.jugador.nombre, personaje: f.pid, color: f.jugador.color, ciudad: f.ciudad, viajando: !!f.viaje, arma: f.arma, transporte: f.transporte || null, esclavo: !!f.conEsclavo, cargador: !!f.conCargador, turno: f.turno })); },

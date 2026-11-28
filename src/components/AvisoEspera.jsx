@@ -11,9 +11,9 @@ export default function AvisoEspera({ s }) {
   const [mini, setMini] = useState(null);                     // clave del aviso minimizado (solo en esta pantalla; no cambia el juego)
   useEffect(() => { if (!espera) return undefined; const iv = setInterval(() => setReloj((n) => n + 1), 500); return () => clearInterval(iv); }, [espera]);
   const yo = s.jugadores[s.yo];
-  if (yo?.sacado) return <div className="aviso-espera panel" role="alert"><p>El banco te sacó de tu turno. Tu turno pasa al final del orden.</p><button className="btn mini" onClick={() => enviar(ACCIONES.volver())}>Volver a la partida</button></div>;
-  const vuelta = s.esperaVuelta && s.jugadores[s.esperaVuelta];   // todos los jugadores están sacados: la partida espera, no da vueltas sola
-  if (vuelta && !yo?.sacado) return <div className="aviso-espera panel" role="status"><p>La partida espera a que vuelva <b>{vuelta.nombre}</b>: no queda nadie más en juego. Cuando vuelva, sigue su turno.</p></div>;
+  // Jorge (28 de noviembre): sacar a un jugador es definitivo; ya no hay «Volver a la partida».
+  if (yo?.sacado) return <div className="aviso-espera panel" role="alert"><p>El banco te sacó de la partida. La decisión es definitiva: ya no juegas en esta partida, pero puedes seguir viéndola y escribir mensajes.</p></div>;
+  if (s.sinJugadores) return <div className="aviso-espera panel" role="status"><p>Ya no queda ningún jugador en la partida: los que seguían vivos fueron sacados. El banco puede proponer una partida nueva{s.ronda <= 1 ? ' o alguien puede entrar tarde' : ''}.</p></div>;
   const x = s.espera;
   if (!x?.sacable || !s.puedoSacar) return null;
   const clave = x.pid + ':' + x.desde;
@@ -27,11 +27,11 @@ export default function AvisoEspera({ s }) {
   return (
     <div className="aviso-espera panel" role="alertdialog" aria-label={`${nom} no ha tirado su dado`}>
       <button className="alarma-min" onClick={() => setMini(clave)} aria-label="Minimizar la ventana" title="Minimizar">▾</button>
-      <p style={{ paddingRight: 24 }}><b>{nom}</b> {s.jugadores[x.pid]?.conectado === false ? 'se desconectó y no ha tirado' : 'lleva más de 60 segundos sin tirar'} su dado. Nadie puede tirar por él: puedes esperarlo o sacarlo. Si lo sacas, pierde este turno y cuando vuelva juega al final del orden.</p>
+      <p style={{ paddingRight: 24 }}><b>{nom}</b> {s.jugadores[x.pid]?.conectado === false ? 'se desconectó y no ha tirado' : 'lleva más de 60 segundos sin tirar'} su dado. Nadie puede tirar por él: puedes esperarlo o sacarlo. Si lo sacas, sale de la partida para siempre: no puede volver, nadie lo ataca y la pelea que tuviera a medias se anula.</p>
       {esperando > 0 && <p className="it" role="status">Esperando a {nom}… <b>{esperando}</b> s</p>}
       {esperando === 0 && <p className="it">Ya lo esperaste 60 segundos más.</p>}
       <div className="fila-btn">
-        <button className="btn mini" onClick={() => { if (window.confirm(`¿Seguro que quieres sacar a ${nom}? Perderá este turno y, cuando vuelva, jugará al final del orden.`)) enviar(ACCIONES.host.sacarEspera(x.pid)); }}>Sacarlo</button>
+        <button className="btn mini" onClick={() => { if (window.confirm(`¿Seguro que quieres sacar a ${nom}? Saldrá de la partida para siempre: es una decisión definitiva y no podrá volver.`)) enviar(ACCIONES.host.sacarEspera(x.pid)); }}>Sacarlo</button>
         {esperando == null && <button className="btn mini sec" onClick={() => setEspera({ clave, hasta: Date.now() + ESPERA_MS })}>Esperarlo</button>}
       </div>
     </div>

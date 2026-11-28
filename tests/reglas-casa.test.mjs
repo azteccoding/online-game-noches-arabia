@@ -545,7 +545,7 @@ function avanzarHasta(g, cond, pasos = 400) {
   assert.match(JSON.stringify([e.dados, e.colaDados]), /duas del sheij \+1 \(mensaje de Ibn Hazm\)/);
 }
 
-// 60 segundos sin tirar: el banco decide; nunca se tira por el jugador; al volver juega al final y ese turno se perdió
+// 60 segundos sin tirar: el banco decide; nunca se tira por el jugador. Desde el 28 de noviembre sacarlo es definitivo (no vuelve).
 {
   const g = partida(['4', '7', '5']); g.act(g.ids[0], { t: 'opciones', sinYafar: true }); assert.ok(g.iniciar().ok);
   const e = g.e; for (const id of g.ids) e.jugadores[id].extra.clienteWeb = true;
@@ -565,8 +565,9 @@ function avanzarHasta(g, cond, pasos = 400) {
   if (siguiente) assert.equal(e.turno?.pid, siguiente, 'sigue quien venía después de él');
   assert.equal(e.orden[e.orden.length - 1], p, 'pasa al final del orden');
   conexion(e, p, true);
-  assert.ok(!e.jugadores[p].sacado, 'al volver deja de estar sacado'); assert.equal(e.orden[e.orden.length - 1], p);
-  e.orden.slice(e.orden.indexOf(p)); assert.ok(e.jugadores[p].extra.turnoPerdido === ronda, 'ese turno se perdió aunque volvió en la misma ronda');
+  assert.ok(e.jugadores[p].sacado, 'al reconectarse sigue fuera: la decisión es definitiva'); assert.ok(e.jugadores[p].extra.turnoPerdido === ronda);
+  assert.ok(!g.act(p, { t: 'volver' }).ok, 'ya no hay «Volver a la partida»');
+  assert.ok(!g.act(p, { t: 'comprar', ref: 'flechas' }).ok, 'el sacado ya no juega (ni compra)');
   assert.ok(!g.act(banco, { t: 'lanzarDados' }).ok || !e.dados, 'el banco no lanza por nadie');
 }
 
@@ -1882,8 +1883,8 @@ for (let k = 0; k < 6; k++) {
   void multiplicadorRonda;
 }
 
-// Jorge (10 de noviembre): «Sacar de la partida» a un desconectado lo saca del turno (no lo elimina); al reconectarse vuelve solo,
-// con su monito, al final del orden, y le vuelve a tocar turno.
+// «Sacar de la partida» a un desconectado: no lo elimina (no muere), pero desde el 28 de noviembre es definitivo (Jorge: «la decisión es
+// final e irrevocable»); al reconectarse ya no vuelve ni le toca turno.
 {
   const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
   const e = g.e, [h, x, y] = g.ids, X = e.jugadores[x];
@@ -1893,14 +1894,12 @@ for (let k = 0; k < 6; k++) {
   assert.ok(g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok);
   assert.ok(X.sacado && !X.eliminado, 'sacado, no eliminado');
   conexion(e, x, true);
-  assert.ok(!X.sacado && !X.eliminado, 'al volver ya no está sacado');
-  const humanos = e.orden.filter((id) => !e.jugadores[id].npc);
-  assert.equal(humanos[humanos.length - 1], x, 'juega al final del orden (entre los jugadores)');
-  assert.ok(vista(data, e, h).jugadores[x] && !vista(data, e, h).jugadores[x].eliminado, 'su monito se dibuja (no está eliminado)');
-  assert.ok(!g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok, 'conectado no se puede sacar');
+  assert.ok(X.sacado && !X.eliminado, 'al reconectarse sigue sacado');
+  for (let k = 0; k < 12 && e.turno?.pid !== x; k++) { if (e.dados) e.dados = null; if (e.pend) e.pend = null; if (e.turno) e.turno.fin = true; g.tickear(1000); }
+  assert.notEqual(e.turno?.pid, x, 'ya nunca le toca turno');
 }
 
-// Jorge (10 de noviembre): el sacado no participa en cartas ni eventos ni se le puede atacar en su ciudad hasta que vuelva; ganar un
+// Jorge (10 de noviembre): el sacado no participa en cartas ni eventos ni se le puede atacar en su ciudad; ganar un
 // animal muestra su carta.
 {
   const { enPartida, enCiudad } = await import('../shared/base.js');
@@ -1912,7 +1911,7 @@ for (let k = 0; k < 6; k++) {
   conexion(e, x, false); assert.ok(g.act(h, { t: 'host.sacarDesconectado', pid: x }).ok);
   assert.ok(!enPartida(e).includes(x), 'fuera de la partida mientras no vuelve');
   assert.ok(!enCiudad(e, 'Damasco').includes(x), 'no está «en la ciudad» para cartas, tratos o ataques');
-  conexion(e, x, true); assert.ok(enPartida(e).includes(x), 'al volver, otra vez dentro');
+  conexion(e, x, true); assert.ok(!enPartida(e).includes(x), 'al reconectarse sigue fuera (28 de noviembre: definitivo)');
   const Y = e.jugadores[y]; Y.mano = Y.mano.filter((c) => !['caballo', 'camello', 'burro'].includes(c.ref));
   const n0 = e.historial.length; darTransporte(data, e, y, 'caballo');
   const c = e.historial.slice(n0).find((q) => q.para?.includes(y));
@@ -5505,7 +5504,7 @@ console.log('destreza inicial de Yafar OK');
   assert.ok(act(J, { t: 'host.sacarEspera', pid: A }).ok);
   const v = vistaDe(e, J);
   assert.equal(v.espera, null, 'ya sacada, no se vuelve a ofrecer sacarla'); assert.ok(!v.puedoSacar);
-  assert.equal(v.esperaVuelta, A, 'la partida espera a que vuelva');
+  assert.ok(v.sinJugadores, 'no queda nadie en juego: la partida espera (ya no a que ella vuelva: sacar es definitivo desde el 28 de noviembre)');
   assert.ok(!act(J, { t: 'host.sacarEspera', pid: A }).ok, 'no se saca dos veces');
   assert.ok(act(J, { t: 'reclamarAnfitrion', pin: e.pinHost }).ok); assert.equal(e.host, J, 'sin personaje también puede ser el banco');
   // entra tarde en la primera ronda aunque estuviera en la sala sin personaje al empezar
@@ -5960,4 +5959,64 @@ console.log('Sherezada: los dados antes que la muerte OK');
     assert.equal(30 - Y.dinares, esperado, `${dificultad}: Damasco cuesta 4`);
   }
   console.log('alojamiento de Yafar NPC en difícil OK');
+}
+
+// Jorge (28 de noviembre, BUG4): sacar a un jugador es definitivo. Si lo sacan cuando faltaban sus dados de una pelea ya resuelta,
+// la pelea se anula: el que robó devuelve lo robado y nadie queda Buscado ni herido por ella. Nadie lo espera y nadie lo ataca.
+{
+  const g = partida(['4', '7', '2']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b, c] = g.ids, A = e.jugadores[a], Bj = e.jugadores[b];
+  e.host = c; for (const id of g.ids) { e.jugadores[id].conectado = true; e.jugadores[id].extra.clienteWeb = true; }
+  for (const j of [A, Bj]) j.ciudad = 'Aleppo';
+  darItem(e, A, 'libro'); A.dinares = 33; Bj.dinares = 7; const nA = A.noches, nB = Bj.noches, manoA = A.mano.length, manoB = Bj.mano.length;
+  darItem(e, Bj, 'cimitarra'); e.ronda = 4; e.mods = {}; turnoDe(e, b, 'Aleppo'); e.turno.fase = 'acciones';
+  forzar(e, 6, 6, 1, 1);
+  assert.ok(g.act(b, { t: 'atacar', tipo: 'robo', objetivo: a }).ok);
+  while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: (e.pend.opciones.find((o) => o.id === 'luchar') || e.pend.opciones[0]).id });
+  assert.ok(Bj.mano.some((x) => x.ref === 'libro') && Bj.dinares === 40, 'el robo salió (aún sin ver los dados)');
+  for (let k = 0; k < 6 && e.dados && e.dados.por !== a; k++) { e.dados.lanzado = true; e.dados.t0 = 0; g.act(b, { t: 'cerrarDados' }); }
+  assert.ok(e.dados && e.dados.por === a && !e.dados.lanzado, 'faltan los dados de la víctima');
+  g.tickear(61000); assert.ok(g.act(c, { t: 'host.sacarEspera', pid: a }).ok, 'el banco la saca');
+  assert.ok(A.sacado);
+  assert.equal(A.dinares, 33, 'recupera sus dinares'); assert.equal(Bj.dinares, 7, 'el ladrón los devuelve');
+  assert.ok(A.mano.some((x) => x.ref === 'libro') && !Bj.mano.some((x) => x.ref === 'libro'), 'y sus cartas');
+  assert.equal(A.mano.length, manoA); assert.equal(Bj.mano.length, manoB + 1);
+  assert.equal(A.noches, nA); assert.equal(Bj.noches, nB); assert.ok(!Bj.buscado, 'el ladrón no queda Buscado por una pelea anulada');
+  assert.ok(![e.dados, ...e.colaDados].some((d) => d && d.por === a), 'sus dados ya no salen');
+  assert.ok(e.log.some((l) => /Se anula la pelea/.test(l.texto)));
+  const r = g.act(b, { t: 'atacar', tipo: 'duelo', objetivo: a }); assert.ok(!r.ok, 'nadie lo ataca');
+  conexion(e, a, false); conexion(e, a, true); assert.ok(A.sacado, 'al reconectarse sigue fuera');
+  // una decisión pendiente para el sacado no detiene la partida
+  BASE.pedir(e, { tipo: 'info', para: [a], titulo: 'x', texto: 'x', opciones: [{ id: 'ok', texto: 'ok' }], porDefecto: 'ok', limiteMs: 90000, cont: { fn: 'base.nada', args: {} } });
+  e.dados = null; e.colaDados = []; g.tickear(500); assert.ok(!e.pend || !e.pend.para.includes(a), 'no se le espera en una decisión');
+  console.log('sacar es definitivo y anula su pelea OK');
+}
+
+// BUG3 (28 de noviembre): la decisión pendiente de otro jugador no te cierra el mercado; la tuya sí, mientras no la respondas.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, Bj = e.jugadores[b]; Bj.dinares = 100;
+  turnoDe(e, a, e.jugadores[a].ciudad); e.turno.fase = 'acciones';
+  BASE.pedir(e, { tipo: 'info', para: [a], titulo: 'x', texto: 'x', opciones: [{ id: 'ok', texto: 'ok' }], porDefecto: 'ok', limiteMs: 90000, cont: { fn: 'base.nada', args: {} } });
+  const r = g.act(b, { t: 'comprar', ref: 'flechas', n: 1 }); assert.ok(r.ok, 'compra aunque otro tenga una decisión pendiente: ' + r.error);
+  e.pend = null; BASE.pedir(e, { tipo: 'info', para: [b], titulo: 'x', texto: 'x', opciones: [{ id: 'ok', texto: 'ok' }], porDefecto: 'ok', limiteMs: 90000, cont: { fn: 'base.nada', args: {} } });
+  assert.ok(!g.act(b, { t: 'comprar', ref: 'flechas', n: 1 }).ok, 'con su propia decisión sin responder, no');
+  console.log('comprar con la decisión pendiente de otro OK');
+}
+
+// BUG1 y BUG5 (28 de noviembre): las fichas de arriba traen su carta; la Ira del cornudo pone al esposo de Zein en el 3D.
+{
+  const g = partida(['4', '7']); assert.ok(g.iniciar().ok);
+  const e = g.e, [a] = g.ids;
+  e.evento.actual = 'E8'; e.carrerasActivas = [{ id: 'E15', ciudad: 'Damasco', prog: {} }];
+  const v = vista(data, e, a);
+  assert.equal(v.eventoCarta?.id, 'E8'); assert.equal(v.carreras[0].carta?.id, 'E15');
+  assert.ok(v.jugadores[a].hazanas.tariq.carta?.titulo && v.jugadores[a].hazanas.quds.carta?.id === 'HZ1');
+  e.jugadores[a].extra.clienteWeb = true; e.dados = null; e.colaDados = [];
+  peleaNPC(data, e, a, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true, figura: 'CO' });
+  const P = vista3d(data, e).pelea;
+  assert.equal(P.figura, 'CO'); assert.equal(P.atk, 'npc:CO'); assert.equal(P.def, a); assert.ok(P.activa, 'su monito sale mientras duran los dados');
+  assert.ok([e.dados, ...e.colaDados].filter(Boolean).every((d) => d.peleaNPC === P.n), 'sus dados son de esa pelea');
+  e.dados = null; e.colaDados = []; assert.ok(!vista3d(data, e).pelea.activa, 'al cerrarse los dados se va');
+  console.log('cartas de la barra y monito del cornudo OK');
 }

@@ -19,17 +19,19 @@ export default function BarraEstado({ s, demo, pids, panel, abrir }) {
   const sinLeer = panel === 'chat' ? 0 : noLeidos(s);
   useEffect(() => { const f = () => setCompleta(!!fsEl()); document.addEventListener('fullscreenchange', f); document.addEventListener('webkitfullscreenchange', f); return () => { document.removeEventListener('fullscreenchange', f); document.removeEventListener('webkitfullscreenchange', f); }; }, []);
   const act = (p) => { setMas(false); abrir(p); };
-  const ev = s.evento?.actual && s.historial.slice().reverse().find((h) => h.deck === 'evento');
+  // Jorge (28 de noviembre, BUG1 y BUG2): cada ficha de arriba abre SU carta (con clic y con Shift + 1 a 6), no la ventana de retos.
+  const ev = s.eventoCarta || null;
+  const carta = (c, alt) => () => (c ? abrir(c) : abrir(alt));
   return (
     <header className="barra">
       <div className="barra-izq">
         <span className="sala">Sala {s.codigo}</span>
         <span className="chip" title="Multiplicador de noches de esta ronda">Ronda {s.ronda} · ×{s.mult}</span>
-        {ev && <button className="chip chip-ev" onClick={() => abrir('evento')} title="Evento de la ronda">{ev.titulo}</button>}
-        {(s.carreras || []).map((c) => <button key={c.id} className="chip chip-ev" onClick={() => abrir('misiones')} title={`Carrera: dos noches seguidas en ${c.ciudad} (${c.premio?.dinares ?? 20} dinares y ${c.premio?.noches ?? 15} noches). ` + (Object.entries(c.prog).map(([id, n]) => `${s.jugadores[id]?.nombre} ${n}/2`).join(', ') || 'Nadie ha empezado.')}>🏁 {c.ciudad}</button>)}
-        {Object.entries(s.jugadores[s.yo]?.hazanas || {}).filter(([, h]) => h.bloqueada).map(([k, h]) => <button key={k} className="chip mal" onClick={() => abrir('misiones')} title={`${h.nombre}: bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.`}>{k === 'tariq' ? 'Tariq' : 'al-Quds'}: bloqueada</button>)}
-        {s.mansaGenerosa && <button className="chip chip-ev" onClick={() => abrir('historial')} title="Quien visite Timbuktú (R44, en el Magreb) tira un dado de premio extra.">Mansa Musa generoso · {s.mansaGenerosa.quedan === 1 ? 'última ronda' : `quedan ${s.mansaGenerosa.quedan} rondas`}</button>}
-        {s.sabiduria && <button className="chip chip-ev" onClick={() => abrir('historial')} title="La biblioteca de Bagdad paga los libros y papiros a su valor completo, y quien llega a Bagdad con un libro cobra 20 dinares.">Casa de la Sabiduría · {s.sabiduria.quedan === 1 ? 'última ronda' : `quedan ${s.sabiduria.quedan} rondas`}</button>}
+        {ev && <button className="chip chip-ev" onClick={carta(ev, 'evento')} title="Evento de la ronda: toca para ver la carta">{ev.titulo}</button>}
+        {(s.carreras || []).map((c) => <button key={c.id} className="chip chip-ev" onClick={carta(c.carta, 'misiones')} title={`Carrera: dos noches seguidas en ${c.ciudad} (${c.premio?.dinares ?? 20} dinares y ${c.premio?.noches ?? 15} noches). ` + (Object.entries(c.prog).map(([id, n]) => `${s.jugadores[id]?.nombre} ${n}/2`).join(', ') || 'Nadie ha empezado.')}>🏁 {c.ciudad}</button>)}
+        {Object.entries(s.jugadores[s.yo]?.hazanas || {}).filter(([, h]) => h.bloqueada).map(([k, h]) => <button key={k} className="chip mal" onClick={carta(h.carta, 'misiones')} title={`${h.nombre}: bloqueada hasta que salgas de ${h.par.join(' y ')}. Para volver a ganar estas noches, muévete a otra ciudad.`}>{k === 'tariq' ? 'Tariq' : 'al-Quds'}: bloqueada</button>)}
+        {s.mansaGenerosa && <button className="chip chip-ev" onClick={carta(s.mansaGenerosa.carta, 'historial')} title="Quien visite Timbuktú (R44, en el Magreb) tira un dado de premio extra.">Mansa Musa generoso · {s.mansaGenerosa.quedan === 1 ? 'última ronda' : `quedan ${s.mansaGenerosa.quedan} rondas`}</button>}
+        {s.sabiduria && <button className="chip chip-ev" onClick={carta(s.sabiduria.carta, 'historial')} title="La biblioteca de Bagdad paga los libros y papiros a su valor completo, y quien llega a Bagdad con un libro cobra 20 dinares.">Casa de la Sabiduría · {s.sabiduria.quedan === 1 ? 'última ronda' : `quedan ${s.sabiduria.quedan} rondas`}</button>}
         {!s.hostConectado && <span className="chip mal" title="El banco está desconectado; la partida sigue.">banco ausente</span>}
       </div>
       <nav className="barra-der" aria-label="Menú">

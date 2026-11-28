@@ -212,6 +212,7 @@ const AVISO_ATAQUE = { robo: 'te intenta robar', matar: 'te ataca a muerte', due
 export function validarAtaque(data, e, pid, a, { npc = false } = {}) {
   const t = e.turno, j = e.jugadores[pid], d = e.jugadores[a.objetivo];
   if (!d || d.eliminado || pid === a.objetivo) return err('Objetivo no válido.');
+  if (d.sacado) return err('Ese jugador ya no está en la partida: el banco lo sacó.');
   if (!['robo', 'matar', 'duelo'].includes(a.tipo)) return err('Tipo de ataque desconocido.');
   if (j.ciudad !== d.ciudad) return err('Deben estar en la misma ciudad.');
   if (d.transito || j.transito) return err('Quien viaja con transporte propio no puede ser atacado.');
@@ -255,7 +256,7 @@ export function atacar(data, e, pid, a, { npc = false, cont = null } = {}) {
   const nurHonor = (j.pj === '1' || d.pj === '1') && ['El Cairo', 'Damasco', 'Aleppo'].includes(j.ciudad) && a.tipo === 'duelo';
   const pedirNur = j.pj === '1' && nurHonor ? { dinares: Math.max(0, Math.floor(a.pedirDinares || 0)), noches: Math.max(0, Math.floor(a.pedirNoches || 0)) } : null;
   const P = e.pelea = { id: ++e.seq, tipo: a.tipo, atk: pid, def: a.objetivo, ciudad: j.ciudad, nur: nurHonor, pedirNur, cont, rondaAnis: false, usa: {}, ayudante: null, cat: null, numeros: [], noRechazable: !!a.noRechazable };
-  log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid });
+  log(e, `${j.nombre} ${a.tipo === 'robo' ? 'grita «¡Esto es un asalto!» contra' : a.tipo === 'matar' ? 'ataca a muerte a' : 'desafía a duelo a'} ${d.nombre}.`, { pid, peleaId: P.id });
   // Jorge (8 de noviembre): si Yafar (NPC o jugador) asalta o ataca a muerte a Zein o a Zubayda y ella no lleva armas a la vista
   // (un arma escondida no cuenta), Yafar queda Buscado, gane o pierda.
   // Jorge (19 de noviembre): quien ataque a Zein o a Zubayda (robo, ataque a muerte o duelo) queda Buscado, gane o pierda. A Zein,
@@ -585,6 +586,7 @@ function escudoContraGolpe(data, e, P, atk, def, titulo) {
 }
 function resolverNuevo(data, e) {
   const P = e.pelea; if (!P) return;
+  P.foto = fotoPelea(e, P);
   marcarEsclavos(data, e, P);
   const atk = P.atk, def = P.ayudante || P.def, nA = nombre(e, atk), nD = nombre(e, def);
   const titulo = `${P.tipo === 'robo' ? 'Asalto' : 'Ataque a muerte'}: ${nA} contra ${nombre(e, P.def)}`;
@@ -642,6 +644,7 @@ function consecuencia(e, P, ganaAtk, numeroOk, cat) {
 }
 function resolver(data, e, { numeros }) {
   const P = e.pelea; if (!P) return;
+  P.foto = fotoPelea(e, P);
   const atk = P.atk, def = P.ayudante || P.def;
   marcarEsclavos(data, e, P);
   const pA = perfil(data, e, atk), pD = perfil(data, e, def);
@@ -784,9 +787,59 @@ function terminarPelea(data, e, res) {
   const P = e.pelea;
   e.pelea = null;
   for (const x of P?.escudosRotos || []) romperEscudo(data, e, x.pid, x.uid);   // el tercer flechazo rompe el escudo
+  if (P?.foto) {                                                               // lo que cambió la pelea, por si hay que deshacerla
+    const L = (e.deshacer ||= {}); L[P.id] = { antes: P.foto, despues: fotoPelea(e, P) };
+    for (const k of Object.keys(L).map(Number).sort((a, b) => a - b).slice(0, -4)) delete L[k];   // solo las últimas
+  }
   if (res.cancelada && P) { /* la acción principal ya se consumió */ }
   if (P?.cont) { const f = CONT[P.cont.fn]; if (f) f(data, e, P.cont.args || {}, { res, pelea: P }); }
   return ok();
+}
+
+// ---------------------------------------------------------------- sacar a un jugador a media pelea (Jorge, 28 de noviembre)
+// «Yafar cobró como si hubiese peleado»: al sacado de la partida no le cuenta la pelea que tenía a medias. Antes de resolverla se toma
+// una foto de los que pelean y otra al terminar; si el banco saca a uno cuando faltaban sus dados, se deshace la diferencia.
+const copia = (x) => JSON.parse(JSON.stringify(x ?? null));
+function fotoPelea(e, P) {
+  const jug = Object.fromEntries([P.atk, P.def, P.ayudante].filter((x) => x && e.jugadores[x]).map((x) => {
+    const j = e.jugadores[x];
+    return [x, { dinares: j.dinares, noches: j.noches, herido: !!j.herido, buscado: j.buscado || 0, motivo: copia(j.extra?.buscadoMotivo), eliminado: !!j.eliminado, mensajes: copia(j.mensajes || []), mano: copia(j.mano) }];
+  }));
+  return { jug, firmanes: e.firmanes || 0 };
+}
+// Pelea que aún no se resolvía (falta una decisión o un disparo): se cancela sin consecuencias y sigue quien atacaba.
+export function anularPelea(data, e, motivo) {
+  const P = e.pelea; if (!P) return false;
+  const dePelea = (p) => p && String(p.cont?.fn || '').startsWith('pelea.');
+  if (dePelea(e.pend)) e.pend = (e.colaPend || []).shift() || null;
+  e.colaPend = (e.colaPend || []).filter((p) => !dePelea(p));
+  log(e, `Se anula la pelea de ${nombre(e, P.atk)} contra ${nombre(e, P.def)}: ${motivo}. Nadie gana ni pierde nada en ella.`, { aviso: true });
+  delete P.foto; terminarPelea(data, e, { cancelada: true });
+  return true;
+}
+// Pelea ya resuelta cuyos dados no se habían visto: se devuelve lo que cambió (dinares, noches, heridas, Buscado, muerte y cartas).
+export function deshacerPelea(e, id) {
+  const L = e.deshacer?.[id]; if (!L) return false;
+  delete e.deshacer[id];
+  const ids = Object.keys(L.antes.jug);
+  for (const x of ids) {
+    const X = e.jugadores[x], a = L.antes.jug[x], d = L.despues.jug[x]; if (!X || !d) continue;
+    X.dinares += a.dinares - d.dinares; X.noches += a.noches - d.noches;
+    if (a.herido !== d.herido) X.herido = a.herido;
+    if (a.buscado !== d.buscado) { X.buscado = a.buscado; X.extra.buscadoMotivo = a.motivo || undefined; }
+    if (a.eliminado !== d.eliminado) { X.eliminado = a.eliminado; if (!a.eliminado) X.mensajes = copia(a.mensajes); }
+  }
+  for (const x of ids) {                                                       // cada carta que tenía antes vuelve a su mano
+    const X = e.jugadores[x], d = L.despues.jug[x]; if (!X || !d) continue;
+    const seguia = new Set(d.mano.map((c) => c.uid));
+    for (const c of L.antes.jug[x].mano) {
+      if (seguia.has(c.uid) || X.mano.some((m) => m.uid === c.uid)) continue;
+      for (const y of ids) { const Y = e.jugadores[y]; const i = y === x || !Y ? -1 : Y.mano.findIndex((m) => m.uid === c.uid); if (i >= 0) { Y.mano.splice(i, 1); break; } }
+      X.mano.push(copia(c));
+    }
+  }
+  e.firmanes = (e.firmanes || 0) - ((L.despues.firmanes || 0) - (L.antes.firmanes || 0));
+  return true;
 }
 
 // ---------------------------------------------------------------- pelea entre dos jugadores sin números (torneo E5, entrenamiento H7): siempre por dados
@@ -800,16 +853,20 @@ export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
 
 // ---------------------------------------------------------------- pelea contra un NPC (retos, Patrulla, esposo de Zein, bandoleros)
 // npc: {etq, dados=2, bono=0, jambiya=false}. El jugador tira 2 dados + bonos de arma (+1 por destreza, como en la Patrulla R 17.2). Empate: se repite.
+// npc.figura: el monito que pelea en el 3D (Jorge, 28 de noviembre, BUG5: «no salió el monito del cornudo»); 'CO' = el esposo de Zein.
+// La línea del registro con peleaNPC le dice a la capa 3D quién pelea con quién, y sus dados llevan el mismo número (peleaNPC).
 export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true, escudo: npc.escudo ?? 1 });
   const n0 = nombre(e, pid);
+  if (npc.figura) log(e, `${npc.etq} se planta frente a ${n0} para pelear.`, { pid, peleaNPC: npc.figura, etq: npc.etq });
+  const nPelea = npc.figura ? e.logN : null, marca = (d) => { if (d && nPelea) d.peleaNPC = nPelea; return d; };
   avisoSinFlechas(data, e, pid);
   // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.
   const maxArco = !!e.jugadores[pid].extra?.arcoMaximo && armasUsables(data, e, e.jugadores[pid], e.jugadores[pid].ciudad).includes('arco');
   if (maxArco) { quitarPrimero(e.jugadores[pid], 'item', 'flechas'); log(e, `${n0} dispara con destreza máxima en arco: la flecha acierta y ${npc.etq} pelea con −1.`, { pid }); }
   const arco = maxArco ? { acierta: false, cubre: true } : tiroDeArco(data, e, pid);   // regla de la casa: el arco dispara antes de la pelea
-  if (arco && !maxArco) mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) });
+  if (arco && !maxArco) marca(mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) }));
   if (arco?.acierta) return true;
   // El jugador lanza sus 2 dados con su botón; el NPC lanza solo, a la vista, y entonces sale el desglose.
   let gana = false, usoDado = false, primero = !arco;
@@ -819,7 +876,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
     if (npc.jambiya) { jd = dado(e); if (par(jd)) bn += 3; }
     const dest = p.general ? 1 : 0;   // destreza general; el +1 del arma entrenada ya viene en los bonos
     const tj = suma(r) + b.total + dest, tn = suma(n) + bn - b.resta;
-    mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] });
+    marca(mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] }));
     primero = false;
     const pj = [`dados ${r.join(' + ')} = ${suma(r)}`, ...b.partes.filter((x) => !/^Polvo/.test(x)), ...(dest ? ['destreza +1'] : [])];
     const pn = [`dados ${n.join(' + ')} = ${suma(n)}`, ...(npc.bono ? [`bono +${npc.bono}`] : []), ...(arco?.cubre ? ['flecha −1'] : []), ...(jd ? [`jambiya ${par(jd) ? '+3' : '+0'} (dado ${jd})`] : []), ...(b.resta ? [`polvo de pimienta −${b.resta}`] : [])];
@@ -831,7 +888,7 @@ export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
       if (!gana && !usoDado && dadoIbnArabi(e, pid)) { usoDado = true; res.push(`${n0} usa el Dado de Ibn Arabi y repite la pelea.`); sigue = true; }
       else res.push(gana ? `${n0} vence a ${npc.etq}.` : `${npc.etq} vence a ${n0}.`);
     }
-    mostrarDados(e, { por: pid, npc: true, motivo: 'pelea', grupos: [{ etq: npc.etq, valores: [...n, ...(jd ? [jd] : [])] }], resumen: res });
+    marca(mostrarDados(e, { por: pid, npc: true, motivo: 'pelea', grupos: [{ etq: npc.etq, valores: [...n, ...(jd ? [jd] : [])] }], resumen: res }));
     if (!sigue) break;
   }
   return gana;

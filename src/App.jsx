@@ -118,6 +118,7 @@ function Juego({ lienzo }) {
   }, []);
 
   const abrir = useCallback((p) => {
+    if (p && typeof p === 'object') { setConsulta(p); return; }   // una carta: las fichas de la barra de arriba (Jorge, 28 de noviembre: BUG1)
     if (p === 'ultima') { const u = leer().estado?.ultimaCarta; if (u != null) setConsulta(u); return; }
     if (p === 'mercado-tratos' || p.startsWith('mercado-contra:')) { setPanel(p); return; }   // desde la alerta de trato
     if (p.startsWith('carta:')) { setPanel(null); setConsulta(Number(p.slice(6))); return; }   // la carta que falta responder

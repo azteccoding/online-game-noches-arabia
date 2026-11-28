@@ -814,7 +814,7 @@ T.R26 = { ciudad: 'Andalucía', req: (data, e, pid) => (e.jugadores[pid].pj === 
   if (r.salvo || j.pj === '3' || bendito) { premio(data, e, pid, { dinares: j.pj === '3' ? 10 : 25, noches: 20 }, `${j.nombre} pasa la noche con Zein:`); if (!bendito) ctx.say(r.salvo ? 'El esposo no los sorprende.' : 'Anís se escapa por la ventana.'); }
   else {
     ctx.say('El esposo los sorprende.'); ctx.fin(); ctx.grupos = []; ctx.res = [];
-    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true })) { ctx.resultado = 'fallo'; j.noches -= 30; j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
+    if (!peleaNPC(data, e, pid, { etq: 'Esposo de Zein', dados: 2, bono: 1, jambiya: true, figura: 'CO' })) { ctx.resultado = 'fallo'; j.noches -= 30; j.herido = true; log(e, `${j.nombre} pierde ante el esposo: pierde 30 noches y queda herido.`, { pid }); }
     else premio(data, e, pid, { dinares: 25, noches: 20 }, `${j.nombre} vence al esposo de Zein:`);
   }
 } };
