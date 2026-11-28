@@ -306,7 +306,7 @@
    "tipo": "C",
    "requisito": "Pagar 50 dinares (solo si aún no tienes destreza)",
    "resolucion": "Entrena con los maestros de Estambul. No incluye el arco: el arco se entrena aparte.",
-   "premio": "Destreza con armas: peleas con destreza con todas tus armas y +1 en todas las peleas (robos, ataques y duelos); +60 noches. Tarda 2 turnos: este termina y el siguiente lo pasas entrenando; la recibes al terminarlo. No incluye el arco: el arco se entrena aparte.",
+   "premio": "Destreza con armas: tus armas siempre cuentan y peleas en D en todas las peleas (robos, ataques y duelos); ya no suma +1; +60 noches. Tarda 2 turnos: este termina y el siguiente lo pasas entrenando; la recibes al terminarlo. No incluye el arco: el arco se entrena aparte.",
    "riesgo": "",
    "objetos": "",
    "refReglamento": "14.4",

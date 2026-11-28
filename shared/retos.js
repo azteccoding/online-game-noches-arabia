@@ -676,7 +676,7 @@ function r16Tira(data, e, pid) {
   if (muere) eliminar(data, e, pid, { causa: 'muerte súbita de Shariyar' });
 }
 // ---------------------------------------------------------------- entrenamientos (regla de la casa, noviembre de 2026)
-// La destreza (+1 en toda pelea) se aprende solo en Estambul. Cada arma tiene su maestro: hay que llevar el arma, y quien entrena suma
+// La destreza (tus armas siempre cuentan y peleas en D; desde el 28 nov ya no suma +1) se aprende solo en Estambul. Cada arma tiene su maestro: hay que llevar el arma, y quien entrena suma
 // +1 con ella (dentro del tope de armas); con el arco, también un 3 o 4 en la flecha deja al rival con −1.
 export const DESTREZA = { costo: 50, noches: 60, turnos: 2 };   // R25, Estambul (Jorge, 10 de noviembre); 60 noches y 2 turnos (Jorge, 21 de noviembre)
 export const NOCHES_ENTRENAR = 30;   // entrenar cualquier arma: R18, R19, R42, R43 (Jorge, 21 de noviembre; antes 50)
@@ -714,7 +714,7 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   j.extra.destrezaPend = qs.filter((q) => !listas.includes(q));
   for (const q of listas) {
     let texto;
-    if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
+    if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas: tus armas siempre cuentan y peleas en D (ya no suma +1).'; }
     else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Ya tienes destreza en el arco: tu flecha le da con 4, 5 o 6 y el rival pelea con −2.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, siempre cuenta y peleas con destreza (D).`; }
     else if (q.t === 'armasR54') {
       for (const r of q.armas) (j.extra.entrenado ||= {})[r] = true;
@@ -755,7 +755,7 @@ T.R25 = { ciudad: 'Estambul', req: (d, e, pid) => (soloJambiya(e.jugadores[pid])
   const j = e.jugadores[pid]; if (ctx) ctx.resultado = 'logro'; j.dinares -= DESTREZA.costo; j.noches += DESTREZA.noches; hacer(e, pid, 'R25');   // Jorge (10 de noviembre): 50 dinares (antes 45); Zein y Ruyán: solo con jambiya
   if (j.npc) { aplazarDestreza(e, pid, { t: 'general' }); log(e, `${j.nombre} entrena en Estambul y gana ${DESTREZA.noches} noches: ya tiene destreza con armas.`, { pid }); return; }
   aplazarDestreza(e, pid, { t: 'general', turno: j.turnos + DESTREZA.turnos - 1 }); j.pierdeTurno = (j.pierdeTurno || 0) + 1;
-  log(e, `${j.nombre} entrena en Estambul y gana ${DESTREZA.noches} noches: su turno termina, pasa el siguiente entrenando y, al terminarlo, tendrá destreza ${soloJambiya(j) ? 'solo con la jambiya' : 'con armas (+1 en todas las peleas)'}.`, { pid });
+  log(e, `${j.nombre} entrena en Estambul y gana ${DESTREZA.noches} noches: su turno termina, pasa el siguiente entrenando y, al terminarlo, tendrá destreza ${soloJambiya(j) ? 'solo con la jambiya' : 'con armas (sus armas siempre cuentan y pelea en D)'}.`, { pid });
 } };
 // Jorge (19 de noviembre): en el reto el velo cuesta 10 dinares (en el mercado sigue a 30).
 T.R20 = { ciudad: 'Damasco', req: (d, e, pid) => (e.jugadores[pid].dinares >= 10 ? null : 'Cuesta 10 dinares.'), run(data, e, pid) { const j = e.jugadores[pid]; j.dinares -= 10; darItem(e, j, 'velo'); hacer(e, pid, 'R20'); log(e, `${j.nombre} compra el velo quemado.`, { pid }); } };
@@ -1133,7 +1133,7 @@ export function finForja(data, e, pid) {
 // R54 «Combatir a los húngaros» (Jorge, 19 de noviembre): en Estambul, con un arma (la que sea), te alistas en el ejército del sultán
 // otomano. Dos dados con botón. Primero: impar, herido y 25 noches y 5 dinares por tu servicio; par, sin herida, 10 noches y destreza
 // con las armas que llevas en ese momento (Jorge, 28 de noviembre: «Solo las armas que llevabas en ese momento»; del 21 al 28 era la
-// destreza general en todas las armas): quedas entrenado con cada una, como en R18, R19 y R42 (+1 con ella y peleas con destreza), no
+// destreza general en todas las armas): quedas entrenado con cada una, como en R18, R19 y R42 (con ella siempre cuenta y peleas en D), no
 // con las que consigas después; llega al terminar el turno. Si ya estabas entrenado con todas, solo las noches. Segundo dado: 1 a 3,
 // el siguiente turno estás libre; 4 a 6, sigues en batalla y pierdes ese turno. Una sola vez por jugador; gasta la acción principal;
 // herido no te alistas; Yafar NPC no lo hace.

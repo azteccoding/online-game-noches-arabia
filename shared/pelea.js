@@ -60,7 +60,7 @@ export function perfil(data, e, pid, ciudad) {
   const armas = armasUsables(data, e, j, ciudad || j.ciudad).filter((r) => ARMAS_ATAQUE.includes(r));   // el arco no cuenta como arma
   const general = destrezaCon(j, armas);   // Zein y Ruyán: solo con la jambiya (Jorge, 19 de noviembre)
   // Jorge (21 de noviembre): entrenar un arma (R18, R19, R42, R54, deseo f) es tener destreza en ella: si peleas con un arma
-  // entrenada, peleas con destreza (categoría D, y puedes atacar a muerte). El +1 de la destreza general (R25) es aparte.
+  // entrenada, peleas con destreza (categoría D, y puedes atacar a muerte). La destreza general (R25) ya no suma +1 (28 nov).
   const esc = esclavosPelea(j, armas);
   const destreza = general || armas.some((r) => !!j.extra?.entrenado?.[r]) || esc.alfanje;
   const cat = armas.length && destreza ? 'D' : armas.length ? 'C' : destreza ? 'B' : 'A';
@@ -911,7 +911,7 @@ export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
 }
 
 // ---------------------------------------------------------------- pelea contra un NPC (retos, Patrulla, esposo de Zein, bandoleros)
-// npc: {etq, dados=2, bono=0, jambiya=false}. El jugador tira 2 dados + bonos de arma (+1 por destreza, como en la Patrulla R 17.2). Empate: se repite.
+// npc: {etq, dados=2, bono=0, jambiya=false}. El jugador tira 2 dados + bonos de arma (sin dado de destreza ni +1 por destreza desde el 28 nov). Empate: se repite.
 // npc.figura: el monito que pelea en el 3D (Jorge, 28 de noviembre, BUG5: «no salió el monito del cornudo»); 'CO' = el esposo de Zein.
 // La línea del registro con peleaNPC le dice a la capa 3D quién pelea con quién, y sus dados llevan el mismo número (peleaNPC).
 export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
