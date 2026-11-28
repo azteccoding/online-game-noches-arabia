@@ -3154,8 +3154,19 @@ console.log('reglas de la casa OK');
   // Daga de manga (Jorge, 28 nov, 15:55 y 15:58): ya no suma; deja herido al rival (si ya estaba herido, muere); se gasta sola en la
   // primera pelea; en los duelos no cuenta.
   const tiene = (j) => j.mano.some((c) => c.ref === 'OB01');
-  { const { g, e, a, b, A, B } = prep(); A.mano.push({ uid: 9803, tipo: 'objeto', ref: 'OB01' }); B.herido = false; pelea(g, e, a, b, 'robo');
-    assert.ok(!tiene(A) && !tiene(B), 'la daga se gasta y se esfuma'); assert.ok(B.herido || B.eliminado, 'deja herido al rival, gane o pierda'); }
+  // Jorge (28 nov, 11:34 en México): «Solo mata a un rival que estaba herido o hiere a un contrincante ganador. Nada más».
+  const vistosDaga = new Set();
+  for (let sem = 1; sem <= 40 && vistosDaga.size < 2; sem++) {
+    const { g, e, a, b, A, B } = prep(); A.mano.push({ uid: 9803, tipo: 'objeto', ref: 'OB01' }); B.herido = false;
+    A.destreza = false; B.destreza = true; B.mano.push({ uid: 9804, tipo: 'item', ref: 'alfanje' }); e.semilla = sem * 7919;   // pelea pareja: a veces gana cada uno
+    pelea(g, e, a, b, 'robo'); const t = JSON.stringify(e.log);
+    assert.ok(!tiene(A) && !tiene(B), 'la daga se gasta y se esfuma');
+    const ganoB = /gana la pelea, pero la Daga de manga/.test(t), nada = /La Daga de manga de .* no hace nada más/.test(t);
+    assert.ok(ganoB !== nada, 'la daga dice qué hizo');
+    if (ganoB) assert.ok(B.herido, 'hiere al rival que gana la pelea'); else assert.ok(!B.eliminado, 'si el rival pierde, la daga no lo mata');
+    vistosDaga.add(ganoB);
+  }
+  assert.equal(vistosDaga.size, 2, 'se probaron los dos casos (gana el rival y pierde el rival)');
   { const { g, e, a, b, A, B } = prep(); A.mano.push({ uid: 9803, tipo: 'objeto', ref: 'OB01' }); B.herido = true; pelea(g, e, a, b, 'robo');
     assert.ok(B.eliminado, 'si el rival ya estaba herido, muere'); }
   { const { g, e, a, b, A, B } = prep(); A.mano.push({ uid: 9803, tipo: 'objeto', ref: 'OB01' }); B.herido = false; pelea(g, e, a, b, 'duelo');
@@ -6207,8 +6218,9 @@ console.log('Sherezada: los dados antes que la muerte OK');
     assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok);
     const elegidas = [];
     for (let n = 0; n < 6 && e.pend && e.pend.tipo !== 'numeros'; n++) { if (e.pend.tipo === 'arma') elegidas.push(e.pend.para[0]); g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.tipo === 'defensa' ? 'luchar' : e.pend.porDefecto }); }
-    assert.deepEqual(elegidas, [a, b], 'con alfanje y cimitarra cada uno elige con cuál pelea (primero el agresor)');
+    assert.deepEqual(elegidas, [], 'ya no se pregunta con qué arma: va sola la mejor (Jorge, 28 nov, 11:34 en México)');
     const ds = [e.dados, ...(e.colaDados || [])].filter(Boolean);
+    assert.ok(!/alfanje \+2/.test(JSON.stringify(ds)), 'sin destreza en ninguna, pelean con la cimitarra (la mejor)');
     const dB = ds.find((d) => d.por === b && /tira un dado de destreza/.test(d.grupos[0].etq));
     assert.ok(dB, 'quien se defiende sin destreza tira el dado de su arma');
     assert.equal(dB.valores.length, 1, 'un solo dado: el del arma con la que pelea (Jorge, 28 nov, 15:55)');

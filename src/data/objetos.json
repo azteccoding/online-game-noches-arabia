@@ -18,7 +18,7 @@
    "valor": 12,
    "duracion": "1 vez",
    "momento": "Pelea",
-   "efecto": "NO CUENTA EN DUELOS. En un robo o ataque a muerte contra otro jugador, ataques o te defiendas, deja herido a tu rival, gane quien gane; si ya estaba herido, muere. No suma puntos. Se usa sola en tu primera pelea, se gasta y se esfuma (no vuelve al Bazar). No sirve contra NPC ni contra un esclavo de pelea. Pesa. Objeto de combate.",
+   "efecto": "NO CUENTA EN DUELOS. En un robo o ataque a muerte contra otro jugador, ataques o te defiendas: si tu rival ya estaba herido, muere; si no, queda herido solo si gana la pelea. Nada más: no suma puntos. Se usa sola en tu primera pelea, se gasta y se esfuma (no vuelve al Bazar). No sirve contra NPC ni contra un esclavo de pelea. Pesa. Objeto de combate.",
    "sirvePara": "R2, R8, R36, E2, H18",
    "seConsigueEn": "Bagdad, El Cairo",
    "humor": "Pequeña, discreta y sospechosamente cómoda.",

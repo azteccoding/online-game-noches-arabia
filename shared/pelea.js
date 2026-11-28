@@ -424,6 +424,9 @@ export const GOLPE_DE_GRACIA = 3;
 function pasoAyuda(data, e) { return elegirArmas(data, e); }
 registrar('pelea.ayuda', (data, e) => { if (e.pelea) elegirArmas(data, e); });   // partidas guardadas a media pregunta de ayuda
 // Antes de la categoría, quien lleva alfanje y cimitarra elige con cuál pelea (primero el agresor, luego quien se defiende).
+// Jorge (28 nov, 11:34 en México): «contra quien sea peleas con tu mejor arma»: ya no se pregunta; va sola la mejor (mejorArma:
+// la que más rinde contando la destreza). Con ELEGIR_ARMA = true vuelve la pregunta «¿Con qué arma peleas?» entre jugadores.
+export const ELEGIR_ARMA = false;
 function elegirArmas(data, e) {
   const P = e.pelea; if (!P) return ok();
   marcarEsclavos(data, e, P);
@@ -433,7 +436,7 @@ function elegirArmas(data, e) {
     const j = e.jugadores[pid], xs = armasCuerpo(data, e, j, P.ciudad).filter((r) => r !== 'jambiya');
     if (xs.length < 2) continue;
     const mejor = mejorArma(data, e, j, P.ciudad);
-    if (esNPC(e, pid)) { P.armaElegida[pid] = mejor; continue; }
+    if (!ELEGIR_ARMA || esNPC(e, pid)) { P.armaElegida[pid] = mejor; continue; }
     const jam = armasCuerpo(data, e, j, P.ciudad).includes('jambiya');
     pedir(e, { tipo: 'arma', para: [pid], titulo: '¿Con qué arma peleas?', texto: `Ya no se pelea con todas las armas: eliges una y con ella peleas.${jam ? ' Tu jambiya suma aparte (+1 si tienes destreza en ella, si te defiendes o si ganas el dado de ventaja).' : ''} Con destreza en el arma, siempre cuenta; sin destreza, tiras su dado de destreza y solo cuenta con par.`,
       opciones: xs.map((r) => ({ id: r, texto: `${ITEMS[r]?.nombre || r} +${BONO_MELEE[r]}${destrezaEnArma(j, r) ? ' (tienes destreza: siempre cuenta)' : ' (sin destreza: cuenta con par)'}` })), porDefecto: mejor, cont: { fn: 'pelea.arma', args: { pid } } });
@@ -444,7 +447,8 @@ function elegirArmas(data, e) {
 registrar('pelea.arma', (data, e, args, resp) => { const P = e.pelea; if (!P) return; (P.armaElegida ||= {})[args.pid] = resp.opcion; elegirArmas(data, e); });
 // Daga de manga (Jorge, 28 nov, 15:55): «sirve al que la tenga, defensor o atacante, para dejarlo herido, siempre. Si ya estaba herido
 // muere. Se gasta al usarla y se usa a la primera pelea automáticamente». Se usa en robos y ataques a muerte entre jugadores que pelean
-// en persona; en los duelos no cuenta (15:58).
+// en persona; en los duelos no cuenta (15:58). Jorge (28 nov, 11:34 en México): «Solo mata a un rival que estaba herido o hiere a un
+// contrincante ganador. Nada más»: si el rival ya venía herido, muere (gane quien gane); si no, queda herido solo si gana la pelea.
 function usarDaga(data, e, P) {
   P.daga = [];
   if (P.tipo === 'duelo') return;   // en los duelos no cuenta (Jorge, 28 nov, 15:58)
@@ -452,15 +456,16 @@ function usarDaga(data, e, P) {
   for (const [x, y] of [[P.atk, P.def], [P.def, P.atk]]) {
     if (P.conEsclavo?.[x] || P.conEsclavo?.[y] || !tieneObj(e.jugadores[x], 'OB01')) continue;
     consumir(data, e, x, 'OB01'); P.daga.push(x);
-    P.inicio.push(`${nombre(e, x)} saca su Daga de manga: al terminar la pelea, ${nombre(e, y)} quedará herido${P.heridoAntes[y] ? ' y, como ya está herido, morirá' : ' (si ya estuviera herido, moriría)'}. La daga se esfuma.`);
+    P.inicio.push(`${nombre(e, x)} saca su Daga de manga: ${P.heridoAntes[y] ? `como ${nombre(e, y)} ya está herido, al terminar la pelea morirá, gane quien gane` : `si ${nombre(e, y)} gana la pelea, quedará herido; si la pierde, la daga no le hace nada más`}. La daga se esfuma.`);
   }
 }
-function heridaDeDaga(data, e, P) {
+function heridaDeDaga(data, e, P, res) {
   for (const x of P?.daga || []) {
     const y = x === P.atk ? P.def : P.atk, Y = e.jugadores[y];
     if (!Y || Y.eliminado) continue;
     if (P.heridoAntes?.[y]) { log(e, `La Daga de manga de ${nombre(e, x)} alcanza a ${Y.nombre}, que ya estaba herido: muere.`, { pid: y, aviso: true }); eliminar(data, e, y, { por: x, causa: 'la Daga de manga de ' + nombre(e, x) }); }
-    else { herir(e, y); log(e, `La Daga de manga de ${nombre(e, x)} deja herido a ${Y.nombre}.`, { pid: y, aviso: true }); }
+    else if (!res.empate && (res.ganaAtk ? P.atk : P.def) === y) { herir(e, y); log(e, `${Y.nombre} gana la pelea, pero la Daga de manga de ${nombre(e, x)} lo deja herido.`, { pid: y, aviso: true }); }
+    else log(e, `La Daga de manga de ${nombre(e, x)} no hace nada más: ${Y.nombre} no ganó la pelea y no estaba herido.`, { pid: x });
   }
 }
 // El esclavo de pelea (11.3) pelea como tú, pero ya viene con destreza en alfanje: solo puede llevar alfanje (el de su amo) o nada.
@@ -844,7 +849,7 @@ function terminarPelea(data, e, res) {
   const P = e.pelea;
   e.pelea = null;
   for (const x of P?.escudosRotos || []) romperEscudo(data, e, x.pid, x.uid);   // el tercer flechazo rompe el escudo
-  if (!res.cancelada) heridaDeDaga(data, e, P);
+  if (!res.cancelada) heridaDeDaga(data, e, P, res);
   if (P?.foto) {                                                               // lo que cambió la pelea, por si hay que deshacerla
     const L = (e.deshacer ||= {}); L[P.id] = { antes: P.foto, despues: fotoPelea(e, P) };
     for (const k of Object.keys(L).map(Number).sort((a, b) => a - b).slice(0, -4)) delete L[k];   // solo las últimas

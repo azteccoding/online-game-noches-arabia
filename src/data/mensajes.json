@@ -31,11 +31,11 @@
    "de": "Averroes",
    "honorifico": "Cadí Averroes (Dios tenga misericordia de él)",
    "tipoSheij": "jurista",
-   "encargo": "Responde bien 2 Cartas de Trivias en el mismo turno",
+   "encargo": "Responde bien 2 Cartas de Trivias en tus 2 próximos turnos (sale una por turno)",
    "premio": "20 dinares",
    "dinares": 20,
    "noches": 0,
-   "plazoTurnos": 3,
+   "plazoTurnos": 2,
    "arte": "me",
    "refReglamento": "18.3"
   },

@@ -138,4 +138,16 @@ const cierraTurno = (g) => { g.asentar(); const r = g.act(g.e.turno.pid, { t: 't
   assert.deepEqual(m.jugadores[pid].mensajes, [{ id: 'M3', turnoLimite: 9 }], 'partida guardada: el Mensaje pasa a la lista');
   assert.equal(m.jugadores[pid].mensaje, undefined);
 }
+// M3 de Averroes (Jorge, 28 nov, 11:34 en México): sale una sola trivia por turno, así que son 2 trivias acertadas en tus 2 próximos turnos.
+{
+  const { e, ids } = partida(['4', '7']); const pid = ids[0], j = e.jugadores[pid];
+  j.mensajes = [{ id: 'M3', turnoLimite: e.ronda + data.mensajes.mensajes.find((m) => m.id === 'M3').plazoTurnos }];
+  assert.equal(j.mensajes[0].turnoLimite, e.ronda + 2, 'plazo de 2 turnos');
+  const d0 = j.dinares;
+  mensajes(data, e, pid, 'cc', { n: 1 }); assert.equal(j.mensajes.length, 1, 'con una trivia acertada todavía no se cumple');
+  mensajes(data, e, pid, 'llegada', { primera: false }); assert.equal(j.mensajes.length, 1, 'llegar a otra ciudad no cuenta');
+  mensajes(data, e, pid, 'cc', { n: 1 }); assert.equal(j.mensajes.length, 0, 'la segunda trivia acertada (otro turno) lo cumple');
+  assert.equal(j.dinares, d0 + 20);
+  console.log('M3 en dos turnos OK');
+}
 console.log('mensajes OK');

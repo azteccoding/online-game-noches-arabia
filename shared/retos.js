@@ -1354,7 +1354,9 @@ function revisarMensaje(data, e, pid, id, ev, inf) {
   switch (id) {
     case 'M1': case 'M9': cumple = ev === 'llegada' && inf.primera; break;
     case 'M2': cumple = (ev === 'llegada' || ev === 'finTurno') && j.ciudad === 'Bagdad' && j.mano.some(IDS_LIBRO); break;
-    case 'M3': cumple = ev === 'cc' && inf.n >= 2; break;
+    // M3 (Jorge, 28 nov, 11:34 en México): como ya sale una sola Carta de Trivias por turno, «las debes de acertar en 2 turnos
+    // próximos»: 2 trivias acertadas mientras tienes el Mensaje, con plazo de 2 turnos.
+    case 'M3': { const mm = j.mensajes.find((x) => x.id === 'M3'); if (ev === 'cc' && mm) mm.aciertos = (mm.aciertos || 0) + 1; cumple = (mm?.aciertos || 0) >= 2; break; }
     case 'M4': cumple = ev === 'llegada' && t && t.tramos === 2 && data.rutas.tarifas[t.ciudadInicio + '>' + j.ciudad] === undefined && t.ciudadInicio !== j.ciudad; break;
     case 'M5': cumple = ev === 'llegada' && j.ciudad === 'Andalucía'; break;
     case 'M7': cumple = ev === 'llegada' && j.ciudad === 'Bagdad'; break;
