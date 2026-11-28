@@ -49,6 +49,7 @@ Punto de partida: el 3D salió del 2D en el commit `379b798` (23 de noviembre de
 | 28 nov | **Las fichas de la barra de arriba abren su carta** (BUG1 y BUG2): el evento de la ronda, cada carrera «Dos noches», «Tariq: bloqueada», Mansa Musa y la Casa de la Sabiduría, con clic y con Shift + 1 a 6. | Las carreras y la hazaña abrían la ventana de retos y misiones. | `fef7c24` |
 | 28 nov | **El aviso de que Yafar NPC va contra alguien sale hasta que su monito ya llegó a la ciudad de la víctima** (Jorge: «haz que salga el anuncio hasta que Yafar ya esté en la ciudad de la victima»). Antes, en un viaje largo la pantalla dejaba de esperar a los 20 segundos y el aviso salía con Yafar todavía en camino. | No aplica (sin animación de viaje). | `169d8ab` |
 | 28 nov | **Alerta en Bagdad sin Firmán contra Yafar**: si peleas contra Yafar en Bagdad sin el Firmán del Califa, ya sea que tú lo retes o que él te rete, antes de la pelea te sale una alerta de que tú no usas armas y Yafar sí usa las suyas (dice cuáles). Si tienes Firmán, si Yafar no trae armas que pueda usar ahí o si las armas están permitidas en Bagdad, no sale. | Sin alerta. | `169d8ab` |
+| 28 nov | **«Acciones libres» ahora se llaman «acciones secundarias»** (Jorge: «acciones libres se debe llamar "acciones secundarias" de ahora en adelante»). Cambian los textos del juego (Ídolo de Toledo, lazo, esclavos, «Ganar ya», eventos E de duelos en Andalucía y saqueo); las reglas no cambian. | Sigue diciendo «acción libre». | `81ed121` |
 
 ## Tablero y animaciones (solo existen en el 3D)
 
