@@ -19,7 +19,7 @@ VISTA = os.environ.get('VISTA')
 AJ = {
   'cimitarra': dict(alto=128, puno=0.855, guarda=0.73, sz=-1),   # Jorge (27 nov): la parte cóncava hacia el personaje y la convexa (el filo) hacia el oponente
   'alfanje': dict(alto=120, puno=0.80, guarda=0.635, sz=1),
-  'jambiya': dict(alto=70, puno=0.79, guarda=0.60, sz=1),
+  'jambiya': dict(alto=70, puno=0.79, guarda=0.60, sz=-1),     # Jorge (28 nov): como la cimitarra, la cóncava hacia el personaje y la convexa hacia el oponente
   'arco': dict(alto=120, puno=0.465, guarda=0.465, sz=-1, arco=True),
 }[aid]
 TH, PASO = 640, 5
