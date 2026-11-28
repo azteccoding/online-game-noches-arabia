@@ -55,16 +55,25 @@ const VERTICE_V = '#include <begin_vertex>\n{ float cg = cos(uVuelta), sg = sin(
 const CERCA_V = '#include <project_vertex>\nif (uCerca > 0.0) { mvPosition.xyz -= normalize(mvPosition.xyz) * (uCerca * length(modelMatrix[0].xyz)); gl_Position = projectionMatrix * mvPosition; }';
 
 // datos: { tw, th, paso, vistas, azimut[], zmax, z8[], cubre8[], giro8[]?, giroEsc?, giroEscY?, giroEscZ?, giroPaso?, x0, x1, mano, tela, piernas, toca? }
-// toca (la figura que toca el laúd): { rasgueo: [[x, y] | null × 8], dedos: [[x, y] | null × 8], cuello } en fracciones de la tesela:
-// dónde está en cada vista la mano que rasguea y la que pisa las cuerdas, y a qué altura empieza la cabeza.
+// toca (la figura que toca el laúd): { rasgueo: [[x, y] | null × 8], dedos: [[x, y] | null × 8], pluma: [[xPunta, yPunta, xBase, yBase] | null × 8], cuello }
+// en fracciones de la tesela: dónde está en cada vista la mano que rasguea y la que pisa las cuerdas, por dónde va la pluma con
+// que toca (de la punta que asoma a donde la sujetan los dedos) y a qué altura empieza la cabeza.
 export function crearFiguraVistas(datos, textura, { alto }) {
   const { tw, th, paso: P, vistas: NV } = datos, gx = tw / P + 1, gy = th / P + 1, k = alto / th;
   const NT = datos.cenital ? NV + 1 : NV;      // con vista cenital (Yafar, 24 nov) el atlas lleva una novena tesela
   // el atlas va en una fila, o en varias si las teselas son anchas (datos.filas): la tesela n está en la columna n % COLS de la fila ⌊n / COLS⌋
   const FILAS = datos.filas || 1, COLS = Math.ceil(NT / FILAS), uDe = (n, fx) => ((n % COLS) + fx) / COLS, vDe = (n, fy) => 1 - (Math.floor(n / COLS) + fy) / FILAS;
   const [t0, t1] = datos.tela, grupo = new THREE.Group(), capas = [];
-  const uPres = { value: 1 }, uPresReves = { value: 0 }, uLado = { value: new THREE.Vector2(1, 0) }, uEscUV = { value: new THREE.Vector2(1 / (k * tw * COLS), 1 / (k * th * FILAS)) }, TOCA = datos.toca || null, R_MANO = 34, R_DEDOS = 26;
+  const uPres = { value: 1 }, uPresReves = { value: 0 }, uLado = { value: new THREE.Vector2(1, 0) }, uEscUV = { value: new THREE.Vector2(1 / (k * tw * COLS), 1 / (k * th * FILAS)) }, TOCA = datos.toca || null, R_MANO = 34, R_DEDOS = 26, R_PLUMA = 9, LLANO_PLUMA = 9;
   const campana = (px, py, c, r) => (c ? Math.exp(-(((px - c[0] * tw) ** 2 + (py - c[1] * th) ** 2) / (r * r))) : 0);
+  // La pluma del laúd (Jorge, 27 de noviembre: «la pluma no se mueve junto con su mano»): la campana de la mano no la alcanzaba y
+  // se quedaba quieta. Todo lo que está sobre la pluma (un tramo recto, con su ancho) va entero con la mano; fuera se apaga pronto.
+  const enPluma = (px, py, s) => {
+    if (!s) return 0;
+    const ax = s[0] * tw, ay = s[1] * th, dx = s[2] * tw - ax, dy = s[3] * th - ay, u = Math.min(1, Math.max(0, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1)));
+    const d = Math.hypot(px - ax - u * dx, py - ay - u * dy);
+    return Math.exp(-((Math.max(0, d - LLANO_PLUMA) / R_PLUMA) ** 2));
+  };
   let zMano = 0;
   for (let n = 0; n < NV; n++) {
     const zg = b64(datos.z8[n]), bits = b64(datos.cubre8[n]), cubre = (i, j) => { const q = j * (gx - 1) + i; return (bits[q >> 3] >> (7 - (q & 7))) & 1; };
@@ -98,7 +107,12 @@ export function crearFiguraVistas(datos, textura, { alto }) {
       const wy = paso(t0, t1, yn) * (1 - paso(t1 + 0.02, t1 + 0.1, yn));
       const detras = cs < -0.5 ? 1 : paso(0.03, 0.12, -z / alto), wt = wy * Math.max(detras, paso(0.62, 1, rel) * (cs > 0.5 ? 1 : 0.5));
       peso.push(wp, wt, yn);
-      if (manos) manos.push(campana(i * P, j * P, TOCA.rasgueo?.[n], R_MANO), campana(i * P, j * P, TOCA.dedos?.[n], R_DEDOS));
+      if (manos) {
+        // por vértice: cuánto va con la mano que rasguea (la mano o la pluma, lo que más), cuánto con los dedos del mástil, y el brazo
+        // de palanca de la pluma desde donde la sujetan (se ladea un poco con cada golpe de muñeca)
+        const s = TOCA.pluma?.[n], wq = enPluma(i * P, j * P, s);
+        manos.push(Math.max(campana(i * P, j * P, TOCA.rasgueo?.[n], R_MANO), wq), campana(i * P, j * P, TOCA.dedos?.[n], R_DEDOS), s ? wq * (j * P - s[3] * th) * k : 0, s ? wq * (i * P - s[2] * tw) * k : 0);
+      }
       return v;
     };
     for (let j = 0; j < gy - 1; j++) for (let i = 0; i < gx - 1; i++) {
@@ -234,13 +248,14 @@ export function crearFiguraVistas(datos, textura, { alto }) {
 
   const yCadera = (1 - 0.55) * alto, yAsiento = 0.47 * alto;
   // Igual que en crearFigura: fase y andar (paso), vuelo (telas), empuje (inercia) y montar (sentada). Solo se mueven las cáscaras que se ven.
-  // tocar (0 a 1, solo la figura con «toca»): la mano del plectro rasguea, los dedos de la otra se mueven sobre el mástil y la
-  // cabeza se mece con la música.
+  // tocar (0 a 1, solo la figura con «toca»): la mano del plectro rasguea y la pluma va con ella, los dedos de la otra se mueven
+  // sobre el mástil y la cabeza se mece con la música.
+  const LADEO_PLUMA = 0.1;      // radianes, a cada lado
   const yCuello = TOCA ? (1 - TOCA.cuello) * alto : 0, altoCabeza = Math.max(1e-4, alto - yCuello);
   function animar(t, { fase = 0, andar = 0, vuelo = 0, empuje = 0, montar = 0, encoger = 0.55, abrir = 0.5, tocar = 0 } = {}) {
     if (!TOCA) tocar = 0;
     const parado = andar < 0.002 && vuelo < 0.002 && Math.abs(empuje) < 0.002 && montar < 0.002 && tocar < 0.002;
-    const rasgueo = tocar * 9 * k * Math.sin(t * 19.2) * (0.35 + 0.65 * Math.max(0, Math.sin(t * 3.2))), dedos = tocar * 3.5 * k * Math.sin(t * 7.3 + 1), mecer = tocar * 0.022 * alto * Math.sin(t * 1.6), asentir = tocar * 0.012 * alto * Math.sin(t * 3.2 + 0.6);
+    const golpe = tocar * Math.sin(t * 19.2) * (0.35 + 0.65 * Math.max(0, Math.sin(t * 3.2))), rasgueo = 9 * k * golpe, ladeo = LADEO_PLUMA * golpe, dedos = tocar * 3.5 * k * Math.sin(t * 7.3 + 1), mecer = tocar * 0.022 * alto * Math.sin(t * 1.6), asentir = tocar * 0.012 * alto * Math.sin(t * 3.2 + 0.6);
     const zancada = 0.34 * andar * (1 - montar), s0 = Math.sin(fase), sentada = montar > 0.002;
     for (const c of capas) {
       if (!c.malla.visible && c.quieto) continue;
@@ -263,8 +278,9 @@ export function crearFiguraVistas(datos, textura, { alto }) {
           z += montar * caida * 0.05 * alto * d;
         }
         if (tocar) {
-          const wr = manos[v * 2], wd = manos[v * 2 + 1];
+          const m = v * 4, wr = manos[m], wd = manos[m + 1], px = manos[m + 2], py = manos[m + 3];
           if (wr > 0.01) y += wr * rasgueo;                                                   // el plectro sube y baja sobre las cuerdas
+          if (px || py) { const lx = ladeo * px; x += lx * cs; z -= lx * sn; y += ladeo * py; }      // y la pluma se ladea con la muñeca
           if (wd > 0.01) { x += wd * dedos * cs; z -= wd * dedos * sn; y += wd * dedos * 0.4; }      // los dedos, a lo largo del mástil
           if (y > yCuello) { const h = ((y - yCuello) / altoCabeza) ** 1.3; x += mecer * h; y -= Math.abs(mecer) * 0.15 * h; z += asentir * h; }
         }
