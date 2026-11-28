@@ -286,14 +286,18 @@ registrar('pelea.retadorDecide', (data, e, args, resp) => {
   seguirAtaque(data, e);
 });
 
-// El arco fuera de las peleas entre jugadores (ladrones de Alí Babá, peleas contra NPC): una flecha, 5 o 6 acierta.
-export const ARCO_ACIERTA = 5;
+// El arco (Jorge, 28 de noviembre, 10:11: «voy a reescribir por completo como funciona el arco»): sin flechas no sirve; si el rival
+// tiene escudo, tampoco (el escudo la para). Con 5 o 6 acierta y el rival pelea con −2 en su conteo final; con destreza en el arco
+// (R43 o deseo f), de 4 a 6; si no, falla. Campeón de Murcia (R51): siempre acierta, −2, sin dado. Ya no quita la destreza.
+export const ARCO_ACIERTA = 5, ARCO_ACIERTA_DESTREZA = 4, ARCO_MENOS = 2;
+export const umbralArco = (j) => (j?.extra?.entrenado?.arco ? ARCO_ACIERTA_DESTREZA : ARCO_ACIERTA);
 export function tiroDeArco(data, e, pid, ciudad) {
   const j = e.jugadores[pid];
   if (!armasUsables(data, e, j, ciudad || j.ciudad).includes('arco')) return null;
   quitarPrimero(j, 'item', 'flechas'); avisoUltimaFlecha(e, pid);
+  if (j.extra?.arcoMaximo) return { x: null, murcia: true, acierta: true, cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };   // Campeón de Murcia: sin dado
   const x = dado(e);
-  return { x, acierta: x >= ARCO_ACIERTA, cubre: !!j.extra?.entrenado?.arco && x >= 3 && x < ARCO_ACIERTA, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
+  return { x, acierta: x >= umbralArco(j), cubre: false, quedan: j.mano.filter((c) => c.tipo === 'item' && c.ref === 'flechas').length };
 }
 
 function seguirAtaque(data, e) {
@@ -323,7 +327,7 @@ export function fuerzaVisible(data, e, pid, rol) {
     f += (r === 'jambiya' ? 1.5 : bonoArma(data, r)) + (j.extra?.entrenado?.[r] ? 1 : 0);   // jambiya: +3 con el dado de sorpresa par (media 1.5)
     if (r === 'cimitarra' && rol === 'atk' && data.config.reglasCasa?.cimitarraExtraAlAtacar) f += data.config.armas?.cimitarra?.extraAtacante ?? 2;
   }
-  if (rol === 'def' && tieneObj(j, 'OB04')) f += p.destreza ? 2 : 1;   // el escudo le resta al atacante 1, o 2 si quien se defiende tiene destreza
+  if (rol === 'def' && tieneObj(j, 'OB04')) f += 1;   // el escudo le resta 1 al atacante, siempre (Jorge, 28 nov, 10:16)
   return f;
 }
 // Rechazar un duelo exige pagar completo: 20 dinares (o lo que pida Nur al Din); sin eso solo queda aceptar.
@@ -415,11 +419,36 @@ export function perfilPelea(data, e, P, pid) {
   return { pid, armas: alf ? ['alfanje'] : [], destreza: true, general: false, cat: alf ? 'D' : 'B', esclavo: true };
 }
 // Escudo de cuero (Jorge, 28 de noviembre: «borra todo sobre escudo»): 1) siempre para las flechas, pero aguanta 3 y al tercero se
-// destruye y vuelve al Bazar; 2) al atacante le resta 1 si quien se defiende no tiene destreza, o 2 si la tiene. Si por el defensor
-// pelea su esclavo, el esclavo lleva el escudo (tiene destreza: −2).
+// destruye y vuelve al Bazar; 2) al atacante le resta 1, siempre (Jorge, 28 nov, 10:16: «resta 1 al atacante siempre en todo caso y ya»). Si por el defensor
+// pelea su esclavo, el esclavo lleva el escudo (−1, como siempre: Jorge, 28 nov, 10:16).
 export function penaEscudo(data, e, P) {
   if (!tieneObj(e.jugadores[P.def], 'OB04')) return 0;
-  return perfilPelea(data, e, P, P.def).destreza ? 2 : 1;
+  return 1;   // Jorge (28 nov, 10:16): «resta 1 al atacante siempre en todo caso y ya»
+}
+// Dado de destreza por arma (Jorge, 28 de noviembre, 10:00: «el dado de destreza es por arma: tiras un dado de destreza por cimitarra,
+// por alfanje y por jambiya si es que no tienes destreza en ellos»; eligió «Par: esa arma cuenta»). Cada arma sin destreza tira su
+// dado: par, esa arma cuenta en la pelea; impar, no le sirve en esta pelea (no la pierde). Vale para quien se defiende sin destreza
+// (antes era un solo dado: par = D, impar = A) y, en una pelea D, para los dos bandos. La destreza general (R25, o la jambiya de Zein
+// y Ruyán) cubre todas las armas; un arma entrenada tiene destreza; el esclavo de pelea ya trae destreza en alfanje.
+export function armasSinDestreza(data, e, P, pid) {
+  if (!pid || P?.conEsclavo?.[pid]) return [];
+  const j = e.jugadores[pid], todas = armasUsables(data, e, j, P?.ciudad || j.ciudad);
+  if (destrezaCon(j, todas)) return [];
+  return todas.filter((r) => BONO_MELEE[r] && !j.extra?.entrenado?.[r]);
+}
+const NOMBRE_ARMA = { alfanje: 'alfanje', cimitarra: 'cimitarra', jambiya: 'jambiya' };
+const listaY = (xs) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} y ${xs[xs.length - 1]}`);
+// Tira los dados de destreza por arma de pid, los muestra y guarda en P.armasFuera[pid] las que salieron impares. Devuelve las que cuentan.
+function dadosPorArma(data, e, P, pid, md, resumenAntes = [], conCategoria = false) {
+  const sin = armasSinDestreza(data, e, P, pid); if (!sin.length) return null;
+  const n = pid === P.def || pid === P.atk ? nPel(e, P, pid) : nombre(e, pid);
+  const xs = sin.map(() => dado(e)), cuentan = sin.filter((r, i) => par(xs[i])), fuera = sin.filter((r, i) => !par(xs[i]));
+  (P.armasFuera ||= {})[pid] = fuera;
+  const una = sin.length === 1;
+  md({ por: pid, npc: esNPC(e, pid), motivo: 'categoria', grupos: [{ etq: `${n} no tiene destreza en ${una ? 'su' : 'sus armas:'} ${listaY(sin.map((r) => NOMBRE_ARMA[r]))}: tira un dado de destreza por ${una ? 'ella' : 'cada una'}. Par, esa arma cuenta en la pelea; impar, no le sirve en esta pelea`, valores: xs }],
+    resumen: [...resumenAntes, ...sin.map((r, i) => `${NOMBRE_ARMA[r][0].toUpperCase()}${NOMBRE_ARMA[r].slice(1)}: sale ${xs[i]} (${par(xs[i]) ? 'par): cuenta' : 'impar): con los nervios no acierta a usarla; no la pierde'}.`),
+      ...(conCategoria ? [cuentan.length ? `${n} pelea con ${listaY(cuentan.map((r) => NOMBRE_ARMA[r]))} y destreza (D).` : `${n} no acierta a usar ninguna de sus armas y pelea sin armas ni destreza (A).`] : [])] });
+  return cuentan;
 }
 // Flechas, al principio de cualquier pelea (Jorge, 28 de noviembre: «el arco solo cuenta al principio, cuando se dispara, si hay
 // flechas»). Dispara quien pelea en persona (el esclavo no lleva arco). Lo que hace la flecha se guarda en P.mods.
@@ -441,11 +470,14 @@ function pasoCategoria(data, e) {
   const pd = perfilPelea(data, e, P, def);
   let cat = pd.cat;
   P.inicio = [`La categoría de la pelea la pone quien se defiende; ${QUE_SE_JUEGA[P.tipo]}.`];
-  if (cat === 'C') {                                                          // con armas sin destreza: par = D, impar = A
-    const x = dado(e); cat = par(x) ? 'D' : 'A';
-    mostrarDados(e, { por: def, npc: esNPC(e, def), motivo: 'categoria', titulo: P.titulo, grupos: [{ etq: `${nD} tiene arma pero no destreza: tira un dado. Par, pelea como si tuviera destreza (D); impar, como si no tuviera armas (A)`, valores: [x] }],
-      resumen: [...P.inicio, par(x) ? `Sale ${x} (par): ${nD} acierta a usar su arma y pelea con armas y destreza (D).` : `Sale ${x} (impar): con los nervios, ${nD} no acierta a usar su arma y pelea sin armas ni destreza (A). No la pierde; solo no le sirvió en esta pelea.`] });
+  const mdP = (o) => mostrarDados(e, { titulo: P.titulo, ...o });
+  if (cat === 'C') {                                                          // con armas sin destreza: un dado por arma (par cuenta); si ninguna cuenta, A
+    const cuentan = dadosPorArma(data, e, P, def, mdP, P.inicio, true) || [];
+    cat = cuentan.length ? 'D' : 'A';
     P.inicio = [];
+  } else if (cat === 'D') (P.armasFuera ||= {});
+  if (cat === 'D') {                                                          // en D, también el agresor (y quien se defiende, si no tiró ya) tira por cada arma sin destreza
+    for (const pid of [def, P.atk]) if (!P.armasFuera?.[pid]) { const c = dadosPorArma(data, e, P, pid, mdP, P.inicio); if (c) P.inicio = []; }
   }
   if (cat === 'B') {                                                          // sin armas, con destreza: par = +1 al agresor, impar = +2
     const x = dado(e); P.ventajaB = par(x) ? 1 : 2;
@@ -534,7 +566,7 @@ function resolverD(data, e) {
   const atk = P.atk, def = P.def, titulo = P.titulo;
   const bA = bonosCombate(data, e, atk, 'atk', P.ciudad, P.mods?.[atk], P), bD = bonosCombate(data, e, def, 'def', P.ciudad, P.mods?.[def], P);
   const pe = penaEscudo(data, e, P); if (pe) { bA.partes.push(`escudo de ${nPel(e, P, def)} −${pe}`); bA.total -= pe; }
-  const inicio = [...(P.inicio || []), 'Pelea con armas y destreza (D): primero cada uno tira un dado de ventaja (quien saque más suma +1; si empatan, es de quien se defiende); luego cada uno tira 2 dados y suma sus armas (todas, hasta +4), su destreza (+1) y demás bonos.'];
+  const inicio = [...(P.inicio || []), 'Pelea con armas y destreza (D): primero cada uno tira un dado de ventaja (quien saque más suma +1; si empatan, es de quien se defiende); luego cada uno tira 2 dados y suma sus armas (las que cuentan, hasta +4), su destreza (+1) y demás bonos.'];
   if (P.polvo) { bD.resta = 2; const dj = e.jugadores[def]; quitarPrimero(dj, 'objeto', 'OB03'); devolverObjeto(data, e, 'OB03'); inicio.push(`${nombre(e, def)} usa Polvo de pimienta: ${nombre(e, atk)} resta 2.`); }
   const tirar = () => { const x = luchaD(data, e, atk, def, bA, bD); x.r = resultado(P, x.tA, x.tB); return x; };
   const rondas = [tirar()];
@@ -561,8 +593,10 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}, P = null) {
     if (mods.flecha) { partes.push(`flecha −${mods.flecha}`); total -= mods.flecha; }
     return { total, resta: 0, partes };
   }
-  const armas = armasUsables(data, e, j, ciudad).filter((r) => BONO_MELEE[r]);
+  const fuera = P?.armasFuera?.[pid] || [];                                    // armas que sacaron impar en su dado de destreza
+  const armas = armasUsables(data, e, j, ciudad).filter((r) => BONO_MELEE[r] && !fuera.includes(r));
   const partes = []; let total = 0, resta = 0;
+  if (fuera.length) partes.push(`sin ${listaY(fuera)} (impar en su dado de destreza)`);
   const ent = (r) => (j.extra?.entrenado?.[r] ? 1 : 0);                        // entrenado con esa arma: +1 (regla de la casa)
   const sumaArmas = armas.reduce((n, r) => n + BONO_MELEE[r] + ent(r), 0), deArmas = Math.min(TOPE_ARMAS, sumaArmas);
   if (armas.length) { partes.push(armas.map((r) => `${r} +${BONO_MELEE[r] + ent(r)}${ent(r) ? ' (entrenado)' : ''}`).join(' · ') + (sumaArmas > TOPE_ARMAS ? ` (tope de armas +${TOPE_ARMAS})` : '')); total += deArmas; }
@@ -577,7 +611,7 @@ export function bonosCombate(data, e, pid, rol, ciudad, mods = {}, P = null) {
   if (tieneObj(j, 'OB01')) { partes.push('Daga de manga +1 (se gasta)'); total += 1; consumir(data, e, pid, 'OB01'); }
   return { total, resta, partes };
 }
-export const textoFlecha = (en) => `con 5 o 6 pelea con −1 y sin destreza${en ? '; con 3 o 4 (arco entrenado), con −1' : ''}; si lleva escudo, el escudo la para`;
+export const textoFlecha = (en) => `con ${en ? '4, 5 o 6 (tienes destreza en el arco)' : '5 o 6'} le da y pelea con −${ARCO_MENOS}; si no, falla; si lleva escudo, el escudo la para`;
 // El escudo para las flechas: aguanta 3; al tercero se destruye al terminar la pelea y vuelve al Bazar (Jorge, 28 de noviembre).
 export const ESCUDO_FLECHAZOS = 3;
 export const flechazosEscudo = (c) => Math.max(0, ESCUDO_FLECHAZOS - (c?.extra?.flechazos || 0));   // los que aguanta todavía
@@ -598,14 +632,14 @@ function romperEscudo(data, e, pid, u) {
 function disparo(data, e, tirador, blanco, titulo) {
   const T = e.jugadores[tirador], B = e.jugadores[blanco];
   quitarPrimero(T, 'item', 'flechas'); avisoUltimaFlecha(e, tirador);
-  if (T.extra?.arcoMaximo) {   // R51 Torneo de Murcia: siempre acierta, el rival pelea con −1 (un escudo la sigue parando)
+  if (T.extra?.arcoMaximo) {   // R51 Campeón de Murcia: siempre acierta, el rival pelea con −2, sin dado (un escudo la sigue parando)
     const escudo = !!tieneObj(B, 'OB04');
-    log(e, escudo ? `${T.nombre} dispara con destreza máxima en arco, pero la flecha se clava en el escudo de ${B.nombre}.${flechazoAlEscudo(data, e, B)}` : `${T.nombre} dispara con destreza máxima en arco: la flecha acierta y ${B.nombre} pelea con −1.`, { pid: tirador });
-    return escudo ? {} : { flecha: 1 };
+    log(e, escudo ? `${T.nombre}, Campeón de Murcia, dispara, pero la flecha se clava en el escudo de ${B.nombre}.${flechazoAlEscudo(data, e, B)}` : `${T.nombre}, Campeón de Murcia, dispara sin fallar: la flecha acierta y ${B.nombre} pelea con −${ARCO_MENOS}.`, { pid: tirador });
+    return escudo ? {} : { flecha: ARCO_MENOS };
   }
-  const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = !!T.extra?.entrenado?.arco;   // regla de Jorge: 5–6 le da; entrenado (R43), además 3–4 lo obliga a cubrirse
-  const efecto = escudo ? {} : x >= 5 ? { flecha: 1, sinDestreza: true } : en && x >= 3 ? { flecha: 1 } : {};
-  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.${flechazoAlEscudo(data, e, B)}` : x >= 5 ? `¡Le da! ${B.nombre} pelea con −1 y sin su destreza en esta pelea.` : en && x >= 3 ? `${B.nombre} tiene que cubrirse: −1 en esta pelea.` : 'La flecha falla.';
+  const x = dado(e), escudo = !!tieneObj(B, 'OB04'), en = !!T.extra?.entrenado?.arco, le = x >= umbralArco(T);
+  const efecto = escudo || !le ? {} : { flecha: ARCO_MENOS };
+  const texto = escudo ? `La flecha se clava en el escudo de ${B.nombre}: no le hace nada.${flechazoAlEscudo(data, e, B)}` : le ? `¡Le da! ${B.nombre} pelea con −${ARCO_MENOS} en su conteo final.` : 'La flecha falla.';
   mostrarDados(e, { por: tirador, npc: esNPC(e, tirador), motivo: 'pelea', titulo, boton: 'Disparar flecha', grupos: [{ etq: `${T.nombre} dispara una flecha a ${B.nombre}: ${textoFlecha(en)}${escudo ? ` (su escudo lleva ${ESCUDO_FLECHAZOS - flechazosEscudo(B.mano.find((q) => q.tipo === 'objeto' && q.ref === 'OB04'))} de ${ESCUDO_FLECHAZOS} flechazos)` : ''}`, valores: [x] }], resumen: [texto] });
   return efecto;
 }
@@ -821,29 +855,28 @@ export function luchaLibre(data, e, a, b, titulo = 'Pelea') {
 export function peleaNPC(data, e, pid, npc, { tituloExtra = '' } = {}) {
   const p = perfil(data, e, pid);
   const b = bonos(data, e, pid, p, 'def', null, { contraNPC: true });
-  const esc = tieneObj(e.jugadores[pid], 'OB04') ? (p.destreza ? 2 : 1) : 0;   // escudo de cuero: al rival −1, o −2 si tienes destreza (Jorge, 28 de noviembre)
+  const esc = tieneObj(e.jugadores[pid], 'OB04') ? 1 : 0;   // escudo de cuero: al rival −1, siempre (Jorge, 28 nov, 10:16)
   const n0 = nombre(e, pid);
   if (npc.figura) log(e, `${npc.etq} se planta frente a ${n0} para pelear.`, { pid, peleaNPC: npc.figura, etq: npc.etq, ...(npc.arma ? { armaNPC: npc.arma } : {}), ...(npc.desde ? { desde: npc.desde } : {}) });
   const nPelea = npc.figura ? e.logN : null, marca = (d) => { if (d && nPelea) d.peleaNPC = nPelea; return d; };
   avisoSinFlechas(data, e, pid);
-  // Destreza máxima en arco (R51, Jorge: vale contra todos): sin dado, la flecha acierta y el rival pelea con −1.
+  // Arco (Jorge, 28 nov, 10:11): con 5 o 6 (4 a 6 con destreza en el arco) el rival pelea con −2; Campeón de Murcia (R51), siempre, sin dado.
   const maxArco = !!e.jugadores[pid].extra?.arcoMaximo && armasUsables(data, e, e.jugadores[pid], e.jugadores[pid].ciudad).includes('arco');
-  if (maxArco) { quitarPrimero(e.jugadores[pid], 'item', 'flechas'); log(e, `${n0} dispara con destreza máxima en arco: la flecha acierta y ${npc.etq} pelea con −1.`, { pid }); }
-  const arco = maxArco ? { acierta: false, cubre: true } : tiroDeArco(data, e, pid);   // regla de la casa: el arco dispara antes de la pelea
-  if (arco && !maxArco) marca(mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: con 5 o 6 lo pone en fuga${e.jugadores[pid].extra?.entrenado?.arco ? '; con 3 o 4 (arco entrenado), pelea con −1' : ''}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y pone en fuga a ${npc.etq}.` : arco.cubre ? `${n0} dispara su flecha (${arco.x}): ${npc.etq} tiene que cubrirse y pelea con −1.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) }));
-  if (arco?.acierta) return true;
+  if (maxArco) { quitarPrimero(e.jugadores[pid], 'item', 'flechas'); log(e, `${n0}, Campeón de Murcia, dispara sin fallar: la flecha acierta y ${npc.etq} pelea con −${ARCO_MENOS}.`, { pid }); }
+  const arco = maxArco ? { acierta: true } : tiroDeArco(data, e, pid);   // el arco dispara antes de la pelea
+  if (arco && !maxArco) marca(mostrarDados(e, { por: pid, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${n0} dispara una flecha a ${npc.etq}: ${textoFlecha(!!e.jugadores[pid].extra?.entrenado?.arco).replace(/; si lleva escudo.*$/, '')}`, valores: [arco.x] }], resumen: [tituloExtra, arco.acierta ? `${n0} dispara su flecha (${arco.x}) y le da: ${npc.etq} pelea con −${ARCO_MENOS}.` : `${n0} dispara su flecha (${arco.x}) y falla.`].filter(Boolean) }));
   // El jugador lanza sus 2 dados con su botón; el NPC lanza solo, a la vista, y entonces sale el desglose.
-  let gana = false, usoDado = false, primero = !arco;
+  let gana = false, usoDado = false, primero = !arco || maxArco;
   for (let g = 0; g < 50; g++) {
     const r = dados(e, 2), n = dados(e, npc.dados || 2);
-    let bn = (npc.bono || 0) - (arco?.cubre ? 1 : 0) - esc, jd = null;
+    let bn = (npc.bono || 0) - (arco?.acierta ? ARCO_MENOS : 0) - esc, jd = null;
     if (npc.jambiya) { jd = dado(e); if (par(jd)) bn += 3; }
     const dest = p.general ? 1 : 0;   // destreza general; el +1 del arma entrenada ya viene en los bonos
     const tj = suma(r) + b.total + dest, tn = suma(n) + bn - b.resta;
     marca(mostrarDados(e, { por: pid, motivo: 'pelea', grupos: [{ etq: `${n0} lanza 2 dados`, valores: r }], resumen: [...(primero && tituloExtra ? [tituloExtra] : []), `${n0} saca ${r.join(' + ')}.`] }));
     primero = false;
     const pj = [`dados ${r.join(' + ')} = ${suma(r)}`, ...b.partes.filter((x) => !/^Polvo/.test(x)), ...(dest ? ['destreza +1'] : [])];
-    const pn = [`dados ${n.join(' + ')} = ${suma(n)}`, ...(npc.bono ? [`bono +${npc.bono}`] : []), ...(arco?.cubre ? ['flecha −1'] : []), ...(esc ? [`tu escudo −${esc}`] : []), ...(jd ? [`jambiya ${par(jd) ? '+3' : '+0'} (dado ${jd})`] : []), ...(b.resta ? [`polvo de pimienta −${b.resta}`] : [])];
+    const pn = [`dados ${n.join(' + ')} = ${suma(n)}`, ...(npc.bono ? [`bono +${npc.bono}`] : []), ...(arco?.acierta ? [`flecha −${ARCO_MENOS}`] : []), ...(esc ? [`tu escudo −${esc}`] : []), ...(jd ? [`jambiya ${par(jd) ? '+3' : '+0'} (dado ${jd})`] : []), ...(b.resta ? [`polvo de pimienta −${b.resta}`] : [])];
     const res = [`${n0}: ${pj.join(' · ')} → total ${tj}.`, `${npc.etq}: ${pn.join(' · ')} → total ${tn}.`];
     let sigue = false;
     if (tj === tn) { res.push('Empate: se repite.'); sigue = true; }
@@ -877,16 +910,17 @@ export function peleaRayhan(data, e, { por = null, victima, cont, nLog = null })
     avisoSinFlechas(data, e, victima, P.ciudad);
     const a = tiroDeArco(data, e, victima, P.ciudad);
     if (a) {
-      if (a.acierta || a.cubre) P.rayhanMenos = 1;
-      md({ por: victima, npc: npcV, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${V.nombre} dispara una flecha a Rayhán: ${textoFlecha(!!V.extra?.entrenado?.arco)}`, valores: [a.x] }], resumen: [...inicio.splice(0), a.acierta ? '¡Le da! Rayhán pelea con −1.' : a.cubre ? 'Rayhán tiene que cubrirse: −1 en esta pelea.' : 'La flecha falla.'] });
+      if (a.acierta) P.rayhanMenos = ARCO_MENOS;
+      if (a.murcia) log(e, `${V.nombre}, Campeón de Murcia, dispara sin fallar: Rayhán pelea con −${ARCO_MENOS}.`, { pid: victima });
+      else md({ por: victima, npc: npcV, motivo: 'pelea', boton: 'Disparar flecha', grupos: [{ etq: `${V.nombre} dispara una flecha a Rayhán: ${textoFlecha(!!V.extra?.entrenado?.arco)}`, valores: [a.x] }], resumen: [...inicio.splice(0), a.acierta ? `¡Le da! Rayhán pelea con −${ARCO_MENOS}.` : 'La flecha falla.'] });
     }
   }
   // 2) la categoría de la víctima
   let cat = perfilPelea(data, e, P, victima).cat;
-  if (cat === 'C') {
-    const x = dado(e); cat = par(x) ? 'D' : 'A';
-    md({ por: victima, npc: npcV, motivo: 'categoria', grupos: [{ etq: `${nD} tiene arma pero no destreza: tira un dado. Par, pelea como si tuviera destreza (D); impar, como si no tuviera armas (A)`, valores: [x] }], resumen: [...inicio.splice(0), par(x) ? `Sale ${x} (par): pelea con armas y destreza (D).` : `Sale ${x} (impar): pelea sin armas ni destreza (A).`] });
-  }
+  if (cat === 'C') {                                                         // un dado de destreza por arma (Jorge, 28 nov, 10:00)
+    const cuentan = dadosPorArma(data, e, P, victima, md, inicio.splice(0), true) || [];
+    cat = cuentan.length ? 'D' : 'A';
+  } else if (cat === 'D') dadosPorArma(data, e, P, victima, md, inicio.splice(0));
   if (cat === 'B') {
     const x = dado(e); P.ventajaB = par(x) ? 1 : 2;
     md({ por: victima, npc: npcV, motivo: 'categoria', grupos: [{ etq: `${nD} tiene destreza pero ningún arma: tira un dado. Par, toma piedras y vidrios y Rayhán suma 1 punto de ventaja; impar, Rayhán suma 2`, valores: [x] }], resumen: [...inicio.splice(0), `Sale ${x}: Rayhán sumará ${P.ventajaB} de ventaja.`] });
@@ -904,7 +938,7 @@ function rayhanDados(data, e, numero) {
   const P = e.peleaRayhan; if (!P) return;
   const victima = P.def, nD = nPel(e, P, victima), md = (o) => { const d = mostrarDados(e, { titulo: P.titulo, ...o }); if (d && P.nLog) d.peleaNPC = P.nLog; return d; };
   const pe = penaEscudo(data, e, P), menos = P.rayhanMenos + pe;
-  const partesR = [`alfanje +${RAYHAN_PELEA.bono} (con destreza)`, ...(P.rayhanMenos ? ['flecha −1'] : []), ...(pe ? [`escudo de ${nD} −${pe}`] : [])];
+  const partesR = [`alfanje +${RAYHAN_PELEA.bono} (con destreza)`, ...(P.rayhanMenos ? [`flecha −${P.rayhanMenos}`] : []), ...(pe ? [`escudo de ${nD} −${pe}`] : [])];
   let r, dadoV;
   if (P.cat === 'A') {
     const x = dado(e); dadoV = x; r = { ganaAtk: x !== numero, empate: false, margen: Math.abs(x - numero) };

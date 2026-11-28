@@ -223,6 +223,10 @@ legend { color: var(--oro-claro); padding: 0 6px; font-family: var(--f-titulo); 
 .chk-opc { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; border: 2px solid rgba(239, 208, 143, .35); background: rgba(241, 227, 184, .06); min-height: 44px; }
 .chk-opc.on { border-color: var(--turquesa); background: rgba(42, 138, 138, .25); }
 .chk-opc.off { opacity: .45; }
+/* Jorge (28 nov): «se ven muy chicos los checkboxes cuando peleas sin destreza ni armas»: el número de la pelea A va en seis casillas grandes */
+.decision-opc.decision-numeros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: none; }
+.decision-numeros .chk-opc { justify-content: center; gap: 12px; min-height: 72px; padding: 10px; font-size: 2rem; font-weight: 700; cursor: pointer; }
+.decision-numeros .chk-opc input { width: 30px; height: 30px; margin: 0; cursor: pointer; accent-color: var(--turquesa); }
 .decision-num { display: flex; gap: 10px; align-items: center; justify-content: center; }
 .decision-num input { width: 90px; text-align: center; font-size: 22px; }
 .barra-decision { height: 6px; border-radius: 999px; background: rgba(241, 227, 184, .2); overflow: hidden; }

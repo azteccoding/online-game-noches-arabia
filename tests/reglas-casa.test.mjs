@@ -6,7 +6,7 @@ import { publicarCarta, mostrarDados, dado, pagar, eliminar } from '../shared/ba
 import * as BASE from '../shared/base.js';
 import * as NPC from '../shared/npc.js';
 import { mensajes, darTransporte, recibirDestreza } from '../shared/retos.js';
-import { peleaNPC, duelo, atacar, validarAtaque } from '../shared/pelea.js';
+import { peleaNPC, duelo, atacar, validarAtaque, armasSinDestreza } from '../shared/pelea.js';
 import { vender, tienda, animalesInicioTurno, animalesFinTurno } from '../shared/objetos.js';
 import { hazanasFinTurno } from '../shared/engine.js';
 import { finTurno } from '../shared/eventos.js';
@@ -145,7 +145,7 @@ function forzar(e, ...valores) {
 }
 
 // 2) Arco y escudo (Jorge, 28 de noviembre): las flechas solo al principio de la pelea; el escudo para las flechas y al atacante le
-// resta 1 (o 2 si quien se defiende tiene destreza)
+// resta 1, siempre (Jorge, 28 nov, 10:16: «resta 1 al atacante siempre en todo caso y ya»)
 {
   const prep = () => {
     const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
@@ -175,7 +175,7 @@ function forzar(e, ...valores) {
   ds = resolverAsalto(g, e, jamil, adi);
   assert.ok(!ds.some((d) => /Levantar el escudo|levanta su Escudo/.test(JSON.stringify(d))), 'el escudo ya no tira dado');
   const tj = ds.find((d) => d.por === jamil && /2 dados/.test(d.grupos[0].etq)).resumen.join(' ');
-  assert.match(tj, /escudo de .* −2/, 'con destreza, el escudo le resta 2 al atacante');
+  assert.match(tj, /escudo de .* −1/, 'con destreza también resta solo 1 (Jorge, 28 nov, 10:16)');
   assert.match(tj, /cimitarra \+2/, 'las armas se suman');
   ({ g, e, jamil, adi, A } = prep()); A.extra.entrenado = {};
   A.mano.push({ uid: 9012, tipo: 'objeto', ref: 'OB04' });
@@ -187,7 +187,8 @@ function forzar(e, ...valores) {
   ({ g, e, jamil, adi, A } = prep());
   A.ciudad = 'Basra'; A.mano.push({ uid: 9008, tipo: 'item', ref: 'arco' }, { uid: 9009, tipo: 'item', ref: 'flechas' });
   forzar(e, 5);
-  assert.equal(peleaNPC(data, e, adi, { etq: 'Bandoleros', dados: 2, bono: 100 }), true, 'la flecha pone en fuga a los bandoleros');
+  assert.equal(peleaNPC(data, e, adi, { etq: 'Bandoleros', dados: 2, bono: 100 }), false, 'la flecha ya no pone en fuga (Jorge, 28 nov, 10:11)');
+  assert.ok([e.dados, ...e.colaDados].filter(Boolean).some((d) => d.resumen.some((x) => /Bandoleros: .*flecha −2/.test(x))), 'con 5 la flecha le da y el rival pelea con −2');
   // los ladrones de Alí Babá (E2): el escudo ya no los ahuyenta
   ({ g, e, jamil, adi, A } = prep());
   e.mods.ladrones = true; turnoDe(e, adi, 'Damasco'); A.dinares = 30;
@@ -1205,14 +1206,15 @@ for (let k = 0; k < 6; k++) {
     assert.equal(flecha.lanzado, false, `${tipo}: la flecha espera el botón del jugador`);
     assert.equal(flecha.boton, 'Disparar flecha', `${tipo}: el botón dice «Disparar flecha»`);
     assert.ok(cola.indexOf(flecha) === 0 || cola.slice(0, cola.indexOf(flecha)).every((d) => !/lanza 2 dados|2 dados/.test(d.grupos[0].etq)), `${tipo}: la flecha va antes de los dados de la pelea`);
-    assert.match(flecha.resumen.join(' '), /−1 y sin su destreza/, `${tipo}: con 6 le da`);
+    assert.match(flecha.resumen.join(' '), /Le da! .* −2/, `${tipo}: con 6 le da (−2, Jorge 28 nov 10:11)`);
     assert.equal([...A.mano, ...e.jugadores[b].mano].filter((c) => c.ref === 'flechas').length, 1, `${tipo}: gasta una flecha (si pierde el robo, la otra se la lleva el rival)`);
     assert.ok(!/arco \+/.test(fin), `${tipo}: el arco no suma fijo`);
-    assert.match(fin, /flecha −1/, `${tipo}: el rival pelea con −1`);
+    assert.match(fin, /flecha −2/, `${tipo}: el rival pelea con −2`);
     const r = reducir(data, e, b, { t: 'lanzarDados' }, e.ahora + 1); assert.equal(r.ok, false, 'el rival no puede disparar por él');
   }
-  { const { flecha, fin } = prep('robo', 3); assert.match(flecha.resumen.join(' '), /falla/, 'sin entrenar, un 3 falla'); assert.ok(!/flecha −1/.test(fin)); }
-  { const { flecha, fin } = prep('robo', 4, true); assert.match(flecha.resumen.join(' '), /cubrirse: −1/, 'entrenado, un 4 obliga a cubrirse'); assert.match(fin, /flecha −1/); assert.ok(!/destreza perdida/.test(fin)); }
+  { const { flecha, fin } = prep('robo', 4); assert.match(flecha.resumen.join(' '), /falla/, 'sin destreza en el arco, un 4 falla'); assert.ok(!/flecha −/.test(fin)); }
+  { const { flecha, fin } = prep('robo', 4, true); assert.match(flecha.resumen.join(' '), /Le da! .* −2/, 'con destreza en el arco, un 4 le da'); assert.match(fin, /flecha −2/); assert.ok(!/destreza perdida/.test(fin)); }
+  { const { flecha } = prep('robo', 3, true); assert.match(flecha.resumen.join(' '), /falla/, 'con destreza en el arco, un 3 falla'); }
 }
 
 // Nur al Din (regla de Jorge, 7 de noviembre): empieza entrenado solo con la cimitarra (como si ya hubiera hecho R18), sin destreza general;
@@ -2304,7 +2306,7 @@ for (let k = 0; k < 6; k++) {
   assert.equal(bonosCombate(data, e, a, 'def', A.ciudad).total, sinN, 'tampoco en robos y ataques a muerte');
   const P = { atk: b, def: a, ciudad: A.ciudad, conEsclavo: {} };
   assert.equal(penaEscudo(data, e, P), 1, 'sin destreza, al atacante −1');
-  A.destreza = true; assert.equal(penaEscudo(data, e, P), 2, 'con destreza, −2');
+  A.destreza = true; assert.equal(penaEscudo(data, e, P), 1, 'con destreza también −1 (Jorge, 28 nov, 10:16)');
   assert.equal(penaEscudo(data, e, { ...P, atk: a, def: b }), 0, 'el escudo del atacante no hace nada');
 }
 
@@ -3154,7 +3156,7 @@ console.log('reglas de la casa OK');
 }
 
 // Jorge (12 de noviembre): R51 «Torneo de Murcia» (Andalucía): 16 dinares, arco y 1 flecha (se gasta), una vez cada dos turnos; 1 o 6 da la
-// destreza máxima en arco (sus flechas siempre aciertan: rival −1; el escudo las para) y el torneo deja de aparecer; 2 a 5, 20 noches.
+// destreza máxima en arco (sus flechas siempre aciertan: rival −2 desde el 28 nov; el escudo las para) y el torneo deja de aparecer; 2 a 5, 20 noches.
 // Yafar puede sobornar a los jueces: 16 + 20 y gana sin tirar (Yafar NPC siempre soborna).
 {
   const { vistaCongelada, dadosPendientes } = await import('../shared/congelar.js');
@@ -3181,13 +3183,13 @@ console.log('reglas de la casa OK');
     forzar(e, 6); assert.ok(g.act(a, { t: 'reto', id: 'R51' }).ok); recibirDestreza(data, e, a); assert.ok(A.extra.arcoMaximo, 'con 6 gana');
     A.turnos += 2; turnoDe(e, a, 'Andalucía'); e.turno.fase = 'acciones'; assert.ok(!op(e, a), 'al lograrla deja de aparecer');
     assert.match(vistaDe(e, a).jugadores[a].arcoMaximo ? 'si' : '', /si/, 'se ve en la lista de entrenamiento'); }
-  // con destreza máxima la flecha siempre acierta (−1 al rival) y el escudo la sigue parando
+  // con destreza máxima la flecha siempre acierta (−2 al rival) y el escudo la sigue parando
   { const g = partida(['4', '7', '5']); assert.ok(g.iniciar().ok);
     const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
     for (const id of g.ids) e.jugadores[id].ciudad = 'Damasco'; e.ronda = 5;
     A.extra.arcoMaximo = true; A.mano.push({ uid: 9901, tipo: 'item', ref: 'arco' }, { uid: 9902, tipo: 'item', ref: 'flechas' }, { uid: 9903, tipo: 'item', ref: 'flechas' }, { uid: 9905, tipo: 'item', ref: 'alfanje' });   // el arco no es arma: para asaltar hace falta otra (Jorge, 19 de noviembre)
     const asalto = () => { turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; const m0 = e.logN || 0; assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok); if (e.pend?.tipo === 'defensa') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' }); while (e.pend) g.act(e.pend.para[0], { t: 'decidir', id: e.pend.id, opcion: e.pend.porDefecto ?? e.pend.opciones?.[0]?.id }); return JSON.stringify(e.log.filter((h) => h.n > m0)); };
-    forzar(e, 1, 1, 6, 6); let t = asalto(); assert.match(t, /destreza máxima en arco: la flecha acierta/); A.buscado = 0;
+    forzar(e, 1, 1, 6, 6); let t = asalto(); assert.match(t, /Campeón de Murcia, dispara sin fallar: la flecha acierta y .* −2/); A.buscado = 0;
     B.mano.push({ uid: 9904, tipo: 'objeto', ref: 'OB04' }); forzar(e, 1, 1, 6, 6); t = asalto(); assert.match(t, /se clava en el escudo/, 'el escudo la para'); }
   // Yafar jugador puede sobornar: 16 + 20
   { const { g, e, a, A } = prep(['B', '7']); darItem(e, A, 'arco'); darItem(e, A, 'flechas'); A.dinares = 40;
@@ -3206,7 +3208,7 @@ console.log('reglas de la casa OK');
   A.ciudad = 'Basra'; A.extra.arcoMaximo = true; darItem(e, A, 'arco'); darItem(e, A, 'flechas'); turnoDe(e, a, 'Basra');
   const n0 = e.logN || 0; forzar(e, 6, 6, 1, 1);
   assert.equal(peleaNPC(data, e, a, { etq: 'Bandoleros', dados: 2, bono: 0 }), true, 'gana la pelea');
-  assert.ok(e.log.some((h) => h.n > n0 && /destreza máxima en arco: la flecha acierta y Bandoleros pelea con −1/.test(h.texto)), 'la flecha acierta sin dado');
+  assert.ok(e.log.some((h) => h.n > n0 && /Campeón de Murcia, dispara sin fallar: la flecha acierta y Bandoleros pelea con −2/.test(h.texto)), 'la flecha acierta sin dado');
   assert.ok(!tieneItem(A, 'flechas'), 'gasta la flecha');
 }
 
@@ -6186,4 +6188,48 @@ console.log('Sherezada: los dados antes que la muerte OK');
     if (muere) assert.ok(B.eliminado, `dado ${x} contra el 1: golpe de gracia`); else assert.ok(!B.eliminado && B.malHerido, `dado ${x} contra el 1: mal herido`);
   }
   console.log('peleas nuevas: mal herido, Bagdad, robo con herida OK');
+}
+
+// Jorge (28 nov, 10:00): «el dado de destreza es por arma»; eligió «Par: esa arma cuenta». Quien se defiende sin destreza tira un dado
+// por cada arma: par, esa arma cuenta (pelea D); si ninguna sale par, pelea A. En una pelea D, también el agresor tira por cada arma
+// sin destreza, y las que sacan impar no suman.
+{
+  const vistos = { D: 0, A: 0, atkFuera: 0 };
+  for (let k = 1; k <= 60; k++) {
+    const g = partida(['4', '7'], {}, k); assert.ok(g.iniciar().ok);
+    const e = g.e, [a, b] = g.ids, A = e.jugadores[a], B = e.jugadores[b];
+    for (const j of [A, B]) { j.ciudad = 'Damasco'; j.destreza = false; j.herido = false; j.extra.entrenado = {}; j.mano = j.mano.filter((c) => !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref) && c.ref !== 'OB04' && c.ref !== 'OB01'); }
+    darItem(e, A, 'alfanje'); darItem(e, A, 'cimitarra'); darItem(e, B, 'alfanje'); darItem(e, B, 'cimitarra');
+    e.ronda = 4; e.mods = {}; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones';
+    assert.ok(g.act(a, { t: 'atacar', tipo: 'robo', objetivo: b }).ok);
+    if (e.pend && e.pend.para[0] === b && e.pend.tipo !== 'numeros') g.act(b, { t: 'decidir', id: e.pend.id, opcion: 'luchar' });
+    const ds = [e.dados, ...(e.colaDados || [])].filter(Boolean);
+    const dB = ds.find((d) => d.por === b && /dado de destreza por cada una/.test(d.grupos[0].etq));
+    assert.ok(dB, 'quien se defiende sin destreza tira un dado por cada arma');
+    assert.equal(dB.valores.length, 2, 'un dado por alfanje y otro por cimitarra');
+    const pares = dB.valores.filter((x) => x % 2 === 0).length;
+    const txt = ds.flatMap((d) => d.resumen).join(' ');
+    if (pares) {
+      vistos.D++; assert.match(txt, /y destreza \(D\)/);
+      const dA = ds.find((d) => d.por === a && /dado de destreza por cada una/.test(d.grupos[0].etq));
+      assert.ok(dA, 'en D también el agresor tira por cada arma sin destreza');
+      if (dA.valores.some((x) => x % 2)) { vistos.atkFuera++; assert.match(txt, /impar en su dado de destreza/); }
+    } else {
+      vistos.A++; assert.match(txt, /pelea sin armas ni destreza \(A\)/);
+      assert.ok(!ds.some((d) => d.por === a && /dado de destreza/.test(d.grupos[0].etq)), 'en A el agresor no tira por sus armas');
+    }
+  }
+  assert.ok(vistos.D && vistos.A && vistos.atkFuera, JSON.stringify(vistos));
+  // con destreza general no se tira nada; un arma entrenada no tira, la otra sí
+  const g = partida(['4', '7'], {}, 3); assert.ok(g.iniciar().ok);
+  const e = g.e, [a, b] = g.ids, A = e.jugadores[a];
+  A.ciudad = 'Damasco'; A.mano = A.mano.filter((c) => !['arco', 'alfanje', 'cimitarra', 'jambiya'].includes(c.ref)); darItem(e, A, 'alfanje'); darItem(e, A, 'cimitarra');
+  A.destreza = true; assert.deepEqual(armasSinDestreza(data, e, { ciudad: 'Damasco' }, a), []);
+  A.destreza = false; A.extra.entrenado = { alfanje: true }; assert.deepEqual(armasSinDestreza(data, e, { ciudad: 'Damasco' }, a), ['cimitarra']);
+  // Jorge (28 nov): «¿por qué no puedo retar a muerte a Yafar?»: sin destreza la acción sale apagada con el motivo, no desaparece
+  const B = e.jugadores[b]; B.ciudad = 'Damasco'; B.transito = null; e.ronda = 5; e.mods = {}; turnoDe(e, a, 'Damasco'); e.turno.fase = 'acciones'; A.extra.entrenado = {};
+  const m = vista(data, e, a).acciones.find((x) => x.k === 'atacar' && x.tipo === 'matar');
+  assert.ok(m && m.bloqueado && /destreza/.test(m.bloqueado), 'atacar a muerte sale apagado y dice que falta destreza');
+  assert.ok(vista(data, e, a).acciones.some((x) => x.k === 'atacar' && x.tipo === 'robo' && !x.bloqueado), 'robar sí se puede');
+  console.log('dado de destreza por arma OK');
 }

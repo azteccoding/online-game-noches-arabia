@@ -1545,8 +1545,11 @@ export function acciones(data, e, pid) {
   if (!t.principal && !t.ccActual) {
     const objetivos = activos(e).filter((x) => x !== pid && e.jugadores[x].ciudad === j.ciudad && !e.jugadores[x].transito);
     for (const tipo of ['robo', 'matar', 'duelo']) {
-      const ob = objetivos.filter((x) => validarAtaque(data, e, pid, { tipo, objetivo: x }).ok);
+      const vs = objetivos.map((x) => [x, validarAtaque(data, e, pid, { tipo, objetivo: x })]);
+      const ob = vs.filter(([, v]) => v.ok).map(([x]) => x);
       if (ob.length) r.push({ k: 'atacar', tipo, objetivos: ob });
+      // Jorge (28 nov, «¿por qué no puedo retar a muerte a Yafar?»): si nadie de aquí puede ser atacado así, la acción sale apagada con el motivo
+      else if (vs.length) r.push({ k: 'atacar', tipo, objetivos: vs.map(([x]) => x), bloqueado: vs[0][1].error || 'Ahora no puedes.' });
     }
     for (const x of RET.disponibles(data, e, pid)) r.push(x);
     for (const x of TES.disponibles(data, e, pid)) r.push(x);

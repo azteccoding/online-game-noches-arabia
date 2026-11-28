@@ -6,7 +6,11 @@ import { confirmarViajeBurro } from '../game/burro.js';
 import { useBloqueo } from '../hooks/useBloqueo.js';
 
 const nom = (s, id) => s.jugadores[id]?.nombre || id;
-const TIPO_ATAQUE = { robo: ['Robar a', 'Asalto: sin armas ni gritos, se resuelve con dados (R 12).'], matar: ['Atacar a muerte a', 'Pelea a muerte: quien pierde es eliminado (R 11).'], duelo: ['Desafiar a duelo a', 'Duelo: pelea limpia; el perdedor paga o queda herido (R 11).'] };
+const TIPO_ATAQUE = {   // reglas de pelea del 28 de noviembre (11.2 a 11.6)
+  robo: ['Robar a', 'Asalto con arma: quien pierda entrega todo lo que lleva y queda herido (si ya lo estaba, muere); si empatan, gana quien se defiende.'],
+  matar: ['Atacar a muerte a', 'Necesitas arma y destreza. Quien pierda por 3 o más muere y el otro se queda con todo; por menos, queda mal herido; si empatan, los dos quedan heridos.'],
+  duelo: ['Desafiar a duelo a', 'Quien pierda entrega la mitad de sus dinares y 30 noches, sin quedar herido; si empatan, nadie gana y quien retó pierde la acción.'],
+};
 
 function Objetivo({ s, ids, valor, onChange }) {
   return (
@@ -63,11 +67,12 @@ function Atacar({ s, a }) {
       <div className="accion-txt"><b>{t}…</b><small>{ayuda}</small>
         {nur && <small>Nur al Din (honor): puedes pedir una indemnización si ganas.</small>}
         {a.tipo === 'duelo' && mi.herido && <small className="aviso-mal">Estás herido: si pierdes este duelo, mueres.</small>}
-        {a.tipo === 'duelo' && obj && s.jugadores[obj]?.herido && <small className="aviso-bien">{s.jugadores[obj].nombre} está herido: si ganas tú, muere.</small>}</div>
+        {a.tipo === 'duelo' && obj && s.jugadores[obj]?.herido && <small className="aviso-bien">{s.jugadores[obj].nombre} está herido: si ganas tú, muere.</small>}
+        {a.bloqueado && <small className="error">{a.bloqueado}</small>}</div>
       <div className="accion-ctl">
         <Objetivo s={s} ids={a.objetivos} valor={obj} onChange={setObj} />
         {nur && <><input type="number" min="0" value={din} onChange={(e) => setDin(e.target.value)} aria-label="Dinares que pides" title="Dinares que pides" style={{ width: 70 }} /><input type="number" min="0" value={noc} onChange={(e) => setNoc(e.target.value)} aria-label="Noches que pides" title="Noches que pides" style={{ width: 70 }} /></>}
-        <button className="btn mini" disabled={!!s.pend || !!s.dados} onClick={() => enviar(ACCIONES.atacar(a.tipo, obj, nur ? { pedirDinares: Number(din), pedirNoches: Number(noc) } : {}))}>{a.tipo === 'robo' ? 'Robar' : a.tipo === 'matar' ? 'Atacar' : 'Desafiar'}</button>
+        <button className="btn mini" disabled={!!a.bloqueado || !!s.pend || !!s.dados} onClick={() => enviar(ACCIONES.atacar(a.tipo, obj, nur ? { pedirDinares: Number(din), pedirNoches: Number(noc) } : {}))}>{a.tipo === 'robo' ? 'Robar' : a.tipo === 'matar' ? 'Atacar' : 'Desafiar'}</button>
       </div>
     </div>
   );

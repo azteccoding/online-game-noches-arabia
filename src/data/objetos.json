@@ -63,7 +63,7 @@
    "valor": 22,
    "duracion": "Permanente",
    "momento": "Pelea",
-   "efecto": "Siempre para las flechas, pero aguanta 3: al tercer flechazo se destruye y vuelve al Bazar. Cuando te atacan (robo, duelo o ataque a muerte), al atacante le resta 1, o 2 si tienes destreza. Si pelea tu esclavo, él lo lleva. Objeto de combate.",
+   "efecto": "Siempre para las flechas, pero aguanta 3: al tercer flechazo se destruye y vuelve al Bazar. Cuando te atacan (robo, duelo o ataque a muerte), al atacante le resta 1, siempre. Si pelea tu esclavo, él lo lleva. Objeto de combate.",
    "sirvePara": "R8, R36, E8",
    "seConsigueEn": "Estambul, Yemen, Isfahán",
    "humor": "Pesa, pero te quedas con el cuerpo en una pieza.",
@@ -781,7 +781,7 @@
   },
   {
    "nombre": "Arco",
-   "efecto": "Antes de cualquier pelea disparas una flecha: con 5 o 6 el rival pelea con −1 y sin destreza (entrenado en R43, también con 3 o 4 pelea con −1). Gasta 1 flecha por disparo. En Bagdad solo con Firmán",
+   "efecto": "Antes de cualquier pelea disparas una flecha: con 5 o 6 le da y el rival pelea con −2 (con destreza en el arco, R43, de 4 a 6); si no, falla. Contra un escudo no hace nada. Gasta 1 flecha por disparo. En Bagdad solo con Firmán",
    "precio": "15 dinares"
   },
   {
@@ -881,7 +881,7 @@
   },
   {
    "nombre": "Arco",
-   "efecto": "Arma: antes de cualquier pelea (robo, ataque a muerte o duelo), al atacar o defenderte, disparas una flecha: con 5 o 6 el rival pelea con −1 y sin destreza; con el arco entrenado (R43), con 3 o 4 pelea con −1; contra un escudo no hace nada. Gasta 1 flecha por disparo; en Bagdad solo con Firmán del Califa. No cuenta como arma: solo sirve para este disparo. Cuesta 15 dinares.",
+   "efecto": "Arma: antes de cualquier pelea (robo, ataque a muerte o duelo), al atacar o defenderte, disparas una flecha: con 5 o 6 le da y el rival pelea con −2; con destreza en el arco (R43), de 4 a 6; si no, falla; contra un escudo no hace nada. Gasta 1 flecha por disparo; en Bagdad solo con Firmán del Califa. No cuenta como arma: solo sirve para este disparo. Cuesta 15 dinares.",
    "precio": "11.1, 15.1, 27.1"
   },
   {

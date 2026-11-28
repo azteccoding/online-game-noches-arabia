@@ -715,7 +715,7 @@ export function recibirDestreza(data, e, pid, { inicio = false } = {}) {
   for (const q of listas) {
     let texto;
     if (q.t === 'general') { if (q.plena) j.destreza = true; else darDestreza(j); texto = soloJambiya(j) && !q.plena ? 'Terminó tu turno de entrenamiento: ya tienes destreza, solo con la jambiya.' : 'Terminó tu turno de entrenamiento: ya tienes destreza con armas, +1 en todas tus peleas.'; }
-    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Un 3 o 4 en tu flecha también le pega al rival: pelea con −1.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
+    else if (q.t === 'arma') { (j.extra.entrenado ||= {})[q.arma] = true; texto = q.arma === 'arco' ? 'Terminó tu turno de entrenamiento: ya estás entrenado con el arco. Ya tienes destreza en el arco: tu flecha le da con 4, 5 o 6 y el rival pelea con −2.' : `${q.ronda != null ? 'Empieza la ronda y terminó tu entrenamiento' : 'Terminó tu turno de entrenamiento'}: ya tienes destreza con ${q.arma === 'alfanje' ? 'el alfanje' : 'la ' + q.arma}. Cuando pelees con ${q.arma === 'alfanje' ? 'él' : 'ella'}, peleas con destreza y sumas +1.`; }
     else if (q.t === 'armasR54') {
       for (const r of q.armas) (j.extra.entrenado ||= {})[r] = true;
       const l = q.armas.map((r) => (r === 'alfanje' ? 'el alfanje' : 'la ' + r)); const t = l.length > 1 ? l.slice(0, -1).join(', ') + ' y ' + l.at(-1) : l[0];
@@ -733,7 +733,7 @@ function entrenarArma(e, pid, id) {
   // Jorge (27 de noviembre): el entrenamiento con jambiya, cimitarra o alfanje se recibe al iniciar la ronda siguiente, no al terminar el turno
   const q = { t: 'arma', arma, de: id, ...(ENTRENO_SIG_RONDA.includes(arma) && !j.npc ? { ronda: e.ronda + 1 } : {}) };
   j.dinares -= costo; j.noches += NOCHES_ENTRENAR; hacer(e, pid, id); aplazarDestreza(e, pid, q);
-  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina${arma === 'arco' ? ' y al terminar queda entrenado: un 3 o 4 en su flecha también le pega al rival (pelea con −1)' : ` y al empezar la siguiente ronda tendrá destreza con ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
+  log(e, `${j.nombre} entrena con ${arma} y gana ${NOCHES_ENTRENAR} noches: su turno termina${arma === 'arco' ? ' y al terminar queda entrenado: su flecha le dará con 4, 5 o 6 (el rival pelea con −2)' : ` y al empezar la siguiente ronda tendrá destreza con ${arma === 'alfanje' ? 'el alfanje' : 'la ' + arma} (+1 con ${arma === 'alfanje' ? 'él' : 'ella'})`}.`, { pid });
 }
 const reqArma = (id) => (d, e, pid) => {
   const j = e.jugadores[pid], { arma, costo } = ENTRENAMIENTOS[id];
@@ -912,7 +912,7 @@ T.R35 = { ciudad: 'India', req: (data, e, pid) => { const j = e.jugadores[pid]; 
   } };
 T.R36 = { ciudad: 'Basra', req: (data, e, pid) => { const j = e.jugadores[pid]; if (!tieneArma(data, e, j)) return 'Necesitas un arma.'; return j.dinares >= 5 ? null : 'Cuesta 5 dinares.'; }, run(data, e, pid, ctx) {
   const j = e.jugadores[pid]; j.dinares -= 5; hacer(e, pid, 'R36');
-  if (peleaNPC(data, e, pid, { etq: 'Campeón del puerto', dados: 2, bono: 2 }))   // el escudo, como en toda pelea: al rival −1, o −2 con destreza (Jorge, 28 de noviembre)
+  if (peleaNPC(data, e, pid, { etq: 'Campeón del puerto', dados: 2, bono: 2 }))   // el escudo, como en toda pelea: al rival −1, siempre (Jorge, 28 nov, 10:16)
    { premio(data, e, pid, { dinares: 50, noches: 15 }, `${j.nombre} vence al campeón del puerto:`); robarBotin(data, e, pid); }
   else { pagar(data, e, pid, 15); j.herido = true; log(e, `${j.nombre} cae ante el campeón del puerto.`, { pid }); ctx.fallo = true; }
 } };
@@ -970,7 +970,7 @@ registrar('reto.yeguas', (data, e, args, resp) => {
 });
 // R51 «Torneo de Murcia» (Jorge, 12 de noviembre): en Andalucía, Ibn Mardanish convoca a disparar con arco. Hay que traer arco y una flecha
 // (se gasta); cuesta 16 dinares; una vez cada dos turnos propios. Un dado con su botón: con 1 o 6, destreza máxima en arco para toda la
-// partida (pelea.js: tus flechas siempre aciertan y el rival pelea con −1) y el torneo deja de aparecerte; con 2 a 5 pierdes y ganas 20 noches.
+// partida (pelea.js: tus flechas siempre aciertan y el rival pelea con −2) y el torneo deja de aparecerte; con 2 a 5 pierdes y ganas 20 noches.
 // Yafar (NPC o jugador) puede además sobornar a los jueces: 20 dinares más y gana sin tirar.
 // Yafar NPC, si llega a elegir este reto, siempre soborna (Jorge): solo puede hacerlo si le alcanzan los 36 dinares.
 export const TORNEO = { costo: 16, soborno: 20, gana: [1, 6], noches: 20, cadaTurnos: 2 };
