@@ -988,7 +988,9 @@ export function usar(data, e, pid, a) {
       const x = dado(e);
       const inmune = tieneObj(o, 'OB23') || tieneObj(o, 'OB25');
       mostrarDados(e, { por: pid, motivo: 'lazo', grupos: [{ etq: `${j.nombre} lanza el lazo`, valores: [x] }], resumen: [x >= 4 && !inmune ? `${o.nombre} no podrá viajar en su siguiente turno.` : `El lazo no atrapa a ${o.nombre}.`] });
-      if (x >= 4 && !inmune) o.extra.lazoTurno = (o.turnos || 0) + 1;
+      // Jorge (27 de noviembre: «el lazo de camellero debe evitar que el jugador elegido viaje»). Antes se guardaba en lazoTurno, la
+      // misma marca de «ya lanzaste tu lazo», y el bloqueo nunca se aplicaba. Su siguiente turno es el turnos + 1 (turnos sube al empezar).
+      if (x >= 4 && !inmune) o.extra.lazoAtado = (o.turnos || 0) + 1;
       return ok();
     }
     case 'OB15':   // Joya para el visir (Jorge, 19 de noviembre): solo en Bagdad; el descuento del Firmán queda guardado

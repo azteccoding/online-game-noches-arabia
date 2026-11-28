@@ -649,6 +649,7 @@ export function textoBuscado(data, e, j) {
 export function motivoNoSalir(e, j, enCaravana = true) {
   // Jorge (21 de noviembre): una deuda con la ciudad ya no impide salir de ella; se cobra sola al volver.
   if (j.extra?.sinViajar === e.ronda) return 'Un lazo de camellero te impide viajar esta ronda.';
+  if (j.extra?.lazoAtado && j.extra.lazoAtado === j.turnos) return 'Te atraparon con un Lazo de camellero: no puedes viajar en este turno.';
   if (j.extra?.estudio && j.ciudad === j.extra.estudio.ciudad) return `Estás estudiando ${j.extra.estudio.idioma} en ${j.extra.estudio.ciudad}: no puedes salir hasta terminar las clases.`;   // Jorge (10 de noviembre)
   if (j.extra?.forja && j.ciudad === 'Damasco') return 'Estás forjando acero de Damasco: no puedes salir hasta que te den tu cimitarra.';   // R52 (Jorge, 17 de noviembre)
   if (cargaExcedida(j, e)) return sobrecarga(j, e);

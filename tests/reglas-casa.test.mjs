@@ -4278,10 +4278,20 @@ console.log('reglas de la casa OK');
   // sigue inmovilizando con 4 a 6
   const B = e.jugadores[b]; B.ciudad = A.ciudad = 'Basra'; turnoDe(e, a, 'Basra'); e.turno.fase = 'acciones';
   A.mano.push({ uid: 'lzU', tipo: 'objeto', ref: 'OB05', pub: true }); forzar(e, 5);
-  assert.ok(g.act(a, { t: 'usar', uid: 'lzU', objetivo: b }).ok); assert.equal(B.extra.lazoTurno, (B.turnos || 0) + 1, 'con 5 no podrá viajar');
+  assert.ok(g.act(a, { t: 'usar', uid: 'lzU', objetivo: b }).ok); assert.equal(B.extra.lazoAtado, (B.turnos || 0) + 1, 'con 5 no podrá viajar');
   assert.ok(A.mano.some((x) => x.uid === 'lzU'), 'tampoco se gasta al inmovilizar');
   while (e.dados) g.act(a, { t: 'cerrarDados' });
   assert.match(g.act(a, { t: 'usar', uid: 'lzU', objetivo: b }).error || '', /Ya lanzaste tu lazo este turno/, 'una vez por turno');
+  // Jorge (27 de noviembre: «el lazo de camellero debe evitar que el jugador elegido viaje»): en su siguiente turno el atrapado no viaja
+  // (ni en caravana ni en su propio transporte), pero sí puede lanzar su propio lazo; en el turno de después ya viaja.
+  B.turnos++; turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
+  assert.match(g.act(b, { t: 'viajar', destino: 'Bagdad' }).error || '', /Lazo de camellero/, 'atrapado: no viaja en su siguiente turno');
+  assert.match(vistaDe(e, b).noSalir || '', /Lazo de camellero/, 'la vista le dice por qué no puede salir');
+  B.mano.push({ uid: 'lzB', tipo: 'objeto', ref: 'OB05', pub: true }); forzar(e, 1);
+  assert.ok(g.act(b, { t: 'usar', uid: 'lzB', objetivo: a }).ok, 'el atrapado sí puede lanzar su propio lazo');
+  while (e.dados) g.act(b, { t: 'cerrarDados' });
+  B.turnos++; turnoDe(e, b, 'Basra'); e.turno.fase = 'acciones';
+  assert.ok(g.act(b, { t: 'viajar', destino: 'Bagdad' }).ok, 'en el turno de después ya viaja');
 }
 // Camello amarrado con el lazo (Jorge, 19 de noviembre)
 {
